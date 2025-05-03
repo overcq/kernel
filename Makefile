@@ -29,25 +29,20 @@ install-qemu:
 	|| exit 1; \
 	loopdev=$$( losetup -LPf --show ../boot/disk.img ); \
 	trap 'losetup -d $$loopdev' EXIT \
-	&& mount $${loopdev}p2 $$ocq_mnt \
-	&& trap 'losetup -d $$loopdev && umount $$ocq_mnt' EXIT \
-	&& mkdir -p $$ocq_mnt/EFI/BOOT \
-	&& install kernel $$ocq_mnt/system
+	&& install/a.out kernel $${loopdev}p2
 install-vmware:
 	ocq_mnt=/mnt/oth; \
 	mkdir -p $$ocq_mnt \
 	&& trap '$(VMWARE_DIR)/bin/vmware-mount -d $$ocq_mnt' EXIT \
-	&& $(VMWARE_DIR)/bin/vmware-mount ~inc/vmware/boot\ UEFI/boot\ UEFI.vmdk 2 $$ocq_mnt \
-	|| exit 1; \
-	mkdir -p $$ocq_mnt/EFI/BOOT \
-	&& install kernel $$ocq_mnt/system
+	&& $(VMWARE_DIR)/bin/vmware-mount -f ~inc/vmware/boot\ UEFI/boot\ UEFI.vmdk $$ocq_mnt \
+	&& trap 'losetup -d $$loopdev && $(VMWARE_DIR)/bin/vmware-mount -d $$ocq_mnt' EXIT \
+	&& loopdev=$$( losetup -LPf --show $$ocq_mnt/flat ) \
+	&& install/a.out kernel $${loopdev}p2
 #-------------------------------------------------------------------------------
 install-usb:
 	ocq_usb_dev=/dev/sdc; \
 	ocq_usb_mnt=/mnt/usb; \
-	mount $${ocq_usb_dev}2 $$ocq_usb_mnt \
-	|| exit 1; \
-	trap 'umount $$ocq_usb_mnt' EXIT; \
-	mkdir -p $$ocq_usb_mnt/EFI/BOOT \
-	&& install kernel $$ocq_usb_mnt/system
+	loopdev=$$( losetup -Lf --show $${ocq_usb_dev}2 ); \
+	trap 'losetup -d $$loopdev' EXIT \
+	&& install/a.out kernel $$loopdev
 #*******************************************************************************

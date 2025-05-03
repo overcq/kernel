@@ -8,12 +8,20 @@
 *******************************************************************************/
 #include "main.h"
 //==============================================================================
-int some_export_variable;
-int some_export_bss = 0;
-void
-some_export_procedure( void
-){
-}
+struct E_main_Z_kernel_args
+{ struct E_mem_blk_Z mem_blk;
+  struct H_oux_E_mem_Z_memory_map *memory_map;
+  N memory_map_n;
+  P kernel;
+  P page_table;
+  P kernel_stack;
+  struct H_main_Z_uefi_runtime_services uefi_runtime_services;
+  struct
+  { P dsdt_content;
+    N dsdt_content_l;
+    P facs;
+  }acpi;
+};
 //==============================================================================
 __attribute (( __noreturn__ ))
 void
