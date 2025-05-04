@@ -1,5 +1,5 @@
 .
 Makefile
-kernel.h
-kernel.c
+main.h
+main.c
 *.c

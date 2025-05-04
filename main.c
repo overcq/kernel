@@ -12,6 +12,7 @@ struct E_main_Z_kernel_args
 { struct E_mem_blk_Z mem_blk;
   struct H_oux_E_mem_Z_memory_map *memory_map;
   N memory_map_n;
+  P bootloader;
   P kernel;
   P page_table;
   P kernel_stack;
