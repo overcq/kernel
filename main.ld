@@ -4,6 +4,24 @@ ENTRY(main)
 SECTIONS
 {
   . = SEGMENT_START("text-segment", 0) + SIZEOF_HEADERS;
+  . = ALIGN(CONSTANT (MAXPAGESIZE));
+  .text           :
+  {
+    *(.text.unlikely .text.*_unlikely .text.unlikely.*)
+    *(.text.exit .text.exit.*)
+    *(.text.startup .text.startup.*)
+    *(.text.hot .text.hot.*)
+    *(SORT(.text.sorted.*))
+    *(.text .stub .text.* .gnu.linkonce.t.*)
+    /* .gnu.warning sections are handled specially by elf.em.  */
+    *(.gnu.warning)
+  }
+  . = DATA_SEGMENT_ALIGN (CONSTANT (MAXPAGESIZE), CONSTANT (COMMONPAGESIZE));
+  .data           :
+  {
+    *(.data .data.* .gnu.linkonce.d.*)
+  }
+  .dynamic        : { *(.dynamic) }
   .rela.dyn       :
     {
       *(.rela.text .rela.text.* .rela.gnu.linkonce.t.*)
@@ -23,22 +41,4 @@ SECTIONS
       PROVIDE_HIDDEN (__rela_iplt_end = .);
     }
   .relr.dyn : { *(.relr.dyn) }
-  . = ALIGN(CONSTANT (MAXPAGESIZE));
-  .text           :
-  {
-    *(.text.unlikely .text.*_unlikely .text.unlikely.*)
-    *(.text.exit .text.exit.*)
-    *(.text.startup .text.startup.*)
-    *(.text.hot .text.hot.*)
-    *(SORT(.text.sorted.*))
-    *(.text .stub .text.* .gnu.linkonce.t.*)
-    /* .gnu.warning sections are handled specially by elf.em.  */
-    *(.gnu.warning)
-  }
-  . = DATA_SEGMENT_ALIGN (CONSTANT (MAXPAGESIZE), CONSTANT (COMMONPAGESIZE));
-  .data           :
-  {
-    *(.data .data.* .gnu.linkonce.d.*)
-  }
-  .dynamic        : { *(.dynamic) }
 }
