@@ -5,24 +5,28 @@ SECTIONS
 {
   . = SEGMENT_START("text-segment", 0) + SIZEOF_HEADERS;
   . = ALIGN(CONSTANT (MAXPAGESIZE));
-  .text           :
+  .text :
   {
+    *(.plt.sec)
     *(.text.unlikely .text.*_unlikely .text.unlikely.*)
     *(.text.exit .text.exit.*)
     *(.text.startup .text.startup.*)
     *(.text.hot .text.hot.*)
     *(SORT(.text.sorted.*))
     *(.text .stub .text.* .gnu.linkonce.t.*)
-    /* .gnu.warning sections are handled specially by elf.em.  */
-    *(.gnu.warning)
   }
-  . = DATA_SEGMENT_ALIGN (CONSTANT (MAXPAGESIZE), CONSTANT (COMMONPAGESIZE));
-  .data           :
+  . = ALIGN(CONSTANT (MAXPAGESIZE));
+  .data :
   {
     *(.data .data.* .gnu.linkonce.d.*)
   }
-  .dynamic        : { *(.dynamic) }
-  .rela.dyn       :
+  . = DATA_SEGMENT_ALIGN (CONSTANT (MAXPAGESIZE), CONSTANT (COMMONPAGESIZE));
+  .got : { *(.got) *(.igot) }
+  . = DATA_SEGMENT_RELRO_END (SIZEOF (.got.plt) >= 24 ? 24 : 0, .);
+  .got.plt : { *(.got.plt) *(.igot.plt) }
+  .dynamic : { *(.dynamic) }
+  .dynstr : { *(.dynstr) }
+  .rela.dyn :
     {
       *(.rela.text .rela.text.* .rela.gnu.linkonce.t.*)
       *(.rela.rodata .rela.rodata.* .rela.gnu.linkonce.r.*)
@@ -33,7 +37,7 @@ SECTIONS
       *(.rela.lrodata .rela.lrodata.* .rela.gnu.linkonce.lr.*)
       *(.rela.ifunc)
     }
-  .rela.plt       :
+  .rela.plt :
     {
       *(.rela.plt)
       PROVIDE_HIDDEN (__rela_iplt_start = .);
@@ -41,4 +45,5 @@ SECTIONS
       PROVIDE_HIDDEN (__rela_iplt_end = .);
     }
   .relr.dyn : { *(.relr.dyn) }
+  .note.gnu-property : { *(.note.gnu-property) }
 }

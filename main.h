@@ -63,8 +63,10 @@ typedef __int128            S128;
 #define W_(pointer_variable)                ( W( pointer_variable ), pointer_variable = 0 )
 #define W_tab_(pointer_variable)            ( E_mem_Q_tab_W( pointer_variable ), pointer_variable = 0 )
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#define _inline                             static __attribute__ ((__always_inline__,__unused__))
+#define _inline                             static __attribute__ (( __always_inline__, __unused__ ))
 #define _internal                           static
+#define _private                            __attribute__ (( __visibility__( "hidden" ) ))
+#define _export                             __attribute__ (( __visibility__( "protected" ) ))
 //==============================================================================
 #define H_uefi_Z_api __attribute__(( __ms_abi__ ))
 #define H_uefi_S_error(e) ( (S)( 1LL << 63 ) | e )

@@ -24,11 +24,12 @@ struct E_main_Z_kernel_args
   }acpi;
 };
 //==============================================================================
-__attribute (( __noreturn__ ))
+__attribute__ (( __noreturn__ ))
+_private
 void
 main( struct E_main_Z_kernel_args *kernel_args
 ){  S status = kernel_args->uefi_runtime_services.reset_system( H_uefi_Z_reset_Z_shutdown, 0, 0, 0 );
-End:__asm__ volatile (
+    __asm__ volatile (
     "\n0:"  "hlt"
     "\n"    "jmp    0b"
     );

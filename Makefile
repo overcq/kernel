@@ -16,7 +16,7 @@ build: kernel
 .PHONY: all build clean distclean install-qemu install-vmware install-usb
 #===============================================================================
 kernel: main.h main.c main.ld Makefile
-	$(CC) $(CFLAGS) -fno-zero-initialized-in-bss -ffreestanding -fstack-clash-protection -fwrapv -Wall -Wextra -Wno-address-of-packed-member -Wno-dangling-else -Wno-parentheses -Wno-pointer-sign -Wno-uninitialized -Wno-unused-parameter -Wno-unused-but-set-variable -Wno-unused-variable -nostdlib -Wl,-T,main.ld -o $@.elf $(filter %.c,$^)
+	$(CC) $(CFLAGS) -fno-zero-initialized-in-bss -ffreestanding -fPIC -fstack-clash-protection -fwrapv -Wall -Wextra -Wno-address-of-packed-member -Wno-dangling-else -Wno-parentheses -Wno-pointer-sign -Wno-uninitialized -Wno-unused-parameter -Wno-unused-but-set-variable -Wno-unused-variable -Werror -nostdlib -shared -s -Wl,--gc-sections,-dT,main.ld,--section-start=.note.gnu.property=0x8000000000000000 -o $@.elf $(filter %.c,$^)
 	elf2oux $@.elf || rm -f $@
 	rm $@.elf
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
