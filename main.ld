@@ -4,6 +4,10 @@ ENTRY(main)
 SECTIONS
 {
   . = SEGMENT_START("text-segment", 0) + SIZEOF_HEADERS;
+  . = DATA_SEGMENT_ALIGN (CONSTANT (MAXPAGESIZE), CONSTANT (COMMONPAGESIZE));
+  .got : { *(.got) *(.igot) }
+  . = DATA_SEGMENT_RELRO_END (SIZEOF (.got.plt) >= 24 ? 24 : 0, .);
+  .got.plt : { *(.got.plt) *(.igot.plt) }
   . = ALIGN(CONSTANT (MAXPAGESIZE));
   .text :
   {
@@ -20,10 +24,6 @@ SECTIONS
   {
     *(.data .data.* .gnu.linkonce.d.*)
   }
-  . = DATA_SEGMENT_ALIGN (CONSTANT (MAXPAGESIZE), CONSTANT (COMMONPAGESIZE));
-  .got : { *(.got) *(.igot) }
-  . = DATA_SEGMENT_RELRO_END (SIZEOF (.got.plt) >= 24 ? 24 : 0, .);
-  .got.plt : { *(.got.plt) *(.igot.plt) }
   .dynamic : { *(.dynamic) }
   .dynstr : { *(.dynstr) }
   .rela.dyn :

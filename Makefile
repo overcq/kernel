@@ -26,9 +26,8 @@ clean:
 install-qemu:
 	ocq_mnt=/mnt/oth; \
 	mkdir -p $$ocq_mnt \
-	|| exit 1; \
-	loopdev=$$( losetup -LPf --show ../boot/disk.img ); \
-	trap 'losetup -d $$loopdev' EXIT \
+	&& loopdev=$$( losetup -LPf --show ../boot/UEFI/disk.img ) \
+	&& trap 'losetup -d $$loopdev' EXIT \
 	&& install/a.out kernel $${loopdev}p2
 install-vmware:
 	ocq_mnt=/mnt/oth; \
