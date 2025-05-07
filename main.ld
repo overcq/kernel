@@ -3,14 +3,14 @@ OUTPUT_ARCH(i386:x86-64)
 ENTRY(main)
 SECTIONS
 {
-  . = SEGMENT_START("text-segment", 0) + SIZEOF_HEADERS;
-  . = DATA_SEGMENT_ALIGN (CONSTANT (MAXPAGESIZE), CONSTANT (COMMONPAGESIZE));
+  . = SEGMENT_START("rodata-segment", ALIGN(CONSTANT (MAXPAGESIZE)) + SIZEOF_HEADERS);
   .got : { *(.got) *(.igot) }
-  . = DATA_SEGMENT_RELRO_END (SIZEOF (.got.plt) >= 24 ? 24 : 0, .);
+  /*. = DATA_SEGMENT_RELRO_END (SIZEOF (.got.plt) >= 24 ? 24 : 0, .);*/
   .got.plt : { *(.got.plt) *(.igot.plt) }
-  . = ALIGN(CONSTANT (MAXPAGESIZE));
+  . = SEGMENT_START("text-segment", ALIGN(CONSTANT (MAXPAGESIZE)));
   .text :
   {
+    *(.plt) *(.iplt)
     *(.plt.sec)
     *(.text.unlikely .text.*_unlikely .text.unlikely.*)
     *(.text.exit .text.exit.*)
@@ -19,11 +19,12 @@ SECTIONS
     *(SORT(.text.sorted.*))
     *(.text .stub .text.* .gnu.linkonce.t.*)
   }
-  . = ALIGN(CONSTANT (MAXPAGESIZE));
+  . = DATA_SEGMENT_ALIGN (CONSTANT (MAXPAGESIZE), CONSTANT (COMMONPAGESIZE));
   .data :
   {
     *(.data .data.* .gnu.linkonce.d.*)
   }
+  /*. = SEGMENT_START("rodata-segment", 0);*/
   .dynamic : { *(.dynamic) }
   .dynstr : { *(.dynstr) }
   .rela.dyn :

@@ -12,6 +12,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -24,26 +25,34 @@ main(
         return 1;
     char *src_file = argv[1];
     char *mount_device = argv[2];
-    syscall( 717, 0UL, 0UL, LOCK_UN );
-    syscall( 701, 0UL );
+    //syscall( 717, 0UL, 0UL, LOCK_UN );
+    //syscall( 701, 0UL );
     long device_id = syscall( 700, mount_device );
     if( !~device_id )
+    {   perror( "1" );
         return 1;
+    }
     uint64_t directory_uid;
     if( !~syscall( 703, device_id, ~0UL, "system", &directory_uid ))
     {   if( errno != EEXIST )
+        {   perror( "2" );
             goto Error_0;
+        }
 Retry_1:;
         uint64_t n = 0;
         uint64_t *list = 0;
         if( !~syscall( 707, device_id, ~0UL, &n, list ))
+        {   perror( "3" );
             goto Error_0;
+        }
         list = calloc( n, sizeof( uint64_t ));
         if( !list )
             goto Error_0;
         uint64_t n_ = n;
         if( !~syscall( 707, device_id, ~0UL, &n_, list ))
+        {   perror( "4" );
             goto Error_0;
+        }
         if( n_ != n )
         {   free(list);
             goto Retry_1;
@@ -53,13 +62,17 @@ Retry_1:;
         {   uint64_t l = 0;
             char *name = 0;
             if( !~syscall( 709, device_id, list[i], &l, name ))
+            {   perror( "5" );
                 goto Error_0;
+            }
             name = malloc(l);
             if( !name )
                 goto Error_0;
             uint64_t l_ = l;
             if( !~syscall( 709, device_id, list[i], &l_, name ))
+            {   perror( "6" );
                 goto Error_0;
+            }
             if( l_ != l )
             {   free(name);
                 i--;
@@ -78,18 +91,24 @@ Retry_1:;
     uint64_t file_uid;
     if( !~syscall( 705, device_id, directory_uid, "kernel", &file_uid ))
     {   if( errno != EEXIST )
+        {   perror( "7" );
             goto Error_0;
+        }
 Retry_2:;
         uint64_t n = 0;
         uint64_t *list = 0;
         if( !~syscall( 708, device_id, directory_uid, &n, list ))
+        {   perror( "8" );
             goto Error_0;
+        }
         list = calloc( n, sizeof( uint64_t ));
         if( !list )
             goto Error_0;
         uint64_t n_ = n;
         if( !~syscall( 708, device_id, directory_uid, &n_, list ))
+        {   perror( "9" );
             goto Error_0;
+        }
         if( n_ != n )
         {   free(list);
             goto Retry_2;
@@ -99,13 +118,17 @@ Retry_2:;
         {   uint64_t l = 0;
             char *name = 0;
             if( !~syscall( 711, device_id, list[i], &l, name ))
+            {   perror( "10" );
                 goto Error_0;
+            }
             name = malloc(l);
             if( !name )
                 goto Error_0;
             uint64_t l_ = l;
             if( !~syscall( 711, device_id, list[i], &l_, name ))
+            {   perror( "11" );
                 goto Error_0;
+            }
             if( l_ != l )
             {   free(name);
                 i--;
@@ -122,9 +145,13 @@ Retry_2:;
             goto Error_0;
     }
     if( !~syscall( 717, device_id, file_uid, LOCK_EX ))
+    {   perror( "12" );
         goto Error_0;
+    }
     if( !~syscall( 716, device_id, file_uid, 0UL ))
+    {   perror( "13" );
         goto Error_1;
+    }
     int src_fd = open( src_file, O_RDONLY );
     if( !~src_fd )
         goto Error_1;
@@ -141,11 +168,15 @@ Retry_2:;
         goto Error_1;
     uint64_t l_ = stat.st_size;
     if( !~syscall( 719, device_id, file_uid, 0UL, &l_, buffer ))
+    {   perror( "14" );
         goto Error_1;
+    }
     if( l_ != stat.st_size )
         goto Error_1;
     if( !~syscall( 717, device_id, file_uid, LOCK_UN ))
+    {   perror( "15" );
         return 1;
+    }
     return !~syscall( 701, device_id ) ? 1 : 0;
 Error_1:
     syscall( 717, device_id, file_uid, LOCK_UN );

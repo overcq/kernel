@@ -68,6 +68,26 @@ typedef __int128            S128;
 #define _private                            __attribute__ (( __visibility__( "hidden" ) ))
 #define _export                             __attribute__ (( __visibility__( "protected" ) ))
 //==============================================================================
+#include "simple.h"
+//==============================================================================
+B E_mem_Q_blk_T_eq( P, P, N );
+void E_mem_Q_blk_I_copy( P, P, N );
+void E_mem_Q_blk_P_fill_c( P, N, C );
+P E_mem_Q_blk_M(N);
+P E_mem_Q_blk_M_tab( N, N );
+P E_mem_Q_blk_M_align( N, N );
+P E_mem_Q_blk_M_align_tab( N, N, N );
+P E_mem_Q_blk_M_replace_tab( P, N, N );
+P E_mem_Q_blk_M_replace( P, N );
+P E_mem_Q_blk_M_split( P, N );
+N E_mem_Q_blk_W(P);
+P E_mem_Q_blk_I_add( P, N, N *, N * );
+P E_mem_Q_blk_I_prepend_append( P, N, N );
+P E_mem_Q_blk_I_append( P, N, N );
+P E_mem_Q_blk_I_prepend( P, N );
+P E_mem_Q_blk_I_insert( P, N, N );
+P E_mem_Q_blk_I_remove( P, N, N );
+//==============================================================================
 #define H_uefi_Z_api __attribute__(( __ms_abi__ ))
 #define H_uefi_S_error(e) ( (S)( 1LL << 63 ) | e )
 //------------------------------------------------------------------------------
@@ -158,6 +178,15 @@ struct H_main_Z_uefi_runtime_services
   S ( H_uefi_Z_api __attribute__ (( __warn_unused_result__ )) *R_variable_info )( N32 attributes, N64 *maximum_variable_storage_size, N64 *remaining_variable_storage_size, N64 *maximum_variable_size );
 };
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+struct E_mem_Q_blk_Z_free
+{ Pc p;
+  N l;
+};
+struct E_mem_Q_blk_Z_allocated
+{ Pc p;
+  N n;
+  N u;
+};
 struct E_mem_blk_Z
 { struct E_mem_Q_blk_Z_allocated *allocated;
   N free_id, allocated_id;
@@ -168,9 +197,24 @@ struct E_mem_blk_Z
   N reserved_size;
   B reserved_from_end;
 };
-struct H_oux_E_mem_Z_memory_map
+struct E_mem_Z_memory_map
 { N64 physical_start;
   N64 virtual_start;
   N64 pages;
+};
+struct E_main_Z_kernel
+{ struct E_mem_blk_Z mem_blk;
+  struct E_mem_Z_memory_map *memory_map;
+  N memory_map_n;
+  N gdt[5], ldt[2], idt[ 22 * 2 ];
+  P kernel;
+  P page_table;
+  P *stack;
+  struct H_main_Z_uefi_runtime_services uefi_runtime_services;
+  struct
+  { P dsdt_content;
+    N dsdt_content_l;
+    P facs;
+  }acpi;
 };
 /******************************************************************************/

@@ -15,9 +15,10 @@ build: kernel
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .PHONY: all build clean distclean install-qemu install-vmware install-usb
 #===============================================================================
-kernel: main.h main.c main.ld Makefile
-	$(CC) $(CFLAGS) -fno-zero-initialized-in-bss -ffreestanding -fPIC -fstack-clash-protection -fwrapv -Wall -Wextra -Wno-address-of-packed-member -Wno-dangling-else -Wno-parentheses -Wno-pointer-sign -Wno-uninitialized -Wno-unused-parameter -Wno-unused-but-set-variable -Wno-unused-variable -Werror -nostdlib -shared -s -Wl,--gc-sections,-dT,main.ld,--section-start=.note.gnu.property=0x8000000000000000 -o $@.elf $(filter %.c,$^)
-	elf2oux $@.elf || rm -f $@
+#NDFN Nie wiadomo, dlaczego SSE nie może być włączone.
+kernel: simple.h main.h main.c mem-blk.c main.ld Makefile
+	$(CC) $(CFLAGS) -std=gnu23 -mno-sse -fno-zero-initialized-in-bss -ffreestanding -fno-stack-protector -fwrapv -Wall -Wextra -Wno-address-of-packed-member -Wno-dangling-else -Wno-parentheses -Wno-pointer-sign -Wno-unused-parameter -Wno-unused-but-set-variable -Wno-unused-variable -Werror -nostdlib -shared -s -Wl,-dT,main.ld,--section-start=.note.gnu.property=0x8000000000000000 -o $@.elf $(filter %.c,$^)
+	rm -f $@; elf2oux $@.elf
 	rm $@.elf
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 clean:
@@ -34,8 +35,9 @@ install-vmware:
 	mkdir -p $$ocq_mnt \
 	&& trap '$(VMWARE_DIR)/bin/vmware-mount -d $$ocq_mnt' EXIT \
 	&& $(VMWARE_DIR)/bin/vmware-mount -f ~inc/vmware/boot\ UEFI/boot\ UEFI.vmdk $$ocq_mnt \
-	&& trap 'losetup -d $$loopdev && $(VMWARE_DIR)/bin/vmware-mount -d $$ocq_mnt' EXIT \
+	&& trap '$(VMWARE_DIR)/bin/vmware-mount -d $$ocq_mnt' EXIT \
 	&& loopdev=$$( losetup -LPf --show $$ocq_mnt/flat ) \
+	&& trap 'losetup -d $$loopdev && $(VMWARE_DIR)/bin/vmware-mount -d $$ocq_mnt' EXIT \
 	&& install/a.out kernel $${loopdev}p2
 #-------------------------------------------------------------------------------
 install-usb:
