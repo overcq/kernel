@@ -202,6 +202,51 @@ struct E_mem_Z_memory_map
   N64 virtual_start;
   N64 pages;
 };
+struct __attribute__ (( __packed__ )) H_acpi_Z_generic_address
+{ N8 space;
+  N8 width;
+  N8 offset;
+  N8 access_size;
+  N64 address;
+};
+struct H_oux_Z_hpet
+{ N8 comparator_count   :5;
+  N8 counter_size       :1;
+  N8 legacy_replacement :1;
+  struct H_acpi_Z_generic_address address;
+  N8 hpet_number;
+  N16 minimum_tick;
+  N8 page_protection;
+};
+struct __attribute__ (( __packed__ )) H_acpi_Z_mcfg_entry
+{ N64 base_address;
+  N16 pci_segment;
+  N8 start_bus;
+  N8 end_bus;
+  N32 reserved;
+};
+struct H_main_Z_kernel_Z_acpi
+{ P apic_content;
+  N apic_content_l;
+  P dmar_content;
+  N dmar_content_l;
+  P dsdt_content;
+  N dsdt_content_l;
+  P facs;
+  struct H_oux_Z_hpet hpet;
+  struct H_acpi_Z_mcfg_entry *mcfg_content;
+  N mcfg_content_n;
+  struct
+  { P address;
+    N l;
+  }ssdt_contents[2];
+  N ssdt_contents_n;
+  unsigned virt_guest_rtc_good                :1;
+  unsigned virt_guest_pm_good                 :1;
+  unsigned smm_validate_fixed_comm_buffers    :1;
+  unsigned smm_validate_nested_ptr            :1;
+  unsigned smm_system_resource_protection     :1;
+};
 struct E_main_Z_kernel
 { struct E_mem_blk_Z mem_blk;
   struct E_mem_Z_memory_map *memory_map;
@@ -211,10 +256,6 @@ struct E_main_Z_kernel
   P page_table;
   P *stack;
   struct H_main_Z_uefi_runtime_services uefi_runtime_services;
-  struct
-  { P dsdt_content;
-    N dsdt_content_l;
-    P facs;
-  }acpi;
+  struct H_main_Z_kernel_Z_acpi acpi;
 };
 /******************************************************************************/

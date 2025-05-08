@@ -137,6 +137,7 @@ E_mem_Q_blk_I_copy( P dst
     else
         E_mem_Q_blk_I_copy_rev( dst, src, l );
 }
+_export
 P
 memmove( P dst
 , const P src
@@ -144,6 +145,7 @@ memmove( P dst
 ){  E_mem_Q_blk_I_copy( dst, src, l );
     return dst;
 }
+_export
 __attribute__ (( __alias__( "memmove" ) ))
 P memcpy( P, const P, size_t );
 _private
@@ -194,6 +196,7 @@ E_mem_Q_blk_P_fill_c( P p
     : "memory"
     );
 }
+_export
 P
 memset( P p
 , int c

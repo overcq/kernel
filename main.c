@@ -27,11 +27,7 @@ struct E_main_Z_kernel_args
   P page_table;
   P kernel_stack;
   struct H_main_Z_uefi_runtime_services uefi_runtime_services;
-  struct
-  { P dsdt_content;
-    N dsdt_content_l;
-    P facs;
-  }acpi;
+  struct H_main_Z_kernel_Z_acpi acpi;
 };
 //==============================================================================
 _private struct E_main_Z_kernel E_main_S_kernel;
@@ -46,9 +42,7 @@ main( struct E_main_Z_kernel_args *kernel_args
     E_main_S_kernel.kernel = kernel_args->kernel;
     E_main_S_kernel.page_table = kernel_args->page_table;
     E_main_S_kernel.uefi_runtime_services = kernel_args->uefi_runtime_services;
-    E_main_S_kernel.acpi.dsdt_content = kernel_args->acpi.dsdt_content;
-    E_main_S_kernel.acpi.dsdt_content_l = kernel_args->acpi.dsdt_content_l;
-    E_main_S_kernel.acpi.facs = kernel_args->acpi.facs;
+    E_main_S_kernel.acpi = kernel_args->acpi;
     Mt_( E_main_S_kernel.stack, 1 );
     if( !E_main_S_kernel.stack )
         goto End;
