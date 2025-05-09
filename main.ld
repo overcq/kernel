@@ -23,6 +23,7 @@ SECTIONS
   .data :
   {
     *(.data .data.* .gnu.linkonce.d.*)
+    *(.rodata .rodata.* .gnu.linkonce.r.*)
   }
   /*. = SEGMENT_START("rodata-segment", 0);*/
   .dynamic : { *(.dynamic) }

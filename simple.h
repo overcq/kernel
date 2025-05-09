@@ -200,4 +200,60 @@ E_simple_Z_p_T_cross( P p_1
 #define E_simple_Z_p_I_align_up_to_v2(p,v2)     (Pc)E_simple_Z_n_I_align_up_to_v2( (N)p, v2 )
 #define E_simple_Z_p_I_align_down(p)            (Pc)E_simple_Z_n_I_align_down( (N)p )
 #define E_simple_Z_p_I_align_up(p)              (Pc)E_simple_Z_n_I_align_up( (N)p )
+//==============================================================================
+_inline
+Pc
+E_text_Z_s0_R_end( Pc s
+){  while( *s )
+        s++;
+    return s;
+}
+_inline
+N
+E_text_Z_s0_R_l( Pc s
+){  return E_text_Z_s0_R_end(s) - s;
+}
+_inline
+Pc
+E_text_Z_s0_R_end_0( Pc s
+){  return E_text_Z_s0_R_end(s) + 1;
+}
+_inline
+N
+E_text_Z_s0_R_l_0( Pc s
+){  return E_text_Z_s0_R_end_0(s) - s;
+}
+//------------------------------------------------------------------------------
+_inline
+Pc
+E_text_Z_s_P_0( Pc s
+){  *s++ = '\0';
+    return s;
+}
+Pc E_text_Z_s_R_search_last_c( Pc, Pc, C );
+_inline
+Pc
+E_text_Z_s0_R_search_last_c( Pc s
+, C c
+){  return E_text_Z_s_R_search_last_c( s, E_text_Z_s0_R_end_0(s), c );
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_inline
+B
+E_mem_Q_tab_T( struct E_mem_Q_tab_Z *tab_
+, I id
+){  return (In)id < (In)tab_->index_n
+    && tab_->index[id];
+}
+_inline
+I
+E_mem_Q_tab_R_n( struct E_mem_Q_tab_Z *tab_
+){  return tab_->data_n;
+}
+_inline
+P
+E_mem_Q_tab_R( struct E_mem_Q_tab_Z *tab_
+, I id
+){  return tab_->index[id];
+}
 /******************************************************************************/

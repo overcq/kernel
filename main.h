@@ -25,6 +25,8 @@ typedef void                *P;
 typedef C                   *Pc;
 typedef C16                 *Pc16;
 typedef N                   *Pn;
+typedef N32                 I;
+typedef unsigned            In;
     #ifdef __SSE__
 typedef unsigned __int128   N128;
 typedef __int128            S128;
@@ -42,7 +44,11 @@ typedef __int128            S128;
 #define J_s0_R_l(s)                         ( sizeof(s) - 1 )
 #define J_a_R_n(a)                          ( sizeof(a) / sizeof( (a)[0] ))
 //------------------------------------------------------------------------------
-#define J_swap(type,a,b)                    { type J_autogen(c) = a; a = b; b = J_autogen(c); }
+#define J_swap(type,a,b)                    { type J_autogen(_) = a; a = b; b = J_autogen(_); }
+#define J_min(a,b)                          ( (a) > (b) ? (b) : (a) )
+#define J_max(a,b)                          ( (a) < (b) ? (b) : (a) )
+#define J_min_max(a,b,c)                    ( J_min( (a), J_max( (b), (c) )))
+#define J_abs(v)                            ( (S)(v) < 0 ? -(v) : (v) )
 //------------------------------------------------------------------------------
 #define J_autogen_S                         _autogen
 #define J_autogen(a)                        J_a_b( a, J_autogen_S )
@@ -68,6 +74,46 @@ typedef __int128            S128;
 #define _private                            __attribute__ (( __visibility__( "hidden" ) ))
 #define _export                             __attribute__ (( __visibility__( "protected" ) ))
 //==============================================================================
+#define S_eof                               ( ~1UL )
+//==============================================================================
+struct E_datetime_Z
+{ N16 year;
+  N8 month, day;
+  N millisecond;
+};
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+struct E_flow_Z_args
+{ N argc;
+  Pc *argv;
+};
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+struct E_mem_Q_tab_Z
+{ Pc *index; // Tablica mapowania indeksów do adresów w “data”.
+  Pc data; // Dane ciągłe.
+  N u; // Rozmiar elementu tablicy.
+  struct E_mem_Q_tab_Z *iterator;
+  I index_n;
+  I data_n;
+};
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+struct E_mem_Q_tab_S_iterator_Z
+{ I *index; // Dowolna sekwencja ‹identyfikatorów› (indeksów) danych, ale bez powtórzeń.
+  I n;
+};
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#define E_vga_S_background_color            0xcacaca
+#define E_vga_S_text_color                  0
+enum E_vga_Z_aa_pixel
+{ E_vga_Z_aa_pixel_S_e = 1 << 0,
+  E_vga_Z_aa_pixel_S_se = 1 << 1,
+  E_vga_Z_aa_pixel_S_s = 1 << 2,
+  E_vga_Z_aa_pixel_S_sw = 1 << 3,
+  E_vga_Z_aa_pixel_S_w = 1 << 4,
+  E_vga_Z_aa_pixel_S_nw = 1 << 5,
+  E_vga_Z_aa_pixel_S_n = 1 << 6,
+  E_vga_Z_aa_pixel_S_ne = 1 << 7
+};
+//==============================================================================
 #include "simple.h"
 //==============================================================================
 B E_mem_Q_blk_T_eq( P, P, N );
@@ -87,6 +133,108 @@ P E_mem_Q_blk_I_append( P, N, N );
 P E_mem_Q_blk_I_prepend( P, N );
 P E_mem_Q_blk_I_insert( P, N, N );
 P E_mem_Q_blk_I_remove( P, N, N );
+//==============================================================================
+N E_vga_Z_color_M( N8, N8, N8 );
+N8 E_vga_Z_color_R_red(N32);
+N8 E_vga_Z_color_R_green(N32);
+N8 E_vga_Z_color_R_blue(N32);
+N E_vga_Z_color_M_gray(N8);
+N E_vga_R_video_color(N);
+N E_vga_R_pixel( N, N );
+void E_vga_P_pixel( N, N, N );
+void E_vga_I_set_pixel_aa( N, N, N, F, N );
+void E_vga_I_draw_rect( N, N, N, N, N );
+void E_vga_I_fill_rect( N, N, N, N, N );
+//==============================================================================
+N E_font_M(void);
+N E_font_I_draw( N, N, N, U );
+void E_font_I_print_nl(void);
+void E_font_I_print_u(U);
+N E_font_I_print(Pc);
+void E_font_I_print_hex(N);
+//==============================================================================
+B E_text_Z_c_T_alpha(C);
+B E_text_Z_c_T_quote(C);
+C E_text_Z_c_I_lower(C);
+C E_text_Z_c_I_upper(C);
+Pc E_text_Z_s0_I_lower(Pc);
+Pc E_text_Z_s0_I_upper(Pc);
+Pc E_text_Z_s_I_lower( Pc, Pc );
+Pc E_text_Z_s_I_upper( Pc, Pc );
+B E_text_Z_s0_T_eq_s0( Pc, Pc );
+B E_text_Z_s0_T_eq_case_s0( Pc, Pc );
+N E_text_Z_s0_T_starts_s0( Pc, Pc );
+N E_text_Z_s0_T_starts_case_s0( Pc, Pc );
+B E_text_Z_s0_T_ends_s0( Pc, Pc );
+B E_text_Z_s_T_ends_s0( Pc, Pc, Pc );
+N E_text_Z_s_T_starts_s0( Pc, Pc, Pc );
+N E_text_Z_s_T_starts_case_s0( Pc, Pc, Pc );
+B E_text_Z_s_T_eq_s0( Pc, Pc, Pc );
+B E_text_Z_s_T_eq_case_s0( Pc, Pc, Pc );
+B E_text_Z_s_T_eq_s( Pc, Pc, Pc, Pc );
+B E_text_Z_s_T_eq_case_s( Pc, Pc, Pc, Pc );
+B E_text_Z_sl_T_eq_case( Pc, Pc, N );
+Pc E_text_Z_s0_R_end_0_le( Pc, N );
+B E_text_Z_s0_T_l_0_le( Pc, N );
+Pc E_text_Z_s_R_search_0( Pc, Pc );
+Pc E_text_Z_s_R_search_c( Pc, Pc, C );
+Pc E_text_Z_s_R_search_c_( Pc s, C );
+Pc E_text_Z_s0_R_search_c( Pc, C );
+Pc E_text_Z_s_R_search_last_c( Pc, Pc, C );
+Pc E_text_Z_s0_R_search_last_c_( Pc, C );
+Pc E_text_Z_s_R_search_s( Pc, Pc, Pc, Pc );
+Pc E_text_Z_s_R_search_s0( Pc, Pc, Pc );
+Pc E_text_Z_s0_R_search_s0( Pc, Pc );
+N E_text_Z_s_Z_10_N_n( Pc, Pc, Pc * );
+N E_text_Z_s0_Z_10_N_n( Pc, Pc * );
+N E_text_Z_s_N_n( Pc, Pc, Pc *, N );
+N E_text_Z_s0_N_n( Pc, Pc *, N );
+S E_text_Z_s_N_sn( Pc, Pc, Pc *, N );
+S E_text_Z_s0_N_sn( Pc, Pc *, N );
+F E_text_Z_s_N_f( Pc, Pc, Pc *, N );
+F E_text_Z_s0_N_f( Pc, Pc *, N );
+struct E_math_Z_bignum *E_text_Z_s_N_bignum( Pc, Pc, Pc *, N, N );
+struct E_math_Z_bignum *E_text_Z_s0_N_bignum( Pc, Pc *, N, N );
+struct E_datetime_Z E_text_Z_s_N_datetime( Pc, Pc, Pc * );
+struct E_datetime_Z E_text_Z_s0_N_datetime( Pc, Pc * );
+Pc E_text_Z_n_N_s( Pc, N, N, N );
+N E_text_Z_n_N_s_G( N, N, N );
+Pc E_text_Z_ns_N_s( Pc, S, N, N );
+N E_text_Z_ns_N_s_G( S, N, N );
+Pc E_text_Z_s_P_c_fill( Pc, Pc, C );
+void E_text_Z_s0_P_lower(Pc);
+void E_text_Z_s_P_lower( Pc, Pc );
+void E_text_Z_s0_P_upper(Pc);
+void E_text_Z_s_P_upper( Pc, Pc );
+Pc E_text_Z_s_P_copy_s( Pc, Pc, Pc );
+Pc E_text_Z_s_P_copy_s_0( Pc, Pc, Pc );
+Pc E_text_Z_s_P_copy_sl( Pc, Pc, N );
+Pc E_text_Z_s_P_copy_sl_0( Pc, Pc, N );
+Pc E_text_Z_s_P_copy_s0( Pc, Pc );
+Pc E_text_Z_s_P_copy_s0_0( Pc, Pc );
+void E_text_Z_sl_P_rev( Pc, N );
+N E_text_Z_s_I_append_s( Pc *, Pc, Pc );
+N E_text_Z_s_I_s_append_0( Pc *, Pc, Pc );
+N E_text_Z_s_I_append_s0( Pc *, Pc );
+N E_text_Z_s_I_append_s0_0( Pc *, Pc );
+Pc E_text_Z_s_I_prepend_s( Pc *, Pc, Pc );
+Pc E_text_Z_s_I_prepend_s0( Pc *, Pc );
+N E_text_Z_s0_I_clear( Pc * );
+Pc E_text_Z_s0_I_append_c( Pc *, C );
+Pc E_text_Z_s0_I_append_s0( Pc *, Pc );
+Pc E_text_Z_s0_I_append_s( Pc *, Pc, Pc );
+Pc E_text_Z_s_Z_cmdline_T_quote_n( Pc, Pc );
+Pc E_text_Z_s0_Z_cmdline_T_quote(Pc);
+N E_text_Z_s_Z_cmdline_N_quote( Pc, N, struct E_flow_Z_args *, N );
+N E_text_Z_s_Z_cmdline_N_quote_G( N, struct E_flow_Z_args *, N );
+N E_text_Z_su0_R_n(Pc);
+N E_text_Z_u_R_su( U, Pc );
+N E_text_Z_u_R_su_G(U);
+Pc E_text_Z_su_R_u( Pc, U * );
+Pc E_text_Z_su_R_u_rev( Pc, U * );
+N E_text_Z_su0_R_l( Pc s );
+N E_text_Z_getter_Z_c_R_u( N (*)(void), U * );
+N E_text_Z_getter_Z_c_R_u_rev( N (*)(void), U * );
 //==============================================================================
 #define H_uefi_Z_api __attribute__(( __ms_abi__ ))
 #define H_uefi_S_error(e) ( (S)( 1LL << 63 ) | e )
@@ -225,6 +373,23 @@ struct __attribute__ (( __packed__ )) H_acpi_Z_mcfg_entry
   N8 end_bus;
   N32 reserved;
 };
+struct H_main_Z_pixel_shifts
+{ N8 red;
+  N8 green;
+  N8 blue;
+};
+enum H_uefi_Z_pixel_format
+{ H_uefi_Z_pixel_format_S_rgb8
+, H_uefi_Z_pixel_format_S_bgr8
+, H_uefi_Z_pixel_format_S_bitmask
+};
+struct H_main_Z_framebuffer
+{ volatile N32 *p;
+  N32 width, height;
+  N32 pixels_per_scan_line;
+  enum H_uefi_Z_pixel_format pixel_format;
+  struct H_main_Z_pixel_shifts pixel_shifts;
+};
 struct H_main_Z_kernel_Z_acpi
 { P apic_content;
   N apic_content_l;
@@ -255,6 +420,7 @@ struct E_main_Z_kernel
   P kernel;
   P page_table;
   P *stack;
+  struct H_main_Z_framebuffer framebuffer;
   struct H_main_Z_uefi_runtime_services uefi_runtime_services;
   struct H_main_Z_kernel_Z_acpi acpi;
 };
