@@ -181,6 +181,33 @@ E_text_Z_s_T_ends_s0( Pc s
 }
 _export
 N
+E_text_Z_s0_I_cmp_s0( Pc s
+, Pc t
+){  while( *s
+    && *t
+    && *s == *t
+    )
+    {   s++;
+        t++;
+    }
+    return *s - *t;
+}
+_export
+N
+E_text_Z_sl_I_cmp( Pc s
+, Pc t
+, N l
+){  while( l
+    && *s == *t
+    )
+    {   s++;
+        t++;
+        l--;
+    }
+    return l ? *s - *t : 0;
+}
+_export
+N
 E_text_Z_s_T_starts_s0( Pc s
 , Pc s_end
 , Pc t
@@ -369,6 +396,18 @@ E_text_Z_s0_R_search_last_c_( Pc s_end
 , C c
 ){  while( *s_end != c )
         s_end--;
+    return s_end;
+}
+_export
+Pc
+E_text_Z_sl_R_search_last_c( Pc s_end
+, N l
+, C c
+){  while(l)
+    {   if( *--s_end == c )
+            break;
+        l--;
+    }
     return s_end;
 }
 //------------------------------------------------------------------------------
@@ -1090,27 +1129,16 @@ Pc
 E_text_Z_s_P_copy_s_0( Pc s
 , Pc t
 , Pc t_end
-){  return E_text_Z_s_P_0( E_text_Z_s_P_copy_s( s, t, t_end ));
+){  return E_text_Z_s_P_0( (Pc)E_text_Z_s_P_copy_s( s, t, t_end ));
 }
 //------------------------------------------------------------------------------
-_export
-Pc
-E_text_Z_s_P_copy_sl( Pc s
-, Pc t
-, N l
-){  while( l-- )
-    {   *s = *t;
-        s++;
-        t++;
-    }
-    return s;
-}
 _export
 Pc
 E_text_Z_s_P_copy_sl_0( Pc s
 , Pc t
 , N l
-){  return E_text_Z_s_P_0( E_text_Z_s_P_copy_sl( s, t, l ));
+){  E_mem_Q_blk_I_copy( s, t, l );
+    return E_text_Z_s_P_0( s + l );
 }
 //------------------------------------------------------------------------------
 _export
@@ -1144,12 +1172,31 @@ E_text_Z_sl_P_rev( Pc s
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _export
+Pc
+E_text_Z_s0_M_duplicate( Pc s
+){  N l = E_text_Z_s0_R_l_0(s);
+    Pc t = M(l);
+    if(t)
+        E_text_Z_s_P_copy_s0_0( t, s );
+    return t;
+}
+_export
+Pc
+E_text_Z_s_M_duplicate( Pc s
+, N l
+){  Pc t = M(l);
+    if(t)
+        E_text_Z_s_P_copy_s0_0( t, s );
+    return t;
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_export
 N
 E_text_Z_s_I_append_s( Pc *s
 , Pc t
 , Pc t_end
 ){  Pc p;
-    if( !( p = E_mem_Q_blk_I_append( s, t_end - t, ~0 )))
+    if( !( p = E_mem_Q_blk_I_append( s, t_end - t )))
         return 0;
     E_text_Z_s_P_copy_s( p, t, t_end );
     return t_end - t;
@@ -1160,7 +1207,7 @@ E_text_Z_s_I_s_append_0( Pc *s
 , Pc t
 , Pc t_end
 ){  Pc p;
-    if( !( p = E_mem_Q_blk_I_append( s, t_end - t + 1, ~0 )))
+    if( !( p = E_mem_Q_blk_I_append( s, t_end - t + 1 )))
         return 0;
     E_text_Z_s_P_copy_s_0( p, t, t_end );
     return t_end - t + 1;
@@ -1171,9 +1218,9 @@ E_text_Z_s_I_append_s0( Pc *s
 , Pc t
 ){  N l = E_text_Z_s0_R_l(t);
     Pc p;
-    if( !( p = E_mem_Q_blk_I_append( s, l, ~0 )))
+    if( !( p = E_mem_Q_blk_I_append( s, l )))
         return 0;
-    E_text_Z_s_P_copy_sl( p, t, l );
+    E_mem_Q_blk_I_copy( p, t, l );
     return l;
 }
 _export
@@ -1182,7 +1229,7 @@ E_text_Z_s_I_append_s0_0( Pc *s
 , Pc t
 ){  N l = E_text_Z_s0_R_l(t) + 1;
     Pc p;
-    if( !( p = E_mem_Q_blk_I_append( s, l, ~0 )))
+    if( !( p = E_mem_Q_blk_I_append( s, l )))
         return 0;
     E_text_Z_s_P_copy_sl_0( p, t, l );
     return l;
@@ -1207,7 +1254,7 @@ E_text_Z_s_I_prepend_s0( Pc *s
     Pc p;
     if( !( p = E_mem_Q_blk_I_prepend( s, l )))
         return 0;
-    E_text_Z_s_P_copy_sl( *s, t, l );
+    E_mem_Q_blk_I_copy( *s, t, l );
     return p;
 }
 //------------------------------------------------------------------------------
@@ -1226,7 +1273,7 @@ Pc
 E_text_Z_s0_I_append_c( Pc *s
 , C c
 ){  Pc p;
-    if( !( p = E_mem_Q_blk_I_append( s, 1, ~0 )))
+    if( !( p = E_mem_Q_blk_I_append( s, 1 )))
         return 0;
     *( p - 1 ) = c;
     *p = '\0';
@@ -1240,7 +1287,7 @@ E_text_Z_s0_I_append_s0( Pc *s
     if( !l )
         return *s + l;
     Pc p;
-    if( !( p = E_mem_Q_blk_I_append( s, l, ~0 )))
+    if( !( p = E_mem_Q_blk_I_append( s, l )))
         return 0;
     E_text_Z_s_P_copy_sl_0( p - 1, t, l );
     return p - 1;
@@ -1253,7 +1300,7 @@ E_text_Z_s0_I_append_s( Pc *s
 ){  if( !( t_end - t ))
         return *s + ( t_end - t );
     Pc p;
-    if( !( p = E_mem_Q_blk_I_append( s, t_end - t, ~0 )))
+    if( !( p = E_mem_Q_blk_I_append( s, t_end - t )))
         return 0;
     E_text_Z_s_P_copy_s_0( p - 1, t, t_end );
     return p - 1;
@@ -1558,8 +1605,12 @@ E_text_Z_su0_R_n( Pc s
 ){  N n = 0;
     while( *s )
     {   U u;
-        s = E_text_Z_su_R_u( s, &u );;
-        n++;
+        Pc s_ = E_text_Z_su_R_u( s, &u );
+        if( s_ == s )
+            break;
+        if( ~u )
+            n++;
+        s = s_;
     }
     return n;
 }
@@ -1567,7 +1618,12 @@ _export
 N // Ile bajtów zapisano lub błąd.
 E_text_Z_u_R_su( U u
 , Pc s
-){  if( u <= 0x7f )
+){  if( u > 0x10ffff
+    || ( u >= 0xd800
+      && u <= 0xdfff
+    ))
+        return ~0;
+    if( u <= 0x7f )
     {   s[0] = (C)u;
         return 1;
     }
@@ -1588,7 +1644,12 @@ E_text_Z_u_R_su( U u
 _export
 N
 E_text_Z_u_R_su_G( U u
-){  if( u <= 0x7f )
+){  if( u > 0x10ffff
+    || ( u >= 0xd800
+      && u <= 0xdfff
+    ))
+        return ~0;
+    if( u <= 0x7f )
         return 1;
     N first = 0x1f;
     N i = 0;
@@ -1601,7 +1662,6 @@ E_text_Z_u_R_su_G( U u
     }
     return i + 1;
 }
-//TODO Dodać sprawdzanie najkrótszego kodowania oraz powiadamianie o nieprawidłowym znaku UTF-8.
 _export
 Pc
 E_text_Z_su_R_u( Pc s
@@ -1614,16 +1674,31 @@ E_text_Z_su_R_u( Pc s
     N n = E_asm_I_bsr(v);
     if( n == ~0
     || n == 6
+    || n < 3
     )
+    {   *u = ~0;
         return s;
-    v = *s & ( _v( v, 1 ) << n ) - 1;
-    for_n( i, 6 - n )
+    }
+    v = *s & (( 1 << n ) - 1 );
+    n = 6 - n;
+    for_n( i, n )
     {   if(( *++s & 0xc0 ) != 0x80 )
+        {   *u = ~0;
             return s;
+        }
         v <<= 6;
         v |= *s & 0x3f;
     }
-    *u = v;
+    *u = (( n == 1 && v > 0x7f )
+      || ( n == 2 && v > 0x7ff )
+      || ( n == 3 && v > 0xffff )
+    )
+    && v <= 0x10ffff
+    && ( v < 0xd800
+    || v > 0xdfff
+    )
+    ? v
+    : ~0;
     return s + 1;
 }
 _export
@@ -1635,35 +1710,33 @@ E_text_Z_su_R_u_rev( Pc s
         return s - 1;
     }
     U v = 0;
-    for_n( i, 7 )
+    for_n( i, 3 )
     {   if(( *--s & 0xc0 ) != 0x80 )
             break;
-        v |= ( *s & 0x3f ) << ( i * 6 );
+        v |= ( (U)*s & 0x3f ) << ( i * 6 );
     }
     N n = E_asm_I_bsr( ~(S8)*s );
     if( n == ~0
     || n != 6 - i
     )
-        return s + i;
+    {   *u = ~0;
+        return s + 1;
+    }
     v |= ( *s & (( _v( v, 1 ) << n ) - 1 )) << (( i + 1 ) * 6 );
-    *u = v;
+    *u = (( i == 1 && v > 0x7f )
+      || ( i == 2 && v > 0x7ff )
+      || ( i == 3 && v > 0xffff )
+    )
+    && v <= 0x10ffff
+    && ( v < 0xd800
+    || v > 0xdfff
+    )
+    ? v
+    : ~0;
     return s;
 }
 _export
-N
-E_text_Z_su0_R_l( Pc s
-){  N i = 0;
-    while( *s )
-    {   U u = ~0;
-        s = E_text_Z_su_R_u( s, &u );
-        if( !~u )
-            return ~0;
-        i++;
-    }
-    return i;
-}
-_export
-N // Ile bajtów przeczytano lub błąd.
+N // Ile bajtów przeczytano lub błąd odczytu.
 E_text_Z_getter_Z_c_R_u( N (*getter)(void)
 , U *u
 ){  N c = getter();
@@ -1678,10 +1751,12 @@ E_text_Z_getter_Z_c_R_u( N (*getter)(void)
     N n = E_asm_I_bsr( ~(S8)c );
     if( n == ~0
     || n == 6
+    || n < 3
     )
         return ~0;
-    U v = c & ( _v( v, 1 ) << n ) - 1;
-    for_n( i, 6 - n )
+    U v = c & (( _v( v, 1 ) << n ) - 1 );
+    n = 6 - n;
+    for_n( i, n )
     {   c = getter();
         if( !~c
         || c == S_eof
@@ -1692,8 +1767,17 @@ E_text_Z_getter_Z_c_R_u( N (*getter)(void)
         v <<= 6;
         v |= c & 0x3f;
     }
-    *u = v;
-    return 7 - n;
+    *u = (( n == 1 && v > 0x7f )
+      || ( n == 2 && v > 0x7ff )
+      || ( n == 3 && v > 0xffff )
+    )
+    && v <= 0x10ffff
+    && ( v < 0xd800
+    || v > 0xdfff
+    )
+    ? v
+    : ~0;
+    return 1 + n;
 }
 _export
 N
@@ -1709,7 +1793,7 @@ E_text_Z_getter_Z_c_R_u_rev( N (*getter)(void)
         return 1;
     }
     U v = 0;
-    for_n( i, 7 )
+    for_n( i, 3 )
     {   if(( c & 0xc0 ) != 0x80 )
             break;
         v |= ( c & 0x3f ) << ( i * 6 );
@@ -1723,9 +1807,20 @@ E_text_Z_getter_Z_c_R_u_rev( N (*getter)(void)
     if( n == ~0
     || n != 6 - i
     )
-        return ~0;
+    {   *u = ~0;
+        return 1 + i;
+    }
     v |= ( c & (( _v( v, 1 ) << n ) - 1 )) << ( i * 6 );
-    *u = v;
-    return i;
+    *u = (( i == 1 && v > 0x7f )
+      || ( i == 2 && v > 0x7ff )
+      || ( i == 3 && v > 0xffff )
+    )
+    && v <= 0x10ffff
+    && ( v < 0xd800
+    || v > 0xdfff
+    )
+    ? v
+    : ~0;
+    return 1 + i;
 }
 /******************************************************************************/

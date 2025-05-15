@@ -56,7 +56,7 @@ main( struct E_main_Z_kernel_args *kernel_args
     E_vga_I_fill_rect( E_main_S_kernel.framebuffer.width / 2 - 50, E_main_S_kernel.framebuffer.height / 2 + 4 + 13, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
     E_vga_I_fill_rect( E_main_S_kernel.framebuffer.width / 2, E_main_S_kernel.framebuffer.height / 2 - 10 - 13, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
     E_vga_I_fill_rect( E_main_S_kernel.framebuffer.width / 2, E_main_S_kernel.framebuffer.height / 2 - 10, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
-    E_font_I_print( "OUX/C+ OS. ©overcq <overcq@int.pl>. http://github.com/overcq" );
+    E_font_I_print( "OUX/C+ OS. ©overcq <overcq@int.pl>. https://github.com/overcq\n" );
     Mt_( E_main_S_kernel.stack, 1 );
     if( !E_main_S_kernel.stack )
         goto End;
@@ -102,11 +102,12 @@ main( struct E_main_Z_kernel_args *kernel_args
     : "p" ( &gd.limit ), "p" ( &id.limit )
     : "rax"
     );
-    
     W( kernel_args->bootloader );
+    E_aml_M( E_main_S_kernel.acpi.dsdt_content, E_main_S_kernel.acpi.dsdt_content_l );
     
     //S status = E_main_S_kernel.uefi_runtime_services.reset_system( H_uefi_Z_reset_Z_shutdown, 0, 0, 0 );
 End:__asm__ volatile (
+    "\n"    "cli"
     "\n0:"  "hlt"
     "\n"    "jmp    0b"
     );

@@ -2555,13 +2555,13 @@ E_font_I_draw(
                           x_, y_
                         , color
                         , brightness
-                        , 0
+                        , ~0
                         );
                         E_vga_I_set_pixel_aa(
                           x_ + 1, y_
                         , color
                         , brightness
-                        , 0
+                        , ~0
                         );
                     }
                     x_ += 2;
@@ -2620,10 +2620,11 @@ E_font_I_print( Pc s
 ){  while( *s )
     {   U u = ~0;
         Pc s_ = E_text_Z_su_R_u( s, &u );
-        if( !~u )
+        if( s_ == s )
             return ~0;
         s = s_;
-        E_font_I_print_u(u);
+        if( ~u )
+            E_font_I_print_u(u);
     }
     return 0;
 }

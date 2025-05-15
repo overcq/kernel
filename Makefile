@@ -16,8 +16,8 @@ build: kernel
 .PHONY: all build clean distclean install-qemu install-vmware install-usb
 #===============================================================================
 #NDFN Nie wiadomo, dlaczego SSE nie może być włączone.
-kernel: simple.h main.h main.c font.c mem-blk.c text.c vga.c main.ld Makefile
-	$(CC) $(CFLAGS) -std=gnu23 -mno-sse -fno-zero-initialized-in-bss -ffreestanding -fno-stack-protector -fwrapv -Wall -Wextra -Wno-address-of-packed-member -Wno-dangling-else -Wno-parentheses -Wno-pointer-sign -Wno-sign-compare -Wno-uninitialized -Wno-unused-parameter -Wno-unused-but-set-variable -Wno-unused-variable -Werror -nostdlib -shared -s -Wl,-dT,main.ld,--section-start=.note.gnu.property=0x8000000000000000 -o $@.elf $(filter %.c,$^)
+kernel: simple.h main.h aml.c font.c main.c mem-blk.c text.c vga.c main.ld Makefile
+	$(CC) $(CFLAGS) -std=gnu23 -mno-sse -fno-zero-initialized-in-bss -ffreestanding -fno-stack-protector -fwrapv -Wall -Wextra -Wno-address-of-packed-member -Wno-dangling-else -Wno-parentheses -Wno-sign-compare -nostdlib -shared -s -Wl,-dT,main.ld,--section-start=.note.gnu.property=0x8000000000000000 -o $@.elf $(filter %.c,$^)
 	rm -f $@; elf2oux $@.elf
 	rm $@.elf
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

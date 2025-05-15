@@ -77,7 +77,10 @@ void
 E_mem_Q_blk_I_copy_rev( P dst
 , P src
 , N l
-){
+){  
+    __asm__ volatile (
+    "\n"    "std"
+    );
         #ifdef __SSE__
     N128 *dst_x = (P)E_simple_Z_p_I_align_down_to_v2( dst + l, sizeof(N128) );
     N128 *src_x = (P)E_simple_Z_p_I_align_down_to_v2( src + l, sizeof(N128) );
@@ -92,7 +95,6 @@ E_mem_Q_blk_I_copy_rev( P dst
         N l_1 = ( l - l_0 ) / sizeof(N128);
         N l_2 = ( l - l_0 ) % sizeof(N128);
         __asm__ volatile (
-        "\n"    "std"
         "\n"    "rep movsb"
         : "+D" (dst), "+S" (src), "+c" ( l_0 )
         :
@@ -115,12 +117,11 @@ E_mem_Q_blk_I_copy_rev( P dst
         src = (Pc)src + l - 1;
     }
     __asm__ volatile (
-    "\n"    "std"
     "\n"    "rep movsb"
     "\n"    "cld"
     : "+D" (dst), "+S" (src), "+c" (l)
     :
-    : "cc", "memory"
+    : "memory"
     );
 }
 _export
@@ -926,7 +927,7 @@ E_mem_Q_blk_M_new_0( N *allocated_i_sorted_pos
         if( --p == p_start - 1 )
             return 0;
     }while( allocated_i-- );
-    *allocated_i_sorted_pos = ~allocated_i ? allocated_i : 0;
+    *allocated_i_sorted_pos = ~allocated_i ? allocated_i + 1 : 0;
     return p;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1382,7 +1383,6 @@ _export
 P
 E_mem_Q_blk_I_append( P p
 , N n
-, N align
 ){  struct E_mem_Q_blk_Z_allocated allocated_p;
     N min = 0;
     N max = E_mem_Q_blk_Q_sys_table_R_last( E_main_S_kernel.mem_blk.allocated_id, (Pc)&allocated_p.p - (Pc)&allocated_p );
@@ -1424,10 +1424,7 @@ E_mem_Q_blk_I_append( P p
                             free_i = min + ( max - free_i ) / 2;
                         }
                     }
-                    if( !l
-                    && ( !~align
-                      || E_simple_Z_p_T_aligned_to_v2( E_main_S_kernel.mem_blk.allocated[ allocated_i ].p, align )
-                    ))
+                    if( !l )
                     {   free_p[ free_i ].l -= l_1;
                         if( free_p[ free_i ].l )
                             free_p[ free_i ].p += l_1;
@@ -1440,85 +1437,40 @@ E_mem_Q_blk_I_append( P p
                     min = 0;
                     max = free_i;
                     N free_j = max / 2;
-                    if( ~align )
-                        O{  if( free_p[ free_j ].p + free_p[ free_j ].l == p_0 )
-                            {   Pc p_align = E_simple_Z_p_I_align_up_to_v2( free_p[ free_j ].p, align );
-                                if( free_p[ free_j ].l >= ( p_align - free_p[ free_j ].p ) + l )
-                                {   free_p[ free_j ].l = p_align - free_p[ free_j ].p;
-                                    if( !free_p[ free_j ].l )
-                                    {   E_mem_Q_blk_Q_sys_table_f_I_move_empty_entry( free_j );
-                                        free_i--;
-                                    }
-                                    if( l_1 )
-                                    {   free_p[ free_i ].l -= l_1;
-                                        free_p[ free_i ].l += ( p_0 - p_align ) - l;
-                                        if( free_p[ free_i ].l )
-                                        {   free_p[ free_i ].p += l_1;
-                                            free_p[ free_i ].p -= ( p_0 - p_align ) - l;
-                                        }else
-                                            E_mem_Q_blk_Q_sys_table_f_I_move_empty_entry( free_i );
-                                    }else if(( p_0 - p_align ) - l )
-                                    {   E_mem_Q_blk_Q_table_I_put_begin( &allocated_i );
-                                        E_mem_Q_blk_Q_table_I_put_before( E_main_S_kernel.mem_blk.free_id );
-                                        struct E_mem_Q_blk_Z_free free_p_;
-                                        E_mem_Q_blk_Q_sys_table_f_P_put( E_main_S_kernel.mem_blk.free_id, (Pc)&free_p_.p - (Pc)&free_p_, (Pc)&free_p_.l - (Pc)&free_p_, p_align + l_0 + l, ( p_0 - p_align ) - l );
-                                        E_mem_Q_blk_Q_table_I_put_after( E_main_S_kernel.mem_blk.free_id );
-                                        E_mem_Q_blk_Q_table_I_put_end();
-                                    }
-                                    E_mem_Q_blk_I_copy( p_align, p_0, l_0 );
-                                    E_main_S_kernel.mem_blk.allocated[ allocated_i ].n += n;
-                                    *( P * )p = E_main_S_kernel.mem_blk.allocated[ allocated_i ].p = p_align;
-                                    return p_align + l_0;
+                    O{  if( free_p[ free_j ].p + free_p[ free_j ].l == p_0 )
+                        {   if( free_p[ free_j ].l >= l )
+                            {   free_p[ free_j ].l -= l;
+                                if( !free_p[ free_j ].l )
+                                {   E_mem_Q_blk_Q_sys_table_f_I_move_empty_entry( free_j );
+                                    free_i--;
                                 }
-                                break;
-                            }
-                            if( free_p[ free_j ].p + free_p[ free_j ].l > p_0 )
-                            {   if( free_j == min )
-                                    break;
-                                max = free_j - 1;
-                                free_j = max - ( free_j - min ) / 2;
-                            }else
-                            {   if( free_j == max )
-                                    break;
-                                min = free_j + 1;
-                                free_j = min + ( max - free_j ) / 2;
-                            }
-                        }
-                    else
-                        O{  if( free_p[ free_j ].p + free_p[ free_j ].l == p_0 )
-                            {   if( free_p[ free_j ].l >= l )
-                                {   free_p[ free_j ].l -= l;
-                                    if( !free_p[ free_j ].l )
-                                    {   E_mem_Q_blk_Q_sys_table_f_I_move_empty_entry( free_j );
-                                        free_i--;
-                                    }
-                                    if( l_1 )
-                                    {   free_p[ free_i ].l -= l_1;
-                                        if( free_p[ free_i ].l )
-                                            free_p[ free_i ].p += l_1;
-                                        else
-                                            E_mem_Q_blk_Q_sys_table_f_I_move_empty_entry( free_i );
-                                    }
-                                    Pc p_1 = p_0 - l;
-                                    E_mem_Q_blk_I_copy( p_1, p_0, l_0 );
-                                    E_main_S_kernel.mem_blk.allocated[ allocated_i ].n += n;
-                                    *( P * )p = E_main_S_kernel.mem_blk.allocated[ allocated_i ].p = p_1;
-                                    return p_1 + l_0;
+                                if( l_1 )
+                                {   free_p[ free_i ].l -= l_1;
+                                    if( free_p[ free_i ].l )
+                                        free_p[ free_i ].p += l_1;
+                                    else
+                                        E_mem_Q_blk_Q_sys_table_f_I_move_empty_entry( free_i );
                                 }
-                                break;
+                                Pc p_1 = p_0 - l;
+                                E_mem_Q_blk_I_copy( p_1, p_0, l_0 );
+                                E_main_S_kernel.mem_blk.allocated[ allocated_i ].n += n;
+                                *( P * )p = E_main_S_kernel.mem_blk.allocated[ allocated_i ].p = p_1;
+                                return p_1 + l_0;
                             }
-                            if( free_p[ free_j ].p + free_p[ free_j ].l > p_0 )
-                            {   if( free_j == min )
-                                    break;
-                                max = free_j - 1;
-                                free_j = max - ( free_j - min ) / 2;
-                            }else
-                            {   if( free_j == max )
-                                    break;
-                                min = free_j + 1;
-                                free_j = min + ( max - free_j ) / 2;
-                            }
+                            break;
                         }
+                        if( free_p[ free_j ].p + free_p[ free_j ].l > p_0 )
+                        {   if( free_j == min )
+                                break;
+                            max = free_j - 1;
+                            free_j = max - ( free_j - min ) / 2;
+                        }else
+                        {   if( free_j == max )
+                                break;
+                            min = free_j + 1;
+                            free_j = min + ( max - free_j ) / 2;
+                        }
+                    }
                     l += l_1; // Przywraca oryginalną wartość sprzed scalenia od dołu, skoro był blok przyległy od dołu, a zabrakło do pełnej liczby od góry.
                 }
             }
@@ -1528,7 +1480,7 @@ E_mem_Q_blk_I_append( P p
             , p_0
             , l_0
             , 0
-            , align
+            , ~0
             );
             if( !p_1 )
                 return 0;

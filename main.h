@@ -116,6 +116,8 @@ enum E_vga_Z_aa_pixel
 //==============================================================================
 #include "simple.h"
 //==============================================================================
+N E_aml_M( Pc, N );
+//==============================================================================
 B E_mem_Q_blk_T_eq( P, P, N );
 void E_mem_Q_blk_I_copy( P, P, N );
 void E_mem_Q_blk_P_fill_c( P, N, C );
@@ -129,22 +131,10 @@ P E_mem_Q_blk_M_split( P, N );
 N E_mem_Q_blk_W(P);
 P E_mem_Q_blk_I_add( P, N, N *, N * );
 P E_mem_Q_blk_I_prepend_append( P, N, N );
-P E_mem_Q_blk_I_append( P, N, N );
+P E_mem_Q_blk_I_append( P, N );
 P E_mem_Q_blk_I_prepend( P, N );
 P E_mem_Q_blk_I_insert( P, N, N );
 P E_mem_Q_blk_I_remove( P, N, N );
-//==============================================================================
-N E_vga_Z_color_M( N8, N8, N8 );
-N8 E_vga_Z_color_R_red(N32);
-N8 E_vga_Z_color_R_green(N32);
-N8 E_vga_Z_color_R_blue(N32);
-N E_vga_Z_color_M_gray(N8);
-N E_vga_R_video_color(N);
-N E_vga_R_pixel( N, N );
-void E_vga_P_pixel( N, N, N );
-void E_vga_I_set_pixel_aa( N, N, N, F, N );
-void E_vga_I_draw_rect( N, N, N, N, N );
-void E_vga_I_fill_rect( N, N, N, N, N );
 //==============================================================================
 N E_font_M(void);
 N E_font_I_draw( N, N, N, U );
@@ -167,6 +157,8 @@ N E_text_Z_s0_T_starts_s0( Pc, Pc );
 N E_text_Z_s0_T_starts_case_s0( Pc, Pc );
 B E_text_Z_s0_T_ends_s0( Pc, Pc );
 B E_text_Z_s_T_ends_s0( Pc, Pc, Pc );
+N E_text_Z_s0_I_cmp_s0( Pc, Pc );
+N E_text_Z_sl_I_cmp( Pc, Pc, N );
 N E_text_Z_s_T_starts_s0( Pc, Pc, Pc );
 N E_text_Z_s_T_starts_case_s0( Pc, Pc, Pc );
 B E_text_Z_s_T_eq_s0( Pc, Pc, Pc );
@@ -208,7 +200,6 @@ void E_text_Z_s0_P_upper(Pc);
 void E_text_Z_s_P_upper( Pc, Pc );
 Pc E_text_Z_s_P_copy_s( Pc, Pc, Pc );
 Pc E_text_Z_s_P_copy_s_0( Pc, Pc, Pc );
-Pc E_text_Z_s_P_copy_sl( Pc, Pc, N );
 Pc E_text_Z_s_P_copy_sl_0( Pc, Pc, N );
 Pc E_text_Z_s_P_copy_s0( Pc, Pc );
 Pc E_text_Z_s_P_copy_s0_0( Pc, Pc );
@@ -235,6 +226,18 @@ Pc E_text_Z_su_R_u_rev( Pc, U * );
 N E_text_Z_su0_R_l( Pc s );
 N E_text_Z_getter_Z_c_R_u( N (*)(void), U * );
 N E_text_Z_getter_Z_c_R_u_rev( N (*)(void), U * );
+//==============================================================================
+N E_vga_Z_color_M( N8, N8, N8 );
+N8 E_vga_Z_color_R_red(N32);
+N8 E_vga_Z_color_R_green(N32);
+N8 E_vga_Z_color_R_blue(N32);
+N E_vga_Z_color_M_gray(N8);
+N E_vga_R_video_color(N);
+N E_vga_R_pixel( N, N );
+void E_vga_P_pixel( N, N, N );
+void E_vga_I_set_pixel_aa( N, N, N, F, N );
+void E_vga_I_draw_rect( N, N, N, N, N );
+void E_vga_I_fill_rect( N, N, N, N, N );
 //==============================================================================
 #define H_uefi_Z_api __attribute__(( __ms_abi__ ))
 #define H_uefi_S_error(e) ( (S)( 1LL << 63 ) | e )
@@ -338,8 +341,8 @@ struct E_mem_Q_blk_Z_allocated
 struct E_mem_blk_Z
 { struct E_mem_Q_blk_Z_allocated *allocated;
   N free_id, allocated_id;
-  N *M_from_free_S_allocated_id[2];
-  N M_from_free_S_table_id[2];
+  N *M_from_free_S_allocated_id[10];
+  N M_from_free_S_table_id[10];
   N M_from_free_S_allocated_id_n;
   N memory_size;
   N reserved_size;
