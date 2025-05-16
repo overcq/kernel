@@ -307,6 +307,10 @@ E_aml_Q_path_R_pathname( void
             )))
                 return ~0;
     }
+    Pc name_ = M( n * 4 + 1 );
+    E_text_Z_s_P_copy_sl_0( name_, E_aml_S_stack_data, n * 4 );
+    E_font_I_print( ",s=" ); E_font_I_print( name_ );
+    W( name_ );
     E_aml_S_stack_data += n * 4;
     return n;
 }
@@ -392,60 +396,73 @@ E_aml_I_data_object( void
         return ~0;
     switch( (N8)*E_aml_S_stack_data++ )
     { case 0:
+            E_font_I_print( ",0" );
             //TODO Zapisać 0.
             break;
       case 1:
+            E_font_I_print( ",1" );
             //TODO Zapisać 1.
             break;
       case 0xff:
+            E_font_I_print( ",~0" );
             //TODO Zapisać ~0.
             break;
       case 0xa: // byte const
+            E_font_I_print( ",byte" );
             if( ++E_aml_S_stack_data > E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end )
                 return ~0;
             //TODO Zapisać ‘byte’.
             break;
       case 0xb: // word const
+            E_font_I_print( ",word" );
             E_aml_S_stack_data += 2;
             if( E_aml_S_stack_data > E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end )
                 return ~0;
             //TODO Zapisać ‘word’.
             break;
       case 0xc: // dword const
+            E_font_I_print( ",dword" );
             E_aml_S_stack_data += 4;
             if( E_aml_S_stack_data > E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end )
                 return ~0;
             //TODO Zapisać ‘dword’.
             break;
       case 0xd: // string const
+            E_font_I_print( ",string=" );
+            Pc s = E_aml_S_stack_data;
             while( E_aml_S_stack_data != E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end
             && *E_aml_S_stack_data
             )
                 E_aml_S_stack_data++;
             if( E_aml_S_stack_data == E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end )
                 return ~0;
+            E_font_I_print(s);
             //TODO Zapisać ‘string’.
             break;
       case 0xe: // qword const
+            E_font_I_print( ",qword" );
             E_aml_S_stack_data += 8;
             if( E_aml_S_stack_data > E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end )
                 return ~0;
             //TODO Zapisać ‘qword’.
             break;
       case 0x5b: // revision
+            E_font_I_print( ",revision" );
             if( ++E_aml_S_stack_data > E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end )
                 return ~0;
             //TODO Zapisać ‘revision’ (0x30).
             break;
       case 0x11: // buffer
-        {   N pkg_length = E_aml_R_pkg_length();
+        {   Pc data_start = E_aml_S_stack_data;
+            N pkg_length = E_aml_R_pkg_length();
             if( !~pkg_length
             || !pkg_length
             )
                 return ~0;
-            Pc pkg_end = E_aml_S_stack_data - 1 + pkg_length;
+            Pc pkg_end = E_aml_S_stack_data + pkg_length - ( E_aml_S_stack_data - data_start );
             if( pkg_end > E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end )
                 return ~0;
+            E_font_I_print( ", buffer" );
             if( !E_mem_Q_blk_I_append( &E_aml_S_stack, 1 ))
                 return ~0;
             //DFN “E_aml_I_data_object” będzie zawsze wywoływane z “n == 1”, więc można ominąć jedno przydzielenie pamięci.
@@ -458,14 +475,16 @@ E_aml_I_data_object( void
             break;
         }
       case 0x12: // package
-        {   N pkg_length = E_aml_R_pkg_length();
+        {   Pc data_start = E_aml_S_stack_data;
+            N pkg_length = E_aml_R_pkg_length();
             if( !~pkg_length )
                 return ~0;
-            Pc pkg_end = E_aml_S_stack_data - 1 + pkg_length;
+            Pc pkg_end = E_aml_S_stack_data + pkg_length - ( E_aml_S_stack_data - data_start );
             if( pkg_end > E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end )
                 return ~0;
             if( ++E_aml_S_stack_data == pkg_end )
                 return ~0;
+            E_font_I_print( ",package" );
             N n = *E_aml_S_stack_data;
             if( !n )
                 return ~0;
@@ -475,12 +494,14 @@ E_aml_I_data_object( void
             break;
         }
       case 0x13: // var package
-        {   N pkg_length = E_aml_R_pkg_length();
+        {   Pc data_start = E_aml_S_stack_data;
+            N pkg_length = E_aml_R_pkg_length();
             if( !~pkg_length )
                 return ~0;
-            Pc pkg_end = E_aml_S_stack_data - 1 + pkg_length;
+            Pc pkg_end = E_aml_S_stack_data + pkg_length - ( E_aml_S_stack_data - data_start );
             if( pkg_end > E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end )
                 return ~0;
+            E_font_I_print( ",var package" );
             if( !E_mem_Q_blk_I_append( &E_aml_S_stack, 2 ))
                 return ~0;
             E_aml_S_stack[ E_aml_S_stack_n - 1 ].entity = E_aml_Z_stack_Z_entity_S_package;
@@ -542,6 +563,10 @@ E_aml_I_term( void
             {   W(name);
                 return ~0;
             }
+            Pc name_ = M( n * 4 + 1 );
+            E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
+            E_font_I_print( ",alias=" ); E_font_I_print( name_ );
+            W( name_ );
             if( !~E_aml_Q_object_name_alias_I_add( alias, name ))
             {   W(alias);
                 W(name);
@@ -569,10 +594,11 @@ E_aml_I_term( void
             break;
         }
       case 0x10: // scope
-        {   N pkg_length = E_aml_R_pkg_length();
+        {   Pc data_start = E_aml_S_stack_data;
+            N pkg_length = E_aml_R_pkg_length();
             if( !~pkg_length )
                 return ~0;
-            Pc pkg_end = E_aml_S_stack_data - 1 + pkg_length;
+            Pc pkg_end = E_aml_S_stack_data + pkg_length - ( E_aml_S_stack_data - data_start );
             if( pkg_end > E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end )
                 return ~0;
             N n;
@@ -601,10 +627,11 @@ E_aml_I_term( void
                 return ~0;
             switch( (N8)*E_aml_S_stack_data++ )
             { case 0x87: // bank field
-                {   N pkg_length = E_aml_R_pkg_length();
+                {   Pc data_start = E_aml_S_stack_data;
+                    N pkg_length = E_aml_R_pkg_length();
                     if( !~pkg_length )
                         return ~0;
-                    Pc pkg_end = E_aml_S_stack_data - 1 + pkg_length;
+                    Pc pkg_end = E_aml_S_stack_data + pkg_length - ( E_aml_S_stack_data - data_start );
                     if( pkg_end > E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end )
                         return ~0;
                     N n;
@@ -613,6 +640,10 @@ E_aml_I_term( void
                     || E_aml_S_stack_data > pkg_end
                     )
                         return ~0;
+                    Pc name_ = M( n * 4 + 1 );
+                    E_text_Z_s_P_copy_sl_0( name_, region_name, n * 4 );
+                    E_font_I_print( ", region name=" ); E_font_I_print( name_ );
+                    W( name_ );
                     //TODO Sprawdzić w drzewie zinterpretowanej przestrzeni ACPI, czy ścieżka istnieje.
                     W( region_name );
                     Pc bank_name = E_aml_Q_path_R_root( &n );
@@ -620,6 +651,10 @@ E_aml_I_term( void
                     || E_aml_S_stack_data > pkg_end
                     )
                         return ~0;
+                    name_ = M( n * 4 + 1 );
+                    E_text_Z_s_P_copy_sl_0( name_, bank_name, n * 4 );
+                    E_font_I_print( ", bank name=" ); E_font_I_print( name_ );
+                    W( name_ );
                     //TODO Sprawdzić w drzewie zinterpretowanej przestrzeni ACPI, czy ścieżka istnieje.
                     W( bank_name );
                     //TODO Dodać ‘bank field’ do drzewa zinterpretowanej przestrzeni ACPI.
@@ -628,6 +663,7 @@ E_aml_I_term( void
                 }
               case 0x13: // field
                     //TODO Dodać ‘field’ do drzewa zinterpretowanej przestrzeni ACPI.
+                    E_font_I_print( ",field" );
                     E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_field_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
                     break;
               case 0x88: // data region
@@ -635,6 +671,10 @@ E_aml_I_term( void
                     Pc name = E_aml_Q_path_R_root( &n );
                     if( !name )
                         return ~0;
+                    Pc name_ = M( n * 4 + 1 );
+                    E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
+                    E_font_I_print( ",data region=" ); E_font_I_print( name_ );
+                    W( name_ );
                     //TODO Dodać ‘data region’ do drzewa zinterpretowanej przestrzeni ACPI.
                     W(name);
                     E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_data_region_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
@@ -648,15 +688,17 @@ E_aml_I_term( void
                     if( ++E_aml_S_stack_data == E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end )
                         return ~0;
                     //TODO Dodać ‘op region’ do drzewa zinterpretowanej przestrzeni ACPI.
+                    E_font_I_print( ",op region" );
                     W(name);
                     E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_op_region_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
                     break;
                 }
               case 0x84: // power res
-                {   N pkg_length = E_aml_R_pkg_length();
+                {   Pc data_start = E_aml_S_stack_data;
+                    N pkg_length = E_aml_R_pkg_length();
                     if( !~pkg_length )
                         return ~0;
-                    Pc pkg_end = E_aml_S_stack_data - 1 + pkg_length;
+                    Pc pkg_end = E_aml_S_stack_data + pkg_length - ( E_aml_S_stack_data - data_start );
                     if( pkg_end > E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end )
                         return ~0;
                     N n;
@@ -665,6 +707,10 @@ E_aml_I_term( void
                     || E_aml_S_stack_data > pkg_end
                     )
                         return ~0;
+                    Pc name_ = M( n * 4 + 1 );
+                    E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
+                    E_font_I_print( ", power res name=" ); E_font_I_print( name_ );
+                    W( name_ );
                     if( !E_mem_Q_blk_I_append( &E_aml_S_current_path, 1 ))
                         return ~0;
                     E_aml_S_current_path[ E_aml_S_current_path_n ].s = name;
@@ -681,12 +727,13 @@ E_aml_I_term( void
                     break;
                 }
               case 0x85: // thermal zone
-                {   N pkg_length = E_aml_R_pkg_length();
+                {   Pc data_start = E_aml_S_stack_data;
+                    N pkg_length = E_aml_R_pkg_length();
                     if( !~pkg_length
                     || pkg_length < 3
                     )
                         return ~0;
-                    Pc pkg_end = E_aml_S_stack_data - 1 + pkg_length;
+                    Pc pkg_end = E_aml_S_stack_data + pkg_length - ( E_aml_S_stack_data - data_start );
                     if( pkg_end > E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end )
                         return ~0;
                     N n;
@@ -695,6 +742,10 @@ E_aml_I_term( void
                     || E_aml_S_stack_data > pkg_end
                     )
                         return ~0;
+                    Pc name_ = M( n * 4 + 1 );
+                    E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
+                    E_font_I_print( ", thermal zone name=" ); E_font_I_print( name_ );
+                    W( name_ );
                     if( !E_mem_Q_blk_I_append( &E_aml_S_current_path, 1 ))
                         return ~0;
                     E_aml_S_current_path[ E_aml_S_current_path_n ].s = name;
@@ -706,21 +757,27 @@ E_aml_I_term( void
                     break;
                 }
               case 0x32: // fatal
+                    E_font_I_print( ",fatal" );
                     
                     break;
               case 0x27: // release
+                    E_font_I_print( ",release" );
                     E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_release_finish, E_aml_Z_stack_Z_entity_S_supername );
                     break;
               case 0x26: // reset
+                    E_font_I_print( ",reset" );
                     E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_reset_finish, E_aml_Z_stack_Z_entity_S_supername );
                     break;
               case 0x24: // signal
+                    E_font_I_print( ",signal" );
                     E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_signal_finish, E_aml_Z_stack_Z_entity_S_supername );
                     break;
               case 0x22: // sleep
+                    E_font_I_print( ",sleep" );
                     E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_sleep_finish, E_aml_Z_stack_Z_entity_S_term_arg );
                     break;
               case 0x21: // stall
+                    E_font_I_print( ",stall" );
                     E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_stall_finish, E_aml_Z_stack_Z_entity_S_term_arg );
                     break;
               default:
@@ -736,22 +793,27 @@ E_aml_I_term( void
                 }
             }
       case 0x8d: // bit field
+            E_font_I_print( ",bit field" );
             //TODO Dodać ‘bit field’ do drzewa zinterpretowanej przestrzeni ACPI.
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_bit_field_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x8c: // byte field
+            E_font_I_print( ",byte field" );
             //TODO Dodać ‘byte field’ do drzewa zinterpretowanej przestrzeni ACPI.
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_byte_field_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x8a: // dword field
+            E_font_I_print( ",dword field" );
             //TODO Dodać ‘dword field’ do drzewa zinterpretowanej przestrzeni ACPI.
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_dword_field_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x8f: // qword field
+            E_font_I_print( ",qword field" );
             //TODO Dodać ‘qword field’ do drzewa zinterpretowanej przestrzeni ACPI.
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_qword_field_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x8b: // word field
+            E_font_I_print( ",word field" );
             //TODO Dodać ‘word field’ do drzewa zinterpretowanej przestrzeni ACPI.
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_word_field_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
@@ -761,16 +823,21 @@ E_aml_I_term( void
             if( !name )
                 return ~0;
             W(name);
+            Pc name_ = M( n * 4 + 1 );
+            E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
+            E_font_I_print( ",external=" ); E_font_I_print( name_ );
+            W( name_ );
             if( E_aml_S_stack_data + 2 > E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end )
                 return ~0;
             //TODO Dodać ‘external’ do drzewa zinterpretowanej przestrzeni ACPI.
             break;
         }
       case 0x14: // method
-        {   N pkg_length = E_aml_R_pkg_length();
+        {   Pc data_start = E_aml_S_stack_data;
+            N pkg_length = E_aml_R_pkg_length();
             if( !~pkg_length )
                 return ~0;
-            Pc pkg_end = E_aml_S_stack_data - 1 + pkg_length;
+            Pc pkg_end = E_aml_S_stack_data + pkg_length - ( E_aml_S_stack_data - data_start );
             if( pkg_end > E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end )
                 return ~0;
             N n;
@@ -797,49 +864,59 @@ E_aml_I_term( void
             break;
         }
       case 0xa5: // break
-            
+            E_font_I_print( ",break" );
             break;
       case 0xcc: // breakpoint
-            
+            E_font_I_print( ",breakpoint" );
             break;
       case 0x9f: // continue
-            
+            E_font_I_print( ",continue" );
             break;
       case 0xa0: // if
-        {   N pkg_length = E_aml_R_pkg_length();
+        {   Pc data_start = E_aml_S_stack_data;
+            N pkg_length = E_aml_R_pkg_length();
             if( !~pkg_length )
                 return ~0;
-            Pc pkg_end = E_aml_S_stack_data - 1 + pkg_length;
+            Pc pkg_end = E_aml_S_stack_data + pkg_length - ( E_aml_S_stack_data - data_start );
+            E_font_I_print( ",pkg_end=" ); E_font_I_print_hex( (N)pkg_end );
+            E_font_I_print( ",data_end=" ); E_font_I_print_hex( (N)E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end );
             if( pkg_end > E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end )
                 return ~0;
+            E_font_I_print( ",if" );
             E_aml_I_delegate_pkg( E_aml_Z_stack_Z_entity_S_if_op_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
         }
       case 0xa1: // else
-        {   N pkg_length = E_aml_R_pkg_length();
+        {   Pc data_start = E_aml_S_stack_data;
+            N pkg_length = E_aml_R_pkg_length();
             if( !~pkg_length )
                 return ~0;
-            Pc pkg_end = E_aml_S_stack_data - 1 + pkg_length;
+            Pc pkg_end = E_aml_S_stack_data + pkg_length - ( E_aml_S_stack_data - data_start );
             if( pkg_end > E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end )
                 return ~0;
+            E_font_I_print( ",else" );
             E_aml_I_delegate_pkg( E_aml_Z_stack_Z_entity_S_else_op_finish, E_aml_Z_stack_Z_entity_S_term );
             E_aml_S_stack[ E_aml_S_stack_n - 1 ].n = ~0;
         }
       case 0xa3: // noop
             break;
       case 0x86: // notify
+            E_font_I_print( ",notify" );
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_notify_finish_1, E_aml_Z_stack_Z_entity_S_supername );
             break;
       case 0xa4: // return
+            E_font_I_print( ",return" );
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_return_finish, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0xa2: // while
-        {   N pkg_length = E_aml_R_pkg_length();
+        {   Pc data_start = E_aml_S_stack_data;
+            N pkg_length = E_aml_R_pkg_length();
             if( !~pkg_length )
                 return ~0;
-            Pc pkg_end = E_aml_S_stack_data - 1 + pkg_length;
+            Pc pkg_end = E_aml_S_stack_data + pkg_length - ( E_aml_S_stack_data - data_start );
             if( pkg_end > E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end )
                 return ~0;
+            E_font_I_print( ",while" );
             E_aml_I_delegate_pkg( E_aml_Z_stack_Z_entity_S_while_op_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
         }
@@ -867,23 +944,30 @@ E_aml_I_expression( void
                 return ~0;
             switch( (N8)*E_aml_S_stack_data++ )
             { case 0x23: // mutex
+                    E_font_I_print( ",mutex" );
                     E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_mutex_finish, E_aml_Z_stack_Z_entity_S_supername );
                     break;
               case 0x12: // concat refof
+                    E_font_I_print( ",concat refof" );
                     E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_concat_refof_finish_1, E_aml_Z_stack_Z_entity_S_supername );
                     break;
               case 0x28: // from bcd
+                    E_font_I_print( ",from bcd" );
                     E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_from_bcd_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
                     break;
               case 0x1f: // load table
+                    E_font_I_print( ",load table" );
                     E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_load_table_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
                     break;
               case 0x33: // timer
+                    E_font_I_print( ",timer" );
                     break;
               case 0x29: // to bcd
+                    E_font_I_print( ",to bcd" );
                     E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_to_bcd_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
                     break;
               case 0x25: // wait
+                    E_font_I_print( ",wait" );
                     E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_wait_finish_1, E_aml_Z_stack_Z_entity_S_supername );
                     break;
               default:
@@ -893,58 +977,75 @@ E_aml_I_expression( void
             }
             break;
       case 0x72: // add
+            E_font_I_print( ",add" );
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_add_op_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x7b: // and
+            E_font_I_print( ",and" );
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_and_op_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x11: // buffer
-        {   N pkg_length = E_aml_R_pkg_length();
+        {   Pc data_start = E_aml_S_stack_data;
+            N pkg_length = E_aml_R_pkg_length();
             if( !~pkg_length )
                 return ~0;
-            Pc pkg_end = E_aml_S_stack_data - 1 + pkg_length;
+            Pc pkg_end = E_aml_S_stack_data + pkg_length - ( E_aml_S_stack_data - data_start );
             if( pkg_end > E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end )
                 return ~0;
+            E_font_I_print( ",buffer" );
             E_aml_I_delegate_pkg( E_aml_Z_stack_Z_entity_S_buffer_finish, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
         }
       case 0x73: // concat
+            E_font_I_print( ",concat" );
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_concat_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x84: // concat res
+            E_font_I_print( ",concat res" );
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_concat_res_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x9d: // copy object
+            E_font_I_print( ",copy object" );
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_copy_object_finish, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x76: // decrement
+            E_font_I_print( ",decrement" );
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_decrement_finish, E_aml_Z_stack_Z_entity_S_supername );
             break;
       case 0x83: // derefof
+            E_font_I_print( ",derefof" );
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_derefof_finish, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x78: // divide
+            E_font_I_print( ",divide" );
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_divide_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x81: // find set left bit
+            E_font_I_print( ",fslb" );
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_fslb_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x82: // find set right bit
+            E_font_I_print( ",fsrb" );
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_fsrb_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x75: // increment
+            E_font_I_print( ",increment" );
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_increment_finish, E_aml_Z_stack_Z_entity_S_supername );
             break;
       case 0x88: // index
+            E_font_I_print( ",index" );
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_index_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x90: // land
+            E_font_I_print( ",land" );
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_land_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x93: // lequal
+            E_font_I_print( ",lequal" );
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_lequal_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x94: // lgreater
+            E_font_I_print( ",lgreater" );
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_lgreater_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x92: // lnot
@@ -952,58 +1053,74 @@ E_aml_I_expression( void
                 return ~0;
             switch( (N8)*E_aml_S_stack_data++ )
             { case 0x95: // lgreater equal
+                    E_font_I_print( ",lgreater equal" );
                     E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_lgreater_equal_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
                     break;
               case 0x94: // lless equal
+                    E_font_I_print( ",lless equal" );
                     E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_lless_equal_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
                     break;
               case 0x93: // lnot equal
+                    E_font_I_print( ",lnot equal" );
                     E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_lnot_equal_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
                     break;
               default: // lnot
+                    E_font_I_print( ",lnot" );
                     E_aml_S_stack_data--;
                     E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_lnot_finish, E_aml_Z_stack_Z_entity_S_term_arg );
                     break;
             }
             break;
       case 0x95: // lless
+            E_font_I_print( ",lless" );
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_lless_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x9e: // mid
+            E_font_I_print( ",mid" );
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_mid_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x91: // lor
+            E_font_I_print( ",lor" );
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_lor_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x89: // match
+            E_font_I_print( ",match" );
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_match_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x85: // mod
+            E_font_I_print( ",mod" );
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_mod_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x77: // multiply
+            E_font_I_print( ",multiply" );
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_multiply_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x7c: // nand
+            E_font_I_print( ",nand" );
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_nand_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x7e: // nor
+            E_font_I_print( ",nor" );
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_nor_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x80: // not
+            E_font_I_print( ",not" );
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_not_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x8e: // object type
+            E_font_I_print( ",object type" );
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_object_type_finish, E_aml_Z_stack_Z_entity_S_supername );
             break;
       case 0x7d: // or
+            E_font_I_print( ",or" );
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_or_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x12: // package
-        {   N pkg_length = E_aml_R_pkg_length();
+        {   Pc data_start = E_aml_S_stack_data;
+            N pkg_length = E_aml_R_pkg_length();
             if( !~pkg_length )
                 return ~0;
-            Pc pkg_end = E_aml_S_stack_data - 1 + pkg_length;
+            Pc pkg_end = E_aml_S_stack_data + pkg_length - ( E_aml_S_stack_data - data_start );
             if( pkg_end > E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end )
                 return ~0;
             if( ++E_aml_S_stack_data > pkg_end )
@@ -1011,6 +1128,7 @@ E_aml_I_expression( void
             N n = *E_aml_S_stack_data;
             if( !n )
                 return ~0;
+            E_font_I_print( ", package" );
             if( !E_mem_Q_blk_I_append( &E_aml_S_stack, 1 ))
                 return ~0;
             E_aml_S_stack[ E_aml_S_stack_n ].entity = E_aml_Z_stack_Z_entity_S_package;
@@ -1020,14 +1138,16 @@ E_aml_I_expression( void
             break;
         }
       case 0x13: // var package
-        {   N pkg_length = E_aml_R_pkg_length();
+        {   Pc data_start = E_aml_S_stack_data;
+            N pkg_length = E_aml_R_pkg_length();
             if( !~pkg_length )
                 return ~0;
-            Pc pkg_end = E_aml_S_stack_data - 1 + pkg_length;
+            Pc pkg_end = E_aml_S_stack_data + pkg_length - ( E_aml_S_stack_data - data_start );
             if( pkg_end > E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end )
                 return ~0;
             if( !E_mem_Q_blk_I_append( &E_aml_S_stack, 3 ))
                 return ~0;
+            E_font_I_print( ", var package" );
             E_aml_S_stack[ E_aml_S_stack_n ].entity = E_aml_Z_stack_Z_entity_S_package;
             E_aml_S_stack[ E_aml_S_stack_n ].n = 0;
             E_aml_S_stack_n++;
@@ -1041,56 +1161,73 @@ E_aml_I_expression( void
             break;
         }
       case 0x71: // refof
+            E_font_I_print( ",refof" );
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_refof_finish, E_aml_Z_stack_Z_entity_S_supername );
             break;
       case 0x79: // shift left
+            E_font_I_print( ",shift left" );
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_shift_left_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x7a: // shift right
+            E_font_I_print( ",shift right" );
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_shift_right_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x87: // sizeof
+            E_font_I_print( ",sizeof" );
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_sizeof_finish, E_aml_Z_stack_Z_entity_S_supername );
             break;
       case 0x70: // store
+            E_font_I_print( ",store" );
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_store_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x74: // subtract
+            E_font_I_print( ",subtract" );
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_subtract_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x96: // to buffer
+            E_font_I_print( ",to buffer" );
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_to_buffer_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x97: // to decimal string
+            E_font_I_print( ",to decimal string" );
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_to_decimal_string_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x98: // to hex string
+            E_font_I_print( ",to hex string" );
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_to_hex_string_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x99: // to integer
+            E_font_I_print( ",to integer" );
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_to_integer_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x9c: // to string
+            E_font_I_print( ",to string" );
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_to_string_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x7f: // xor
+            E_font_I_print( ",xor" );
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_xor_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
-      default: // method invocation
+      default:
         {   E_aml_S_stack_data--;
             N n;
             Pc name = E_aml_Q_path_R_root( &n );
             if( !name )
                 return ~0;
+            Pc name_ = M( n * 4 + 1 );
+            E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
+            E_font_I_print( ",expr string=" ); E_font_I_print( name_ );
+            W( name_ );
             //TODO Sprawdzić w drzewie zinterpretowanej przestrzeni ACPI, czy ścieżka istnieje.
             W(name);
-            if( !E_mem_Q_blk_I_append( &E_aml_S_stack, 1 ))
-                return ~0;
-            Pc data_end = E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end;
-            E_aml_S_stack[ E_aml_S_stack_n ].entity = E_aml_Z_stack_Z_entity_S_term_arg;
-            E_aml_S_stack[ E_aml_S_stack_n ].n = 7;
-            E_aml_S_stack[ E_aml_S_stack_n ].data_end = data_end;
-            E_aml_S_stack_n++;
+            // method invocation
+            //if( !E_mem_Q_blk_I_append( &E_aml_S_stack, 1 ))
+                //return ~0;
+            //Pc data_end = E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end;
+            //E_aml_S_stack[ E_aml_S_stack_n ].entity = E_aml_Z_stack_Z_entity_S_term_arg;
+            //E_aml_S_stack[ E_aml_S_stack_n ].n = 8;
+            //E_aml_S_stack[ E_aml_S_stack_n ].data_end = data_end;
+            //E_aml_S_stack_n++;
             break;
         }
     }
@@ -1147,6 +1284,10 @@ E_aml_I_supername( void
             Pc name = E_aml_Q_path_R_root( &n );
             if( !name )
                 return ~0;
+            Pc name_ = M( 4 + 1 );
+            E_text_Z_s_P_copy_sl_0( name_, name, 4 );
+            E_font_I_print( ",simple name=" ); E_font_I_print( name_ );
+            W( name_ );
             //TODO Sprawdzić w drzewie zinterpretowanej przestrzeni ACPI, czy ścieżka istnieje.
             E_aml_S_stack[ E_aml_S_stack_n - 1 ].result.pathname.s = name;
             E_aml_S_stack[ E_aml_S_stack_n - 1 ].result.pathname.n = n;
@@ -1158,18 +1299,6 @@ E_aml_I_supername( void
 #undef E_aml_I_delegate_pkg
 #undef E_aml_I_delegate
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#define E_aml_I_delegate( finish, entity_ ) \
-{   if( !E_mem_Q_blk_I_append( &E_aml_S_stack, 1 )) \
-        goto Error; \
-    Pc data_end = E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end; \
-    E_aml_S_stack[ E_aml_S_stack_n - 1 ].entity = finish; \
-    E_aml_S_stack[ E_aml_S_stack_n - 1 ].n = 0; \
-    E_aml_S_stack[ E_aml_S_stack_n ].entity = entity_; \
-    E_aml_S_stack[ E_aml_S_stack_n ].n = 1; \
-    E_aml_S_stack[ E_aml_S_stack_n ].data_end = data_end; \
-    E_aml_S_stack_n++; \
-    stack_n_last = E_aml_S_stack_n; \
-}
 _private
 N
 E_aml_M( Pc data
@@ -1199,7 +1328,7 @@ E_aml_M( Pc data
     do
     {   stack_n_last = E_aml_S_stack_n;
         enum E_aml_Z_stack_Z_entity entity = E_aml_S_stack[ E_aml_S_stack_n - 1 ].entity;
-        E_font_I_print( "\n  entity=" ); E_font_I_print_hex(entity); E_font_I_print( ", data=" ); E_font_I_print_hex( (N)E_aml_S_stack_data ); E_font_I_print( ", data_end=" ); E_font_I_print_hex( (N)E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end ); E_font_I_print( ", value=" ); E_font_I_print_hex( (N8)E_aml_S_stack_data[0] );
+        E_font_I_print( "\nentity=" ); E_font_I_print_hex(entity); E_font_I_print( ",data=" ); E_font_I_print_hex( (N)E_aml_S_stack_data ); E_font_I_print( ",data_end=" ); E_font_I_print_hex( (N)E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end ); E_font_I_print( ",value=" ); E_font_I_print_hex( *( N * )E_aml_S_stack_data );
         switch(entity)
         { case E_aml_Z_stack_Z_entity_S_result_to_n:
                 E_aml_S_stack[ E_aml_S_stack_n - 2 ].n = result.n;
@@ -1223,6 +1352,7 @@ E_aml_M( Pc data
                   case 0x6c:
                   case 0x6d:
                   case 0x6e:
+                        E_font_I_print( ",arg" );
                         //result =
                         break;
                   case 0x60: // local
@@ -1233,21 +1363,9 @@ E_aml_M( Pc data
                   case 0x65:
                   case 0x66:
                   case 0x67:
+                        E_font_I_print( ",local" );
                         //result =
                         break;
-                  case 0xa4: // return
-                    {   if( !E_mem_Q_blk_I_append( &E_aml_S_stack, 2 ))
-                            goto Error;
-                        Pc data_end = E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end;
-                        E_aml_S_stack[ E_aml_S_stack_n ].entity = E_aml_Z_stack_Z_entity_S_return_finish;
-                        E_aml_S_stack[ E_aml_S_stack_n ].n = 0;
-                        E_aml_S_stack_n++;
-                        E_aml_S_stack[ E_aml_S_stack_n ].entity = E_aml_Z_stack_Z_entity_S_term_arg;
-                        E_aml_S_stack[ E_aml_S_stack_n ].n = 1;
-                        E_aml_S_stack[ E_aml_S_stack_n ].data_end = data_end;
-                        E_aml_S_stack_n++;
-                        break;
-                    }
                   default:
                     {   E_aml_S_stack_data--;
                         if( !E_mem_Q_blk_I_append( &E_aml_S_stack, 2 ))
@@ -1264,6 +1382,30 @@ E_aml_M( Pc data
                     }
                 }
                 break;
+          case E_aml_Z_stack_Z_entity_S_data_object:
+                ret = E_aml_I_data_object();
+                result = E_aml_S_stack[ E_aml_S_stack_n - 1 ].result;
+                break;
+          case E_aml_Z_stack_Z_entity_S_expression:
+                ret = E_aml_I_expression();
+                result = E_aml_S_stack[ E_aml_S_stack_n - 1 ].result;
+                break;
+          case E_aml_Z_stack_Z_entity_S_supername:
+                ret = E_aml_I_supername();
+                result = E_aml_S_stack[ E_aml_S_stack_n - 1 ].result;
+                break;
+#define E_aml_I_delegate( finish, entity_ ) \
+{   if( !E_mem_Q_blk_I_append( &E_aml_S_stack, 1 )) \
+        goto Error; \
+    Pc data_end = E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end; \
+    E_aml_S_stack[ E_aml_S_stack_n - 1 ].entity = finish; \
+    E_aml_S_stack[ E_aml_S_stack_n - 1 ].n = 0; \
+    E_aml_S_stack[ E_aml_S_stack_n ].entity = entity_; \
+    E_aml_S_stack[ E_aml_S_stack_n ].n = 1; \
+    E_aml_S_stack[ E_aml_S_stack_n ].data_end = data_end; \
+    E_aml_S_stack_n++; \
+    stack_n_last = E_aml_S_stack_n; \
+}
           case E_aml_Z_stack_Z_entity_S_term_arg_finish_1:
             {   if( E_aml_S_stack[ E_aml_S_stack_n - 1 ].match )
                     break;
@@ -1273,14 +1415,6 @@ E_aml_M( Pc data
                 E_aml_S_stack[ E_aml_S_stack_n ].data_end = data_end;
                 break;
             }
-          case E_aml_Z_stack_Z_entity_S_expression:
-                ret = E_aml_I_expression();
-                result = E_aml_S_stack[ E_aml_S_stack_n - 1 ].result;
-                break;
-          case E_aml_Z_stack_Z_entity_S_data_object:
-                ret = E_aml_I_data_object();
-                result = E_aml_S_stack[ E_aml_S_stack_n - 1 ].result;
-                break;
           case E_aml_Z_stack_Z_entity_S_data_object_buffer_finish:
                 if( E_aml_S_stack_data + result.n > E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end )
                     goto Error;
@@ -1297,14 +1431,14 @@ E_aml_M( Pc data
                 Pc name = E_aml_Q_path_R_root( &n );
                 if( !name )
                     goto Error;
+                Pc name_ = M( 4 + 1 );
+                E_text_Z_s_P_copy_sl_0( name_, name, 4 );
+                E_font_I_print( ",package=" ); E_font_I_print( name_ );
+                W( name_ );
                 //TODO Sprawdzić w drzewie zinterpretowanej przestrzeni ACPI, czy ścieżka istnieje (oprócz ostatniego obiektu, który teraz jest definiowany).
                 //TODO Dodać ‘name’ do drzewa zinterpretowanej przestrzeni ACPI.
                 break;
             }
-          case E_aml_Z_stack_Z_entity_S_supername:
-                ret = E_aml_I_supername();
-                result = E_aml_S_stack[ E_aml_S_stack_n - 1 ].result;
-                break;
           case E_aml_Z_stack_Z_entity_S_supername_ref_finish:
                 //TODO Dodać ‘ref object’ do drzewa zinterpretowanej przestrzeni ACPI.
                 break;
@@ -1336,6 +1470,7 @@ E_aml_M( Pc data
                             || !n
                             )
                                 goto Error;
+                            E_font_I_print( ", reserved field" );
                             //TODO Dodać ‘field pkg length’ do drzewa zinterpretowanej przestrzeni ACPI.
                             break;
                         }
@@ -1348,7 +1483,8 @@ E_aml_M( Pc data
                             E_aml_S_stack_data++;
                             break;
                       case 2: // connect field
-                            
+                            E_font_I_print( ", connect field" );
+                            goto Error;
                             break;
                       case 3: // extended access field
                             if( E_aml_S_stack_data + 3 > E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end )
@@ -1360,9 +1496,13 @@ E_aml_M( Pc data
                             //TODO Dodać ‘access length’ do drzewa zinterpretowanej przestrzeni ACPI.
                             E_aml_S_stack_data++; //NDFN Jaki rozmiar.
                             break;
-                      default:
+                      default: // named field
                         {   if( E_aml_S_stack_data + 4 > E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end )
                                 goto Error;
+                            Pc name_ = M( 4 + 1 );
+                            E_text_Z_s_P_copy_sl_0( name_, E_aml_S_stack_data, 4 );
+                            E_font_I_print( ",field=" ); E_font_I_print( name_ );
+                            W( name_ );
                             //TODO Dodać ‘field name’ do drzewa zinterpretowanej przestrzeni ACPI.
                             E_aml_S_stack_data += 4;
                             N n = E_aml_R_pkg_length();
@@ -1370,6 +1510,7 @@ E_aml_M( Pc data
                             || !n
                             )
                                 goto Error;
+                            E_font_I_print( ", field" );
                             //TODO Dodać ‘field pkg length’ do drzewa zinterpretowanej przestrzeni ACPI.
                             break;
                         }
@@ -1387,6 +1528,10 @@ E_aml_M( Pc data
                 Pc name = E_aml_Q_path_R_root( &n );
                 if( !name )
                     goto Error;
+                Pc name_ = M( n * 4 + 1 );
+                E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
+                E_font_I_print( ",bit field=" ); E_font_I_print( name_ );
+                W( name_ );
                 //TODO Sprawdzić w drzewie zinterpretowanej przestrzeni ACPI, czy ścieżka istnieje (oprócz ostatniego obiektu, który teraz jest definiowany).
                 //TODO Dodać ‘name’ do drzewa zinterpretowanej przestrzeni ACPI.
                 break;
@@ -1401,6 +1546,10 @@ E_aml_M( Pc data
                 Pc name = E_aml_Q_path_R_root( &n );
                 if( !name )
                     goto Error;
+                Pc name_ = M( n * 4 + 1 );
+                E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
+                E_font_I_print( ",qword field=" ); E_font_I_print( name_ );
+                W( name_ );
                 //TODO Sprawdzić w drzewie zinterpretowanej przestrzeni ACPI, czy ścieżka istnieje (oprócz ostatniego obiektu, który teraz jest definiowany).
                 //TODO Dodać ‘name’ do drzewa zinterpretowanej przestrzeni ACPI.
                 break;
@@ -1415,6 +1564,10 @@ E_aml_M( Pc data
                 Pc name = E_aml_Q_path_R_root( &n );
                 if( !name )
                     goto Error;
+                Pc name_ = M( n * 4 + 1 );
+                E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
+                E_font_I_print( ",dword field=" ); E_font_I_print( name_ );
+                W( name_ );
                 //TODO Sprawdzić w drzewie zinterpretowanej przestrzeni ACPI, czy ścieżka istnieje (oprócz ostatniego obiektu, który teraz jest definiowany).
                 //TODO Dodać ‘name’ do drzewa zinterpretowanej przestrzeni ACPI.
                 break;
@@ -1433,6 +1586,10 @@ E_aml_M( Pc data
                 Pc name = E_aml_Q_path_R_root( &n );
                 if( !name )
                     goto Error;
+                Pc name_ = M( n * 4 + 1 );
+                E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
+                E_font_I_print( ",field=" ); E_font_I_print( name_ );
+                W( name_ );
                 //TODO Sprawdzić w drzewie zinterpretowanej przestrzeni ACPI, czy ścieżka istnieje (oprócz ostatniego obiektu, który teraz jest definiowany).
                 //TODO Dodać ‘name’ do drzewa zinterpretowanej przestrzeni ACPI.
                 break;
@@ -1447,6 +1604,10 @@ E_aml_M( Pc data
                 Pc name = E_aml_Q_path_R_root( &n );
                 if( !name )
                     goto Error;
+                Pc name_ = M( n * 4 + 1 );
+                E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
+                E_font_I_print( ",qword field=" ); E_font_I_print( name_ );
+                W( name_ );
                 //TODO Sprawdzić w drzewie zinterpretowanej przestrzeni ACPI, czy ścieżka istnieje (oprócz ostatniego obiektu, który teraz jest definiowany).
                 //TODO Dodać ‘name’ do drzewa zinterpretowanej przestrzeni ACPI.
                 break;
@@ -1461,6 +1622,10 @@ E_aml_M( Pc data
                 Pc name = E_aml_Q_path_R_root( &n );
                 if( !name )
                     goto Error;
+                Pc name_ = M( n * 4 + 1 );
+                E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
+                E_font_I_print( ",word field=" ); E_font_I_print( name_ );
+                W( name_ );
                 //TODO Sprawdzić w drzewie zinterpretowanej przestrzeni ACPI, czy ścieżka istnieje (oprócz ostatniego obiektu, który teraz jest definiowany).
                 //TODO Dodać ‘name’ do drzewa zinterpretowanej przestrzeni ACPI.
                 break;
@@ -1484,21 +1649,15 @@ E_aml_M( Pc data
                 //TODO Dodać ‘region len’ do drzewa zinterpretowanej przestrzeni ACPI.
                 break;
           case E_aml_Z_stack_Z_entity_S_power_res_finish:
-            {   //TODO Dodać ‘power res’ do drzewa zinterpretowanej przestrzeni ACPI.
-                Pc data_end = E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end;
+                //TODO Dodać ‘power res’ do drzewa zinterpretowanej przestrzeni ACPI.
                 E_aml_S_stack[ E_aml_S_stack_n - 1 ].entity = E_aml_Z_stack_Z_entity_S_restore_current_path;
                 E_aml_S_stack[ E_aml_S_stack_n - 1 ].n = 1;
-                E_aml_S_stack[ E_aml_S_stack_n ].data_end = data_end;
                 break;
-            }
           case E_aml_Z_stack_Z_entity_S_thermal_zone_finish:
-            {   //TODO Dodać ‘thermal zone’ do drzewa zinterpretowanej przestrzeni ACPI.
-                Pc data_end = E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end;
+                //TODO Dodać ‘thermal zone’ do drzewa zinterpretowanej przestrzeni ACPI.
                 E_aml_S_stack[ E_aml_S_stack_n - 1 ].entity = E_aml_Z_stack_Z_entity_S_restore_current_path;
                 E_aml_S_stack[ E_aml_S_stack_n - 1 ].n = 1;
-                E_aml_S_stack[ E_aml_S_stack_n ].data_end = data_end;
                 break;
-            }
           case E_aml_Z_stack_Z_entity_S_if_op_finish_1:
                 E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_if_op_finish_2, E_aml_Z_stack_Z_entity_S_term );
                 break;
@@ -1631,7 +1790,7 @@ E_aml_M( Pc data
                   case 0x6c:
                   case 0x6d:
                   case 0x6e:
-
+                        E_font_I_print( ",arg" );
                         break;
                   case 0x60: // local
                   case 0x61:
@@ -1641,13 +1800,17 @@ E_aml_M( Pc data
                   case 0x65:
                   case 0x66:
                   case 0x67:
-
+                        E_font_I_print( ",local" );
                         break;
                   default:
                     {   N n;
                         Pc name = E_aml_Q_path_R_root( &n );
                         if( !name )
                             return ~0;
+                        Pc name_ = M( n * 4 + 1 );
+                        E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
+                        E_font_I_print( ", object name=" ); E_font_I_print( name_ );
+                        W( name_ );
                         //TODO Sprawdzić w drzewie zinterpretowanej przestrzeni ACPI, czy ścieżka istnieje.
                         W(name);
                     }
@@ -2083,31 +2246,38 @@ E_aml_M( Pc data
         }
         if( !~ret )
             goto Error;
-        //E_font_I_print( "\nstack_n=" ); E_font_I_print_hex( E_aml_S_stack_n );
-        //E_font_I_print( ", stack_n_last=" ); E_font_I_print_hex( stack_n_last );
-        //for_n( j, E_aml_S_stack_n )
+        E_font_I_print( "\nstack_n=" ); E_font_I_print_hex( E_aml_S_stack_n );
+        E_font_I_print( ", stack_n_last=" ); E_font_I_print_hex( stack_n_last );
+        for_n( j, E_aml_S_stack_n )
+        {   E_font_I_print( "\n-entity=" ); E_font_I_print_hex( E_aml_S_stack[j].entity );
+            E_font_I_print( ", n=" ); E_font_I_print_hex( E_aml_S_stack[j].n );
+            E_font_I_print( ", data_end=" ); E_font_I_print_hex( (N)E_aml_S_stack[j].data_end );
+            E_font_I_print( ", result=" ); E_font_I_print_hex( E_aml_S_stack[j].result.n );
+        }
+        if( stack_n_last != E_aml_S_stack_n
+        && !E_aml_S_stack[ stack_n_last - 1 ].n
+        )
+        {   P ret = E_mem_Q_blk_I_remove( &E_aml_S_stack, stack_n_last - 1, 1 );
+            if( !ret )
+                goto Error;
+            E_aml_S_stack_n--;
+        }
+        //for_n_( j, E_aml_S_stack_n )
         //{   E_font_I_print( "\n-entity=" ); E_font_I_print_hex( E_aml_S_stack[j].entity );
             //E_font_I_print( ", n=" ); E_font_I_print_hex( E_aml_S_stack[j].n );
             //E_font_I_print( ", data_end=" ); E_font_I_print_hex( (N)E_aml_S_stack[j].data_end );
             //E_font_I_print( ", result=" ); E_font_I_print_hex( E_aml_S_stack[j].result.n );
         //}
-        if( stack_n_last != E_aml_S_stack_n
-        && !E_aml_S_stack[ stack_n_last - 1 ].n
-        )
-        {   if( !E_mem_Q_blk_I_remove( &E_aml_S_stack, stack_n_last - 1, 1 ))
-                goto Error;
-            E_aml_S_stack_n--;
-        }
-        if( ~E_aml_S_stack[ E_aml_S_stack_n - 1 ].n
-        && E_aml_S_stack_n >= 2 // Sprawdzanie dla konkretnych “n”, czy interpretacja zakończyła się na końcu wcześniej odczytanego rozmiaru “pkg_length”.
-        && !E_aml_S_stack[ E_aml_S_stack_n - 1 ].n // Czy bieżący element zakończył działanie.
+        if( E_aml_S_stack_n >= 2
+        && ~E_aml_S_stack[ E_aml_S_stack_n - 1 ].n
         )
             if( E_aml_S_stack[ E_aml_S_stack_n - 2 ].n ) // Czy poprzedni element na stosie nie jest którymś “finish”.
-            {   if( E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end != E_aml_S_stack[ E_aml_S_stack_n - 2 ].data_end // Czy było ustawione “pkg_length”.
-                && E_aml_S_stack_data != E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end
-                )
+            {   if( !E_aml_S_stack[ E_aml_S_stack_n - 1 ].n // Czy bieżący element zakończył działanie.
+                && E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end != E_aml_S_stack[ E_aml_S_stack_n - 2 ].data_end // Czy było ustawione “pkg_length”.
+                && E_aml_S_stack_data != E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end 
+                ) // Sprawdzanie dla konkretnych “n”, czy interpretacja zakończyła się na końcu wcześniej odczytanego rozmiaru “pkg_length”.
                     goto Error;
-            }else
+            }else if( !E_aml_S_stack[ E_aml_S_stack_n - 1 ].n ) // Czy bieżący element zakończył działanie.
                 E_aml_S_stack[ E_aml_S_stack_n - 2 ].data_end = E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end; // Zachowaj “data_end” do sprawdzenia podczas któregoś “finish”.
         if( ~E_aml_S_stack[ E_aml_S_stack_n - 1 ].n
         && !E_aml_S_stack[ E_aml_S_stack_n - 1 ].n--
@@ -2117,10 +2287,15 @@ E_aml_M( Pc data
         if( !~E_aml_S_stack[ E_aml_S_stack_n - 1 ].n // Sprawdzanie dla listy wyliczanej w nieskończoność, czy interpretacja zakończyła się.
         && E_aml_S_stack_data == E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end
         )
+        {   if( E_aml_S_stack_n >= 2
+            && !E_aml_S_stack[ E_aml_S_stack_n - 2 ].n // Czy poprzedni element na stosie jest którymś “finish”.
+            )
+                E_aml_S_stack[ E_aml_S_stack_n - 2 ].data_end = E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end; // Zachowaj “data_end” do sprawdzenia podczas któregoś “finish”.
             if( !E_mem_Q_blk_I_remove( &E_aml_S_stack, --E_aml_S_stack_n, 1 ))
                 goto Error;
+        }
         //for_n_( j, E_aml_S_stack_n )
-        //{   E_font_I_print( "\n=entity=" ); E_font_I_print_hex( E_aml_S_stack[j].entity );
+        //{   E_font_I_print( "\n-entity=" ); E_font_I_print_hex( E_aml_S_stack[j].entity );
             //E_font_I_print( ", n=" ); E_font_I_print_hex( E_aml_S_stack[j].n );
             //E_font_I_print( ", data_end=" ); E_font_I_print_hex( (N)E_aml_S_stack[j].data_end );
             //E_font_I_print( ", result=" ); E_font_I_print_hex( E_aml_S_stack[j].result.n );

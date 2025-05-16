@@ -1733,7 +1733,7 @@ E_mem_Q_blk_I_insert( P p
             );
             if( !p_1 )
                 return 0;
-            //TODO Zrobić w “E_mem_Q_blk_Q_table_M_from_free” parametr przesuniecia dla ‘split’ i kopiowania tam odrazu?
+            //TODO Zrobić w “E_mem_Q_blk_Q_table_M_from_free” parametr przesuniecia dla ‘split’ i kopiowania tam od razu?
             if( E_main_S_kernel.mem_blk.allocated[ allocated_i ].n )
                 E_mem_Q_blk_I_copy( (Pc)p_1 + ( i + n ) * E_main_S_kernel.mem_blk.allocated[ allocated_i ].u
                 , (Pc)p_1 + i * E_main_S_kernel.mem_blk.allocated[ allocated_i ].u
