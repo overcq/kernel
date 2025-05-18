@@ -194,7 +194,7 @@ E_text_Z_s0_I_cmp_s0( Pc s
 }
 _export
 N
-E_text_Z_sl_I_cmp( Pc s
+E_text_Z_sl_T_cmp( Pc s
 , Pc t
 , N l
 ){  while( l
@@ -283,6 +283,20 @@ E_text_Z_s_T_eq_s( Pc s
         t++;
     }
     return s == s_end;
+}
+_export
+B
+E_text_Z_sl_T_eq( Pc s
+, Pc t
+, N l
+){  while( l
+    && *s == *t
+    )
+    {   s++;
+        t++;
+        l--;
+    }
+    return !l;
 }
 _export
 B
@@ -1186,7 +1200,7 @@ E_text_Z_s_M_duplicate( Pc s
 , N l
 ){  Pc t = M(l);
     if(t)
-        E_text_Z_s_P_copy_s0_0( t, s );
+        E_mem_Q_blk_I_copy( t, s, l );
     return t;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

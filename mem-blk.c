@@ -1124,7 +1124,9 @@ E_mem_Q_blk_I_add( P p
 , N n
 , N *n_prepended
 , N *n_appended
-){  struct E_mem_Q_blk_Z_allocated allocated_p;
+){  if( !n )
+        return *( P * )p;
+    struct E_mem_Q_blk_Z_allocated allocated_p;
     N min = 0;
     N max = E_mem_Q_blk_Q_sys_table_R_last( E_main_S_kernel.mem_blk.allocated_id, (Pc)&allocated_p.p - (Pc)&allocated_p );
     N allocated_i = max / 2;
@@ -1254,7 +1256,11 @@ P
 E_mem_Q_blk_I_prepend_append( P p
 , N n_prepend
 , N n_append
-){  struct E_mem_Q_blk_Z_allocated allocated_p;
+){  if( !n_prepend
+    && !n_append
+    )
+        return *( P * )p;
+    struct E_mem_Q_blk_Z_allocated allocated_p;
     N min = 0;
     N max = E_mem_Q_blk_Q_sys_table_R_last( E_main_S_kernel.mem_blk.allocated_id, (Pc)&allocated_p.p - (Pc)&allocated_p );
     N allocated_i = max / 2;
@@ -1383,7 +1389,9 @@ _export
 P
 E_mem_Q_blk_I_append( P p
 , N n
-){  struct E_mem_Q_blk_Z_allocated allocated_p;
+){  if( !n )
+        return *( P * )p;
+    struct E_mem_Q_blk_Z_allocated allocated_p;
     N min = 0;
     N max = E_mem_Q_blk_Q_sys_table_R_last( E_main_S_kernel.mem_blk.allocated_id, (Pc)&allocated_p.p - (Pc)&allocated_p );
     N allocated_i = max / 2;
@@ -1505,7 +1513,9 @@ _export
 P
 E_mem_Q_blk_I_prepend( P p
 , N n
-){  struct E_mem_Q_blk_Z_allocated allocated_p;
+){  if( !n )
+        return *( P * )p;
+    struct E_mem_Q_blk_Z_allocated allocated_p;
     N min = 0;
     N max = E_mem_Q_blk_Q_sys_table_R_last( E_main_S_kernel.mem_blk.allocated_id, (Pc)&allocated_p.p - (Pc)&allocated_p );
     N allocated_i = max / 2;
@@ -1625,7 +1635,9 @@ P
 E_mem_Q_blk_I_insert( P p
 , N i
 , N n
-){  struct E_mem_Q_blk_Z_allocated allocated_p;
+){  if( !n )
+        return *( P * )p;
+    struct E_mem_Q_blk_Z_allocated allocated_p;
     N min = 0;
     N max = E_mem_Q_blk_Q_sys_table_R_last( E_main_S_kernel.mem_blk.allocated_id, (Pc)&allocated_p.p - (Pc)&allocated_p );
     N allocated_i = max / 2;
@@ -1761,7 +1773,9 @@ P
 E_mem_Q_blk_I_remove( P p
 , N i
 , N n
-){  struct E_mem_Q_blk_Z_allocated allocated_p;
+){  if( !n )
+        return *( P * )p;
+    struct E_mem_Q_blk_Z_allocated allocated_p;
     N min = 0;
     N max = E_mem_Q_blk_Q_sys_table_R_last( E_main_S_kernel.mem_blk.allocated_id, (Pc)&allocated_p.p - (Pc)&allocated_p );
     N allocated_i = max / 2;
