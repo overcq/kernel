@@ -25,7 +25,7 @@ _internal
 struct E_aml_S_object_Z
 { struct E_aml_Z_pathname name; // Tablica posortowana według nazwy.
   N8 arg_count;
-} *E_aml_S_object;
+} *E_aml_S_object; //TODO Obecnie przechwowywane są tylko metody.
 _internal N E_aml_S_object_n;
 _internal N E_aml_S_object_name_alias_n;
 struct E_aml_Z_buffer
@@ -206,6 +206,8 @@ enum E_aml_Z_stack_Z_entity
 , E_aml_Z_stack_Z_entity_S_xor_finish_3
 , E_aml_Z_stack_Z_entity_S_fatal_finish
 , E_aml_Z_stack_Z_entity_S_load_finish
+, E_aml_Z_stack_Z_entity_S_device_finish
+, E_aml_Z_stack_Z_entity_S_processor_finish
 };
 _internal
 struct
@@ -773,10 +775,8 @@ E_aml_I_data_object( void
             E_aml_S_stack_data++;
             E_font_I_print( ",package," ); E_font_I_print_hex(n);
             E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
-            if(n)
-            {   E_aml_I_delegate_pkg( E_aml_Z_stack_Z_entity_S_package_finish, E_aml_Z_stack_Z_entity_S_package );
-                E_aml_S_stack[ E_aml_S_stack_n - 1 ].n = n;
-            }
+            E_aml_I_delegate_pkg( E_aml_Z_stack_Z_entity_S_package_finish, E_aml_Z_stack_Z_entity_S_package );
+            E_aml_S_stack[ E_aml_S_stack_n - 1 ].n = n;
             break;
         }
       case 0x13: // var package
@@ -900,7 +900,8 @@ E_aml_I_term( void
             if( pkg_end > E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end )
                 return ~0 - 1;
             E_font_I_print( ",if" );
-            E_aml_I_delegate_pkg( E_aml_Z_stack_Z_entity_S_if_op_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
+            if( E_aml_S_stack_data != pkg_end )
+                E_aml_I_delegate_pkg( E_aml_Z_stack_Z_entity_S_if_op_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
         }
       case 0xa1: // else
@@ -936,7 +937,8 @@ E_aml_I_term( void
             if( pkg_end > E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end )
                 return ~0 - 1;
             E_font_I_print( ",while" );
-            E_aml_I_delegate_pkg( E_aml_Z_stack_Z_entity_S_while_op_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
+            if( E_aml_S_stack_data != pkg_end )
+                E_aml_I_delegate_pkg( E_aml_Z_stack_Z_entity_S_while_op_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
         }
       default:
@@ -987,17 +989,17 @@ E_aml_I_object( void
             if( !name )
                 return n;
             //TODO Sprawdzić w drzewie zinterpretowanej przestrzeni ACPI, czy ścieżka istnieje (oprócz ostatniego obiektu, który teraz jest definiowany).
-            if( !E_mem_Q_blk_I_append( &E_aml_S_current_path, 1 ))
-                return ~0;
-            E_aml_S_current_path[ E_aml_S_current_path_n ].s = name;
-            E_aml_S_current_path[ E_aml_S_current_path_n ].n = n;
-            E_aml_S_current_path_n++;
             //TODO Dodać ‘name’ do drzewa zinterpretowanej przestrzeni ACPI.
             Pc name_ = M( n * 4 + 1 );
             E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
             E_font_I_print( "\n, object name=" ); E_font_I_print( name_ );
             W( name_ );
             E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
+            if( !E_mem_Q_blk_I_append( &E_aml_S_current_path, 1 ))
+                return ~0;
+            E_aml_S_current_path[ E_aml_S_current_path_n ].s = name;
+            E_aml_S_current_path[ E_aml_S_current_path_n ].n = n;
+            E_aml_S_current_path_n++;
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_restore_current_path, E_aml_Z_stack_Z_entity_S_data_object );
             break;
         }
@@ -1018,7 +1020,7 @@ E_aml_I_object( void
             //TODO Sprawdzić w drzewie zinterpretowanej przestrzeni ACPI, czy ścieżka istnieje (oprócz ostatniego obiektu, który teraz jest definiowany).
             Pc name_ = M( n * 4 + 1 );
             E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
-            E_font_I_print( "\n, scope name=" ); E_font_I_print( name_ );
+            E_font_I_print( "\n,scope name=" ); E_font_I_print( name_ );
             W( name_ );
             //TODO Dodać ‘scope’ do drzewa zinterpretowanej przestrzeni ACPI.
             E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
@@ -1053,7 +1055,7 @@ E_aml_I_object( void
                         return ~0 - 1;
                     Pc name_ = M( n * 4 + 1 );
                     E_text_Z_s_P_copy_sl_0( name_, region_name, n * 4 );
-                    E_font_I_print( ", region name=" ); E_font_I_print( name_ );
+                    E_font_I_print( ",region name=" ); E_font_I_print( name_ );
                     W( name_ );
                     //TODO Sprawdzić w drzewie zinterpretowanej przestrzeni ACPI, czy ścieżka istnieje.
                     W( region_name );
@@ -1064,7 +1066,7 @@ E_aml_I_object( void
                         return ~0 - 1;
                     name_ = M( n * 4 + 1 );
                     E_text_Z_s_P_copy_sl_0( name_, bank_name, n * 4 );
-                    E_font_I_print( ", bank name=" ); E_font_I_print( name_ );
+                    E_font_I_print( ",bank name=" ); E_font_I_print( name_ );
                     W( name_ );
                     //TODO Sprawdzić w drzewie zinterpretowanej przestrzeni ACPI, czy ścieżka istnieje.
                     W( bank_name );
@@ -1346,7 +1348,7 @@ E_aml_I_object( void
                         E_aml_S_current_path[ E_aml_S_current_path_n ].s = name;
                         E_aml_S_current_path[ E_aml_S_current_path_n ].n = n;
                         E_aml_S_current_path_n++;
-                        E_aml_I_delegate_pkg( E_aml_Z_stack_Z_entity_S_power_res_finish, E_aml_Z_stack_Z_entity_S_object );
+                        E_aml_I_delegate_pkg( E_aml_Z_stack_Z_entity_S_device_finish, E_aml_Z_stack_Z_entity_S_object );
                         E_aml_S_stack[ E_aml_S_stack_n - 1 ].n = ~0;
                     }
                     break;
@@ -1378,7 +1380,7 @@ E_aml_I_object( void
                         return n;
                     Pc name_ = M( n * 4 + 1 );
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
-                    E_font_I_print( ", power res name=" ); E_font_I_print( name_ );
+                    E_font_I_print( ",power res name=" ); E_font_I_print( name_ );
                     W( name_ );
                     //TODO Dodać ‘power res’ do drzewa zinterpretowanej przestrzeni ACPI.
                     E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
@@ -1412,7 +1414,7 @@ E_aml_I_object( void
                         return n;
                     Pc name_ = M( n * 4 + 1 );
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
-                    E_font_I_print( ", thermal zone name=" ); E_font_I_print( name_ );
+                    E_font_I_print( ",thermal zone name=" ); E_font_I_print( name_ );
                     W( name_ );
                     //TODO Dodać ‘thermal zone’ do drzewa zinterpretowanej przestrzeni ACPI.
                     E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
@@ -1453,7 +1455,12 @@ E_aml_I_object( void
                     //TODO Dodać ‘processor’ do drzewa zinterpretowanej przestrzeni ACPI.
                     E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
                     if( E_aml_S_stack_data != pkg_end )
-                    {   E_aml_I_delegate_pkg( E_aml_Z_stack_Z_entity_S_thermal_zone_finish, E_aml_Z_stack_Z_entity_S_object );
+                    {   if( !E_mem_Q_blk_I_append( &E_aml_S_current_path, 1 ))
+                            return ~0;
+                        E_aml_S_current_path[ E_aml_S_current_path_n ].s = name;
+                        E_aml_S_current_path[ E_aml_S_current_path_n ].n = n;
+                        E_aml_S_current_path_n++;
+                        E_aml_I_delegate_pkg( E_aml_Z_stack_Z_entity_S_processor_finish, E_aml_Z_stack_Z_entity_S_object );
                         E_aml_S_stack[ E_aml_S_stack_n - 1 ].n = ~0;
                     }
                     break;
@@ -1787,10 +1794,8 @@ E_aml_I_expression( void
             E_aml_S_stack_data++;
             E_font_I_print( ",package," ); E_font_I_print_hex(n);
             E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
-            if(n)
-            {   E_aml_I_delegate_pkg( E_aml_Z_stack_Z_entity_S_package_finish, E_aml_Z_stack_Z_entity_S_package );
-                E_aml_S_stack[ E_aml_S_stack_n - 1 ].n = n;
-            }
+            E_aml_I_delegate_pkg( E_aml_Z_stack_Z_entity_S_package_finish, E_aml_Z_stack_Z_entity_S_package );
+            E_aml_S_stack[ E_aml_S_stack_n - 1 ].n = n;
             break;
         }
       case 0x13: // var package
@@ -2063,13 +2068,6 @@ Loop:
                 W( E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].s );
                 if( !E_mem_Q_blk_I_remove( &E_aml_S_current_path, --E_aml_S_current_path_n, 1 ))
                     goto Error;
-                if( E_aml_S_current_path_n )
-                {   Pc name_ = M( E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].n * 4 + 1 );
-                    E_text_Z_s_P_copy_sl_0( name_, E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].s, E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].n * 4 );
-                    E_font_I_print( "\n,current_path=" ); E_font_I_print( name_ );
-                    W( name_ );
-                }else
-                    E_font_I_print( "\n,current_path=\\" );
                 break;
           case E_aml_Z_stack_Z_entity_S_term:
                 ret = E_aml_I_term();
@@ -2160,10 +2158,12 @@ Loop:
                 //E_aml_S_stack_data += result.n;
                 break;
           case E_aml_Z_stack_Z_entity_S_package:
-            {   ret = E_aml_I_data_object();
+                if( E_aml_S_stack_data == E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end ) // Na przypadek startu z “n == 0”.
+                    break;
+                ret = E_aml_I_data_object();
                 if( (S)ret < 0 )
                     break;
-                if( !E_aml_S_stack[ E_aml_S_stack_n - 2 ].match )
+                if( !E_aml_S_stack[ stack_n_last - 2 ].match )
                 {   N n;
                     Pc name = E_aml_Q_path_R_root( &n );
                     if( !name )
@@ -2173,7 +2173,6 @@ Loop:
                     //TODO Sprawdzić w drzewie zinterpretowanej przestrzeni ACPI, czy ścieżka istnieje.
                 }
                 break;
-            }
           case E_aml_Z_stack_Z_entity_S_package_finish:
                 break;
           case E_aml_Z_stack_Z_entity_S_supername_ref_finish:
@@ -2410,14 +2409,19 @@ Loop:
           case E_aml_Z_stack_Z_entity_S_power_res_finish:
                 //TODO Dodać ‘power res’ do drzewa zinterpretowanej przestrzeni ACPI.
                 E_aml_S_stack[ E_aml_S_stack_n - 1 ].entity = E_aml_Z_stack_Z_entity_S_restore_current_path;
-                E_aml_S_stack[ E_aml_S_stack_n - 1 ].n = 1;
-                break;
+                goto Loop;
           case E_aml_Z_stack_Z_entity_S_thermal_zone_finish:
                 //TODO Dodać ‘thermal zone’ do drzewa zinterpretowanej przestrzeni ACPI.
                 E_aml_S_stack[ E_aml_S_stack_n - 1 ].entity = E_aml_Z_stack_Z_entity_S_restore_current_path;
-                E_aml_S_stack[ E_aml_S_stack_n - 1 ].n = 1;
-                stack_n_last = E_aml_S_stack_n;
-                break;
+                goto Loop;
+          case E_aml_Z_stack_Z_entity_S_device_finish:
+                //TODO Dodać ‘device’ do drzewa zinterpretowanej przestrzeni ACPI.
+                E_aml_S_stack[ E_aml_S_stack_n - 1 ].entity = E_aml_Z_stack_Z_entity_S_restore_current_path;
+                goto Loop;
+          case E_aml_Z_stack_Z_entity_S_processor_finish:
+                //TODO Dodać ‘processor’ do drzewa zinterpretowanej przestrzeni ACPI.
+                E_aml_S_stack[ E_aml_S_stack_n - 1 ].entity = E_aml_Z_stack_Z_entity_S_restore_current_path;
+                goto Loop;
           case E_aml_Z_stack_Z_entity_S_if_op_finish_1:
                 if( E_aml_S_stack_data != E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end )
                 {   E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_if_op_finish_2, E_aml_Z_stack_Z_entity_S_term );
@@ -3053,13 +3057,54 @@ Loop:
         }
         if( !~ret )
             goto Error;
+        if( ret == ~0 - 1 )
+        {   if( E_aml_S_stack_n >= 2
+            && E_aml_S_current_path_n
+            )
+            {   N current_path_i = E_aml_S_current_path_n - 1;
+                for_n_rev( i, E_aml_S_stack_n ) // Wyjście do nadrzędnego bloku metody po błędzie składni.
+                {   if(( E_aml_S_stack[i].entity == E_aml_Z_stack_Z_entity_S_restore_current_path
+                      || E_aml_S_stack[i].entity == E_aml_Z_stack_Z_entity_S_power_res_finish
+                      || E_aml_S_stack[i].entity == E_aml_Z_stack_Z_entity_S_thermal_zone_finish
+                    )
+                    && ~E_aml_S_object_R( E_aml_S_current_path[ current_path_i-- ] )
+                    )
+                    {   for_n( j, E_aml_S_current_path_n - ( current_path_i + 1 ))
+                            W( E_aml_S_current_path[ current_path_i + 1 + j ].s );
+                        if( !E_mem_Q_blk_I_remove( &E_aml_S_current_path, current_path_i + 1, E_aml_S_current_path_n - ( current_path_i + 1 )))
+                            goto Error;
+                        E_aml_S_current_path_n -= E_aml_S_current_path_n - ( current_path_i + 1 );
+                        if( E_aml_S_current_path_n )
+                        {   Pc name_ = M( E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].n * 4 + 1 );
+                            E_text_Z_s_P_copy_sl_0( name_, E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].s, E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].n * 4 );
+                            E_font_I_print( "\n,go over to=" ); E_font_I_print( name_ ); E_font_I_print_hex(i);
+                            W( name_ );
+                        }else
+                        {   E_font_I_print( "\n,go over to=\\" ); E_font_I_print_hex(i);
+                        }
+                        if( !~E_aml_S_stack[ i - 1 ].n ) // Sprawdzanie dla listy wyliczanej w nieskończoność, czy interpretacja zakończyła się.
+                            if( !--i )
+                                break;
+                        E_aml_S_stack_data = E_aml_S_stack[i].data_end;
+                        if( !E_mem_Q_blk_I_remove( &E_aml_S_stack, i, E_aml_S_stack_n - i ))
+                            goto Error;
+                        E_aml_S_stack_n = i;
+                        ret = 0;
+                        goto Loop;
+                    }
+                    if( !~current_path_i )
+                        break;
+                }
+            }
+            goto Error;
+        }
         //E_font_I_print( "\nstack_n=" ); E_font_I_print_hex( E_aml_S_stack_n );
         //E_font_I_print( ",stack_n_last=" ); E_font_I_print_hex( stack_n_last );
-        //for_n_rev( j, J_min( E_aml_S_stack_n, 4 ))
-        //{   E_font_I_print( "\n -entity=" ); E_font_I_print_hex( E_aml_S_stack[ E_aml_S_stack_n - 1 - j ].entity );
-            //E_font_I_print( ",n=" ); E_font_I_print_hex( E_aml_S_stack[ E_aml_S_stack_n - 1 - j ].n );
-            //E_font_I_print( ",data_end=" ); E_font_I_print_hex( (N)E_aml_S_stack[ E_aml_S_stack_n - 1 - j ].data_end );
-            //E_font_I_print( ",result=" ); E_font_I_print_hex( E_aml_S_stack[ E_aml_S_stack_n - 1 - j ].result.n );
+        //for_n( j, E_aml_S_stack_n )
+        //{   E_font_I_print( "\n-entity=" ); E_font_I_print_hex( E_aml_S_stack[j].entity );
+            //E_font_I_print( ",n=" ); E_font_I_print_hex( E_aml_S_stack[j].n );
+            //E_font_I_print( ",data_end=" ); E_font_I_print_hex( (N)E_aml_S_stack[j].data_end );
+            //E_font_I_print( ",result=" ); E_font_I_print_hex( E_aml_S_stack[j].result.n );
         //}
         // Usunięcie wykananego “entity” po ‘push’.
         if( stack_n_last != E_aml_S_stack_n
@@ -3079,43 +3124,48 @@ Loop:
         if( E_aml_S_stack_n >= 2 )
         {   if( ~E_aml_S_stack[ E_aml_S_stack_n - 1 ].n // Czy bieżący element nie jest listą wyliczaną w nieskończoność.
             && E_aml_S_stack[ E_aml_S_stack_n - 2 ].data_end // Czy poprzedni element na stosie nie jest nie zainicjowanym którymś “finish”.
-            )
-                if( E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end != E_aml_S_stack[ E_aml_S_stack_n - 2 ].data_end ) // Czy było ustawione “pkg_length”.
-                {   //E_font_I_print( "\npkg_end" );
-                    if( E_aml_S_stack_data != E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end 
-                    ) // Sprawdzanie dla konkretnych “n”, czy interpretacja zakończyła się na końcu wcześniej odczytanego rozmiaru “pkg_length”.
-                    {   if( E_aml_S_stack_n >= 2 )
-                        {   N current_path_i = E_aml_S_current_path_n - 1;
-                            for_n_rev( i, E_aml_S_stack_n - 1 ) // Wyjście do nadrzędnego bloku metody po błędzie składni.
-                                if(( E_aml_S_stack[i].entity == E_aml_Z_stack_Z_entity_S_restore_current_path
-                                  || E_aml_S_stack[i].entity == E_aml_Z_stack_Z_entity_S_power_res_finish
-                                  || E_aml_S_stack[i].entity == E_aml_Z_stack_Z_entity_S_thermal_zone_finish
-                                )
-                                && ~E_aml_S_object_R( E_aml_S_current_path[ current_path_i-- ] )
-                                )
-                                {   for_n( i, E_aml_S_current_path_n - ( current_path_i + 1 ))
-                                        W( E_aml_S_current_path[ current_path_i + 1 + i ].s );
-                                    if( !E_mem_Q_blk_I_remove( &E_aml_S_current_path, current_path_i + 1, E_aml_S_current_path_n - ( current_path_i + 1 )))
-                                        goto Error;
-                                    E_aml_S_current_path_n -= E_aml_S_current_path_n - ( current_path_i + 1 );
-                                    if( E_aml_S_current_path_n )
-                                    {   Pc name_ = M( E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].n * 4 + 1 );
-                                        E_text_Z_s_P_copy_sl_0( name_, E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].s, E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].n * 4 );
-                                        E_font_I_print( "\n,go over to=" ); E_font_I_print( name_ );
-                                        W( name_ );
-                                    }else
-                                        E_font_I_print( "\n,go over to=\\" );
-                                    E_aml_S_stack_data = E_aml_S_stack[ i - 1 ].data_end;
-                                    if( !E_mem_Q_blk_I_remove( &E_aml_S_stack, i, E_aml_S_stack_n - i ))
-                                        goto Error;
-                                    E_aml_S_stack_n = i;
-                                    E_font_I_print( "\ngo over" );
-                                    goto Loop;
-                                }
+            && E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end != E_aml_S_stack[ E_aml_S_stack_n - 2 ].data_end // Czy było ustawione “pkg_length”.
+            && E_aml_S_stack_data != E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end 
+            ) // Sprawdzanie dla konkretnych “n”, czy interpretacja zakończyła się na końcu wcześniej odczytanego rozmiaru “pkg_length”.
+            {   if( E_aml_S_stack_n >= 2
+                && E_aml_S_current_path_n
+                )
+                {   N current_path_i = E_aml_S_current_path_n - 1;
+                    for_n_rev( i, E_aml_S_stack_n ) // Wyjście do nadrzędnego bloku metody po błędzie składni.
+                    {   if(( E_aml_S_stack[i].entity == E_aml_Z_stack_Z_entity_S_restore_current_path
+                          || E_aml_S_stack[i].entity == E_aml_Z_stack_Z_entity_S_power_res_finish
+                          || E_aml_S_stack[i].entity == E_aml_Z_stack_Z_entity_S_thermal_zone_finish
+                        )
+                        && ~E_aml_S_object_R( E_aml_S_current_path[ current_path_i-- ] )
+                        )
+                        {   for_n( j, E_aml_S_current_path_n - ( current_path_i + 1 ))
+                                W( E_aml_S_current_path[ current_path_i + 1 + j ].s );
+                            if( !E_mem_Q_blk_I_remove( &E_aml_S_current_path, current_path_i + 1, E_aml_S_current_path_n - ( current_path_i + 1 )))
+                                goto Error;
+                            E_aml_S_current_path_n -= E_aml_S_current_path_n - ( current_path_i + 1 );
+                            if( E_aml_S_current_path_n )
+                            {   Pc name_ = M( E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].n * 4 + 1 );
+                                E_text_Z_s_P_copy_sl_0( name_, E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].s, E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].n * 4 );
+                                E_font_I_print( "\n,go over to=" ); E_font_I_print( name_ ); E_font_I_print_hex(i);
+                                W( name_ );
+                            }else
+                            {   E_font_I_print( "\n,go over to=\\" ); E_font_I_print_hex(i);
+                            }
+                            if( !~E_aml_S_stack[ i - 1 ].n ) // Sprawdzanie dla listy wyliczanej w nieskończoność, czy interpretacja zakończyła się.
+                                if( !--i )
+                                    break;
+                            E_aml_S_stack_data = E_aml_S_stack[i].data_end;
+                            if( !E_mem_Q_blk_I_remove( &E_aml_S_stack, i, E_aml_S_stack_n - i ))
+                                goto Error;
+                            E_aml_S_stack_n = i;
+                            goto Loop;
                         }
-                        goto Error;
+                        if( !~current_path_i )
+                            break;
                     }
                 }
+                goto Error;
+            }
             if( !E_aml_S_stack[ E_aml_S_stack_n - 2 ].data_end ) // Czy poprzedni element na stosie jest nie zainicjowanym którymś “finish”.
                 E_aml_S_stack[ E_aml_S_stack_n - 2 ].data_end = E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end; // Zachowaj “data_end” do sprawdzenia podczas któregoś “finish”.
         }
@@ -3140,50 +3190,60 @@ Loop:
         //}
         if( E_aml_S_stack[ E_aml_S_stack_n - 1 ].n > 1 )
         {   if( data == E_aml_S_stack_data ) // Czy kolejne “n” nic nie wykonują.
-                ret = ~0 - 1;
-            else
-                data = E_aml_S_stack_data;
-        }
-        if( ret == ~0 - 1 )
-        {   if( E_aml_S_stack_n >= 2 )
-            {   N current_path_i = E_aml_S_current_path_n - 1;
-                for_n_rev( i, E_aml_S_stack_n - 1 ) // Wyjście do nadrzędnego bloku metody po błędzie składni.
-                    if(( E_aml_S_stack[i].entity == E_aml_Z_stack_Z_entity_S_restore_current_path
-                      || E_aml_S_stack[i].entity == E_aml_Z_stack_Z_entity_S_power_res_finish
-                      || E_aml_S_stack[i].entity == E_aml_Z_stack_Z_entity_S_thermal_zone_finish
-                    )
-                    && ~E_aml_S_object_R( E_aml_S_current_path[ current_path_i-- ] )
-                    )
-                    {   for_n( i, E_aml_S_current_path_n - ( current_path_i + 1 ))
-                            W( E_aml_S_current_path[ current_path_i + 1 + i ].s );
-                        if( !E_mem_Q_blk_I_remove( &E_aml_S_current_path, current_path_i + 1, E_aml_S_current_path_n - ( current_path_i + 1 )))
-                            goto Error;
-                        E_aml_S_current_path_n -= E_aml_S_current_path_n - ( current_path_i + 1 );
-                        if( E_aml_S_current_path_n )
-                        {   Pc name_ = M( E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].n * 4 + 1 );
-                            E_text_Z_s_P_copy_sl_0( name_, E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].s, E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].n * 4 );
-                            E_font_I_print( "\n,go over to=" ); E_font_I_print( name_ );
-                            W( name_ );
-                        }else
-                            E_font_I_print( "\n,go over to=\\" );
-                        E_aml_S_stack_data = E_aml_S_stack[ i - 1 ].data_end;
-                        if( !E_mem_Q_blk_I_remove( &E_aml_S_stack, i, E_aml_S_stack_n - i ))
-                            goto Error;
-                        E_aml_S_stack_n = i;
-                        ret = 0;
-                        goto Loop;
+            {   if( E_aml_S_stack_n >= 2
+                && E_aml_S_current_path_n
+                )
+                {   N current_path_i = E_aml_S_current_path_n - 1;
+                    for_n_rev( i, E_aml_S_stack_n ) // Wyjście do nadrzędnego bloku metody po błędzie składni.
+                    {   if(( E_aml_S_stack[i].entity == E_aml_Z_stack_Z_entity_S_restore_current_path
+                          || E_aml_S_stack[i].entity == E_aml_Z_stack_Z_entity_S_power_res_finish
+                          || E_aml_S_stack[i].entity == E_aml_Z_stack_Z_entity_S_thermal_zone_finish
+                        )
+                        && ~E_aml_S_object_R( E_aml_S_current_path[ current_path_i-- ] )
+                        )
+                        {   for_n( j, E_aml_S_current_path_n - ( current_path_i + 1 ))
+                                W( E_aml_S_current_path[ current_path_i + 1 + j ].s );
+                            if( !E_mem_Q_blk_I_remove( &E_aml_S_current_path, current_path_i + 1, E_aml_S_current_path_n - ( current_path_i + 1 )))
+                                goto Error;
+                            E_aml_S_current_path_n -= E_aml_S_current_path_n - ( current_path_i + 1 );
+                            if( E_aml_S_current_path_n )
+                            {   Pc name_ = M( E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].n * 4 + 1 );
+                                E_text_Z_s_P_copy_sl_0( name_, E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].s, E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].n * 4 );
+                                E_font_I_print( "\n,go over to=" ); E_font_I_print( name_ ); E_font_I_print_hex(i);
+                                W( name_ );
+                            }else
+                            {   E_font_I_print( "\n,go over to=\\" ); E_font_I_print_hex(i);
+                            }
+                            if( !~E_aml_S_stack[ i - 1 ].n ) // Sprawdzanie dla listy wyliczanej w nieskończoność, czy interpretacja zakończyła się.
+                                if( !--i )
+                                    break;
+                            E_aml_S_stack_data = E_aml_S_stack[i].data_end;
+                            if( !E_mem_Q_blk_I_remove( &E_aml_S_stack, i, E_aml_S_stack_n - i ))
+                                goto Error;
+                            E_aml_S_stack_n = i;
+                            ret = 0;
+                            goto Loop;
+                        }
+                        if( !~current_path_i )
+                            break;
                     }
-            }
-            goto Error;
+                }
+                goto Error;
+            }else
+                data = E_aml_S_stack_data;
         }
     }
     W( E_aml_S_stack );
+    for_n( i, E_aml_S_current_path_n )
+        W( E_aml_S_current_path[i].s );
     W( E_aml_S_current_path );
     return 0;
 Error:
     E_aml_Q_object_W();
     E_aml_Q_object_name_alias_W();
     W( E_aml_S_stack );
+    for_n_( i, E_aml_S_current_path_n )
+        W( E_aml_S_current_path[i].s );
     W( E_aml_S_current_path );
     E_font_I_print( "\nerror" );
     return ~0;
