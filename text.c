@@ -180,7 +180,7 @@ E_text_Z_s_T_ends_s0( Pc s
     return !*t;
 }
 _export
-N
+S
 E_text_Z_s0_I_cmp_s0( Pc s
 , Pc t
 ){  while( *s
@@ -193,7 +193,7 @@ E_text_Z_s0_I_cmp_s0( Pc s
     return *s - *t;
 }
 _export
-N
+S
 E_text_Z_sl_T_cmp( Pc s
 , Pc t
 , N l
@@ -1196,7 +1196,7 @@ E_text_Z_s0_M_duplicate( Pc s
 }
 _export
 Pc
-E_text_Z_s_M_duplicate( Pc s
+E_text_Z_sl_M_duplicate( Pc s
 , N l
 ){  Pc t = M(l);
     if(t)

@@ -7,7 +7,8 @@
 * ©overcq                on ‟Gentoo Linux 23.0” “x86_64”             2025‒5‒13 I
 *******************************************************************************/
 //TODO Przygotować maszynę stanów do interpretacji programów zawartych w AML.
-//TODO Pamięć przydzielana dla “return” nie jest zwalniana.
+//TODO Pamięć przydzielana dla “result” nie jest zwalniana.
+//TODO Zintegrować aliasy.
 #include "main.h"
 //==============================================================================
 struct E_aml_Z_pathname
@@ -16,18 +17,35 @@ struct E_aml_Z_pathname
 };
 _internal struct E_aml_Z_pathname *E_aml_S_current_path;
 _internal N E_aml_S_current_path_n;
+_internal N E_aml_Q_current_path_S_precompilation_i;
 _internal
-struct E_aml_S_object_name_alias_Z
+struct
 { struct E_aml_Z_pathname alias; // Tablica posortowana według aliasu.
   struct E_aml_Z_pathname name;
-} *E_aml_S_object_name_alias;
+} *E_aml_S_alias;
+_internal N E_aml_S_alias_n;
+enum E_aml_S_object_Z_type
+{ E_aml_S_object_Z_type_S_procedure
+, E_aml_S_object_Z_type_S_object
+, E_aml_S_object_Z_type_S_device
+, E_aml_S_object_Z_type_S_power_res
+, E_aml_S_object_Z_type_S_thermal_zone
+, E_aml_S_object_Z_type_S_processor
+, E_aml_S_object_Z_type_S_bank_field
+, E_aml_S_object_Z_type_S_mutex
+, E_aml_S_object_Z_type_S_data_table_region
+, E_aml_S_object_Z_type_S_op_region
+, E_aml_S_object_Z_type_S_field_op
+, E_aml_S_object_Z_type_S_index_field
+, E_aml_S_object_Z_type_S_event
+};
 _internal
 struct E_aml_S_object_Z
 { struct E_aml_Z_pathname name; // Tablica posortowana według nazwy.
+  enum E_aml_S_object_Z_type type;
   N8 arg_count;
 } *E_aml_S_object; //TODO Obecnie przechwowywane są tylko metody.
 _internal N E_aml_S_object_n;
-_internal N E_aml_S_object_name_alias_n;
 struct E_aml_Z_buffer
 { Pc buffer;
   N l;
@@ -49,7 +67,6 @@ enum E_aml_Z_stack_Z_entity
 , E_aml_Z_stack_Z_entity_S_object
 , E_aml_Z_stack_Z_entity_S_expression
 , E_aml_Z_stack_Z_entity_S_data_object
-, E_aml_Z_stack_Z_entity_S_data_object_buffer_finish
 , E_aml_Z_stack_Z_entity_S_package
 , E_aml_Z_stack_Z_entity_S_package_finish
 , E_aml_Z_stack_Z_entity_S_supername
@@ -92,7 +109,7 @@ enum E_aml_Z_stack_Z_entity
 , E_aml_Z_stack_Z_entity_S_return_finish
 , E_aml_Z_stack_Z_entity_S_while_op_finish_1
 , E_aml_Z_stack_Z_entity_S_while_op_finish_2
-, E_aml_Z_stack_Z_entity_S_mutex_finish
+, E_aml_Z_stack_Z_entity_S_acquire_finish
 , E_aml_Z_stack_Z_entity_S_add_op_finish_1
 , E_aml_Z_stack_Z_entity_S_add_op_finish_2
 , E_aml_Z_stack_Z_entity_S_add_op_finish_3
@@ -208,12 +225,17 @@ enum E_aml_Z_stack_Z_entity
 , E_aml_Z_stack_Z_entity_S_load_finish
 , E_aml_Z_stack_Z_entity_S_device_finish
 , E_aml_Z_stack_Z_entity_S_processor_finish
+, E_aml_Z_stack_Z_entity_S_procedure_finish
+, E_aml_Z_stack_Z_entity_S_procedure_invocation_finish
 };
 _internal
 struct
 { Pc data_end;
   N n;
-  union E_aml_Z_stack_Z_result result;
+  struct
+  { union E_aml_Z_stack_Z_result result;
+    B procedure_osi;
+  } execution_context;
   enum E_aml_Z_stack_Z_entity entity;
   B match;
 } *E_aml_S_stack;
@@ -222,40 +244,87 @@ _internal Pc E_aml_S_stack_data;
 //==============================================================================
 _internal
 N
-E_aml_Q_object_name_alias_M( void
-){  E_aml_S_object_name_alias_n = 0;
-    Mt_( E_aml_S_object_name_alias, E_aml_S_object_name_alias_n );
-    if( !E_aml_S_object_name_alias )
+E_aml_Q_current_path_M( void
+){  E_aml_S_current_path_n = 0;
+    Mt_( E_aml_S_current_path, E_aml_S_current_path_n );
+    if( !E_aml_S_current_path )
+        return ~0;
+    E_aml_Q_current_path_S_precompilation_i = 0;
+    return 0;
+}
+_internal
+void
+E_aml_Q_current_path_W( void
+){  for_n( i, E_aml_S_current_path_n )
+        W( E_aml_S_current_path[i].s );
+    W( E_aml_S_current_path );
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_internal
+void
+E_aml_Q_current_path_P_precompilation( B b
+){  if(b)
+    {   if( !E_aml_Q_current_path_S_precompilation_i )
+            return;
+        E_aml_Q_current_path_S_precompilation_i = E_aml_S_current_path_n;
+    }else if( E_aml_Q_current_path_S_precompilation_i == E_aml_S_current_path_n )
+        E_aml_Q_current_path_S_precompilation_i = 0;
+}
+//------------------------------------------------------------------------------
+_internal
+N
+E_aml_Q_current_path_I_push( struct E_aml_Z_pathname pathname
+){  if( !E_mem_Q_blk_I_append( &E_aml_S_current_path, 1 ))
+        return ~0;
+    E_aml_S_current_path[ E_aml_S_current_path_n ] = pathname;
+    E_aml_S_current_path_n++;
+    return 0;
+}
+_internal
+N
+E_aml_Q_current_path_I_pop( void
+){  W( E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].s );
+    if( !E_mem_Q_blk_I_remove( &E_aml_S_current_path, --E_aml_S_current_path_n, 1 ))
+        return ~0;
+    return 0;
+}
+//==============================================================================
+_internal
+N
+E_aml_Q_object_alias_M( void
+){  E_aml_S_alias_n = 0;
+    Mt_( E_aml_S_alias, E_aml_S_alias_n );
+    if( !E_aml_S_alias )
         return ~0;
     return 0;
 }
 _internal
 void
-E_aml_Q_object_name_alias_W( void
-){  for_n( i, E_aml_S_object_name_alias_n )
-    {   W( E_aml_S_object_name_alias[i].alias.s );
-        W( E_aml_S_object_name_alias[i].name.s );
+E_aml_Q_object_alias_W( void
+){  for_n( i, E_aml_S_alias_n )
+    {   W( E_aml_S_alias[i].alias.s );
+        W( E_aml_S_alias[i].name.s );
     }
-    W( E_aml_S_object_name_alias );
+    W( E_aml_S_alias );
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _internal
 N
-E_aml_Q_object_name_alias_I_add( struct E_aml_Z_pathname alias
+E_aml_Q_object_alias_I_add( struct E_aml_Z_pathname alias
 , struct E_aml_Z_pathname name
 ){  N middle;
-    if( E_aml_S_object_name_alias_n )
+    if( E_aml_S_alias_n )
     {   N min = 0;
-        N max = E_aml_S_object_name_alias_n - 1;
+        N max = E_aml_S_alias_n - 1;
         middle = max / 2;
-        O{  N cmp = E_text_Z_sl_T_cmp( E_aml_S_object_name_alias[middle].alias.s, alias.s, J_min( E_aml_S_object_name_alias[middle].alias.n, alias.n ) * 4 );
+        O{  S cmp = E_text_Z_sl_T_cmp( E_aml_S_alias[middle].alias.s, alias.s, J_min( E_aml_S_alias[middle].alias.n, alias.n ) * 4 );
             if( !cmp
-            && E_aml_S_object_name_alias[middle].alias.n == alias.n
+            && E_aml_S_alias[middle].alias.n == alias.n
             )
                 return ~0 - 1;
             if( cmp > 0
             || ( !cmp
-              && E_aml_S_object_name_alias[middle].alias.n > alias.n
+              && E_aml_S_alias[middle].alias.n > alias.n
             ))
             {   if( middle == min )
                     break;
@@ -272,20 +341,69 @@ E_aml_Q_object_name_alias_I_add( struct E_aml_Z_pathname alias
         }
     }else
         middle = 0;
-    if( !E_mem_Q_blk_I_insert( &E_aml_S_object_name_alias, middle, 1 ))
+    if( !E_mem_Q_blk_I_insert( &E_aml_S_alias, middle, 1 ))
         return ~0;
-    E_aml_S_object_name_alias[middle].alias = alias;
-    E_aml_S_object_name_alias[middle].name = name;
+    E_aml_S_alias[middle].alias = alias;
+    E_aml_S_alias[middle].name = name;
     return 0;
+}
+_internal
+N
+E_aml_S_alias_R( struct E_aml_Z_pathname alias
+){  if( !E_aml_S_alias_n )
+        return ~0;
+    N min = 0;
+    N max = E_aml_S_alias_n - 1;
+    N middle = max / 2;
+    O{  S cmp = E_text_Z_sl_T_cmp( E_aml_S_alias[middle].alias.s, alias.s, J_min( E_aml_S_alias[middle].alias.n, alias.n ) * 4 );
+        if( !cmp
+        && E_aml_S_alias[middle].alias.n == alias.n
+        )
+            return middle;
+        if( cmp > 0
+        || ( !cmp
+          && E_aml_S_alias[middle].alias.n > alias.n
+        ))
+        {   if( middle == min )
+                break;
+            max = middle - 1;
+            middle = max - ( middle - min ) / 2;
+        }else
+        {   if( middle == max )
+            {   middle++;
+                break;
+            }
+            min = middle + 1;
+            middle = min + ( max - middle ) / 2;
+        }
+    }
+    return ~0;
 }
 //==============================================================================
 _internal
 N
 E_aml_Q_object_M( void
-){  E_aml_S_object_n = 0;
+){  E_aml_S_object_n = 2;
     Mt_( E_aml_S_object, E_aml_S_object_n );
     if( !E_aml_S_object )
         return ~0;
+    Pc name = E_text_Z_sl_M_duplicate( "_GPE", 4 );
+    if( !name )
+    {   W( E_aml_S_object );
+        return ~0;
+    }
+    E_aml_S_object[0].name.s = name;
+    E_aml_S_object[0].name.n = 1;
+    E_aml_S_object[0].type = E_aml_S_object_Z_type_S_object;
+    name = E_text_Z_sl_M_duplicate( "_SB_", 4 );
+    if( !name )
+    {   W( E_aml_S_object[0].name.s );
+        W( E_aml_S_object );
+        return ~0;
+    }
+    E_aml_S_object[1].name.s = name;
+    E_aml_S_object[1].name.n = 1;
+    E_aml_S_object[1].type = E_aml_S_object_Z_type_S_object;
     return 0;
 }
 _internal
@@ -298,14 +416,14 @@ E_aml_Q_object_W( void
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _internal
 N
-E_aml_S_object_I_add( struct E_aml_Z_pathname name
-, N8 arg_count
+E_aml_S_object_I_add( enum E_aml_S_object_Z_type type
+, struct E_aml_Z_pathname name
 ){  N middle;
     if( E_aml_S_object_n )
     {   N min = 0;
         N max = E_aml_S_object_n - 1;
         middle = max / 2;
-        O{  N cmp = E_text_Z_sl_T_cmp( E_aml_S_object[middle].name.s, name.s, J_min( E_aml_S_object[middle].name.n, name.n ) * 4 );
+        O{  S cmp = E_text_Z_sl_T_cmp( E_aml_S_object[middle].name.s, name.s, J_min( E_aml_S_object[middle].name.n, name.n ) * 4 );
             if( !cmp
             && E_aml_S_object[middle].name.n == name.n
             )
@@ -333,7 +451,7 @@ E_aml_S_object_I_add( struct E_aml_Z_pathname name
         return ~0;
     E_aml_S_object_n++;
     E_aml_S_object[middle].name = name;
-    E_aml_S_object[middle].arg_count = arg_count;
+    E_aml_S_object[middle].type = type;
     return 0;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -345,7 +463,7 @@ E_aml_S_object_R( struct E_aml_Z_pathname name
     N min = 0;
     N max = E_aml_S_object_n - 1;
     N middle = max / 2;
-    O{  N cmp = E_text_Z_sl_T_cmp( E_aml_S_object[middle].name.s, name.s, J_min( E_aml_S_object[middle].name.n, name.n ) * 4 );
+    O{  S cmp = E_text_Z_sl_T_cmp( E_aml_S_object[middle].name.s, name.s, J_min( E_aml_S_object[middle].name.n, name.n ) * 4 );
         if( !cmp
         && E_aml_S_object[middle].name.n == name.n
         )
@@ -379,7 +497,7 @@ E_aml_S_object_R_relative( struct E_aml_Z_pathname start_scope
     {   N min = 0;
         N max = E_aml_S_object_n - 1;
         N middle = max / 2;
-        O{  N cmp = E_text_Z_sl_T_cmp( E_aml_S_object[middle].name.s, start_scope.s, J_min( E_aml_S_object[middle].name.n, i ) * 4 );
+        O{  S cmp = E_text_Z_sl_T_cmp( E_aml_S_object[middle].name.s, start_scope.s, J_min( E_aml_S_object[middle].name.n, i ) * 4 );
             if( !cmp
             && E_aml_S_object[middle].name.n == i + 1
             && !( cmp = E_text_Z_sl_T_cmp( E_aml_S_object[middle].name.s + i * 4, name, 4 ))
@@ -449,12 +567,66 @@ E_aml_Q_path_R_pathname( void
             )))
                 return ~0;
     }
-    Pc name_ = M( n * 4 + 1 );
-    E_text_Z_s_P_copy_sl_0( name_, E_aml_S_stack_data, n * 4 );
-    E_font_I_print( ",s=" ); E_font_I_print( name_ );
-    W( name_ );
     E_aml_S_stack_data += n * 4;
     return n;
+}
+_internal
+Pc
+E_aml_Q_path_R_root( N *n
+){  if( E_aml_S_stack_data == E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end )
+        return 0;
+    N parent_n = 0;
+    switch( *E_aml_S_stack_data )
+    { case '\\':
+        {   E_aml_S_stack_data++;
+            *n = E_aml_Q_path_R_pathname();
+            if( !~*n
+            || !*n
+            )
+            {   *n = ~0 - 1;
+                return 0;
+            }
+            Pc s = M( *n * 4 );
+            if( !s )
+            {   *n = ~0;
+                return 0;
+            }
+            E_mem_Q_blk_I_copy( s, E_aml_S_stack_data - *n * 4, *n * 4 );
+            return s;
+        }
+      case '^':
+            do
+            {   if( ++E_aml_S_stack_data == E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end
+                || ++parent_n > E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].n
+                )
+                {   *n = ~0 - 1;
+                    return 0;
+                }
+            }while( *E_aml_S_stack_data == '^' );
+      default:
+        {   *n = E_aml_Q_path_R_pathname();
+            if( !~*n )
+            {   *n = ~0 - 1;
+                return 0;
+            }
+            N depth = E_aml_S_current_path_n ? E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].n - parent_n : 0;
+            Pc s = M(( depth + *n ) * 4 );
+            if( !s )
+            {   *n = ~0;
+                return 0;
+            }
+            if( E_aml_S_current_path_n )
+                E_mem_Q_blk_I_copy( s, E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].s, depth * 4 );
+            if( *n )
+                E_mem_Q_blk_I_copy( s + depth * 4, E_aml_S_stack_data - *n * 4, *n * 4 );
+            else if( !depth )
+            {   W(s);
+                return 0;
+            }
+            *n += depth;
+            return s;
+        }
+    }
 }
 _internal
 Pc
@@ -538,7 +710,9 @@ E_aml_Q_path_R_relative( N *n
                 {   N depth = E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].n - parent_n;
                     s = M(( depth + *n ) * 4 );
                     if( !s )
+                    {   *n = ~0;
                         return 0;
+                    }
                     E_mem_Q_blk_I_copy( s, E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].s, depth * 4 );
                     E_mem_Q_blk_I_copy( s + depth * 4, E_aml_S_stack_data - *n * 4, *n * 4 );
                     *n += depth;
@@ -553,64 +727,6 @@ E_aml_Q_path_R_relative( N *n
                 E_mem_Q_blk_I_copy( s, E_aml_S_stack_data - *n * 4, *n * 4 );
                 *object_i = E_aml_S_object_R(( struct E_aml_Z_pathname ){ E_aml_S_stack_data - *n * 4, *n });
             }
-            return s;
-        }
-    }
-}
-_internal
-Pc
-E_aml_Q_path_R_root( N *n
-){  if( E_aml_S_stack_data == E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end )
-        return 0;
-    N parent_n = 0;
-    switch( *E_aml_S_stack_data )
-    { case '\\':
-        {   E_aml_S_stack_data++;
-            *n = E_aml_Q_path_R_pathname();
-            if( !~*n
-            || !*n
-            )
-            {   *n = ~0 - 1;
-                return 0;
-            }
-            Pc s = M( *n * 4 );
-            if( !s )
-            {   *n = ~0;
-                return 0;
-            }
-            E_mem_Q_blk_I_copy( s, E_aml_S_stack_data - *n * 4, *n * 4 );
-            return s;
-        }
-      case '^':
-            do
-            {   if( ++E_aml_S_stack_data == E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end
-                || ++parent_n > E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].n
-                )
-                {   *n = ~0 - 1;
-                    return 0;
-                }
-            }while( *E_aml_S_stack_data == '^' );
-      default:
-        {   *n = E_aml_Q_path_R_pathname();
-            if( !~*n )
-            {   *n = ~0 - 1;
-                return 0;
-            }
-            N depth = E_aml_S_current_path_n ? E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].n - parent_n : 0;
-            Pc s = M(( depth + *n ) * 4 );
-            if( !s )
-            {   *n = ~0;
-                return 0;
-            }
-            if( E_aml_S_current_path_n )
-                E_mem_Q_blk_I_copy( s, E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].s, depth * 4 );
-            if( *n )
-                E_mem_Q_blk_I_copy( s + depth * 4, E_aml_S_stack_data - *n * 4, *n * 4 );
-            else if( !depth )
-            {   W(s);
-                return 0;
-            }
-            *n += depth;
             return s;
         }
     }
@@ -758,7 +874,7 @@ E_aml_I_data_object( void
                 return ~0 - 1;
             E_font_I_print( ",buffer" );
             E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
-            E_aml_I_delegate_pkg( E_aml_Z_stack_Z_entity_S_data_object_buffer_finish, E_aml_Z_stack_Z_entity_S_term_arg );
+            E_aml_I_delegate_pkg( E_aml_Z_stack_Z_entity_S_buffer_finish, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
         }
       case 0x12: // package
@@ -879,7 +995,7 @@ E_aml_I_term( void
             W( name_ );
             if( E_aml_S_stack_data + 2 > E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end )
                 return ~0 - 1;
-            //TODO Dodać ‘external’ do drzewa zinterpretowanej przestrzeni ACPI.
+            E_aml_S_stack_data += 2;
             break;
         }
       case 0xa5: // break
@@ -959,7 +1075,10 @@ E_aml_I_object( void
             Pc name = E_aml_Q_path_R_root( &name_n );
             if( !name )
                 return name_n;
-            //TODO Sprawdzić w drzewie zinterpretowanej przestrzeni ACPI, czy ścieżka istnieje.
+            if( !~E_aml_S_object_R(( struct E_aml_Z_pathname ){ name, name_n }))
+            {   W(name);
+                return ~0 - 1;
+            }
             Pc name_ = M( name_n * 4 + 1 );
             E_text_Z_s_P_copy_sl_0( name_, name, name_n * 4 );
             E_font_I_print( ",alias=" ); E_font_I_print( name_ );
@@ -974,7 +1093,7 @@ E_aml_I_object( void
             E_text_Z_s_P_copy_sl_0( name_, alias, alias_n * 4 );
             E_font_I_print( ":" ); E_font_I_print( name_ );
             W( name_ );
-            N ret = E_aml_Q_object_name_alias_I_add(( struct E_aml_Z_pathname ){ alias, alias_n }, ( struct E_aml_Z_pathname ){ name, name_n });
+            N ret = E_aml_Q_object_alias_I_add(( struct E_aml_Z_pathname ){ alias, alias_n }, ( struct E_aml_Z_pathname ){ name, name_n });
             if( (S)ret < 0 )
             {   W(alias);
                 W(name);
@@ -983,23 +1102,35 @@ E_aml_I_object( void
             E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             break;
         }
-      case 8: // name
+      case 8: // object
         {   N n;
             Pc name = E_aml_Q_path_R_root( &n );
             if( !name )
                 return n;
-            //TODO Sprawdzić w drzewie zinterpretowanej przestrzeni ACPI, czy ścieżka istnieje (oprócz ostatniego obiektu, który teraz jest definiowany).
-            //TODO Dodać ‘name’ do drzewa zinterpretowanej przestrzeni ACPI.
+            if( ~E_aml_S_object_R(( struct E_aml_Z_pathname ){ name, n })
+            || ( n > 1
+              && !~E_aml_S_object_R(( struct E_aml_Z_pathname ){ name, n - 1 })
+            ))
+            {   W(name);
+                return ~0 - 1;
+            }
             Pc name_ = M( n * 4 + 1 );
             E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
-            E_font_I_print( "\n, object name=" ); E_font_I_print( name_ );
+            E_font_I_print( "\n,object=" ); E_font_I_print( name_ );
             W( name_ );
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
-            if( !E_mem_Q_blk_I_append( &E_aml_S_current_path, 1 ))
+            N ret = E_aml_S_object_I_add( E_aml_S_object_Z_type_S_object, ( struct E_aml_Z_pathname ){ name, n });
+            if( (S)ret < 0 )
+            {   W(name);
+                return ret;
+            }
+            name_ = E_text_Z_sl_M_duplicate( name, n * 4 );
+            if( !name_ )
                 return ~0;
-            E_aml_S_current_path[ E_aml_S_current_path_n ].s = name;
-            E_aml_S_current_path[ E_aml_S_current_path_n ].n = n;
-            E_aml_S_current_path_n++;
+            if( !~E_aml_Q_current_path_I_push(( struct E_aml_Z_pathname ){ name_, n }))
+            {   W( name_ );
+                return ~0;
+            }
+            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_restore_current_path, E_aml_Z_stack_Z_entity_S_data_object );
             break;
         }
@@ -1015,27 +1146,36 @@ E_aml_I_object( void
             Pc name = E_aml_Q_path_R_root( &n );
             if( !name )
                 return n;
-            if( E_aml_S_stack_data == pkg_end )
-                return ~0 - 1;
-            //TODO Sprawdzić w drzewie zinterpretowanej przestrzeni ACPI, czy ścieżka istnieje (oprócz ostatniego obiektu, który teraz jest definiowany).
             Pc name_ = M( n * 4 + 1 );
             E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
-            E_font_I_print( "\n,scope name=" ); E_font_I_print( name_ );
+            E_font_I_print( "\n,scope=" ); E_font_I_print( name_ );
             W( name_ );
+            N object_i = E_aml_S_object_R(( struct E_aml_Z_pathname ){ name, n });
+            if( !~object_i
+            || !( E_aml_S_object[ object_i ].type == E_aml_S_object_Z_type_S_object 
+              || E_aml_S_object[ object_i ].type == E_aml_S_object_Z_type_S_device
+              || E_aml_S_object[ object_i ].type == E_aml_S_object_Z_type_S_power_res
+              || E_aml_S_object[ object_i ].type == E_aml_S_object_Z_type_S_thermal_zone
+              || E_aml_S_object[ object_i ].type == E_aml_S_object_Z_type_S_processor
+            )
+            || ( n > 1
+              && !~E_aml_S_object_R(( struct E_aml_Z_pathname ){ name, n - 1 })
+            ))
+            {   W(name);
+                return ~0 - 1;
+            }
             //TODO Dodać ‘scope’ do drzewa zinterpretowanej przestrzeni ACPI.
             E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             if( E_aml_S_stack_data != pkg_end )
-            {   if( !E_mem_Q_blk_I_append( &E_aml_S_current_path, 1 ))
+            {   if( !~E_aml_Q_current_path_I_push(( struct E_aml_Z_pathname ){ name, n }))
                     return ~0;
-                E_aml_S_current_path[ E_aml_S_current_path_n ].s = name;
-                E_aml_S_current_path[ E_aml_S_current_path_n ].n = n;
-                E_aml_S_current_path_n++;
                 E_aml_I_delegate_pkg( E_aml_Z_stack_Z_entity_S_restore_current_path, E_aml_Z_stack_Z_entity_S_term );
                 E_aml_S_stack[ E_aml_S_stack_n - 1 ].n = ~0;
-            }
+            }else
+                W(name);
             break;
         }
-      case 0x5b: // ext
+      case 0x5b:
             if( E_aml_S_stack_data == E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end )
                 return ~0 - 1;
             switch( (N8)*E_aml_S_stack_data++ )
@@ -1051,24 +1191,36 @@ E_aml_I_object( void
                     Pc region_name = E_aml_Q_path_R_root( &n );
                     if( !region_name )
                         return n;
-                    if( E_aml_S_stack_data == pkg_end )
-                        return ~0 - 1;
                     Pc name_ = M( n * 4 + 1 );
                     E_text_Z_s_P_copy_sl_0( name_, region_name, n * 4 );
-                    E_font_I_print( ",region name=" ); E_font_I_print( name_ );
+                    E_font_I_print( ",region=" ); E_font_I_print( name_ );
                     W( name_ );
-                    //TODO Sprawdzić w drzewie zinterpretowanej przestrzeni ACPI, czy ścieżka istnieje.
-                    W( region_name );
+                    if( ~E_aml_S_object_R(( struct E_aml_Z_pathname ){ region_name, n })
+                    || ( n > 1
+                      && !~E_aml_S_object_R(( struct E_aml_Z_pathname ){ region_name, n - 1 })
+                    ))
+                    {   W( region_name );
+                        return ~0 - 1;
+                    }
+                    N ret = E_aml_S_object_I_add( E_aml_S_object_Z_type_S_bank_field, ( struct E_aml_Z_pathname ){ region_name, n });
+                    if( (S)ret < 0 )
+                    {   W( region_name );
+                        return ret;
+                    }
                     Pc bank_name = E_aml_Q_path_R_root( &n );
                     if( !bank_name )
                         return n;
-                    if( E_aml_S_stack_data == pkg_end )
-                        return ~0 - 1;
                     name_ = M( n * 4 + 1 );
                     E_text_Z_s_P_copy_sl_0( name_, bank_name, n * 4 );
-                    E_font_I_print( ",bank name=" ); E_font_I_print( name_ );
+                    E_font_I_print( ",bank=" ); E_font_I_print( name_ );
                     W( name_ );
-                    //TODO Sprawdzić w drzewie zinterpretowanej przestrzeni ACPI, czy ścieżka istnieje.
+                    if( ~E_aml_S_object_R(( struct E_aml_Z_pathname ){ bank_name, n })
+                    || ( n > 1
+                      && !~E_aml_S_object_R(( struct E_aml_Z_pathname ){ bank_name, n - 1 })
+                    ))
+                    {   W( bank_name );
+                        return ~0 - 1;
+                    }
                     W( bank_name );
                     //TODO Dodać ‘bank field’ do drzewa zinterpretowanej przestrzeni ACPI.
                     E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
@@ -1080,6 +1232,13 @@ E_aml_I_object( void
                     Pc name = E_aml_Q_path_R_root( &n );
                     if( !name )
                         return n;
+                    if( ~E_aml_S_object_R(( struct E_aml_Z_pathname ){ name, n })
+                    || ( n > 1
+                      && !~E_aml_S_object_R(( struct E_aml_Z_pathname ){ name, n - 1 })
+                    ))
+                    {   W(name);
+                        return ~0 - 1;
+                    }
                     Pc name_ = M( n * 4 + 1 );
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
                     E_font_I_print( ",mutex=" ); E_font_I_print( name_ );
@@ -1087,26 +1246,40 @@ E_aml_I_object( void
                     if( E_aml_S_stack_data == E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end )
                         return ~0 - 1;
                     E_aml_S_stack_data++;
+                    N ret = E_aml_S_object_I_add( E_aml_S_object_Z_type_S_mutex, ( struct E_aml_Z_pathname ){ name, n });
+                    if( (S)ret < 0 )
+                    {   W(name);
+                        return ret;
+                    }
                     E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
                     break;
                 }
               case 0x13: // field
-                    //TODO Dodać ‘field’ do drzewa zinterpretowanej przestrzeni ACPI.
                     E_font_I_print( ",field" );
                     E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
                     E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_field_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
                     break;
-              case 0x88: // data region
+              case 0x88: // data table region
                 {   N n;
                     Pc name = E_aml_Q_path_R_root( &n );
                     if( !name )
                         return n;
+                    if( ~E_aml_S_object_R(( struct E_aml_Z_pathname ){ name, n })
+                    || ( n > 1
+                      && !~E_aml_S_object_R(( struct E_aml_Z_pathname ){ name, n - 1 })
+                    ))
+                    {   W(name);
+                        return ~0 - 1;
+                    }
                     Pc name_ = M( n * 4 + 1 );
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
-                    E_font_I_print( ",data region=" ); E_font_I_print( name_ );
+                    E_font_I_print( ",data table region=" ); E_font_I_print( name_ );
                     W( name_ );
-                    //TODO Dodać ‘data region’ do drzewa zinterpretowanej przestrzeni ACPI.
-                    W(name);
+                    N ret = E_aml_S_object_I_add( E_aml_S_object_Z_type_S_data_table_region, ( struct E_aml_Z_pathname ){ name, n });
+                    if( (S)ret < 0 )
+                    {   W(name);
+                        return ret;
+                    }
                     E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
                     E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_data_region_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
                     break;
@@ -1116,14 +1289,24 @@ E_aml_I_object( void
                     Pc name = E_aml_Q_path_R_root( &n );
                     if( !name )
                         return n;
+                    if( ~E_aml_S_object_R(( struct E_aml_Z_pathname ){ name, n })
+                    || ( n > 1
+                      && !~E_aml_S_object_R(( struct E_aml_Z_pathname ){ name, n - 1 })
+                    ))
+                    {   W(name);
+                        return ~0 - 1;
+                    }
                     Pc name_ = M( n * 4 + 1 );
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
                     E_font_I_print( ",op region=" ); E_font_I_print( name_ );
                     W( name_ );
-                    W(name);
+                    N ret = E_aml_S_object_I_add( E_aml_S_object_Z_type_S_op_region, ( struct E_aml_Z_pathname ){ name, n });
+                    if( (S)ret < 0 )
+                    {   W(name);
+                        return ret;
+                    }
                     if( ++E_aml_S_stack_data > E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end )
                         return ~0 - 1;
-                    //TODO Dodać ‘op region’ do drzewa zinterpretowanej przestrzeni ACPI.
                     E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
                     E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_op_region_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
                     break;
@@ -1140,13 +1323,19 @@ E_aml_I_object( void
                     Pc name = E_aml_Q_path_R_root( &n );
                     if( !name )
                         return n;
-                    if( ++E_aml_S_stack_data > pkg_end )
-                        return ~0 - 1;
                     Pc name_ = M( n * 4 + 1 );
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
                     E_font_I_print( ",field op=" ); E_font_I_print( name_ );
                     W( name_ );
-                    W(name);
+                    N object_i = E_aml_S_object_R(( struct E_aml_Z_pathname ){ name, n });
+                    if( !~object_i
+                    || E_aml_S_object[ object_i ].type != E_aml_S_object_Z_type_S_op_region
+                    )
+                    {   W(name);
+                        return ~0 - 1;
+                    }
+                    if( ++E_aml_S_stack_data > pkg_end )
+                        return ~0 - 1;
                     while( E_aml_S_stack_data != pkg_end )
                     {   switch( *E_aml_S_stack_data++ )
                         { case 0: // reserved field
@@ -1205,20 +1394,18 @@ E_aml_I_object( void
                                         return ~0 - 1;
                                 Pc name_ = M( 4 + 1 );
                                 E_text_Z_s_P_copy_sl_0( name_, E_aml_S_stack_data, 4 );
-                                E_font_I_print( ",field=" ); E_font_I_print( name_ );
+                                E_font_I_print( ",name=" ); E_font_I_print( name_ );
                                 W( name_ );
                                 //TODO Dodać ‘field name’ do drzewa zinterpretowanej przestrzeni ACPI.
                                 E_aml_S_stack_data += 4;
                                 N n = E_aml_R_pkg_length();
                                 if( !~n )
                                     return n;
-                                E_font_I_print( ",field" );
                                 //TODO Dodać ‘field pkg length’ do drzewa zinterpretowanej przestrzeni ACPI.
                                 break;
                             }
                         }
                     }
-                    //TODO Dodać ‘field op’ do drzewa zinterpretowanej przestrzeni ACPI.
                     E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
                     break;
                 }
@@ -1234,11 +1421,22 @@ E_aml_I_object( void
                     Pc name = E_aml_Q_path_R_root( &n );
                     if( !name )
                         return n;
+                    if( ~E_aml_S_object_R(( struct E_aml_Z_pathname ){ name, n })
+                    || ( n > 1
+                      && !~E_aml_S_object_R(( struct E_aml_Z_pathname ){ name, n - 1 })
+                    ))
+                    {   W(name);
+                        return ~0 - 1;
+                    }
                     Pc name_ = M( n * 4 + 1 );
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
-                    E_font_I_print( ",field op=" ); E_font_I_print( name_ );
+                    E_font_I_print( ",index field=" ); E_font_I_print( name_ );
                     W( name_ );
-                    W(name);
+                    N ret = E_aml_S_object_I_add( E_aml_S_object_Z_type_S_index_field, ( struct E_aml_Z_pathname ){ name, n });
+                    if( (S)ret < 0 )
+                    {   W(name);
+                        return ret;
+                    }
                     name = E_aml_Q_path_R_root( &n );
                     if( !name )
                         return n;
@@ -1336,18 +1534,31 @@ E_aml_I_object( void
                     Pc name = E_aml_Q_path_R_root( &n );
                     if( !name )
                         return n;
+                    if( ~E_aml_S_object_R(( struct E_aml_Z_pathname ){ name, n })
+                    || ( n > 1
+                      && !~E_aml_S_object_R(( struct E_aml_Z_pathname ){ name, n - 1 })
+                    ))
+                    {   W(name);
+                        return ~0 - 1;
+                    }
                     Pc name_ = M( n * 4 + 1 );
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
                     E_font_I_print( ",device=" ); E_font_I_print( name_ );
                     W( name_ );
-                    //TODO Dodać ‘device’ do drzewa zinterpretowanej przestrzeni ACPI.
+                    N ret = E_aml_S_object_I_add( E_aml_S_object_Z_type_S_device, ( struct E_aml_Z_pathname ){ name, n });
+                    if( (S)ret < 0 )
+                    {   W(name);
+                        return ret;
+                    }
                     E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
                     if( E_aml_S_stack_data != pkg_end )
-                    {   if( !E_mem_Q_blk_I_append( &E_aml_S_current_path, 1 ))
+                    {   name_ = E_text_Z_sl_M_duplicate( name, n * 4 );
+                        if( !name_ )
                             return ~0;
-                        E_aml_S_current_path[ E_aml_S_current_path_n ].s = name;
-                        E_aml_S_current_path[ E_aml_S_current_path_n ].n = n;
-                        E_aml_S_current_path_n++;
+                        if( !~E_aml_Q_current_path_I_push(( struct E_aml_Z_pathname ){ name_, n }))
+                        {   W( name_ );
+                            return ~0;
+                        }
                         E_aml_I_delegate_pkg( E_aml_Z_stack_Z_entity_S_device_finish, E_aml_Z_stack_Z_entity_S_object );
                         E_aml_S_stack[ E_aml_S_stack_n - 1 ].n = ~0;
                     }
@@ -1358,11 +1569,22 @@ E_aml_I_object( void
                     Pc name = E_aml_Q_path_R_root( &n );
                     if( !name )
                         return n;
+                    if( ~E_aml_S_object_R(( struct E_aml_Z_pathname ){ name, n })
+                    || ( n > 1
+                      && !~E_aml_S_object_R(( struct E_aml_Z_pathname ){ name, n - 1 })
+                    ))
+                    {   W(name);
+                        return ~0 - 1;
+                    }
                     Pc name_ = M( n * 4 + 1 );
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
                     E_font_I_print( ",event=" ); E_font_I_print( name_ );
                     W( name_ );
-                    //TODO Dodać ‘event’ do drzewa zinterpretowanej przestrzeni ACPI.
+                    N ret = E_aml_S_object_I_add( E_aml_S_object_Z_type_S_event, ( struct E_aml_Z_pathname ){ name, n });
+                    if( (S)ret < 0 )
+                    {   W(name);
+                        return ret;
+                    }
                     E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
                     break;
                 }
@@ -1378,11 +1600,22 @@ E_aml_I_object( void
                     Pc name = E_aml_Q_path_R_root( &n );
                     if( !name )
                         return n;
+                    if( ~E_aml_S_object_R(( struct E_aml_Z_pathname ){ name, n })
+                    || ( n > 1
+                      && !~E_aml_S_object_R(( struct E_aml_Z_pathname ){ name, n - 1 })
+                    ))
+                    {   W(name);
+                        return ~0 - 1;
+                    }
                     Pc name_ = M( n * 4 + 1 );
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
-                    E_font_I_print( ",power res name=" ); E_font_I_print( name_ );
+                    E_font_I_print( ",power res=" ); E_font_I_print( name_ );
                     W( name_ );
-                    //TODO Dodać ‘power res’ do drzewa zinterpretowanej przestrzeni ACPI.
+                    N ret = E_aml_S_object_I_add( E_aml_S_object_Z_type_S_power_res, ( struct E_aml_Z_pathname ){ name, n });
+                    if( (S)ret < 0 )
+                    {   W(name);
+                        return ret;
+                    }
                     E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
                     if( E_aml_S_stack_data != pkg_end )
                     {   if( ++E_aml_S_stack_data > pkg_end )
@@ -1390,11 +1623,13 @@ E_aml_I_object( void
                         E_aml_S_stack_data += 2;
                         if( E_aml_S_stack_data > pkg_end )
                             return ~0 - 1;
-                        if( !E_mem_Q_blk_I_append( &E_aml_S_current_path, 1 ))
+                        name_ = E_text_Z_sl_M_duplicate( name, n * 4 );
+                        if( !name_ )
                             return ~0;
-                        E_aml_S_current_path[ E_aml_S_current_path_n ].s = name;
-                        E_aml_S_current_path[ E_aml_S_current_path_n ].n = n;
-                        E_aml_S_current_path_n++;
+                        if( !~E_aml_Q_current_path_I_push(( struct E_aml_Z_pathname ){ name_, n }))
+                        {   W( name_ );
+                            return ~0;
+                        }
                         E_aml_I_delegate_pkg( E_aml_Z_stack_Z_entity_S_power_res_finish, E_aml_Z_stack_Z_entity_S_object );
                         E_aml_S_stack[ E_aml_S_stack_n - 1 ].n = ~0;
                     }
@@ -1412,18 +1647,31 @@ E_aml_I_object( void
                     Pc name = E_aml_Q_path_R_root( &n );
                     if( !name )
                         return n;
+                    if( ~E_aml_S_object_R(( struct E_aml_Z_pathname ){ name, n })
+                    || ( n > 1
+                      && !~E_aml_S_object_R(( struct E_aml_Z_pathname ){ name, n - 1 })
+                    ))
+                    {   W(name);
+                        return ~0 - 1;
+                    }
                     Pc name_ = M( n * 4 + 1 );
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
-                    E_font_I_print( ",thermal zone name=" ); E_font_I_print( name_ );
+                    E_font_I_print( ",thermal zone=" ); E_font_I_print( name_ );
                     W( name_ );
-                    //TODO Dodać ‘thermal zone’ do drzewa zinterpretowanej przestrzeni ACPI.
+                    N ret = E_aml_S_object_I_add( E_aml_S_object_Z_type_S_thermal_zone, ( struct E_aml_Z_pathname ){ name, n });
+                    if( (S)ret < 0 )
+                    {   W(name);
+                        return ret;
+                    }
                     E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
                     if( E_aml_S_stack_data != pkg_end )
-                    {   if( !E_mem_Q_blk_I_append( &E_aml_S_current_path, 1 ))
+                    {   name_ = E_text_Z_sl_M_duplicate( name, n * 4 );
+                        if( !name_ )
                             return ~0;
-                        E_aml_S_current_path[ E_aml_S_current_path_n ].s = name;
-                        E_aml_S_current_path[ E_aml_S_current_path_n ].n = n;
-                        E_aml_S_current_path_n++;
+                        if( !~E_aml_Q_current_path_I_push(( struct E_aml_Z_pathname ){ name_, n }))
+                        {   W( name_ );
+                            return ~0;
+                        }
                         E_aml_I_delegate_pkg( E_aml_Z_stack_Z_entity_S_thermal_zone_finish, E_aml_Z_stack_Z_entity_S_object );
                         E_aml_S_stack[ E_aml_S_stack_n - 1 ].n = ~0;
                     }
@@ -1441,6 +1689,13 @@ E_aml_I_object( void
                     Pc name = E_aml_Q_path_R_root( &n );
                     if( !name )
                         return n;
+                    if( ~E_aml_S_object_R(( struct E_aml_Z_pathname ){ name, n })
+                    || ( n > 1
+                      && !~E_aml_S_object_R(( struct E_aml_Z_pathname ){ name, n - 1 })
+                    ))
+                    {   W(name);
+                        return ~0 - 1;
+                    }
                     Pc name_ = M( n * 4 + 1 );
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
                     E_font_I_print( ",processor=" ); E_font_I_print( name_ );
@@ -1452,14 +1707,20 @@ E_aml_I_object( void
                     E_aml_S_stack_data += 4;
                     if( ++E_aml_S_stack_data > pkg_end )
                         return ~0 - 1;
-                    //TODO Dodać ‘processor’ do drzewa zinterpretowanej przestrzeni ACPI.
+                    N ret = E_aml_S_object_I_add( E_aml_S_object_Z_type_S_processor, ( struct E_aml_Z_pathname ){ name, n });
+                    if( (S)ret < 0 )
+                    {   W(name);
+                        return ret;
+                    }
                     E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
                     if( E_aml_S_stack_data != pkg_end )
-                    {   if( !E_mem_Q_blk_I_append( &E_aml_S_current_path, 1 ))
+                    {   name_ = E_text_Z_sl_M_duplicate( name, n * 4 );
+                        if( !name_ )
                             return ~0;
-                        E_aml_S_current_path[ E_aml_S_current_path_n ].s = name;
-                        E_aml_S_current_path[ E_aml_S_current_path_n ].n = n;
-                        E_aml_S_current_path_n++;
+                        if( !~E_aml_Q_current_path_I_push(( struct E_aml_Z_pathname ){ name_, n }))
+                        {   W( name_ );
+                            return ~0;
+                        }
                         E_aml_I_delegate_pkg( E_aml_Z_stack_Z_entity_S_processor_finish, E_aml_Z_stack_Z_entity_S_object );
                         E_aml_S_stack[ E_aml_S_stack_n - 1 ].n = ~0;
                     }
@@ -1521,34 +1782,42 @@ E_aml_I_object( void
             Pc name = E_aml_Q_path_R_root( &n );
             if( !name )
                 return n;
-            if( E_aml_S_stack_data == pkg_end )
-                return ~0 - 1;
-            //TODO Sprawdzić w drzewie zinterpretowanej przestrzeni ACPI, czy ścieżka istnieje (oprócz ostatniego obiektu, który teraz jest definiowany).
-            N8 arg_count = *E_aml_S_stack_data & 3;
             Pc name_ = M( n * 4 + 1 );
             E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
-            E_font_I_print( "\n,method=" ); E_font_I_print( name_ ); E_font_I_print( "," ); E_font_I_print_hex( arg_count );
+            E_font_I_print( "\n,procedure=" ); E_font_I_print( name_ );
             W( name_ );
+            if( ~E_aml_S_object_R(( struct E_aml_Z_pathname ){ name, n })
+            || ( n > 1
+              && !~E_aml_S_object_R(( struct E_aml_Z_pathname ){ name, n - 1 })
+            ))
+            {   W(name);
+                return ~0 - 1;
+            }
+            if( E_aml_S_stack_data == pkg_end )
+                return ~0 - 1;
+            N8 arg_count = *E_aml_S_stack_data & 3;
+            E_font_I_print( "," ); E_font_I_print_hex( arg_count );
             if( ++E_aml_S_stack_data > pkg_end )
             {   W(name);
                 return ~0 - 1;
             }
-            N ret = E_aml_S_object_I_add(( struct E_aml_Z_pathname ){ name, n }, arg_count );
+            N ret = E_aml_S_object_I_add( E_aml_S_object_Z_type_S_procedure, ( struct E_aml_Z_pathname ){ name, n });
             if( (S)ret < 0 )
             {   W(name);
                 return ret;
             }
+            E_aml_S_object[ret].arg_count = arg_count;
             E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             if( E_aml_S_stack_data != pkg_end )
-            {   if( !E_mem_Q_blk_I_append( &E_aml_S_current_path, 1 ))
-                    return ~0;
-                name_ = E_text_Z_s_M_duplicate( name, n * 4 );
+            {   name_ = E_text_Z_sl_M_duplicate( name, n * 4 );
                 if( !name_ )
                     return ~0;
-                E_aml_S_current_path[ E_aml_S_current_path_n ].s = name_;
-                E_aml_S_current_path[ E_aml_S_current_path_n ].n = n;
-                E_aml_S_current_path_n++;
-                E_aml_I_delegate_pkg( E_aml_Z_stack_Z_entity_S_restore_current_path, E_aml_Z_stack_Z_entity_S_term );
+                if( !~E_aml_Q_current_path_I_push(( struct E_aml_Z_pathname ){ name_, n }))
+                {   W( name_ );
+                    return ~0;
+                }
+                E_aml_Q_current_path_P_precompilation(yes);
+                E_aml_I_delegate_pkg( E_aml_Z_stack_Z_entity_S_procedure_finish, E_aml_Z_stack_Z_entity_S_term );
                 E_aml_S_stack[ E_aml_S_stack_n - 1 ].n = ~0;
             }
             return 0;
@@ -1572,52 +1841,42 @@ E_aml_I_expression( void
             switch( (N8)*E_aml_S_stack_data++ )
             { case 0x23: // acquire
                     E_font_I_print( ",acquire" );
-                    E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
-                    E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_mutex_finish, E_aml_Z_stack_Z_entity_S_supername );
+                    E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_acquire_finish, E_aml_Z_stack_Z_entity_S_supername );
                     break;
               case 0x12: // cond refof
                     E_font_I_print( ",cond refof" );
-                    E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
                     E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_cond_refof_finish_1, E_aml_Z_stack_Z_entity_S_supername );
                     break;
               case 0x28: // from bcd
                     E_font_I_print( ",from bcd" );
-                    E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
                     E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_from_bcd_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
                     break;
               case 0x1f: // load table
                     E_font_I_print( ",load table" );
-                    E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
                     E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_load_table_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
                     break;
               case 0x33: // timer
                     E_font_I_print( ",timer" );
-                    E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
                     break;
               case 0x29: // to bcd
                     E_font_I_print( ",to bcd" );
-                    E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
                     E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_to_bcd_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
                     break;
               case 0x25: // wait
                     E_font_I_print( ",wait" );
-                    E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
                     E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_wait_finish_1, E_aml_Z_stack_Z_entity_S_supername );
                     break;
               default:
                     E_aml_S_stack_data -= 2;
-                    E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = no;
-                    return 0;
+                    return ~0 - 1;
             }
             break;
       case 0x72: // add
             E_font_I_print( ",add" );
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_add_op_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x7b: // and
             E_font_I_print( ",and" );
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_and_op_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x11: // buffer
@@ -1629,73 +1888,59 @@ E_aml_I_expression( void
             if( pkg_end > E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end )
                 return ~0 - 1;
             E_font_I_print( ",buffer" );
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             E_aml_I_delegate_pkg( E_aml_Z_stack_Z_entity_S_buffer_finish, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
         }
       case 0x73: // concat
             E_font_I_print( ",concat" );
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_concat_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x84: // concat res
             E_font_I_print( ",concat res" );
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_concat_res_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x9d: // copy object
             E_font_I_print( ",copy object" );
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_copy_object_finish, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x76: // decrement
             E_font_I_print( ",decrement" );
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_decrement_finish, E_aml_Z_stack_Z_entity_S_supername );
             break;
       case 0x83: // derefof
             E_font_I_print( ",derefof" );
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_derefof_finish, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x78: // divide
             E_font_I_print( ",divide" );
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_divide_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x81: // find set left bit
             E_font_I_print( ",fslb" );
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_fslb_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x82: // find set right bit
             E_font_I_print( ",fsrb" );
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_fsrb_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x75: // increment
             E_font_I_print( ",increment" );
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_increment_finish, E_aml_Z_stack_Z_entity_S_supername );
             break;
       case 0x88: // index
             E_font_I_print( ",index" );
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_index_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x90: // land
             E_font_I_print( ",land" );
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_land_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x93: // lequal
             E_font_I_print( ",lequal" );
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_lequal_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x94: // lgreater
             E_font_I_print( ",lgreater" );
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_lgreater_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x92: // lnot
@@ -1704,80 +1949,65 @@ E_aml_I_expression( void
             switch( (N8)*E_aml_S_stack_data++ )
             { case 0x95: // lgreater equal
                     E_font_I_print( ",lgreater equal" );
-                    E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
                     E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_lgreater_equal_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
                     break;
               case 0x94: // lless equal
                     E_font_I_print( ",lless equal" );
-                    E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
                     E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_lless_equal_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
                     break;
               case 0x93: // lnot equal
                     E_font_I_print( ",lnot equal" );
-                    E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
                     E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_lnot_equal_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
                     break;
               default: // lnot
                     E_font_I_print( ",lnot" );
                     E_aml_S_stack_data--;
-                    E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
                     E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_lnot_finish, E_aml_Z_stack_Z_entity_S_term_arg );
                     break;
             }
             break;
       case 0x95: // lless
             E_font_I_print( ",lless" );
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_lless_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x9e: // mid
             E_font_I_print( ",mid" );
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_mid_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x91: // lor
             E_font_I_print( ",lor" );
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_lor_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x89: // match
             E_font_I_print( ",match" );
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_match_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x85: // mod
             E_font_I_print( ",mod" );
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_mod_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x77: // multiply
             E_font_I_print( ",multiply" );
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_multiply_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x7c: // nand
             E_font_I_print( ",nand" );
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_nand_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x7e: // nor
             E_font_I_print( ",nor" );
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_nor_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x80: // not
             E_font_I_print( ",not" );
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_not_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x8e: // object type
             E_font_I_print( ",object type" );
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_object_type_finish, E_aml_Z_stack_Z_entity_S_supername );
             break;
       case 0x7d: // or
             E_font_I_print( ",or" );
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_or_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x12: // package
@@ -1793,7 +2023,6 @@ E_aml_I_expression( void
             N n = (N8)*E_aml_S_stack_data;
             E_aml_S_stack_data++;
             E_font_I_print( ",package," ); E_font_I_print_hex(n);
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             E_aml_I_delegate_pkg( E_aml_Z_stack_Z_entity_S_package_finish, E_aml_Z_stack_Z_entity_S_package );
             E_aml_S_stack[ E_aml_S_stack_n - 1 ].n = n;
             break;
@@ -1806,7 +2035,6 @@ E_aml_I_expression( void
             Pc pkg_end = E_aml_S_stack_data + pkg_length - ( E_aml_S_stack_data - data_start );
             if( pkg_end > E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end )
                 return ~0 - 1;
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             if( !E_mem_Q_blk_I_append( &E_aml_S_stack, 4 ))
                 return ~0;
             E_font_I_print( ",var package" );
@@ -1827,62 +2055,50 @@ E_aml_I_expression( void
         }
       case 0x71: // refof
             E_font_I_print( ",refof" );
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_refof_finish, E_aml_Z_stack_Z_entity_S_supername );
             break;
       case 0x79: // shift left
             E_font_I_print( ",shift left" );
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_shift_left_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x7a: // shift right
             E_font_I_print( ",shift right" );
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_shift_right_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x87: // sizeof
             E_font_I_print( ",sizeof" );
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_sizeof_finish, E_aml_Z_stack_Z_entity_S_supername );
             break;
       case 0x70: // store
             E_font_I_print( ",store" );
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_store_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x74: // subtract
             E_font_I_print( ",subtract" );
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_subtract_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x96: // to buffer
             E_font_I_print( ",to buffer" );
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_to_buffer_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x97: // to decimal string
             E_font_I_print( ",to decimal string" );
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_to_decimal_string_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x98: // to hex string
             E_font_I_print( ",to hex string" );
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_to_hex_string_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x99: // to integer
             E_font_I_print( ",to integer" );
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_to_integer_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x9c: // to string
             E_font_I_print( ",to string" );
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_to_string_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       case 0x7f: // xor
             E_font_I_print( ",xor" );
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
             E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_xor_finish_1, E_aml_Z_stack_Z_entity_S_term_arg );
             break;
       default:
@@ -1896,7 +2112,12 @@ E_aml_I_expression( void
             E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
             E_font_I_print( ",expr string=" ); E_font_I_print( name_ );
             W( name_ );
-            //TODO Sprawdzić w drzewie zinterpretowanej przestrzeni ACPI, czy ścieżka istnieje.
+            if( n
+            && !~E_aml_S_object_R(( struct E_aml_Z_pathname ){ name, n - 1 })
+            )
+            {   W(name);
+                return ~0 - 1;
+            }
             // method invocation
             if( !~object_i )
             {   name_ = name + ( n - 1 ) * 4;
@@ -1905,12 +2126,24 @@ E_aml_I_expression( void
                 || E_text_Z_sl_T_eq( name_, "_REV", 4 )
                 ))
                 {   W(name);
-                    E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = no;
-                    break;
+                    return 0;
                 }
+                if( E_text_Z_sl_T_eq( name_, "_OS_", 4 ))
+                {   Pc s = E_text_Z_s0_M_duplicate( "OUXOS" );
+                    if( !s )
+                        return ~0;
+                    E_aml_S_stack[ E_aml_S_stack_n - 1 ].execution_context.result.p = s;
+                }else if( E_text_Z_sl_T_eq( name_, "_REV", 4 ))
+                    E_aml_S_stack[ E_aml_S_stack_n - 1 ].execution_context.result.n = 2;
+            }else if( E_aml_S_object[ object_i ].type != E_aml_S_object_Z_type_S_procedure )
+            {   W(name);
+                return ~0 - 1;
             }
             E_font_I_print( ",invocation" );
-            E_aml_S_stack[ E_aml_S_stack_n - 2 ].match = yes;
+            if( !~E_aml_Q_current_path_I_push(( struct E_aml_Z_pathname ){ name, n }))
+            {   W( name );
+                return ~0;
+            }
             if(( ~object_i
               && E_aml_S_object[ object_i ].arg_count
             )
@@ -1919,20 +2152,22 @@ E_aml_I_expression( void
             ))
             {   if( ~object_i )
                     n = E_aml_S_object[ object_i ].arg_count;
-                else if( E_text_Z_sl_T_eq( name_, "_OSI", 4 ))
+                else
                     n = 1;
                 E_font_I_print( "," ); E_font_I_print_hex(n);
-                if( !E_mem_Q_blk_I_append( &E_aml_S_stack, 1 ))
-                {   W(name);
+                E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_procedure_invocation_finish, E_aml_Z_stack_Z_entity_S_term_arg );
+                E_aml_S_stack[ E_aml_S_stack_n - 1 ].n = n;
+                E_aml_S_stack[ E_aml_S_stack_n - 2 ].execution_context.procedure_osi = !~object_i;
+            }else //TODO Czy to na pewno wykonywać?
+            {   if( !E_mem_Q_blk_I_append( &E_aml_S_stack, 1 ))
                     return ~0;
-                }
                 Pc data_end = E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end;
-                E_aml_S_stack[ E_aml_S_stack_n ].entity = E_aml_Z_stack_Z_entity_S_term_arg;
-                E_aml_S_stack[ E_aml_S_stack_n ].n = n;
+                E_aml_S_stack[ E_aml_S_stack_n ].entity = E_aml_Z_stack_Z_entity_S_procedure_invocation_finish;
+                E_aml_S_stack[ E_aml_S_stack_n ].n = 1;
                 E_aml_S_stack[ E_aml_S_stack_n ].data_end = data_end;
+                E_aml_S_stack[ E_aml_S_stack_n ].execution_context.procedure_osi = no;
                 E_aml_S_stack_n++;
             }
-            W(name);
             break;
         }
     }
@@ -1976,7 +2211,7 @@ E_aml_I_supername( void
       case 0x6d:
       case 0x6e:
             E_font_I_print( ",arg" );
-            //E_aml_S_stack[ E_aml_S_stack_n - 1 ].result =
+            //E_aml_S_stack[ E_aml_S_stack_n - 1 ].execution_context.result =
             break;
       case 0x60: // local
       case 0x61:
@@ -1987,7 +2222,7 @@ E_aml_I_supername( void
       case 0x66:
       case 0x67:
             E_font_I_print( ",local" );
-            //E_aml_S_stack[ E_aml_S_stack_n - 1 ].result =
+            //E_aml_S_stack[ E_aml_S_stack_n - 1 ].execution_context.result =
             break;
       default: // simple name
         {   E_aml_S_stack_data--;
@@ -1995,13 +2230,8 @@ E_aml_I_supername( void
             Pc name = E_aml_Q_path_R_root( &n );
             if( !name )
                 return n;
-            Pc name_ = M( 4 + 1 );
-            E_text_Z_s_P_copy_sl_0( name_, name, 4 );
-            E_font_I_print( ",simple name=" ); E_font_I_print( name_ );
-            W( name_ );
-            //TODO Sprawdzić w drzewie zinterpretowanej przestrzeni ACPI, czy ścieżka istnieje.
-            E_aml_S_stack[ E_aml_S_stack_n - 1 ].result.pathname.s = name;
-            E_aml_S_stack[ E_aml_S_stack_n - 1 ].result.pathname.n = n;
+            E_aml_S_stack[ E_aml_S_stack_n - 1 ].execution_context.result.pathname.s = name;
+            E_aml_S_stack[ E_aml_S_stack_n - 1 ].execution_context.result.pathname.n = n;
             break;
         }
     }
@@ -2023,13 +2253,57 @@ E_aml_I_supername( void
     E_aml_S_stack_n++; \
     stack_n_last = E_aml_S_stack_n; \
 }
+_internal
+N
+E_aml_M_res1( void
+){  if( E_aml_S_stack_n >= 2
+    && E_aml_S_current_path_n
+    )
+    {   N current_path_i = E_aml_S_current_path_n;
+        for_n_rev( i, E_aml_S_stack_n ) // Wyjście do nadrzędnego bloku metody po błędzie składni.
+        {   if(( E_aml_S_stack[i].entity == E_aml_Z_stack_Z_entity_S_restore_current_path
+              || E_aml_S_stack[i].entity == E_aml_Z_stack_Z_entity_S_power_res_finish
+              || E_aml_S_stack[i].entity == E_aml_Z_stack_Z_entity_S_thermal_zone_finish
+              || E_aml_S_stack[i].entity == E_aml_Z_stack_Z_entity_S_device_finish
+              || E_aml_S_stack[i].entity == E_aml_Z_stack_Z_entity_S_processor_finish
+              || E_aml_S_stack[i].entity == E_aml_Z_stack_Z_entity_S_procedure_finish
+              || E_aml_S_stack[i].entity == E_aml_Z_stack_Z_entity_S_procedure_invocation_finish
+            )
+            && E_aml_Q_current_path_S_precompilation_i != current_path_i--
+            )
+            {   for_n( j, E_aml_S_current_path_n - current_path_i )
+                    W( E_aml_S_current_path[ current_path_i + j ].s );
+                if( !E_mem_Q_blk_I_remove( &E_aml_S_current_path, current_path_i, E_aml_S_current_path_n - current_path_i ))
+                    return ~0;
+                E_aml_S_current_path_n -= E_aml_S_current_path_n - current_path_i;
+                if( E_aml_S_current_path_n )
+                {   Pc name_ = M( E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].n * 4 + 1 );
+                    E_text_Z_s_P_copy_sl_0( name_, E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].s, E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].n * 4 );
+                    E_font_I_print( "\n,go over to=" ); E_font_I_print( name_ );
+                    W( name_ );
+                }else
+                    E_font_I_print( "\n,go over to=\\" );
+                if( !~E_aml_S_stack[ i - 1 ].n )
+                    if( !--i ) // Sprawdzanie dla listy wyliczanej w nieskończoność, czy interpretacja zakończyła się.
+                        break;
+                E_aml_Q_current_path_S_precompilation_i = 0;
+                E_aml_S_stack_data = E_aml_S_stack[i].data_end;
+                if( !E_mem_Q_blk_I_remove( &E_aml_S_stack, i, E_aml_S_stack_n - i ))
+                    return ~0;
+                E_aml_S_stack_n = i;
+                return 0;
+            }
+            if( !current_path_i )
+                break;
+        }
+    }
+    return ~0;
+}
 _private
 N
 E_aml_M( Pc table
 , N l
-){  E_aml_S_current_path_n = 0;
-    Mt_( E_aml_S_current_path, E_aml_S_current_path_n );
-    if( !E_aml_S_current_path )
+){  if( !~E_aml_Q_current_path_M() )
         return ~0;
     E_aml_S_stack_n = 1;
     Mt_( E_aml_S_stack, E_aml_S_stack_n );
@@ -2037,13 +2311,13 @@ E_aml_M( Pc table
     {   W( E_aml_S_current_path );
         return ~0;
     }
-    if( !~E_aml_Q_object_name_alias_M() )
+    if( !~E_aml_Q_object_alias_M() )
     {   W( E_aml_S_stack );
         W( E_aml_S_current_path );
         return ~0;
     }
     if( !~E_aml_Q_object_M() )
-    {   E_aml_Q_object_name_alias_W();
+    {   E_aml_Q_object_alias_W();
         W( E_aml_S_stack );
         W( E_aml_S_current_path );
         return ~0;
@@ -2059,14 +2333,16 @@ E_aml_M( Pc table
 Loop:
     O{  stack_n_last = E_aml_S_stack_n;
         enum E_aml_Z_stack_Z_entity entity = E_aml_S_stack[ E_aml_S_stack_n - 1 ].entity;
-        //E_font_I_print( "\nentity=" ); E_font_I_print_hex(entity); E_font_I_print( ",data=" ); E_font_I_print_hex( (N)E_aml_S_stack_data ); E_font_I_print( ",data_end=" ); E_font_I_print_hex( (N)E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end ); E_font_I_print( ",value=" ); E_font_I_print_hex( (( N * )E_aml_S_stack_data )[0] ); //E_font_I_print( "," ); E_font_I_print_hex( (( N * )E_aml_S_stack_data )[1] );
+        //E_font_I_print( "\nentity=" ); E_font_I_print_hex(entity);
+        //E_font_I_print( ",data=" ); E_font_I_print_hex( (N)E_aml_S_stack_data );
+        //E_font_I_print( ",data_end=" ); E_font_I_print_hex( (N)E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end );
+        //E_font_I_print( ",value=" ); E_font_I_print_hex( (( N * )E_aml_S_stack_data )[0] ); //E_font_I_print( "," ); E_font_I_print_hex( (( N * )E_aml_S_stack_data )[1] );
         switch(entity)
         { case E_aml_Z_stack_Z_entity_S_result_to_n:
                 E_aml_S_stack[ E_aml_S_stack_n - 2 ].n = result.n;
                 break;
           case E_aml_Z_stack_Z_entity_S_restore_current_path:
-                W( E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].s );
-                if( !E_mem_Q_blk_I_remove( &E_aml_S_current_path, --E_aml_S_current_path_n, 1 ))
+                if( !~E_aml_Q_current_path_I_pop())
                     goto Error;
                 break;
           case E_aml_Z_stack_Z_entity_S_term:
@@ -2129,7 +2405,7 @@ Loop:
                 && E_aml_S_stack[ E_aml_S_stack_n - 2 ].entity == E_aml_Z_stack_Z_entity_S_term_arg_finish_1
                 )
                     ret = 0;
-                result = E_aml_S_stack[ E_aml_S_stack_n - 1 ].result;
+                result = E_aml_S_stack[ E_aml_S_stack_n - 1 ].execution_context.result;
                 break;
           case E_aml_Z_stack_Z_entity_S_term_arg_finish_1:
                 if( E_aml_S_stack[ E_aml_S_stack_n - 1 ].match )
@@ -2142,13 +2418,13 @@ Loop:
                 break;
           case E_aml_Z_stack_Z_entity_S_expression:
                 ret = E_aml_I_expression();
-                result = E_aml_S_stack[ E_aml_S_stack_n - 1 ].result;
+                result = E_aml_S_stack[ E_aml_S_stack_n - 1 ].execution_context.result;
                 break;
           case E_aml_Z_stack_Z_entity_S_supername:
                 ret = E_aml_I_supername();
-                result = E_aml_S_stack[ E_aml_S_stack_n - 1 ].result;
+                result = E_aml_S_stack[ E_aml_S_stack_n - 1 ].execution_context.result;
                 break;
-          case E_aml_Z_stack_Z_entity_S_data_object_buffer_finish:
+          case E_aml_Z_stack_Z_entity_S_buffer_finish:
                 E_aml_S_stack_data = E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end; //TODO Dopóki nie interpretuję wartości z programu.
                 //if( E_aml_S_stack_data + result.n > E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end )
                 //{   ret = ~0 - 1;
@@ -2226,7 +2502,7 @@ Loop:
                             break;
                       case 2: // connect field
                             E_font_I_print( ", connect field" );
-                            goto Error; //NDFN
+                            ret = ~0; //NDFN
                             break;
                       case 3: // extended access field
                             if( E_aml_S_stack_data + 3 > E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end )
@@ -2408,20 +2684,24 @@ Loop:
                 break;
           case E_aml_Z_stack_Z_entity_S_power_res_finish:
                 //TODO Dodać ‘power res’ do drzewa zinterpretowanej przestrzeni ACPI.
-                E_aml_S_stack[ E_aml_S_stack_n - 1 ].entity = E_aml_Z_stack_Z_entity_S_restore_current_path;
-                goto Loop;
+                if( !~E_aml_Q_current_path_I_pop())
+                    goto Error;
+                break;
           case E_aml_Z_stack_Z_entity_S_thermal_zone_finish:
                 //TODO Dodać ‘thermal zone’ do drzewa zinterpretowanej przestrzeni ACPI.
-                E_aml_S_stack[ E_aml_S_stack_n - 1 ].entity = E_aml_Z_stack_Z_entity_S_restore_current_path;
-                goto Loop;
+                if( !~E_aml_Q_current_path_I_pop())
+                    goto Error;
+                break;
           case E_aml_Z_stack_Z_entity_S_device_finish:
                 //TODO Dodać ‘device’ do drzewa zinterpretowanej przestrzeni ACPI.
-                E_aml_S_stack[ E_aml_S_stack_n - 1 ].entity = E_aml_Z_stack_Z_entity_S_restore_current_path;
-                goto Loop;
+                if( !~E_aml_Q_current_path_I_pop())
+                    goto Error;
+                break;
           case E_aml_Z_stack_Z_entity_S_processor_finish:
                 //TODO Dodać ‘processor’ do drzewa zinterpretowanej przestrzeni ACPI.
-                E_aml_S_stack[ E_aml_S_stack_n - 1 ].entity = E_aml_Z_stack_Z_entity_S_restore_current_path;
-                goto Loop;
+                if( !~E_aml_Q_current_path_I_pop())
+                    goto Error;
+                break;
           case E_aml_Z_stack_Z_entity_S_if_op_finish_1:
                 if( E_aml_S_stack_data != E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end )
                 {   E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_if_op_finish_2, E_aml_Z_stack_Z_entity_S_term );
@@ -2468,8 +2748,12 @@ Loop:
           case E_aml_Z_stack_Z_entity_S_while_op_finish_2:
                 //TODO Dodać ‘while loop’ do drzewa zinterpretowanej przestrzeni ACPI.
                 break;
-          case E_aml_Z_stack_Z_entity_S_mutex_finish:
+          case E_aml_Z_stack_Z_entity_S_acquire_finish:
                 //TODO Dodać ‘mutex’ do drzewa zinterpretowanej przestrzeni ACPI.
+                if( E_aml_S_stack_data + 2 > E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end )
+                {   ret = ~0 - 1;
+                    break;
+                }
                 E_aml_S_stack_data += 2;
                 break;
           case E_aml_Z_stack_Z_entity_S_add_op_finish_1:
@@ -2503,10 +2787,6 @@ Loop:
                 E_aml_S_stack_data++;
           case E_aml_Z_stack_Z_entity_S_and_op_finish_3:
                 //TODO Umieścić operację ‘and’ w drzewie zinterpretowanej przestrzeni ACPI.
-                break;
-          case E_aml_Z_stack_Z_entity_S_buffer_finish:
-                //TODO Umieścić operację ‘and’ w drzewie zinterpretowanej przestrzeni ACPI.
-                E_aml_S_stack_data += result.n;
                 break;
           case E_aml_Z_stack_Z_entity_S_concat_finish_1:
                 E_aml_I_delegate( E_aml_Z_stack_Z_entity_S_concat_finish_2, E_aml_Z_stack_Z_entity_S_term_arg );
@@ -3054,47 +3334,26 @@ Loop:
           case E_aml_Z_stack_Z_entity_S_load_finish:
                 //TODO Umieścić operację ‘load’ w drzewie zinterpretowanej przestrzeni ACPI.
                 break;
+          case E_aml_Z_stack_Z_entity_S_procedure_finish:
+                E_aml_Q_current_path_P_precompilation(no);
+                if( !~E_aml_Q_current_path_I_pop())
+                    goto Error;
+                break;
+          case E_aml_Z_stack_Z_entity_S_procedure_invocation_finish:
+                if( !~E_aml_Q_current_path_I_pop())
+                    goto Error;
+                if( E_aml_S_stack[ E_aml_S_stack_n - 1 ].execution_context.procedure_osi )
+                    result.n = no; //TODO W miarę dodawania obsługi funkcjonalności ACPI umieszczać sprawdzenia.
+                else
+                    result = E_aml_S_stack[ E_aml_S_stack_n - 1 ].execution_context.result;
+                break;
         }
         if( !~ret )
             goto Error;
         if( ret == ~0 - 1 )
-        {   if( E_aml_S_stack_n >= 2
-            && E_aml_S_current_path_n
-            )
-            {   N current_path_i = E_aml_S_current_path_n - 1;
-                for_n_rev( i, E_aml_S_stack_n ) // Wyjście do nadrzędnego bloku metody po błędzie składni.
-                {   if(( E_aml_S_stack[i].entity == E_aml_Z_stack_Z_entity_S_restore_current_path
-                      || E_aml_S_stack[i].entity == E_aml_Z_stack_Z_entity_S_power_res_finish
-                      || E_aml_S_stack[i].entity == E_aml_Z_stack_Z_entity_S_thermal_zone_finish
-                    )
-                    && ~E_aml_S_object_R( E_aml_S_current_path[ current_path_i-- ] )
-                    )
-                    {   for_n( j, E_aml_S_current_path_n - ( current_path_i + 1 ))
-                            W( E_aml_S_current_path[ current_path_i + 1 + j ].s );
-                        if( !E_mem_Q_blk_I_remove( &E_aml_S_current_path, current_path_i + 1, E_aml_S_current_path_n - ( current_path_i + 1 )))
-                            goto Error;
-                        E_aml_S_current_path_n -= E_aml_S_current_path_n - ( current_path_i + 1 );
-                        if( E_aml_S_current_path_n )
-                        {   Pc name_ = M( E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].n * 4 + 1 );
-                            E_text_Z_s_P_copy_sl_0( name_, E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].s, E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].n * 4 );
-                            E_font_I_print( "\n,go over to=" ); E_font_I_print( name_ ); E_font_I_print_hex(i);
-                            W( name_ );
-                        }else
-                        {   E_font_I_print( "\n,go over to=\\" ); E_font_I_print_hex(i);
-                        }
-                        if( !~E_aml_S_stack[ i - 1 ].n ) // Sprawdzanie dla listy wyliczanej w nieskończoność, czy interpretacja zakończyła się.
-                            if( !--i )
-                                break;
-                        E_aml_S_stack_data = E_aml_S_stack[i].data_end;
-                        if( !E_mem_Q_blk_I_remove( &E_aml_S_stack, i, E_aml_S_stack_n - i ))
-                            goto Error;
-                        E_aml_S_stack_n = i;
-                        ret = 0;
-                        goto Loop;
-                    }
-                    if( !~current_path_i )
-                        break;
-                }
+        {   if( !E_aml_M_res1() )
+            {   ret = 0;
+                goto Loop;
             }
             goto Error;
         }
@@ -3104,7 +3363,7 @@ Loop:
         //{   E_font_I_print( "\n-entity=" ); E_font_I_print_hex( E_aml_S_stack[j].entity );
             //E_font_I_print( ",n=" ); E_font_I_print_hex( E_aml_S_stack[j].n );
             //E_font_I_print( ",data_end=" ); E_font_I_print_hex( (N)E_aml_S_stack[j].data_end );
-            //E_font_I_print( ",result=" ); E_font_I_print_hex( E_aml_S_stack[j].result.n );
+            //E_font_I_print( ",result=" ); E_font_I_print_hex( E_aml_S_stack[j].execution_context.result.n );
         //}
         // Usunięcie wykananego “entity” po ‘push’.
         if( stack_n_last != E_aml_S_stack_n
@@ -3119,7 +3378,7 @@ Loop:
         //{   E_font_I_print( "\n-entity=" ); E_font_I_print_hex( E_aml_S_stack[j].entity );
             //E_font_I_print( ",n=" ); E_font_I_print_hex( E_aml_S_stack[j].n );
             //E_font_I_print( ",data_end=" ); E_font_I_print_hex( (N)E_aml_S_stack[j].data_end );
-            //E_font_I_print( ",result=" ); E_font_I_print_hex( E_aml_S_stack[j].result.n );
+            //E_font_I_print( ",result=" ); E_font_I_print_hex( E_aml_S_stack[j].execution_context.result.n );
         //}
         if( E_aml_S_stack_n >= 2 )
         {   if( ~E_aml_S_stack[ E_aml_S_stack_n - 1 ].n // Czy bieżący element nie jest listą wyliczaną w nieskończoność.
@@ -3127,43 +3386,8 @@ Loop:
             && E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end != E_aml_S_stack[ E_aml_S_stack_n - 2 ].data_end // Czy było ustawione “pkg_length”.
             && E_aml_S_stack_data != E_aml_S_stack[ E_aml_S_stack_n - 1 ].data_end 
             ) // Sprawdzanie dla konkretnych “n”, czy interpretacja zakończyła się na końcu wcześniej odczytanego rozmiaru “pkg_length”.
-            {   if( E_aml_S_stack_n >= 2
-                && E_aml_S_current_path_n
-                )
-                {   N current_path_i = E_aml_S_current_path_n - 1;
-                    for_n_rev( i, E_aml_S_stack_n ) // Wyjście do nadrzędnego bloku metody po błędzie składni.
-                    {   if(( E_aml_S_stack[i].entity == E_aml_Z_stack_Z_entity_S_restore_current_path
-                          || E_aml_S_stack[i].entity == E_aml_Z_stack_Z_entity_S_power_res_finish
-                          || E_aml_S_stack[i].entity == E_aml_Z_stack_Z_entity_S_thermal_zone_finish
-                        )
-                        && ~E_aml_S_object_R( E_aml_S_current_path[ current_path_i-- ] )
-                        )
-                        {   for_n( j, E_aml_S_current_path_n - ( current_path_i + 1 ))
-                                W( E_aml_S_current_path[ current_path_i + 1 + j ].s );
-                            if( !E_mem_Q_blk_I_remove( &E_aml_S_current_path, current_path_i + 1, E_aml_S_current_path_n - ( current_path_i + 1 )))
-                                goto Error;
-                            E_aml_S_current_path_n -= E_aml_S_current_path_n - ( current_path_i + 1 );
-                            if( E_aml_S_current_path_n )
-                            {   Pc name_ = M( E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].n * 4 + 1 );
-                                E_text_Z_s_P_copy_sl_0( name_, E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].s, E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].n * 4 );
-                                E_font_I_print( "\n,go over to=" ); E_font_I_print( name_ ); E_font_I_print_hex(i);
-                                W( name_ );
-                            }else
-                            {   E_font_I_print( "\n,go over to=\\" ); E_font_I_print_hex(i);
-                            }
-                            if( !~E_aml_S_stack[ i - 1 ].n ) // Sprawdzanie dla listy wyliczanej w nieskończoność, czy interpretacja zakończyła się.
-                                if( !--i )
-                                    break;
-                            E_aml_S_stack_data = E_aml_S_stack[i].data_end;
-                            if( !E_mem_Q_blk_I_remove( &E_aml_S_stack, i, E_aml_S_stack_n - i ))
-                                goto Error;
-                            E_aml_S_stack_n = i;
-                            goto Loop;
-                        }
-                        if( !~current_path_i )
-                            break;
-                    }
-                }
+            {   if( !E_aml_M_res1() )
+                    goto Loop;
                 goto Error;
             }
             if( !E_aml_S_stack[ E_aml_S_stack_n - 2 ].data_end ) // Czy poprzedni element na stosie jest nie zainicjowanym którymś “finish”.
@@ -3186,65 +3410,26 @@ Loop:
         //{   E_font_I_print( "\n-entity=" ); E_font_I_print_hex( E_aml_S_stack[j].entity );
             //E_font_I_print( ",n=" ); E_font_I_print_hex( E_aml_S_stack[j].n );
             //E_font_I_print( ",data_end=" ); E_font_I_print_hex( (N)E_aml_S_stack[j].data_end );
-            //E_font_I_print( ",result=" ); E_font_I_print_hex( E_aml_S_stack[j].result.n );
+            //E_font_I_print( ",result=" ); E_font_I_print_hex( E_aml_S_stack[j].execution_context.result.n );
         //}
         if( E_aml_S_stack[ E_aml_S_stack_n - 1 ].n > 1 )
         {   if( data == E_aml_S_stack_data ) // Czy kolejne “n” nic nie wykonują.
-            {   if( E_aml_S_stack_n >= 2
-                && E_aml_S_current_path_n
-                )
-                {   N current_path_i = E_aml_S_current_path_n - 1;
-                    for_n_rev( i, E_aml_S_stack_n ) // Wyjście do nadrzędnego bloku metody po błędzie składni.
-                    {   if(( E_aml_S_stack[i].entity == E_aml_Z_stack_Z_entity_S_restore_current_path
-                          || E_aml_S_stack[i].entity == E_aml_Z_stack_Z_entity_S_power_res_finish
-                          || E_aml_S_stack[i].entity == E_aml_Z_stack_Z_entity_S_thermal_zone_finish
-                        )
-                        && ~E_aml_S_object_R( E_aml_S_current_path[ current_path_i-- ] )
-                        )
-                        {   for_n( j, E_aml_S_current_path_n - ( current_path_i + 1 ))
-                                W( E_aml_S_current_path[ current_path_i + 1 + j ].s );
-                            if( !E_mem_Q_blk_I_remove( &E_aml_S_current_path, current_path_i + 1, E_aml_S_current_path_n - ( current_path_i + 1 )))
-                                goto Error;
-                            E_aml_S_current_path_n -= E_aml_S_current_path_n - ( current_path_i + 1 );
-                            if( E_aml_S_current_path_n )
-                            {   Pc name_ = M( E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].n * 4 + 1 );
-                                E_text_Z_s_P_copy_sl_0( name_, E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].s, E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].n * 4 );
-                                E_font_I_print( "\n,go over to=" ); E_font_I_print( name_ ); E_font_I_print_hex(i);
-                                W( name_ );
-                            }else
-                            {   E_font_I_print( "\n,go over to=\\" ); E_font_I_print_hex(i);
-                            }
-                            if( !~E_aml_S_stack[ i - 1 ].n ) // Sprawdzanie dla listy wyliczanej w nieskończoność, czy interpretacja zakończyła się.
-                                if( !--i )
-                                    break;
-                            E_aml_S_stack_data = E_aml_S_stack[i].data_end;
-                            if( !E_mem_Q_blk_I_remove( &E_aml_S_stack, i, E_aml_S_stack_n - i ))
-                                goto Error;
-                            E_aml_S_stack_n = i;
-                            ret = 0;
-                            goto Loop;
-                        }
-                        if( !~current_path_i )
-                            break;
-                    }
-                }
+            {   if( !E_aml_M_res1() )
+                    goto Loop;
                 goto Error;
-            }else
-                data = E_aml_S_stack_data;
+            }
+            data = E_aml_S_stack_data;
         }
     }
+    E_aml_Q_object_alias_W();
     W( E_aml_S_stack );
-    for_n( i, E_aml_S_current_path_n )
-        W( E_aml_S_current_path[i].s );
-    W( E_aml_S_current_path );
+    E_aml_Q_current_path_W();
     return 0;
 Error:
     E_aml_Q_object_W();
-    E_aml_Q_object_name_alias_W();
+    E_aml_Q_object_alias_W();
     W( E_aml_S_stack );
-    for_n_( i, E_aml_S_current_path_n )
-        W( E_aml_S_current_path[i].s );
-    W( E_aml_S_current_path );
+    E_aml_Q_current_path_W();
     E_font_I_print( "\nerror" );
     return ~0;
 }
