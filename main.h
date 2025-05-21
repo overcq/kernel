@@ -170,6 +170,7 @@ B E_text_Z_sl_T_eq_case( Pc, Pc, N );
 Pc E_text_Z_s0_R_end_0_le( Pc, N );
 B E_text_Z_s0_T_l_0_le( Pc, N );
 Pc E_text_Z_s_R_search_0( Pc, Pc );
+Pc E_text_Z_sl_R_search_0( Pc, N );
 Pc E_text_Z_s_R_search_c( Pc, Pc, C );
 Pc E_text_Z_s_R_search_c_( Pc s, C );
 Pc E_text_Z_s0_R_search_c( Pc, C );

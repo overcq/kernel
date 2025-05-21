@@ -364,6 +364,18 @@ E_text_Z_s_R_search_0( Pc s
 }
 _export
 Pc
+E_text_Z_sl_R_search_0( Pc s
+, N l
+){  while(l)
+    {   if( !*s )
+            break;
+        s++;
+        l--;
+    }
+    return s;
+}
+_export
+Pc
 E_text_Z_s_R_search_c( Pc s
 , Pc s_end
 , C c

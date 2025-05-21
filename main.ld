@@ -47,5 +47,5 @@ SECTIONS
       PROVIDE_HIDDEN (__rela_iplt_end = .);
     }
   .relr.dyn : { *(.relr.dyn) }
-  .note.gnu-property : { *(.note.gnu-property) }
+  .note.gnu.property : { *(.note.gnu-property) }
 }

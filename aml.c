@@ -7,7 +7,10 @@
 * ©overcq                on ‟Gentoo Linux 23.0” “x86_64”             2025‒5‒13 I
 *******************************************************************************/
 //TODO Przygotować maszynę stanów do interpretacji programów zawartych w AML.
+//TODO Sprawdzać, czy ‘else’ jest poprawnie po ‘if’.
 //TODO Pamięć przydzielana dla “result” nie jest zwalniana.
+//TODO Czy da się nie obliczać drugiego argumentu dla instrukcji takich jak “LOr”, jeśli nie potrzeba?
+//TODO Czy usunąć ogólny typ obiektu “value” i zamiast unii przydzielać pamieć na konkretne: “string”, “buffer”?
 #include "main.h"
 //==============================================================================
 struct E_aml_Z_pathname
@@ -18,14 +21,20 @@ _internal struct E_aml_Z_pathname *E_aml_S_current_path;
 _internal N E_aml_S_current_path_n;
 _internal N E_aml_Q_current_path_S_precompilation_i;
 //------------------------------------------------------------------------------
+struct E_aml_Z_buffer
+{ Pc p;
+  N n;
+};
 enum E_aml_Z_value_Z_type
 { E_aml_Z_value_Z_type_S_number
 , E_aml_Z_value_Z_type_S_string
+, E_aml_Z_value_Z_type_S_buffer
 , E_aml_Z_value_Z_type_S_pathname
 };
 struct E_aml_Z_value
 { union
-  { struct E_aml_Z_pathname pathname;
+  { struct E_aml_Z_buffer buffer;
+    struct E_aml_Z_pathname pathname;
     P p;
     N n;
   }v;
@@ -45,24 +54,33 @@ N E_aml_S_procedure_invocation_stack_n;
 struct E_aml_Z_object_data_Z_procedure
 { N8 arg_n;
 };
-struct E_aml_Z_object_data_Z_object
+struct E_aml_Z_object_data_Z_value
 { struct E_aml_Z_value value;
 };
 enum E_aml_S_object_Z_type
-{ E_aml_S_object_Z_type_S_procedure
-, E_aml_S_object_Z_type_S_alias
-, E_aml_S_object_Z_type_S_object
+{ E_aml_S_object_Z_type_S_uninitialized
+, E_aml_S_object_Z_type_S_number
+, E_aml_S_object_Z_type_S_string
+, E_aml_S_object_Z_type_S_buffer
+, E_aml_S_object_Z_type_S_package
+, E_aml_S_object_Z_type_S_field_unit
 , E_aml_S_object_Z_type_S_device
+, E_aml_S_object_Z_type_S_event
+, E_aml_S_object_Z_type_S_procedure
+, E_aml_S_object_Z_type_S_mutex
+, E_aml_S_object_Z_type_S_op_region
 , E_aml_S_object_Z_type_S_power_res
+, E_aml_S_object_Z_type_S_reserved_1
 , E_aml_S_object_Z_type_S_thermal_zone
+, E_aml_S_object_Z_type_S_buffer_field
+, E_aml_S_object_Z_type_S_reserved_2
+, E_aml_S_object_Z_type_S_debug
+, E_aml_S_object_Z_type_S_alias
+//TODO Poniżesze typy nie są obiektami?
 , E_aml_S_object_Z_type_S_processor
 , E_aml_S_object_Z_type_S_bank_field
-, E_aml_S_object_Z_type_S_mutex
 , E_aml_S_object_Z_type_S_data_table_region
-, E_aml_S_object_Z_type_S_op_region
-, E_aml_S_object_Z_type_S_field_op
 , E_aml_S_object_Z_type_S_index_field
-, E_aml_S_object_Z_type_S_event
 };
 _internal
 struct
@@ -170,12 +188,6 @@ enum E_aml_Z_parse_stack_Z_entity
 , E_aml_Z_parse_stack_Z_entity_S_lequal_finish_2
 , E_aml_Z_parse_stack_Z_entity_S_lgreater_finish_1
 , E_aml_Z_parse_stack_Z_entity_S_lgreater_finish_2
-, E_aml_Z_parse_stack_Z_entity_S_lgreater_equal_finish_1
-, E_aml_Z_parse_stack_Z_entity_S_lgreater_equal_finish_2
-, E_aml_Z_parse_stack_Z_entity_S_lless_equal_finish_1
-, E_aml_Z_parse_stack_Z_entity_S_lless_equal_finish_2
-, E_aml_Z_parse_stack_Z_entity_S_lnot_equal_finish_1
-, E_aml_Z_parse_stack_Z_entity_S_lnot_equal_finish_2
 , E_aml_Z_parse_stack_Z_entity_S_lnot_finish
 , E_aml_Z_parse_stack_Z_entity_S_lless_finish_1
 , E_aml_Z_parse_stack_Z_entity_S_lless_finish_2
@@ -210,6 +222,7 @@ enum E_aml_Z_parse_stack_Z_entity
 , E_aml_Z_parse_stack_Z_entity_S_object_type_finish
 , E_aml_Z_parse_stack_Z_entity_S_or_finish_1
 , E_aml_Z_parse_stack_Z_entity_S_or_finish_2
+, E_aml_Z_parse_stack_Z_entity_S_or_finish_3
 , E_aml_Z_parse_stack_Z_entity_S_refof_finish
 , E_aml_Z_parse_stack_Z_entity_S_shift_left_finish_1
 , E_aml_Z_parse_stack_Z_entity_S_shift_left_finish_2
@@ -251,6 +264,8 @@ struct
   struct
   { N procedure;
     struct E_aml_Z_value result;
+    P continue_, break_;
+    N tmp;
     B procedure_osi;
   }execution_context;
   enum E_aml_Z_parse_stack_Z_entity entity;
@@ -258,6 +273,124 @@ struct
 } *E_aml_S_parse_stack;
 _internal N E_aml_S_parse_stack_n;
 _internal Pc E_aml_S_parse_data;
+//==============================================================================
+_internal
+void
+E_aml_Q_value_W( struct E_aml_Z_value *value
+){  switch( value->type )
+    { case E_aml_Z_value_Z_type_S_string:
+            W( value->v.p );
+            break;
+      case E_aml_Z_value_Z_type_S_pathname:
+            W( value->v.pathname.s );
+            break;
+      case E_aml_Z_value_Z_type_S_buffer:
+            W( value->v.buffer.p );
+            break;
+    }
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_internal
+S
+E_aml_Q_value_N_convert( enum E_aml_Z_value_Z_type type
+, struct E_aml_Z_value *value
+){  if( value->type == type )
+        return 0;
+    switch( value->type )
+    { case E_aml_Z_value_Z_type_S_number:
+            switch(type)
+            { case E_aml_Z_value_Z_type_S_string:
+                {   N l = E_text_Z_n_N_s_G( value->v.n, sizeof( value->v.n ), 10 );
+                    Pc s = M( l + 1 );
+                    if( !s )
+                        return ~0;
+                    s[l] = '\0';
+                    E_text_Z_n_N_s( s + l, value->v.n, sizeof( value->v.n ), 10 );
+                    value->v.p = s;
+                    value->type = type;
+                    return 0;
+                }
+              case E_aml_Z_value_Z_type_S_buffer:
+                {   N l = sizeof( value->v.n );
+                    P p = M(l);
+                    if( !p )
+                        return ~0;
+                    *( N * )p = value->v.n;
+                    value->v.buffer.p = p;
+                    value->v.buffer.n = l;
+                    value->type = type;
+                    return 0;
+                }
+            }
+            break;
+      case E_aml_Z_value_Z_type_S_string:
+            switch(type)
+            { case E_aml_Z_value_Z_type_S_number:
+                {   Pc s;
+                    N n = E_text_Z_s0_N_n( value->v.p, &s, 10 );
+                    if( *s )
+                    {   if( s == value->v.p + 1
+                        && *( s - 1 ) == '0'
+                        && ( *s == 'x'
+                          || *s == 'X'
+                        ))
+                        {   n = E_text_Z_s0_N_n( s + 1, &s, 16 );
+                            if( *s )
+                                return ~0 - 1;
+                        }else
+                            return ~0 - 1;
+                    }
+                    W( value->v.p );
+                    value->v.n = n;
+                    value->type = type;
+                    return 0;
+                }
+              case E_aml_Z_value_Z_type_S_buffer:
+                {   P p = value->v.p;
+                    N l = E_text_Z_s0_R_l( value->v.p );
+                    if( !E_mem_Q_blk_I_remove( &p, l, 1 ))
+                        return ~0;
+                    value->v.buffer.p = p;
+                    value->v.buffer.n = l;
+                    value->type = type;
+                    return 0;
+                }
+            }
+            break;
+      case E_aml_Z_value_Z_type_S_buffer:
+            switch(type)
+            { case E_aml_Z_value_Z_type_S_number:
+                {   if( value->v.buffer.n < sizeof( value->v.n ))
+                    {   N n = 0;
+                        for_n( i, sizeof( value->v.n ))
+                            n |= value->v.buffer.p[i];
+                        value->v.n = n;
+                    }else
+                        value->v.n = *( N * )value->v.buffer.p;
+                    W( value->v.buffer.p );
+                    return 0;
+                }
+              case E_aml_Z_value_Z_type_S_string:
+                {   Pc p = value->v.buffer.p;
+                    N l = value->v.buffer.n;
+                    Pc s = E_text_Z_sl_R_search_0( p, l );
+                    if( s != p + l )
+                    {   if( !E_mem_Q_blk_I_remove( &p, s + 1 - p, l - ( s + 1 - p )))
+                            return ~0;
+                    }else
+                    {   if( !E_mem_Q_blk_I_append( &p, 1 ))
+                            return ~0;
+                        p[l] = '\0';
+                    }
+                    value->v.p = p;
+                    value->type = type;
+                    return 0;
+                }
+            }
+            break;
+    }
+    return ~0 - 1;
+}
 //==============================================================================
 _internal
 N
@@ -332,7 +465,7 @@ E_aml_Q_object_M( void
     }
     E_aml_S_object[0].name.s = name;
     E_aml_S_object[0].name.n = 1;
-    E_aml_S_object[0].type = E_aml_S_object_Z_type_S_object;
+    E_aml_S_object[0].type = E_aml_S_object_Z_type_S_uninitialized;
     E_aml_S_object[0].data = 0;
     name = E_text_Z_sl_M_duplicate( "_SB_", 4 );
     if( !name )
@@ -342,7 +475,7 @@ E_aml_Q_object_M( void
     }
     E_aml_S_object[1].name.s = name;
     E_aml_S_object[1].name.n = 1;
-    E_aml_S_object[1].type = E_aml_S_object_Z_type_S_object;
+    E_aml_S_object[1].type = E_aml_S_object_Z_type_S_uninitialized;
     E_aml_S_object[1].data = 0;
     return 0;
 }
@@ -715,6 +848,7 @@ E_aml_R_pkg_length( void
     E_aml_S_parse_stack[ E_aml_S_parse_stack_n ].entity = entity_; \
     E_aml_S_parse_stack[ E_aml_S_parse_stack_n ].n = 1; \
     E_aml_S_parse_stack[ E_aml_S_parse_stack_n ].data_end = data_end; \
+    E_aml_S_parse_stack[ E_aml_S_parse_stack_n ].execution_context.continue_ = E_aml_S_parse_stack[ E_aml_S_parse_stack_n ].execution_context.break_ = 0; \
     E_aml_S_parse_stack_n++; \
 }
 #define E_aml_I_delegate_pkg(  finish, entity_ ) \
@@ -727,6 +861,7 @@ E_aml_R_pkg_length( void
     E_aml_S_parse_stack[ E_aml_S_parse_stack_n ].entity = entity_; \
     E_aml_S_parse_stack[ E_aml_S_parse_stack_n ].n = 1; \
     E_aml_S_parse_stack[ E_aml_S_parse_stack_n ].data_end = pkg_end; \
+    E_aml_S_parse_stack[ E_aml_S_parse_stack_n ].execution_context.continue_ = E_aml_S_parse_stack[ E_aml_S_parse_stack_n ].execution_context.break_ = 0; \
     E_aml_S_parse_stack_n++; \
 }
 _internal
@@ -965,11 +1100,27 @@ E_aml_I_term( void
             E_font_I_print( ",break" );
             break;
       case 0xcc: // breakpoint
-            E_font_I_print( ",breakpoint" );
+        {   E_font_I_print( ",breakpoint" );
+            for_n_rev( i, E_aml_S_parse_stack_n )
+                if( E_aml_S_parse_stack[i].execution_context.break_ )
+                {   E_aml_S_parse_data = E_aml_S_parse_stack[i].execution_context.break_;
+                    break;
+                }
+            if( !~i )
+                return ~0 - 1;
             break;
+        }
       case 0x9f: // continue
-            E_font_I_print( ",continue" );
+        {   E_font_I_print( ",continue" );
+            for_n_rev( i, E_aml_S_parse_stack_n )
+                if( E_aml_S_parse_stack[i].execution_context.continue_ )
+                {   E_aml_S_parse_data = E_aml_S_parse_stack[i].execution_context.continue_;
+                    break;
+                }
+            if( !~i )
+                return ~0 - 1;
             break;
+        }
       case 0xa0: // if
         {   Pc data_start = E_aml_S_parse_data;
             N pkg_length = E_aml_R_pkg_length();
@@ -1016,8 +1167,8 @@ E_aml_I_term( void
             if( pkg_end > E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
                 return ~0 - 1;
             E_font_I_print( ",while" );
-            if( E_aml_S_parse_data != pkg_end )
-                E_aml_I_delegate_pkg( E_aml_Z_parse_stack_Z_entity_S_while_op_finish_1, E_aml_Z_parse_stack_Z_entity_S_term_arg );
+            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.continue_ = E_aml_S_parse_data;
+            E_aml_I_delegate_pkg( E_aml_Z_parse_stack_Z_entity_S_while_op_finish_1, E_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
         }
       default:
@@ -1087,7 +1238,7 @@ E_aml_I_object( void
             E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
             E_font_I_print( "\n,object=" ); E_font_I_print( name_ );
             W( name_ );
-            N object_i = E_aml_S_object_I_add( E_aml_S_object_Z_type_S_object, ( struct E_aml_Z_pathname ){ name, n });
+            N object_i = E_aml_S_object_I_add( E_aml_S_object_Z_type_S_uninitialized, ( struct E_aml_Z_pathname ){ name, n });
             if( (S)object_i < 0 )
             {   W(name);
                 return object_i;
@@ -1121,7 +1272,7 @@ E_aml_I_object( void
             W( name_ );
             N object_i = E_aml_S_object_R(( struct E_aml_Z_pathname ){ name, n });
             if( !~object_i
-            || !( E_aml_S_object[ object_i ].type == E_aml_S_object_Z_type_S_object 
+            || !( E_aml_S_object[ object_i ].type == E_aml_S_object_Z_type_S_uninitialized
               || E_aml_S_object[ object_i ].type == E_aml_S_object_Z_type_S_device
               || E_aml_S_object[ object_i ].type == E_aml_S_object_Z_type_S_power_res
               || E_aml_S_object[ object_i ].type == E_aml_S_object_Z_type_S_thermal_zone
@@ -1811,6 +1962,7 @@ E_aml_I_object( void
     E_aml_S_parse_stack[ E_aml_S_parse_stack_n ].entity = entity_; \
     E_aml_S_parse_stack[ E_aml_S_parse_stack_n ].n = 1; \
     E_aml_S_parse_stack[ E_aml_S_parse_stack_n ].data_end = data_end; \
+    E_aml_S_parse_stack[ E_aml_S_parse_stack_n ].execution_context.continue_ = E_aml_S_parse_stack[ E_aml_S_parse_stack_n ].execution_context.break_ = 0; \
     E_aml_S_parse_stack_n++; \
 }
 #define E_aml_I_delegate_pkg(  finish, entity_ ) \
@@ -1822,6 +1974,7 @@ E_aml_I_object( void
     E_aml_S_parse_stack[ E_aml_S_parse_stack_n ].entity = entity_; \
     E_aml_S_parse_stack[ E_aml_S_parse_stack_n ].n = 1; \
     E_aml_S_parse_stack[ E_aml_S_parse_stack_n ].data_end = pkg_end; \
+    E_aml_S_parse_stack[ E_aml_S_parse_stack_n ].execution_context.continue_ = E_aml_S_parse_stack[ E_aml_S_parse_stack_n ].execution_context.break_ = 0; \
     E_aml_S_parse_stack_n++; \
 }
 _internal
@@ -1939,27 +2092,8 @@ E_aml_I_expression( void
             E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_lgreater_finish_1, E_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       case 0x92: // lnot
-            if( E_aml_S_parse_data == E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
-                return ~0 - 1;
-            switch( (N8)*E_aml_S_parse_data++ )
-            { case 0x95: // lgreater equal
-                    E_font_I_print( ",lgreater equal" );
-                    E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_lgreater_equal_finish_1, E_aml_Z_parse_stack_Z_entity_S_term_arg );
-                    break;
-              case 0x94: // lless equal
-                    E_font_I_print( ",lless equal" );
-                    E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_lless_equal_finish_1, E_aml_Z_parse_stack_Z_entity_S_term_arg );
-                    break;
-              case 0x93: // lnot equal
-                    E_font_I_print( ",lnot equal" );
-                    E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_lnot_equal_finish_1, E_aml_Z_parse_stack_Z_entity_S_term_arg );
-                    break;
-              default: // lnot
-                    E_font_I_print( ",lnot" );
-                    E_aml_S_parse_data--;
-                    E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_lnot_finish, E_aml_Z_parse_stack_Z_entity_S_term_arg );
-                    break;
-            }
+            E_font_I_print( ",lnot" );
+            E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_lnot_finish, E_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       case 0x95: // lless
             E_font_I_print( ",lless" );
@@ -2229,7 +2363,7 @@ E_aml_I_supername( void
                     return ~0 - 1;
                 N arg_i = (N8)*( E_aml_S_parse_data - 1 ) - 0x68;
                 if( arg_i >= E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].arg_n
-                //|| E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].arg[ arg_i ].type != E_aml_Z_value_Z_type_S_pathname
+                || E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].arg[ arg_i ].type != E_aml_Z_value_Z_type_S_pathname
                 )
                     return ~0 - 1;
                 E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].arg[ arg_i ];
@@ -2251,10 +2385,10 @@ E_aml_I_supername( void
             {   if( !E_aml_S_procedure_invocation_stack_n )
                     return ~0 - 1;
                 N local_i = (N8)*( E_aml_S_parse_data - 1 ) - 0x60;
-                //if( !E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].local_valid[ local_i ]
-                //|| E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].local[ local_i ].type != E_aml_Z_value_Z_type_S_pathname
-                //)
-                    //return ~0 - 1;
+                if( !E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].local_valid[ local_i ]
+                || E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].local[ local_i ].type != E_aml_Z_value_Z_type_S_pathname
+                )
+                    return ~0 - 1;
                 E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].local[ local_i ];
             }
             break;
@@ -2286,12 +2420,30 @@ E_aml_I_supername( void
     Pc data_end = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end; \
     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].entity = finish; \
     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].n = 0; \
-    E_aml_S_parse_stack[ E_aml_S_parse_stack_n ].data_end = 0; \
+    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end = 0; \
     E_aml_S_parse_stack[ E_aml_S_parse_stack_n ].entity = entity_; \
     E_aml_S_parse_stack[ E_aml_S_parse_stack_n ].n = 1; \
     E_aml_S_parse_stack[ E_aml_S_parse_stack_n ].data_end = data_end; \
+    E_aml_S_parse_stack[ E_aml_S_parse_stack_n ].execution_context.continue_ = E_aml_S_parse_stack[ E_aml_S_parse_stack_n ].execution_context.break_ = 0; \
     E_aml_S_parse_stack_n++; \
     stack_n_last = E_aml_S_parse_stack_n; \
+}
+_internal
+N
+E_aml_M_clear_object( struct E_aml_Z_object_data_Z_value **data
+){  N object_i = E_aml_S_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.pathname );
+    if( !~object_i )
+        return ~0;
+    if( E_aml_S_object[ E_aml_S_object_n - 1 ].data )
+    {   *data = E_aml_S_object[ E_aml_S_object_n - 1 ].data;
+        E_aml_Q_value_W( &(*data)->value );
+    }else
+    {   M_( *data );
+        if( !*data )
+            return ~0;
+        E_aml_S_object[ E_aml_S_object_n - 1 ].data = *data;
+    }
+    return 0;
 }
 _internal
 N
@@ -2450,10 +2602,10 @@ Loop:
                                 break;
                             }
                             N local_i = (N8)*( E_aml_S_parse_data - 1 ) - 0x60;
-                            //if( !E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].local_valid[ local_i ] )
-                            //{   ret = ~0 - 1;
-                                //break;
-                            //}
+                            if( !E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].local_valid[ local_i ] )
+                            {   ret = ~0 - 1;
+                                break;
+                            }
                             E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].local[ local_i ];
                         }
                         break;
@@ -2500,13 +2652,12 @@ Loop:
                 ret = E_aml_I_supername();
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_buffer_finish:
-                E_aml_S_parse_data = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end; //TODO Dopóki nie interpretuję wartości z programu.
-                //if( E_aml_S_parse_data + E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.n > E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
-                //{   ret = ~0 - 1;
-                    //break;
-                //}
+                if( E_aml_S_parse_data + E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.n > E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
+                {   ret = ~0 - 1;
+                    break;
+                }
                 //TODO Dodać ‘buffer’ do drzewa zinterpretowanej przestrzeni ACPI.
-                //E_aml_S_parse_data += E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.n;
+                E_aml_S_parse_data += E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.n;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_package:
                 if( E_aml_S_parse_data == E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end ) // Na przypadek startu z “n == 0”.
@@ -2779,8 +2930,17 @@ Loop:
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_if_op_finish_1:
                 if( E_aml_S_parse_data != E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
-                {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_if_op_finish_2, E_aml_Z_parse_stack_Z_entity_S_term );
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].n = ~0;
+                {   if( E_aml_Q_current_path_S_precompilation_i )
+                    {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_if_op_finish_2, E_aml_Z_parse_stack_Z_entity_S_term );
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].n = ~0;
+                    }else
+                    {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
+                            goto Error;
+                        if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.n )
+                        {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_if_op_finish_2, E_aml_Z_parse_stack_Z_entity_S_term );
+                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].n = ~0;
+                        }
+                    }
                 }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_if_op_finish_2:
@@ -2803,7 +2963,7 @@ Loop:
                 //TODO ‘Zresetować’ ‘event’ w drzewie zinterpretowanej przestrzeni ACPI.
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_return_finish:
-                //TODO Wykonać ‘return’ w drzewie zinterpretowanej przestrzeni ACPI.
+                E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_signal_finish:
                 //TODO Sygnalizować ‘event’ w drzewie zinterpretowanej przestrzeni ACPI.
@@ -2816,12 +2976,27 @@ Loop:
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_while_op_finish_1:
                 if( E_aml_S_parse_data != E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
-                {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_while_op_finish_2, E_aml_Z_parse_stack_Z_entity_S_term );
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].n = ~0;
+                {   if( E_aml_Q_current_path_S_precompilation_i )
+                    {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_while_op_finish_2, E_aml_Z_parse_stack_Z_entity_S_term );
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].n = ~0;
+                    }else
+                    {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
+                            goto Error;
+                        if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.n )
+                        {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.break_ = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end;
+                            E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_while_op_finish_2, E_aml_Z_parse_stack_Z_entity_S_term );
+                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].n = ~0;
+                        }
+                    }
                 }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_while_op_finish_2:
-                //TODO Dodać ‘while loop’ do drzewa zinterpretowanej przestrzeni ACPI.
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   E_aml_S_parse_data = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.continue_;
+                    E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_while_op_finish_1, E_aml_Z_parse_stack_Z_entity_S_term_arg );
+                }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_acquire_finish:
                 //TODO Dodać ‘mutex’ do drzewa zinterpretowanej przestrzeni ACPI.
@@ -2832,45 +3007,52 @@ Loop:
                 E_aml_S_parse_data += 2;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_add_op_finish_1:
-                //if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
-                //{   ret = ~0 - 1;
-                    //break;
-                //}
-                E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
+                        goto Error;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_add_op_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_add_op_finish_2:
-                if( E_aml_S_parse_data == E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end
-                //|| E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number
-                )
+                if( E_aml_S_parse_data == E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
                 {   ret = ~0 - 1;
                     break;
                 }
-                E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n += E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.n;
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
+                        goto Error;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n += E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.n;
+                }
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_add_op_finish_3, E_aml_Z_parse_stack_Z_entity_S_supername );
                     break;
                 }
                 E_aml_S_parse_data++;
+                break;
           case E_aml_Z_parse_stack_Z_entity_S_add_op_finish_3:
-                //N object_i = E_aml_S_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.pathname );
-                //if( !~object_i )
-                //{   ret = ~0 - 1;
-                    //break;
-                //}
-                //struct E_aml_Z_object_data_Z_object *data;
-                //if( E_aml_S_object[ E_aml_S_object_n - 1 ].data )
-                    //data = E_aml_S_object[ E_aml_S_object_n - 1 ].data;
-                //else
-                //{   M_(data);
-                    //if( !data )
-                        //goto Error;
-                    //E_aml_S_object[ E_aml_S_object_n - 1 ].data = data;
-                //}
-                //data->value.type = E_aml_Z_value_Z_type_S_number;
-                //data->value.v.n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.n;
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   struct E_aml_Z_object_data_Z_value *data;
+                    if( !~E_aml_M_clear_object( &data ))
+                        goto Error;
+                    data->value.type = E_aml_Z_value_Z_type_S_number;
+                    data->value.v.n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n;
+                }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_and_op_finish_1:
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
+                        goto Error;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_and_op_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_and_op_finish_2:
@@ -2878,13 +3060,29 @@ Loop:
                 {   ret = ~0 - 1;
                     break;
                 }
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
+                        goto Error;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n &= E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.n;
+                }
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_and_op_finish_3, E_aml_Z_parse_stack_Z_entity_S_supername );
                     break;
                 }
                 E_aml_S_parse_data++;
+                break;
           case E_aml_Z_parse_stack_Z_entity_S_and_op_finish_3:
-                //TODO Umieścić operację ‘and’ w drzewie zinterpretowanej przestrzeni ACPI.
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   struct E_aml_Z_object_data_Z_value *data;
+                    if( !~E_aml_M_clear_object( &data ))
+                        goto Error;
+                    data->value.type = E_aml_Z_value_Z_type_S_number;
+                    data->value.v.n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n;
+                }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_concat_finish_1:
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_concat_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
@@ -2899,6 +3097,7 @@ Loop:
                     break;
                 }
                 E_aml_S_parse_data++;
+                break;
           case E_aml_Z_parse_stack_Z_entity_S_concat_finish_3:
                 //TODO Umieścić operację ‘concat’ w drzewie zinterpretowanej przestrzeni ACPI.
                 break;
@@ -2915,6 +3114,7 @@ Loop:
                     break;
                 }
                 E_aml_S_parse_data++;
+                break;
           case E_aml_Z_parse_stack_Z_entity_S_concat_res_finish_3:
                 //TODO Umieścić operację ‘concat res’ w drzewie zinterpretowanej przestrzeni ACPI.
                 break;
@@ -2928,8 +3128,9 @@ Loop:
                     break;
                 }
                 E_aml_S_parse_data++;
+                break;
           case E_aml_Z_parse_stack_Z_entity_S_cond_refof_finish_2:
-                //TODO Umieścić operację ‘concat refof’ w drzewie zinterpretowanej przestrzeni ACPI.
+                //TODO Umieścić operację ‘cond refof’ w drzewie zinterpretowanej przestrzeni ACPI.
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_copy_object_finish:
                 if( E_aml_S_parse_data == E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
@@ -2973,12 +3174,31 @@ Loop:
                 }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_decrement_finish:
-                //TODO Umieścić operację ‘decrement’ w drzewie zinterpretowanej przestrzeni ACPI.
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   N object_i = E_aml_S_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.pathname );
+                    if( !~object_i
+                    || !E_aml_S_object[ E_aml_S_object_n - 1 ].data
+                    )
+                        goto Error;
+                    struct E_aml_Z_object_data_Z_value *data = E_aml_S_object[ E_aml_S_object_n - 1 ].data;
+                    if( data->value.type != E_aml_Z_value_Z_type_S_number )
+                        goto Error;
+                    data->value.v.n--;
+                }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_derefof_finish:
                 //TODO Umieścić operację ‘derefof’ w drzewie zinterpretowanej przestrzeni ACPI.
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_divide_finish_1:
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
+                        goto Error;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_divide_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_divide_finish_2:
@@ -2986,12 +3206,32 @@ Loop:
                 {   ret = ~0 - 1;
                     break;
                 }
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number
+                    || !E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.n
+                    )
+                        goto Error;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.tmp = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n % E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.n;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n /= E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.n;
+                }
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_divide_finish_3, E_aml_Z_parse_stack_Z_entity_S_supername );
                     break;
                 }
                 E_aml_S_parse_data++;
+                break;
           case E_aml_Z_parse_stack_Z_entity_S_divide_finish_3:
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   struct E_aml_Z_object_data_Z_value *data;
+                    if( !~E_aml_M_clear_object( &data ))
+                        goto Error;
+                    data->value.type = E_aml_Z_value_Z_type_S_number;
+                    data->value.v.n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.tmp;
+                }
                 if( E_aml_S_parse_data == E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
                 {   ret = ~0 - 1;
                     break;
@@ -3001,34 +3241,75 @@ Loop:
                     break;
                 }
                 E_aml_S_parse_data++;
+                break;
           case E_aml_Z_parse_stack_Z_entity_S_divide_finish_4:
-                //TODO Umieścić operację ‘divide’ w drzewie zinterpretowanej przestrzeni ACPI.
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   struct E_aml_Z_object_data_Z_value *data;
+                    if( !~E_aml_M_clear_object( &data ))
+                        goto Error;
+                    data->value.type = E_aml_Z_value_Z_type_S_number;
+                    data->value.v.n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n;
+                }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_fslb_finish_1:
                 if( E_aml_S_parse_data == E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
                 {   ret = ~0 - 1;
                     break;
                 }
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
+                        goto Error;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n = E_asm_I_bsr( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.n ) + 1;
+                }
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_fslb_finish_2, E_aml_Z_parse_stack_Z_entity_S_supername );
                     break;
                 }
                 E_aml_S_parse_data++;
+                break;
           case E_aml_Z_parse_stack_Z_entity_S_fslb_finish_2:
-                //TODO Umieścić operację ‘find set left bit’ w drzewie zinterpretowanej przestrzeni ACPI.
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   struct E_aml_Z_object_data_Z_value *data;
+                    if( !~E_aml_M_clear_object( &data ))
+                        goto Error;
+                    data->value.type = E_aml_Z_value_Z_type_S_number;
+                    data->value.v.n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n;
+                }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_fsrb_finish_1:
                 if( E_aml_S_parse_data == E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
                 {   ret = ~0 - 1;
                     break;
                 }
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
+                        goto Error;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n = E_asm_I_bsf( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.n ) + 1;
+                }
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_fsrb_finish_2, E_aml_Z_parse_stack_Z_entity_S_supername );
                     break;
                 }
                 E_aml_S_parse_data++;
+                break;
           case E_aml_Z_parse_stack_Z_entity_S_fsrb_finish_2:
-                //TODO Umieścić operację ‘find set right bit’ w drzewie zinterpretowanej przestrzeni ACPI.
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   struct E_aml_Z_object_data_Z_value *data;
+                    if( !~E_aml_M_clear_object( &data ))
+                        goto Error;
+                    data->value.type = E_aml_Z_value_Z_type_S_number;
+                    data->value.v.n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n;
+                }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_from_bcd_finish_1:
                 if( E_aml_S_parse_data == E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
@@ -3040,11 +3321,24 @@ Loop:
                     break;
                 }
                 E_aml_S_parse_data++;
+                break;
           case E_aml_Z_parse_stack_Z_entity_S_from_bcd_finish_2:
                 //TODO Umieścić operację ‘from bcd’ w drzewie zinterpretowanej przestrzeni ACPI.
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_increment_finish:
-                //TODO Umieścić operację ‘increment’ w drzewie zinterpretowanej przestrzeni ACPI.
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   N object_i = E_aml_S_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.pathname );
+                    if( !~object_i
+                    || !E_aml_S_object[ E_aml_S_object_n - 1 ].data
+                    )
+                        goto Error;
+                    struct E_aml_Z_object_data_Z_value *data = E_aml_S_object[ E_aml_S_object_n - 1 ].data;
+                    if( data->value.type != E_aml_Z_value_Z_type_S_number )
+                        goto Error;
+                    data->value.v.n++;
+                }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_index_finish_1:
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_index_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
@@ -3059,44 +3353,164 @@ Loop:
                     break;
                 }
                 E_aml_S_parse_data++;
+                break;
           case E_aml_Z_parse_stack_Z_entity_S_index_finish_3:
                 //TODO Umieścić operację ‘index’ w drzewie zinterpretowanej przestrzeni ACPI.
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_land_finish_1:
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
+                        goto Error;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_land_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_land_finish_2:
-                //TODO Umieścić operację ‘land’ w drzewie zinterpretowanej przestrzeni ACPI.
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
+                        goto Error;
+                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n )
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.n;
+                }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_lequal_finish_1:
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number
+                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_string
+                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_buffer
+                    )
+                        goto Error;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_lequal_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_lequal_finish_2:
-                //TODO Umieścić operację ‘lequal’ w drzewie zinterpretowanej przestrzeni ACPI.
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number
+                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_string
+                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_buffer
+                    )
+                        goto Error;
+                    if( E_aml_Q_value_N_convert( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type, &E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result ) < 0 )
+                        goto Error;
+                    switch( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type )
+                    { case E_aml_Z_value_Z_type_S_number:
+                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n < E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.n;
+                            break;
+                      case E_aml_Z_value_Z_type_S_string:
+                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n = E_text_Z_s0_T_eq_s0( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.p
+                            , E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.p
+                            );
+                            break;
+                      case E_aml_Z_value_Z_type_S_buffer:
+                            if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.buffer.n != E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.buffer.n )
+                                E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n = no;
+                            else
+                                E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n = E_text_Z_sl_T_eq( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.buffer.p
+                                , E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.buffer.p
+                                , E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.buffer.n 
+                                );
+                            break;
+                    }
+                }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_lgreater_finish_1:
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number
+                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_string
+                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_buffer
+                    )
+                        goto Error;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_lgreater_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_lgreater_finish_2:
-                //TODO Umieścić operację ‘lgreater’ w drzewie zinterpretowanej przestrzeni ACPI.
-                break;
-          case E_aml_Z_parse_stack_Z_entity_S_lgreater_equal_finish_1:
-                E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_lgreater_equal_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
-                break;
-          case E_aml_Z_parse_stack_Z_entity_S_lgreater_equal_finish_2:
-                //TODO Umieścić operację ‘lgreater equal’ w drzewie zinterpretowanej przestrzeni ACPI.
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number
+                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_string
+                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_buffer
+                    )
+                        goto Error;
+                    if( E_aml_Q_value_N_convert( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type, &E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result ) < 0 )
+                        goto Error;
+                    switch( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type )
+                    { case E_aml_Z_value_Z_type_S_number:
+                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n < E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.n;
+                            break;
+                      case E_aml_Z_value_Z_type_S_string:
+                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n = E_text_Z_s0_I_cmp_s0( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.p
+                            , E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.p
+                            ) > 0;
+                            break;
+                      case E_aml_Z_value_Z_type_S_buffer:
+                            if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.buffer.n != E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.buffer.n )
+                                E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.buffer.n > E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.buffer.n;
+                            else
+                                E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n = E_text_Z_sl_T_cmp( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.buffer.p
+                                , E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.buffer.p
+                                , E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.buffer.n 
+                                ) > 0;
+                            break;
+                    }
+                }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_lless_finish_1:
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number
+                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_string
+                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_buffer
+                    )
+                        goto Error;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_lless_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_lless_finish_2:
-                //TODO Umieścić operację ‘lless’ w drzewie zinterpretowanej przestrzeni ACPI.
-                break;
-          case E_aml_Z_parse_stack_Z_entity_S_lless_equal_finish_1:
-                E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_lless_equal_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
-                break;
-          case E_aml_Z_parse_stack_Z_entity_S_lless_equal_finish_2:
-                //TODO Umieścić operację ‘lless equal’ w drzewie zinterpretowanej przestrzeni ACPI.
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number
+                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_string
+                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_buffer
+                    )
+                        goto Error;
+                    if( E_aml_Q_value_N_convert( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type, &E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result ) < 0 )
+                        goto Error;
+                    switch( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type )
+                    { case E_aml_Z_value_Z_type_S_number:
+                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n < E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.n;
+                            break;
+                      case E_aml_Z_value_Z_type_S_string:
+                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n = E_text_Z_s0_I_cmp_s0( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.p
+                            , E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.p
+                            ) < 0;
+                            break;
+                      case E_aml_Z_value_Z_type_S_buffer:
+                            if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.buffer.n != E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.buffer.n )
+                                E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.buffer.n < E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.buffer.n;
+                            else
+                                E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n = E_text_Z_sl_T_cmp( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.buffer.p
+                                , E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.buffer.p
+                                , E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.buffer.n 
+                                ) < 0;
+                            break;
+                    }
+                }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_mid_finish_1:
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_mid_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
@@ -3114,17 +3528,18 @@ Loop:
                     break;
                 }
                 E_aml_S_parse_data++;
+                break;
           case E_aml_Z_parse_stack_Z_entity_S_mid_finish_4:
                 //TODO Umieścić operację ‘mid’ w drzewie zinterpretowanej przestrzeni ACPI.
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_lnot_finish:
-                //TODO Umieścić operację ‘lnot’ w drzewie zinterpretowanej przestrzeni ACPI.
-                break;
-          case E_aml_Z_parse_stack_Z_entity_S_lnot_equal_finish_1:
-                E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_lnot_equal_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
-                break;
-          case E_aml_Z_parse_stack_Z_entity_S_lnot_equal_finish_2:
-                //TODO Umieścić operację ‘lnot equal’ w drzewie zinterpretowanej przestrzeni ACPI.
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
+                        goto Error;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n = !E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.n;
+                }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_load_table_finish_1:
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_load_table_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
@@ -3145,10 +3560,24 @@ Loop:
                 //TODO Umieścić operację ‘load table’ w drzewie zinterpretowanej przestrzeni ACPI.
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_lor_finish_1:
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
+                        goto Error;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_lor_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_lor_finish_2:
-                //TODO Umieścić operację ‘lor’ w drzewie zinterpretowanej przestrzeni ACPI.
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
+                        goto Error;
+                    if( !E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n )
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.n;
+                }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_match_finish_1:
                 if( ++E_aml_S_parse_data > E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
@@ -3171,6 +3600,13 @@ Loop:
                 //TODO Umieścić operację ‘match’ w drzewie zinterpretowanej przestrzeni ACPI.
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_mod_finish_1:
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
+                        goto Error;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_mod_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_mod_finish_2:
@@ -3178,15 +3614,40 @@ Loop:
                 {   ret = ~0 - 1;
                     break;
                 }
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number
+                    || !E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.n
+                    )
+                        goto Error;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n %= E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.n;
+                }
                 if( *E_aml_S_parse_data )
-                {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_divide_finish_3, E_aml_Z_parse_stack_Z_entity_S_supername );
+                {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_mod_finish_3, E_aml_Z_parse_stack_Z_entity_S_supername );
                     break;
                 }
                 E_aml_S_parse_data++;
+                break;
           case E_aml_Z_parse_stack_Z_entity_S_mod_finish_3:
-                //TODO Umieścić operację ‘mod’ w drzewie zinterpretowanej przestrzeni ACPI.
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   struct E_aml_Z_object_data_Z_value *data;
+                    if( !~E_aml_M_clear_object( &data ))
+                        goto Error;
+                    data->value.type = E_aml_Z_value_Z_type_S_number;
+                    data->value.v.n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n;
+                }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_multiply_finish_1:
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
+                        goto Error;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_multiply_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_multiply_finish_2:
@@ -3194,15 +3655,38 @@ Loop:
                 {   ret = ~0 - 1;
                     break;
                 }
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
+                        goto Error;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n *= E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.n;
+                }
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_multiply_finish_3, E_aml_Z_parse_stack_Z_entity_S_supername );
                     break;
                 }
                 E_aml_S_parse_data++;
+                break;
           case E_aml_Z_parse_stack_Z_entity_S_multiply_finish_3:
-                //TODO Umieścić operację ‘multiply’ w drzewie zinterpretowanej przestrzeni ACPI.
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   struct E_aml_Z_object_data_Z_value *data;
+                    if( !~E_aml_M_clear_object( &data ))
+                        goto Error;
+                    data->value.type = E_aml_Z_value_Z_type_S_number;
+                    data->value.v.n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n;
+                }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_nand_finish_1:
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
+                        goto Error;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_nand_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_nand_finish_2:
@@ -3210,15 +3694,38 @@ Loop:
                 {   ret = ~0 - 1;
                     break;
                 }
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
+                        goto Error;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n = ~( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n & E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.n );
+                }
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_nand_finish_3, E_aml_Z_parse_stack_Z_entity_S_supername );
                     break;
                 }
                 E_aml_S_parse_data++;
+                break;
           case E_aml_Z_parse_stack_Z_entity_S_nand_finish_3:
-                //TODO Umieścić operację ‘nand’ w drzewie zinterpretowanej przestrzeni ACPI.
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   struct E_aml_Z_object_data_Z_value *data;
+                    if( !~E_aml_M_clear_object( &data ))
+                        goto Error;
+                    data->value.type = E_aml_Z_value_Z_type_S_number;
+                    data->value.v.n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n;
+                }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_nor_finish_1:
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
+                        goto Error;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_nor_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_nor_finish_2:
@@ -3226,47 +3733,112 @@ Loop:
                 {   ret = ~0 - 1;
                     break;
                 }
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
+                        goto Error;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n = ~( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n | E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.n );
+                }
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_nor_finish_3, E_aml_Z_parse_stack_Z_entity_S_supername );
                     break;
                 }
                 E_aml_S_parse_data++;
+                break;
           case E_aml_Z_parse_stack_Z_entity_S_nor_finish_3:
-                //TODO Umieścić operację ‘nor’ w drzewie zinterpretowanej przestrzeni ACPI.
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   struct E_aml_Z_object_data_Z_value *data;
+                    if( !~E_aml_M_clear_object( &data ))
+                        goto Error;
+                    data->value.type = E_aml_Z_value_Z_type_S_number;
+                    data->value.v.n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n;
+                }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_not_finish_1:
                 if( E_aml_S_parse_data == E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
                 {   ret = ~0 - 1;
                     break;
                 }
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
+                        goto Error;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n = ~E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.n;
+                }
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_not_finish_2, E_aml_Z_parse_stack_Z_entity_S_supername );
                     break;
                 }
                 E_aml_S_parse_data++;
+                break;
           case E_aml_Z_parse_stack_Z_entity_S_not_finish_2:
-                //TODO Umieścić operację ‘not’ w drzewie zinterpretowanej przestrzeni ACPI.
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   struct E_aml_Z_object_data_Z_value *data;
+                    if( !~E_aml_M_clear_object( &data ))
+                        goto Error;
+                    data->value.type = E_aml_Z_value_Z_type_S_number;
+                    data->value.v.n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n;
+                }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_object_type_finish:
                 //TODO Umieścić operację ‘object type’ w drzewie zinterpretowanej przestrzeni ACPI.
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_or_finish_1:
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
+                        goto Error;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                }
+                E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_or_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
+                break;
+          case E_aml_Z_parse_stack_Z_entity_S_or_finish_2:
                 if( E_aml_S_parse_data == E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
                 {   ret = ~0 - 1;
                     break;
                 }
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
+                        goto Error;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n |= E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.n;
+                }
                 if( *E_aml_S_parse_data )
-                {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_or_finish_2, E_aml_Z_parse_stack_Z_entity_S_supername );
+                {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_or_finish_3, E_aml_Z_parse_stack_Z_entity_S_supername );
                     break;
                 }
                 E_aml_S_parse_data++;
-          case E_aml_Z_parse_stack_Z_entity_S_or_finish_2:
-                //TODO Umieścić operację ‘or’ w drzewie zinterpretowanej przestrzeni ACPI.
+                break;
+          case E_aml_Z_parse_stack_Z_entity_S_or_finish_3:
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   struct E_aml_Z_object_data_Z_value *data;
+                    if( !~E_aml_M_clear_object( &data ))
+                        goto Error;
+                    data->value.type = E_aml_Z_value_Z_type_S_number;
+                    data->value.v.n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n;
+                }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_refof_finish:
                 //TODO Umieścić operację ‘refof’ w drzewie zinterpretowanej przestrzeni ACPI.
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_shift_left_finish_1:
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
+                        goto Error;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_shift_left_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_shift_left_finish_2:
@@ -3274,15 +3846,38 @@ Loop:
                 {   ret = ~0 - 1;
                     break;
                 }
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
+                        goto Error;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n <<= E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.n;
+                }
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_shift_left_finish_3, E_aml_Z_parse_stack_Z_entity_S_supername );
                     break;
                 }
                 E_aml_S_parse_data++;
+                break;
           case E_aml_Z_parse_stack_Z_entity_S_shift_left_finish_3:
-                //TODO Umieścić operację ‘shift left’ w drzewie zinterpretowanej przestrzeni ACPI.
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   struct E_aml_Z_object_data_Z_value *data;
+                    if( !~E_aml_M_clear_object( &data ))
+                        goto Error;
+                    data->value.type = E_aml_Z_value_Z_type_S_number;
+                    data->value.v.n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n;
+                }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_shift_right_finish_1:
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
+                        goto Error;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_shift_left_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_shift_right_finish_2:
@@ -3290,24 +3885,61 @@ Loop:
                 {   ret = ~0 - 1;
                     break;
                 }
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
+                        goto Error;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n >>= E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.n;
+                }
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_shift_right_finish_3, E_aml_Z_parse_stack_Z_entity_S_supername );
                     break;
                 }
                 E_aml_S_parse_data++;
+                break;
           case E_aml_Z_parse_stack_Z_entity_S_shift_right_finish_3:
-                //TODO Umieścić operację ‘shift right’ w drzewie zinterpretowanej przestrzeni ACPI.
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   struct E_aml_Z_object_data_Z_value *data;
+                    if( !~E_aml_M_clear_object( &data ))
+                        goto Error;
+                    data->value.type = E_aml_Z_value_Z_type_S_number;
+                    data->value.v.n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n;
+                }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_sizeof_finish:
                 //TODO Umieścić operację ‘sizeof’ w drzewie zinterpretowanej przestrzeni ACPI.
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_store_finish_1:
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
+                        goto Error;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_store_finish_2, E_aml_Z_parse_stack_Z_entity_S_supername );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_store_finish_2:
-                //TODO Umieścić operację ‘store’ w drzewie zinterpretowanej przestrzeni ACPI.
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   struct E_aml_Z_object_data_Z_value *data;
+                    if( !~E_aml_M_clear_object( &data ))
+                        goto Error;
+                    data->value = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result;
+                }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_subtract_finish_1:
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
+                        goto Error;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_subtract_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_subtract_finish_2:
@@ -3315,80 +3947,160 @@ Loop:
                 {   ret = ~0 - 1;
                     break;
                 }
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
+                        goto Error;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n -= E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.n;
+                }
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_subtract_finish_3, E_aml_Z_parse_stack_Z_entity_S_supername );
                     break;
                 }
                 E_aml_S_parse_data++;
+                break;
           case E_aml_Z_parse_stack_Z_entity_S_subtract_finish_3:
-                //TODO Umieścić operację ‘subtract’ w drzewie zinterpretowanej przestrzeni ACPI.
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   struct E_aml_Z_object_data_Z_value *data;
+                    if( !~E_aml_M_clear_object( &data ))
+                        goto Error;
+                    data->value.type = E_aml_Z_value_Z_type_S_number;
+                    data->value.v.n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n;
+                }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_to_bcd_finish_1:
                 if( E_aml_S_parse_data == E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
                 {   ret = ~0 - 1;
                     break;
                 }
+                //TODO
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_to_bcd_finish_2, E_aml_Z_parse_stack_Z_entity_S_supername );
                     break;
                 }
                 E_aml_S_parse_data++;
+                break;
           case E_aml_Z_parse_stack_Z_entity_S_to_bcd_finish_2:
-                //TODO Umieścić operację ‘to bcd’ w drzewie zinterpretowanej przestrzeni ACPI.
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_buffer )
+                        goto Error;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                }
+                E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_to_string_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_to_buffer_finish_1:
                 if( E_aml_S_parse_data == E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
                 {   ret = ~0 - 1;
                     break;
                 }
+                //TODO
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_to_buffer_finish_2, E_aml_Z_parse_stack_Z_entity_S_supername );
                     break;
                 }
                 E_aml_S_parse_data++;
+                break;
           case E_aml_Z_parse_stack_Z_entity_S_to_buffer_finish_2:
-                //TODO Umieścić operację ‘to buffer’ w drzewie zinterpretowanej przestrzeni ACPI.
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_buffer )
+                        goto Error;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                }
+                E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_to_string_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_to_decimal_string_finish_1:
                 if( E_aml_S_parse_data == E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
                 {   ret = ~0 - 1;
                     break;
                 }
+                //TODO
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_to_decimal_string_finish_2, E_aml_Z_parse_stack_Z_entity_S_supername );
                     break;
                 }
                 E_aml_S_parse_data++;
+                break;
           case E_aml_Z_parse_stack_Z_entity_S_to_decimal_string_finish_2:
-                //TODO Umieścić operację ‘to decimal string’ w drzewie zinterpretowanej przestrzeni ACPI.
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_buffer )
+                        goto Error;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                }
+                E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_to_string_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_to_hex_string_finish_1:
                 if( E_aml_S_parse_data == E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
                 {   ret = ~0 - 1;
                     break;
                 }
+                //TODO
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_to_hex_string_finish_2, E_aml_Z_parse_stack_Z_entity_S_supername );
                     break;
                 }
                 E_aml_S_parse_data++;
+                break;
           case E_aml_Z_parse_stack_Z_entity_S_to_hex_string_finish_2:
-                //TODO Umieścić operację ‘to decimal string’ w drzewie zinterpretowanej przestrzeni ACPI.
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_buffer )
+                        goto Error;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                }
+                E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_to_string_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_to_integer_finish_1:
                 if( E_aml_S_parse_data == E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
                 {   ret = ~0 - 1;
                     break;
                 }
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number
+                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_string
+                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_buffer
+                    )
+                        goto Error;
+                    if( E_aml_Q_value_N_convert( E_aml_Z_value_Z_type_S_number, &E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result ))
+                        goto Error;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                }
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_to_integer_finish_2, E_aml_Z_parse_stack_Z_entity_S_supername );
                     break;
                 }
                 E_aml_S_parse_data++;
+                break;
           case E_aml_Z_parse_stack_Z_entity_S_to_integer_finish_2:
-                //TODO Umieścić operację ‘to integer’ w drzewie zinterpretowanej przestrzeni ACPI.
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   struct E_aml_Z_object_data_Z_value *data;
+                    if( !~E_aml_M_clear_object( &data ))
+                        goto Error;
+                    data->value.type = E_aml_Z_value_Z_type_S_number;
+                    data->value.v.n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n;
+                }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_to_string_finish_1:
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_buffer )
+                        goto Error;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_to_string_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_to_string_finish_2:
@@ -3396,13 +4108,41 @@ Loop:
                 {   ret = ~0 - 1;
                     break;
                 }
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
+                        goto Error;
+                    Pc p = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.buffer.p;
+                    N l = J_min( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.buffer.n, E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.n );
+                    Pc s = E_text_Z_sl_R_search_0( p, l );
+                    if( s != p + l )
+                    {   if( !E_mem_Q_blk_I_remove( &p, s + 1 - p, l - ( s + 1 - p )))
+                            return ~0;
+                    }else
+                    {   if( !E_mem_Q_blk_I_append( &p, 1 ))
+                            return ~0;
+                        p[l] = '\0';
+                    }
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_string;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.p = p;
+                }
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_to_string_finish_3, E_aml_Z_parse_stack_Z_entity_S_supername );
                     break;
                 }
                 E_aml_S_parse_data++;
+                break;
           case E_aml_Z_parse_stack_Z_entity_S_to_string_finish_3:
-                //TODO Umieścić operację ‘to integer’ w drzewie zinterpretowanej przestrzeni ACPI.
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   struct E_aml_Z_object_data_Z_value *data;
+                    if( !~E_aml_M_clear_object( &data ))
+                        goto Error;
+                    data->value.type = E_aml_Z_value_Z_type_S_number;
+                    data->value.v.n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n;
+                }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_wait_finish_1:
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_wait_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
@@ -3411,6 +4151,13 @@ Loop:
                 //TODO Umieścić operację ‘to integer’ w drzewie zinterpretowanej przestrzeni ACPI.
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_xor_finish_1:
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
+                        goto Error;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_xor_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_xor_finish_2:
@@ -3418,16 +4165,35 @@ Loop:
                 {   ret = ~0 - 1;
                     break;
                 }
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
+                        goto Error;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n ^= E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.v.n;
+                }
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_xor_finish_3, E_aml_Z_parse_stack_Z_entity_S_supername );
                     break;
                 }
                 E_aml_S_parse_data++;
+                break;
           case E_aml_Z_parse_stack_Z_entity_S_xor_finish_3:
-                //TODO Umieścić operację ‘nor’ w drzewie zinterpretowanej przestrzeni ACPI.
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                {   struct E_aml_Z_object_data_Z_value *data;
+                    if( !~E_aml_M_clear_object( &data ))
+                        goto Error;
+                    data->value.type = E_aml_Z_value_Z_type_S_number;
+                    data->value.v.n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.v.n;
+                }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_fatal_finish:
-                //TODO Umieścić operację ‘fatal’ w drzewie zinterpretowanej przestrzeni ACPI.
+                if( E_aml_Q_current_path_S_precompilation_i )
+                {
+                }else
+                    goto Error;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_load_finish:
                 //TODO Umieścić operację ‘load’ w drzewie zinterpretowanej przestrzeni ACPI.

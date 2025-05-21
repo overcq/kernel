@@ -17,7 +17,7 @@ build: kernel
 #===============================================================================
 #NDFN Nie wiadomo, dlaczego SSE nie może być włączone.
 kernel: simple.h main.h aml.c font.c main.c mem-blk.c text.c vga.c main.ld Makefile
-	$(CC) $(CFLAGS) -std=gnu23 -mno-sse -fno-zero-initialized-in-bss -ffreestanding -fno-stack-protector -fwrapv -Wall -Wextra -Wno-address-of-packed-member -Wno-dangling-else -Wno-parentheses -Wno-sign-compare -nostdlib -shared -s -Wl,-dT,main.ld,--section-start=.note.gnu.property=0x8000000000000000 -o $@.elf $(filter %.c,$^)
+	$(CC) $(CFLAGS) -std=gnu23 -mno-sse -fno-zero-initialized-in-bss -ffreestanding -fno-stack-protector -fwrapv -Wall -Wextra -Wno-address-of-packed-member -Wno-dangling-else -Wno-parentheses -Wno-sign-compare -nostdlib -shared -s -Wl,-T,main.ld -o $@.elf $(filter %.c,$^)
 	rm -f $@; elf2oux $@.elf
 	rm $@.elf
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
