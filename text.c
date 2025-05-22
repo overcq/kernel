@@ -1074,6 +1074,37 @@ E_text_Z_n_N_s_G( N n
     }while( n /= base );
     return i;
 }
+_export
+Pc
+E_text_Z_n_N_bcd( Pc s_end
+, N n
+, N l
+, N size
+){  n = E_simple_Z_n_I_mod_i2( n, l * 8 );
+    B odd = size % 2;
+    if(odd)
+        *--s_end = 0;
+    do
+    {   N k = n % 10;
+        if( !odd )
+            *--s_end = k << 4;
+        else
+            *s_end |= k;
+        odd = !odd;
+    }while( n /= 10 );
+    return s_end;
+}
+_export
+N
+E_text_Z_n_N_bcd_G( N n
+, N l
+){  N i = 0;
+    n = E_simple_Z_n_I_mod_i2( n, l * 8 );
+    do
+    {   i++;
+    }while( n /= 10 );
+    return i / 2 + ( i % 2 ? 1 : 0 );
+}
 //------------------------------------------------------------------------------
 _export
 Pc

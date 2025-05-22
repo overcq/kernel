@@ -193,6 +193,8 @@ struct E_datetime_Z E_text_Z_s_N_datetime( Pc, Pc, Pc * );
 struct E_datetime_Z E_text_Z_s0_N_datetime( Pc, Pc * );
 Pc E_text_Z_n_N_s( Pc, N, N, N );
 N E_text_Z_n_N_s_G( N, N, N );
+Pc E_text_Z_n_N_bcd( Pc, N, N, N );
+N E_text_Z_n_N_bcd_G( N, N );
 Pc E_text_Z_ns_N_s( Pc, S, N, N );
 N E_text_Z_ns_N_s_G( S, N, N );
 Pc E_text_Z_s_P_c_fill( Pc, Pc, C );
