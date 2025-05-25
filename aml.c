@@ -6,7 +6,7 @@
 *         AML interpreter
 * ©overcq                on ‟Gentoo Linux 23.0” “x86_64”             2025‒5‒13 I
 *******************************************************************************/
-//DFN W tym interpretatorze AML wartości albo są liczbowe, albo są referencjami do obiektów. Natomiast wartość może być kopią, jeśli powstała z algorytmu przetwarzania. Dopiero podczas przypisywania do obiektu wartości są kopiowane, jeśli nie były kopiami. Tzn. operator ASL “DerefOf” działa z opóźnieniem, a “RefOf” kopiuje wartość.
+//DFN W tym interpretatorze AML wartości albo są liczbowe, albo są referencjami do obiektów. Natomiast wartość może być kopią, jeśli powstała z algorytmu przetwarzania. Dopiero podczas przypisywania do obiektu wartości są kopiowane, jeśli nie były kopiami. Tzn. operator ASL “DerefOf” działa z opóźnieniem, a “RefOf” przenosi wartość.
 //TODO Czy da się nie obliczać drugiego argumentu dla instrukcji “LOr”, jeśli nie potrzeba?
 #include "main.h"
 //==============================================================================
@@ -1442,13 +1442,6 @@ E_aml_I_term( void
         }
       case 0xcc: // breakpoint
         {   E_font_I_print( ",breakpoint" );
-            for_n_rev( i, E_aml_S_parse_stack_n )
-                if( E_aml_S_parse_stack[i].execution_context.break_ )
-                {   E_aml_S_parse_data = E_aml_S_parse_stack[i].execution_context.break_;
-                    break;
-                }
-            if( !~i )
-                return ~0 - 1;
             break;
         }
       case 0x9f: // continue
@@ -2305,7 +2298,7 @@ E_aml_I_object( void
     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].entity = finish; \
     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].n = 0; \
     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end = 0; \
-    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.continue_ = E_aml_S_parse_stack[ E_aml_S_parse_stack_n ].execution_context.break_ = 0; \
+    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.continue_ = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.break_ = 0; \
     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no; \
     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.tmp_p = 0; \
     E_aml_S_parse_stack[ E_aml_S_parse_stack_n ].entity = entity_; \
@@ -2322,7 +2315,7 @@ E_aml_I_object( void
     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].entity = finish; \
     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].n = 0; \
     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end = 0; \
-    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.continue_ = E_aml_S_parse_stack[ E_aml_S_parse_stack_n ].execution_context.break_ = 0; \
+    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.continue_ = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.break_ = 0; \
     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no; \
     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.tmp_p = 0; \
     E_aml_S_parse_stack[ E_aml_S_parse_stack_n ].entity = entity_; \
@@ -2829,7 +2822,7 @@ E_aml_M_arg_local_debug( void
         )
             E_aml_Q_value_W( &E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].arg[ arg_i ] );
         E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].arg[ arg_i ] = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result;
-        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
+        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy = no;
         return yes;
     }
     if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_local_ref )
@@ -2841,7 +2834,7 @@ E_aml_M_arg_local_debug( void
         )
             E_aml_Q_value_W( &E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].local[ local_i ] );
         E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].local[ local_i ] = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result;
-        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
+        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy = no;
         return yes;
     }
     if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_debug_ref )
@@ -2941,7 +2934,7 @@ N
 E_aml_M_res1( void
 ){  if( E_aml_Q_current_path_S_precompilation_i )
     {   N current_path_i = E_aml_S_current_path_n;
-        for_n_rev( i, E_aml_S_parse_stack_n ) // Wyjście do nadrzędnego bloku metody po błędzie składni.
+        for_n_rev( i, E_aml_S_parse_stack_n )
         {   if(( E_aml_S_parse_stack[i].entity == E_aml_Z_parse_stack_Z_entity_S_restore_current_path
               || E_aml_S_parse_stack[i].entity == E_aml_Z_parse_stack_Z_entity_S_power_res_finish
               || E_aml_S_parse_stack[i].entity == E_aml_Z_parse_stack_Z_entity_S_thermal_zone_finish
@@ -2950,7 +2943,7 @@ E_aml_M_res1( void
               || E_aml_S_parse_stack[i].entity == E_aml_Z_parse_stack_Z_entity_S_procedure_finish
             )
             && E_aml_Q_current_path_S_precompilation_i != current_path_i--
-            )
+            ) // Wyjście do nadrzędnego bloku metody po błędzie składni.
             {   for_n( j, E_aml_S_current_path_n - current_path_i )
                     W( E_aml_S_current_path[ current_path_i + j ].s );
                 if( !E_mem_Q_blk_I_remove( &E_aml_S_current_path, current_path_i, E_aml_S_current_path_n - current_path_i ))
@@ -2963,8 +2956,8 @@ E_aml_M_res1( void
                     W( name_ );
                 }else
                     E_font_I_print( "\n,go over to=\\" );
-                if( !~E_aml_S_parse_stack[ i - 1 ].n )
-                    if( !--i ) // Sprawdzanie dla listy wyliczanej w nieskończoność, czy interpretacja zakończyła się.
+                if( !~E_aml_S_parse_stack[ i - 1 ].n ) // Dla listy wyliczanej w nieskończoność interpretacja zakończyła się.
+                    if( !--i )
                         break;
                 E_aml_S_parse_data = E_aml_S_parse_stack[i].data_end;
                 if( !E_mem_Q_blk_I_remove( &E_aml_S_parse_stack, i, E_aml_S_parse_stack_n - i ))
@@ -3000,6 +2993,7 @@ E_aml_M( Pc table
     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].entity = E_aml_Z_parse_stack_Z_entity_S_term;
     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].n = ~0;
     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end = table + l;
+    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.continue_ = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.break_ = 0;
     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.tmp_p = 0;
     E_aml_S_procedure_invocation_stack_n = 0;
@@ -3073,12 +3067,14 @@ Loop:
                                     if( E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].arg[ arg_n ].type != E_aml_Z_value_Z_type_S_uninitialized )
                                         break;
                                 E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].arg[ arg_n - E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].n ] = E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 2 ].arg[ arg_i ];
+                                E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 2 ].arg[ arg_i ].copy = no;
                             }else
                             {   if( E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].arg[ arg_i ].type == E_aml_Z_value_Z_type_S_uninitialized )
                                 {   ret = ~0 - 1;
                                     break;
                                 }
                                 E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].arg[ arg_i ];
+                                E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].arg[ arg_i ].copy = no;
                             }
                         }
                         break;
@@ -3104,6 +3100,7 @@ Loop:
                                 break;
                             }
                             E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].local[ local_i ];
+                            E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].local[ local_i ].copy = no;
                         }
                         break;
                   default:
