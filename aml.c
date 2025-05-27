@@ -9,6 +9,8 @@
 //DFN W tym interpretatorze AML wartości albo są liczbowe, albo są referencjami do obiektów. Natomiast wartość może być kopią, jeśli powstała z algorytmu przetwarzania. Dopiero podczas przypisywania do obiektu wartości są kopiowane, jeśli nie były kopiami. Tzn. operator ASL “DerefOf” działa z opóźnieniem, a “RefOf” przenosi wartość.
 //TODO Czy da się nie obliczać drugiego argumentu dla instrukcji “LOr”, jeśli nie potrzeba?
 //NDFN Co robić z nie ustawionymi wartościami w “data” po nieudanej operacji po “E_aml_Q_object_I_add”?
+//TODO Przeglądnąć wystąpienia “E_aml_Q_current_path_S_precompilation”.
+//TODO Uzupełnić obsługę referencji do elementów obiektu.
 #include "main.h"
 //==============================================================================
 struct E_aml_Z_pathname
@@ -17,7 +19,7 @@ struct E_aml_Z_pathname
 };
 _internal struct E_aml_Z_pathname *E_aml_S_current_path;
 _internal N E_aml_S_current_path_n;
-_internal N E_aml_Q_current_path_S_precompilation_i;
+_internal B E_aml_Q_current_path_S_precompilation;
 //------------------------------------------------------------------------------
 struct E_aml_Z_buffer
 { Pc p;
@@ -53,7 +55,7 @@ struct E_aml_Z_value
 };
 struct E_aml_Z_package
 { struct E_aml_Z_value *value;
-  N8 n;
+  N n;
 };
 //------------------------------------------------------------------------------
 _internal
@@ -147,8 +149,8 @@ _internal
 struct
 { struct E_aml_Z_pathname name; // Tablica posortowana według nazwy.
   P data;
-  enum E_aml_S_object_Z_type type;
   N n; // Jeśli “type” równe “E_aml_Z_value_Z_type_S_string”, “E_aml_Z_value_Z_type_S_buffer” lub “E_aml_Z_value_Z_type_S_package”, to jest indeksem elementu obiektu; “~0” oznacza brak referencji do elementu.
+  enum E_aml_S_object_Z_type type;
 } *E_aml_S_object;
 _internal N E_aml_S_object_n;
 //------------------------------------------------------------------------------
@@ -359,7 +361,9 @@ E_aml_Q_value_W_package( struct E_aml_Z_package *package
 _internal
 void
 E_aml_Q_value_W( struct E_aml_Z_value *value
-){  switch( value->type )
+){  if( !value->copy )
+        return;
+    switch( value->type )
     { case E_aml_Z_value_Z_type_S_string:
             W( value->p );
             break;
@@ -590,7 +594,7 @@ E_aml_Q_current_path_M( void
     Mt_( E_aml_S_current_path, E_aml_S_current_path_n );
     if( !E_aml_S_current_path )
         return ~0;
-    E_aml_Q_current_path_S_precompilation_i = 0;
+    E_aml_Q_current_path_S_precompilation = 0;
     return 0;
 }
 _internal
@@ -601,17 +605,6 @@ E_aml_Q_current_path_W( void
     W( E_aml_S_current_path );
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-_internal
-void
-E_aml_Q_current_path_P_precompilation( B b
-){  if(b)
-    {   if( E_aml_Q_current_path_S_precompilation_i )
-            return;
-        E_aml_Q_current_path_S_precompilation_i = E_aml_S_current_path_n;
-    }else if( E_aml_Q_current_path_S_precompilation_i == E_aml_S_current_path_n )
-        E_aml_Q_current_path_S_precompilation_i = 0;
-}
-//------------------------------------------------------------------------------
 _internal
 N
 E_aml_Q_current_path_I_push( struct E_aml_Z_pathname pathname
@@ -674,27 +667,28 @@ _internal
 void
 E_aml_Q_object_W_package( struct E_aml_Z_package *package
 ){  for_n( i, package->n )
-        switch( package->value[i].type )
-        { case E_aml_Z_value_Z_type_S_string:
-                if( package->value[i].p )
+        if( package->value[i].copy )
+            switch( package->value[i].type )
+            { case E_aml_Z_value_Z_type_S_string:
                     W( package->value[i].p );
-                break;
-          case E_aml_Z_value_Z_type_S_buffer:
-                W( package->value[i].buffer.p );
-                break;
-          case E_aml_Z_value_Z_type_S_package:
-                E_aml_Q_object_W_package( package->value[i].package );
-                break;
-          case E_aml_Z_value_Z_type_S_pathname:
-                W( package->value[i].pathname.s );
-                break;
-        }
+                    break;
+              case E_aml_Z_value_Z_type_S_buffer:
+                    W( package->value[i].buffer.p );
+                    break;
+              case E_aml_Z_value_Z_type_S_package:
+                    E_aml_Q_object_W_package( package->value[i].package );
+                    break;
+              case E_aml_Z_value_Z_type_S_pathname:
+                    W( package->value[i].pathname.s );
+                    break;
+            }
     W(package);
 }
 _internal
 void
 E_aml_Q_object_W_data( N object_i
-){  if( E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_number
+){  if( E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_uninitialized
+    && E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_number
     && E_aml_S_object[ object_i ].data
     )
     {   switch( E_aml_S_object[ object_i ].type )
@@ -711,6 +705,17 @@ E_aml_Q_object_W_data( N object_i
           case E_aml_Z_object_Z_type_S_package:
                 E_aml_Q_object_W_package( E_aml_S_object[ object_i ].data );
                 break;
+          case E_aml_Z_object_Z_type_S_buffer_field:
+            {   struct E_aml_Z_buffer_field *field = E_aml_S_object[ object_i ].data;
+                W( field->pathname.s );
+                break;
+            }
+          case E_aml_Z_object_Z_type_S_op_region:
+            {   struct E_aml_Z_op_region *region = E_aml_S_object[ object_i ].data;
+                W( region->field );
+                W( region->bank_field );
+                break;
+            }
         }
         W( E_aml_S_object[ object_i ].data );
     }
@@ -1080,6 +1085,10 @@ E_aml_Q_path_R_root( N8 *n
             return s;
         }
       case '^':
+            if( !E_aml_S_current_path_n )
+            {   *n = ~0 - 1;
+                return 0;
+            }
             do
             {   if( ++E_aml_S_parse_data == E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end
                 || ++parent_n > E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].n
@@ -1120,7 +1129,6 @@ E_aml_Q_path_R_relative( N8 *n
 , N *object_i
 ){  if( E_aml_S_parse_data == E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
         return 0;
-    N parent_n = 0;
     switch( *E_aml_S_parse_data )
     { case '\\':
         {   E_aml_S_parse_data++;
@@ -1137,19 +1145,23 @@ E_aml_Q_path_R_relative( N8 *n
                 return 0;
             }
             E_mem_Q_blk_I_copy( s, E_aml_S_parse_data - *n * 4, *n * 4 );
-            *object_i = E_aml_Q_object_R(( struct E_aml_Z_pathname ){ E_aml_S_parse_data - *n * 4, *n });
+            *object_i = E_aml_Q_object_R(( struct E_aml_Z_pathname ){ s, *n });
             return s;
         }
       case '^':
-        {   E_aml_S_parse_data++;
+        {   if( !E_aml_S_current_path_n )
+            {   *n = ~0 - 1;
+                return 0;
+            }
+            N parent_n = 0;
             do
-            {   if( E_aml_S_parse_data == E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end
+            {   if( ++E_aml_S_parse_data == E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end
                 || ++parent_n > E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].n
                 )
                 {   *n = ~0 - 1;
                     return 0;
                 }
-            }while( *E_aml_S_parse_data++ == '^' );
+            }while( *E_aml_S_parse_data == '^' );
             *n = E_aml_Q_path_R_pathname();
             if( !~(S8)*n
             || !*n
@@ -1163,8 +1175,7 @@ E_aml_Q_path_R_relative( N8 *n
             {   *n = ~0;
                 return 0;
             }
-            if( E_aml_S_current_path_n )
-                E_mem_Q_blk_I_copy( s, E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].s, depth * 4 );
+            E_mem_Q_blk_I_copy( s, E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].s, depth * 4 );
             E_mem_Q_blk_I_copy( s + depth * 4, E_aml_S_parse_data - *n * 4, *n * 4 );
             *n += depth;
             *object_i = E_aml_Q_object_R(( struct E_aml_Z_pathname ){ s, *n });
@@ -1193,7 +1204,7 @@ E_aml_Q_path_R_relative( N8 *n
                     *n = E_aml_S_object[i].name.n;
                     *object_i = i;
                 }else
-                {   N depth = E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].n - parent_n;
+                {   N depth = E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].n;
                     s = M(( depth + *n ) * 4 );
                     if( !s )
                     {   *n = ~0;
@@ -1282,7 +1293,7 @@ E_aml_I_data_object( void
     switch( (N8)*E_aml_S_parse_data++ )
     { case 0:
             E_font_I_print( ",0" );
-            if( E_aml_Q_current_path_S_precompilation_i )
+            if( E_aml_Q_current_path_S_precompilation )
             {
             }else
             {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_number;
@@ -1292,7 +1303,7 @@ E_aml_I_data_object( void
             break;
       case 1:
             E_font_I_print( ",1" );
-            if( E_aml_Q_current_path_S_precompilation_i )
+            if( E_aml_Q_current_path_S_precompilation )
             {
             }else
             {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_number;
@@ -1302,7 +1313,7 @@ E_aml_I_data_object( void
             break;
       case 0xff:
             E_font_I_print( ",~0" );
-            if( E_aml_Q_current_path_S_precompilation_i )
+            if( E_aml_Q_current_path_S_precompilation )
             {
             }else
             {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_number;
@@ -1314,7 +1325,7 @@ E_aml_I_data_object( void
             if( E_aml_S_parse_data + 1 > E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
                 return ~0 - 1;
             E_font_I_print( ",byte" );
-            if( E_aml_Q_current_path_S_precompilation_i )
+            if( E_aml_Q_current_path_S_precompilation )
             {
             }else
             {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_number;
@@ -1327,7 +1338,7 @@ E_aml_I_data_object( void
             if( E_aml_S_parse_data + 2 > E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
                 return ~0 - 1;
             E_font_I_print( ",word" );
-            if( E_aml_Q_current_path_S_precompilation_i )
+            if( E_aml_Q_current_path_S_precompilation )
             {
             }else
             {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_number;
@@ -1340,7 +1351,7 @@ E_aml_I_data_object( void
             if( E_aml_S_parse_data + 4 > E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
                 return ~0 - 1;
             E_font_I_print( ",dword" );
-            if( E_aml_Q_current_path_S_precompilation_i )
+            if( E_aml_Q_current_path_S_precompilation )
             {
             }else
             {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_number;
@@ -1359,7 +1370,7 @@ E_aml_I_data_object( void
             if( E_aml_S_parse_data == E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
                 return ~0 - 1;
             E_aml_S_parse_data++;
-            if( E_aml_Q_current_path_S_precompilation_i )
+            if( E_aml_Q_current_path_S_precompilation )
             {
             }else
             {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_string;
@@ -1372,7 +1383,7 @@ E_aml_I_data_object( void
             if( E_aml_S_parse_data + 8 > E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
                 return ~0 - 1;
             E_font_I_print( ",qword" );
-            if( E_aml_Q_current_path_S_precompilation_i )
+            if( E_aml_Q_current_path_S_precompilation )
             {
             }else
             {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_number;
@@ -1389,7 +1400,7 @@ E_aml_I_data_object( void
                     if( E_aml_S_parse_data == E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
                         return ~0 - 1;
                     E_font_I_print( ",revision" );
-                    if( E_aml_Q_current_path_S_precompilation_i )
+                    if( E_aml_Q_current_path_S_precompilation )
                     {
                     }else
                     {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_number;
@@ -1429,7 +1440,7 @@ E_aml_I_data_object( void
             N n = (N8)*E_aml_S_parse_data;
             E_aml_S_parse_data++;
             E_font_I_print( ",package," ); E_font_I_print_hex(n);
-            if( E_aml_Q_current_path_S_precompilation_i )
+            if( E_aml_Q_current_path_S_precompilation )
             {
             }else
             {   struct E_aml_Z_package *M_(package);
@@ -1460,7 +1471,7 @@ E_aml_I_data_object( void
             if( pkg_end > E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
                 return ~0 - 1;
             E_font_I_print( ",var package" );
-            if( E_aml_Q_current_path_S_precompilation_i )
+            if( E_aml_Q_current_path_S_precompilation )
             {
             }else
             {   struct E_aml_Z_package *M_(package);
@@ -1672,7 +1683,7 @@ E_aml_I_term( void
                 return ~0 - 1;
             E_font_I_print( ",else" );
             if( E_aml_S_parse_data != pkg_end )
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {   E_aml_I_delegate_pkg( E_aml_Z_parse_stack_Z_entity_S_else_op_finish, E_aml_Z_parse_stack_Z_entity_S_term );
                     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].n = ~0;
                     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.last_op_if = 0;
@@ -1746,7 +1757,7 @@ E_aml_I_object( void
             E_text_Z_s_P_copy_sl_0( name_, alias, alias_n * 4 );
             E_font_I_print( ":" ); E_font_I_print( name_ );
             W( name_ );
-            if( E_aml_Q_current_path_S_precompilation_i )
+            if( E_aml_Q_current_path_S_precompilation )
             {
             }else
             {   N object_i = E_aml_Q_object_I_add( E_aml_Z_object_Z_type_S_alias, ( struct E_aml_Z_pathname ){ alias, alias_n });
@@ -1780,7 +1791,7 @@ E_aml_I_object( void
             E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
             E_font_I_print( "\n,object=" ); E_font_I_print( name_ );
             W( name_ );
-            if( E_aml_Q_current_path_S_precompilation_i )
+            if( E_aml_Q_current_path_S_precompilation )
             {
             }else
             {   N object_i = E_aml_Q_object_I_add( E_aml_Z_object_Z_type_S_uninitialized, ( struct E_aml_Z_pathname ){ name, n });
@@ -1816,7 +1827,7 @@ E_aml_I_object( void
             E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
             E_font_I_print( "\n,scope=" ); E_font_I_print( name_ );
             W( name_ );
-            if( E_aml_Q_current_path_S_precompilation_i )
+            if( E_aml_Q_current_path_S_precompilation )
             {
             }else
             {   N object_i = E_aml_Q_object_R(( struct E_aml_Z_pathname ){ name, n });
@@ -1880,7 +1891,7 @@ E_aml_I_object( void
                     E_text_Z_s_P_copy_sl_0( name_, bank_name, n * 4 );
                     E_font_I_print( ",bank=" ); E_font_I_print( name_ );
                     W( name_ );
-                    if( E_aml_Q_current_path_S_precompilation_i )
+                    if( E_aml_Q_current_path_S_precompilation )
                     {
                     }else
                     {   struct E_aml_Z_op_region *region = E_aml_S_object[ object_i ].data;
@@ -1928,7 +1939,7 @@ E_aml_I_object( void
                     if( E_aml_S_parse_data == E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
                         return ~0 - 1;
                     E_aml_S_parse_data++;
-                    if( E_aml_Q_current_path_S_precompilation_i )
+                    if( E_aml_Q_current_path_S_precompilation )
                     {
                     }else
                     {   N object_i = E_aml_Q_object_I_add( E_aml_Z_object_Z_type_S_mutex, ( struct E_aml_Z_pathname ){ name, n });
@@ -1960,7 +1971,7 @@ E_aml_I_object( void
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
                     E_font_I_print( ",data table region=" ); E_font_I_print( name_ );
                     W( name_ );
-                    if( E_aml_Q_current_path_S_precompilation_i )
+                    if( E_aml_Q_current_path_S_precompilation )
                     {
                     }else
                     {   N object_i = E_aml_Q_object_I_add( E_aml_Z_object_Z_type_S_data_table_region, ( struct E_aml_Z_pathname ){ name, n });
@@ -1990,7 +2001,7 @@ E_aml_I_object( void
                     W( name_ );
                     if( E_aml_S_parse_data == E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
                         return ~0 - 1;
-                    if( E_aml_Q_current_path_S_precompilation_i )
+                    if( E_aml_Q_current_path_S_precompilation )
                     {
                     }else
                     {   struct E_aml_Z_pathname region_pathname = ( struct E_aml_Z_pathname ){ name, n };
@@ -2051,7 +2062,7 @@ E_aml_I_object( void
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
                     E_font_I_print( ",field op=" ); E_font_I_print( name_ );
                     W( name_ );
-                    if( E_aml_Q_current_path_S_precompilation_i )
+                    if( E_aml_Q_current_path_S_precompilation )
                     {   E_aml_S_parse_data = pkg_end; // Tymczasowo.
                     }else
                     {   N object_i = E_aml_Q_object_R(( struct E_aml_Z_pathname ){ name, n });
@@ -2158,7 +2169,7 @@ E_aml_I_object( void
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
                     E_font_I_print( ",index field=" ); E_font_I_print( name_ );
                     W( name_ );
-                    if( E_aml_Q_current_path_S_precompilation_i )
+                    if( E_aml_Q_current_path_S_precompilation )
                     {   E_aml_S_parse_data = pkg_end; // Tymczasowo.
                     }else
                     {   N object_i = E_aml_Q_object_I_add( E_aml_Z_object_Z_type_S_index_field, ( struct E_aml_Z_pathname ){ name, n });
@@ -2273,7 +2284,7 @@ E_aml_I_object( void
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
                     E_font_I_print( ",device=" ); E_font_I_print( name_ );
                     W( name_ );
-                    if( E_aml_Q_current_path_S_precompilation_i )
+                    if( E_aml_Q_current_path_S_precompilation )
                     {
                     }else
                     {   N object_i = E_aml_Q_object_I_add( E_aml_Z_object_Z_type_S_device, ( struct E_aml_Z_pathname ){ name, n });
@@ -2311,7 +2322,7 @@ E_aml_I_object( void
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
                     E_font_I_print( ",event=" ); E_font_I_print( name_ );
                     W( name_ );
-                    if( E_aml_Q_current_path_S_precompilation_i )
+                    if( E_aml_Q_current_path_S_precompilation )
                     {
                     }else
                     {   N object_i = E_aml_Q_object_I_add( E_aml_Z_object_Z_type_S_event, ( struct E_aml_Z_pathname ){ name, n });
@@ -2345,7 +2356,7 @@ E_aml_I_object( void
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
                     E_font_I_print( ",power res=" ); E_font_I_print( name_ );
                     W( name_ );
-                    if( E_aml_Q_current_path_S_precompilation_i )
+                    if( E_aml_Q_current_path_S_precompilation )
                     {
                     }else
                     {   N object_i = E_aml_Q_object_I_add( E_aml_Z_object_Z_type_S_power_res, ( struct E_aml_Z_pathname ){ name, n });
@@ -2395,7 +2406,7 @@ E_aml_I_object( void
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
                     E_font_I_print( ",thermal zone=" ); E_font_I_print( name_ );
                     W( name_ );
-                    if( E_aml_Q_current_path_S_precompilation_i )
+                    if( E_aml_Q_current_path_S_precompilation )
                     {
                     }else
                     {   N object_i = E_aml_Q_object_I_add( E_aml_Z_object_Z_type_S_thermal_zone, ( struct E_aml_Z_pathname ){ name, n });
@@ -2447,7 +2458,7 @@ E_aml_I_object( void
                     E_aml_S_parse_data += 4;
                     if( ++E_aml_S_parse_data > pkg_end )
                         return ~0 - 1;
-                    if( E_aml_Q_current_path_S_precompilation_i )
+                    if( E_aml_Q_current_path_S_precompilation )
                     {
                     }else
                     {   N object_i = E_aml_Q_object_I_add( E_aml_Z_object_Z_type_S_processor, ( struct E_aml_Z_pathname ){ name, n });
@@ -2549,19 +2560,21 @@ E_aml_I_object( void
             }
             E_aml_S_object[ object_i ].data = procedure;
             E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].match = yes;
-            if( E_aml_S_parse_data != pkg_end )
-            {   name_ = E_text_Z_sl_M_duplicate( name, n * 4 );
-                if( !name_ )
-                    return ~0;
-                if( !~E_aml_Q_current_path_I_push(( struct E_aml_Z_pathname ){ name_, n }))
-                {   W( name_ );
-                    return ~0;
+            if( E_aml_Q_current_path_S_precompilation )
+            {   if( E_aml_S_parse_data != pkg_end )
+                {   name_ = E_text_Z_sl_M_duplicate( name, n * 4 );
+                    if( !name_ )
+                        return ~0;
+                    if( !~E_aml_Q_current_path_I_push(( struct E_aml_Z_pathname ){ name_, n }))
+                    {   W( name_ );
+                        return ~0;
+                    }
+                    E_aml_I_delegate_pkg( E_aml_Z_parse_stack_Z_entity_S_procedure_finish, E_aml_Z_parse_stack_Z_entity_S_term );
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].n = ~0;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.last_op_if = 0;
                 }
-                E_aml_Q_current_path_P_precompilation(yes);
-                E_aml_I_delegate_pkg( E_aml_Z_parse_stack_Z_entity_S_procedure_finish, E_aml_Z_parse_stack_Z_entity_S_term );
-                E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].n = ~0;
-                E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.last_op_if = 0;
-            }
+            }else
+                E_aml_S_parse_data = pkg_end;
             break;
         }
       default:
@@ -2771,7 +2784,7 @@ E_aml_I_expression( void
             N n = (N8)*E_aml_S_parse_data;
             E_aml_S_parse_data++;
             E_font_I_print( ",package," ); E_font_I_print_hex(n);
-            if( E_aml_Q_current_path_S_precompilation_i )
+            if( E_aml_Q_current_path_S_precompilation )
             {
             }else
             {   struct E_aml_Z_package *M_(package);
@@ -2802,7 +2815,7 @@ E_aml_I_expression( void
                 return ~0 - 1;
             E_font_I_print( ",var package" );
             struct E_aml_Z_package *package;
-            if( E_aml_Q_current_path_S_precompilation_i )
+            if( E_aml_Q_current_path_S_precompilation )
             {
             }else
             {   M_(package);
@@ -2895,100 +2908,104 @@ E_aml_I_expression( void
       default:
         {   E_aml_S_parse_data--;
             N8 n;
-            N object_i;
-            Pc name = E_aml_Q_path_R_relative( &n, &object_i );
-            if( !name )
-                return (S8)n;
-            Pc name_ = M( n * 4 + 1 );
-            E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
-            E_font_I_print( ",expr string=" ); E_font_I_print( name_ );
-            W( name_ );
-            if( !~object_i )
-            {   name_ = name + ( n - 1 ) * 4;
-                if( !( E_text_Z_sl_T_eq( name_, "_OS_", 4 )
-                || E_text_Z_sl_T_eq( name_, "_OSI", 4 )
-                || E_text_Z_sl_T_eq( name_, "_REV", 4 )
-                ))
-                {   if( n > 1
-                    && !~E_aml_Q_object_R(( struct E_aml_Z_pathname ){ name, n - 1 })
-                    )
-                    {   W(name);
-                        return ~0 - 1;
+            if( E_aml_Q_current_path_S_precompilation )
+            {
+            }else
+            {   N object_i;
+                Pc name = E_aml_Q_path_R_relative( &n, &object_i );
+                if( !name )
+                    return (S8)n;
+                Pc name_ = M( n * 4 + 1 );
+                E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
+                E_font_I_print( ",expr string=" ); E_font_I_print( name_ );
+                W( name_ );
+                if( !~object_i )
+                {   name_ = name + ( n - 1 ) * 4;
+                    if( !( E_text_Z_sl_T_eq( name_, "_OS_", 4 )
+                    || E_text_Z_sl_T_eq( name_, "_OSI", 4 )
+                    || E_text_Z_sl_T_eq( name_, "_REV", 4 )
+                    ))
+                    {   if( n > 1
+                        && !~E_aml_Q_object_R(( struct E_aml_Z_pathname ){ name, n - 1 })
+                        )
+                        {   W(name);
+                            return ~0 - 1;
+                        }
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_pathname;
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.pathname = ( struct E_aml_Z_pathname ){ name, n };
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy = yes;
+                        break;
                     }
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_pathname;
+                    if( E_text_Z_sl_T_eq( name_, "_OS_", 4 ))
+                    {   if( E_aml_Q_current_path_S_precompilation )
+                        {
+                        }else
+                        {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_string;
+                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.p = "OUXOS";
+                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.i = ~0;
+                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy = no;
+                        }
+                    }else if( E_text_Z_sl_T_eq( name_, "_REV", 4 ))
+                        if( E_aml_Q_current_path_S_precompilation )
+                        {
+                        }else
+                        {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_number;
+                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = 2;
+                        }
+                }else if( E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_procedure )
+                {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_pathname;
                     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.pathname = ( struct E_aml_Z_pathname ){ name, n };
                     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy = yes;
                     break;
                 }
-                if( E_text_Z_sl_T_eq( name_, "_OS_", 4 ))
-                {   if( E_aml_Q_current_path_S_precompilation_i )
-                    {
-                    }else
-                    {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_string;
-                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.p = "OUXOS";
-                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.i = ~0;
-                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy = no;
+                E_font_I_print( ",invocation" );
+                struct E_aml_Z_object_data_Z_procedure *procedure;
+                if( ~object_i
+                && ( procedure = E_aml_S_object[ object_i ].data, procedure->arg_n )
+                )
+                {   E_font_I_print( "," ); E_font_I_print_hex( procedure->arg_n );
+                    if( !E_aml_Q_current_path_S_precompilation )
+                    {   if( !E_mem_Q_blk_I_append( &E_aml_S_procedure_invocation_stack, 1 ))
+                            return ~0;
+                        E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n ].procedure = E_aml_S_object[ object_i ].name;
+                        if( E_aml_Q_current_path_S_precompilation )
+                        {
+                        }else
+                        {   for_n( i, J_a_R_n( E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n ].arg ))
+                                E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n ].arg[i].type = E_aml_Z_value_Z_type_S_uninitialized;
+                            for_n_( i, J_a_R_n( E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n ].local ))
+                                E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n ].local[i].type = E_aml_Z_value_Z_type_S_uninitialized;
+                        }
+                        E_aml_S_procedure_invocation_stack_n++;
                     }
-                }else if( E_text_Z_sl_T_eq( name_, "_REV", 4 ))
-                    if( E_aml_Q_current_path_S_precompilation_i )
-                    {
-                    }else
-                    {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_number;
-                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = 2;
+                    E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_procedure_invocation_finish, E_aml_Z_parse_stack_Z_entity_S_term_arg );
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].n = procedure->arg_n;
+                    if( !E_aml_Q_current_path_S_precompilation )
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.procedure_osi = no;
+                }else if( !~object_i
+                && E_text_Z_sl_T_eq( name_, "_OSI", 4 )
+                )
+                {   if( !E_aml_Q_current_path_S_precompilation )
+                    {   if( !E_mem_Q_blk_I_append( &E_aml_S_procedure_invocation_stack, 1 ))
+                            return ~0;
+                        E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n ].procedure = ( struct E_aml_Z_pathname ){ 0, 0 };
+                        if( E_aml_Q_current_path_S_precompilation )
+                        {
+                        }else
+                        {   for_n( i, J_a_R_n( E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n ].arg ))
+                                E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n ].arg[i].type = E_aml_Z_value_Z_type_S_uninitialized;
+                            for_n_( i, J_a_R_n( E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n ].local ))
+                                E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n ].local[i].type = E_aml_Z_value_Z_type_S_uninitialized;
+                        }
+                        E_aml_S_procedure_invocation_stack_n++;
                     }
-            }else if( E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_procedure )
-            {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_pathname;
-                E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.pathname = ( struct E_aml_Z_pathname ){ name, n };
-                E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy = yes;
-                break;
-            }
-            E_font_I_print( ",invocation" );
-            struct E_aml_Z_object_data_Z_procedure *procedure;
-            if( ~object_i
-            && ( procedure = E_aml_S_object[ object_i ].data, procedure->arg_n )
-            )
-            {   E_font_I_print( "," ); E_font_I_print_hex( procedure->arg_n );
-                if( !E_aml_Q_current_path_S_precompilation_i )
-                {   if( !E_mem_Q_blk_I_append( &E_aml_S_procedure_invocation_stack, 1 ))
-                        return ~0;
-                    E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n ].procedure = E_aml_S_object[ object_i ].name;
-                    if( E_aml_Q_current_path_S_precompilation_i )
-                    {
-                    }else
-                    {   for_n( i, J_a_R_n( E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n ].arg ))
-                            E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n ].arg[i].type = E_aml_Z_value_Z_type_S_uninitialized;
-                        for_n_( i, J_a_R_n( E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n ].local ))
-                            E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n ].local[i].type = E_aml_Z_value_Z_type_S_uninitialized;
-                    }
-                    E_aml_S_procedure_invocation_stack_n++;
+                    E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_procedure_invocation_finish, E_aml_Z_parse_stack_Z_entity_S_term_arg );
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].n = 1;
+                    if( !E_aml_Q_current_path_S_precompilation )
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.procedure_osi = yes;
                 }
-                E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_procedure_invocation_finish, E_aml_Z_parse_stack_Z_entity_S_term_arg );
-                E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].n = procedure->arg_n;
-                if( !E_aml_Q_current_path_S_precompilation_i )
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.procedure_osi = no;
-            }else if( !~object_i
-            && E_text_Z_sl_T_eq( name_, "_OSI", 4 )
-            )
-            {   if( !E_aml_Q_current_path_S_precompilation_i )
-                {   if( !E_mem_Q_blk_I_append( &E_aml_S_procedure_invocation_stack, 1 ))
-                        return ~0;
-                    E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n ].procedure = ( struct E_aml_Z_pathname ){ 0, 0 };
-                    if( E_aml_Q_current_path_S_precompilation_i )
-                    {
-                    }else
-                    {   for_n( i, J_a_R_n( E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n ].arg ))
-                            E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n ].arg[i].type = E_aml_Z_value_Z_type_S_uninitialized;
-                        for_n_( i, J_a_R_n( E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n ].local ))
-                            E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n ].local[i].type = E_aml_Z_value_Z_type_S_uninitialized;
-                    }
-                    E_aml_S_procedure_invocation_stack_n++;
-                }
-                E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_procedure_invocation_finish, E_aml_Z_parse_stack_Z_entity_S_term_arg );
-                E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].n = 1;
-                if( !E_aml_Q_current_path_S_precompilation_i )
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.procedure_osi = yes;
+                W(name);
             }
-            W(name);
             break;
         }
     }
@@ -3034,7 +3051,7 @@ E_aml_I_supername( void
       case 0x6d:
       case 0x6e:
         {   E_font_I_print( ",arg" );
-            if( E_aml_Q_current_path_S_precompilation_i )
+            if( E_aml_Q_current_path_S_precompilation )
             {
             }else
             {   if( !E_aml_S_procedure_invocation_stack_n )
@@ -3054,7 +3071,7 @@ E_aml_I_supername( void
       case 0x66:
       case 0x67:
         {   E_font_I_print( ",local" );
-            if( E_aml_Q_current_path_S_precompilation_i )
+            if( E_aml_Q_current_path_S_precompilation )
             {
             }else
             {   if( !E_aml_S_procedure_invocation_stack_n )
@@ -3071,7 +3088,7 @@ E_aml_I_supername( void
             Pc name = E_aml_Q_path_R_root( &n );
             if( !name )
                 return (S8)n;
-            if( E_aml_Q_current_path_S_precompilation_i )
+            if( E_aml_Q_current_path_S_precompilation )
             {   
                 W(name);
             }else
@@ -3089,7 +3106,7 @@ E_aml_I_supername( void
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #define E_aml_I_delegate( finish, entity_ ) \
 {   if( !E_mem_Q_blk_I_append( &E_aml_S_parse_stack, 1 )) \
-        goto Error; \
+        return ~0; \
     Pc data_end = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end; \
     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].entity = finish; \
     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].n = 0; \
@@ -3110,10 +3127,7 @@ E_aml_M_arg_local_debug( void
     {   if( !E_aml_S_procedure_invocation_stack_n )
             return ~0;
         N arg_i = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.i;
-        if( E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].arg[ arg_i ].type != E_aml_Z_value_Z_type_S_uninitialized
-        && E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].arg[ arg_i ].copy
-        )
-            E_aml_Q_value_W( &E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].arg[ arg_i ] );
+        E_aml_Q_value_W( &E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].arg[ arg_i ] );
         E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].arg[ arg_i ] = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result;
         E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy = no;
         return yes;
@@ -3122,10 +3136,7 @@ E_aml_M_arg_local_debug( void
     {   if( !E_aml_S_procedure_invocation_stack_n )
             return ~0;
         N local_i = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.i;
-        if( E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].local[ local_i ].type != E_aml_Z_value_Z_type_S_uninitialized
-        && E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].local[ local_i ].copy
-        )
-            E_aml_Q_value_W( &E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].local[ local_i ] );
+        E_aml_Q_value_W( &E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].local[ local_i ] );
         E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].local[ local_i ] = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result;
         E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy = no;
         return yes;
@@ -3140,27 +3151,8 @@ E_aml_M_clear_object( void
 ){  N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
     if( !~object_i )
         return ~0;
-    if( E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_number
-    && E_aml_S_object[ object_i ].data
-    )
-        E_aml_Q_object_W_data( object_i );
+    E_aml_Q_object_W_data( object_i );
     return object_i;
-}
-_internal
-N
-E_aml_M_number_pathname_v2_finish_1( void
-){  if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number
-    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_pathname
-    )
-        return ~0;
-    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
-    {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
-        if( E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_number )
-            return ~0;
-    }
-    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
-    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
-    return 0;
 }
 _internal
 N
@@ -3169,16 +3161,24 @@ E_aml_M_number_pathname_v2_finish_2( N *v_1
 ){  if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number
     && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_pathname
     )
+    {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_uninitialized;
         return ~0;
+    }
     if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
     {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.pathname );
+        if( E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_number )
+        {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_uninitialized;
+            return ~0;
+        }
         *v_1 = E_aml_S_object[ object_i ].n;
     }else
         *v_1 = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n;
     if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
     {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
         if( E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_number )
+        {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_uninitialized;
             return ~0;
+        }
         *v_2 = E_aml_S_object[ object_i ].n;
     }else
         *v_2 = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.n;
@@ -3195,53 +3195,51 @@ E_aml_M_number_finish_3( void
     {   N object_i = E_aml_M_clear_object();
         if( !~object_i )
             return ~0;
-        E_aml_S_object[ object_i ].n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n;
-        E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_number;
+        if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type != E_aml_Z_value_Z_type_S_uninitialized )
+        {   E_aml_S_object[ object_i ].n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n;
+            E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_number;
+        }else
+            E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_uninitialized;
     }
     return 0;
 }
 _internal
 N
-E_aml_M_field_finish_1( void
-){  if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_pathname )
-        return ~0;
-    N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
-    if( !~object_i
-    || E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_buffer
-    )
-        return ~0;
-    struct E_aml_Z_buffer *buffer = E_aml_S_object[ object_i ].data;
-    if( ~buffer->n )
-        return ~0;
-    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
-    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
-    return 0;
-}
-_internal
-N
 E_aml_M_field_finish_2( N bytes
-){  struct E_aml_Z_value i;
-    if( E_aml_Q_current_path_S_precompilation_i )
+){  struct E_aml_Z_value o, i;
+    if( E_aml_Q_current_path_S_precompilation )
     {
     }else
-    {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number
-        && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_pathname
-        )
-            return ~0;
-        struct E_aml_Z_value i;
-        if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
-        {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
-            if( !~object_i
-            || E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_number
+    {   N object_i;
+        if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
+        {   object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.pathname );
+            if( ~object_i
+            && E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_buffer
             )
-                return ~0;
-            i = E_aml_Q_object_I_to_value( object_i );
+                o = E_aml_Q_object_I_to_value( object_i );
+            else
+                o.type = E_aml_Z_value_Z_type_S_uninitialized;
         }else
-            i = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
-        N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.pathname );
-        struct E_aml_Z_buffer *buffer = E_aml_S_object[ object_i ].data;
-        if( i.n + bytes > buffer->n )
-            return ~0;
+            o.type = E_aml_Z_value_Z_type_S_uninitialized;
+        if( o.type != E_aml_Z_value_Z_type_S_uninitialized )
+        {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
+            {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
+                if( ~object_i
+                && E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_number
+                )
+                    i = E_aml_Q_object_I_to_value( object_i );
+                else
+                    i.type = E_aml_Z_value_Z_type_S_uninitialized;
+            }else
+                i = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+            if( i.type != E_aml_Z_value_Z_type_S_number )
+                i.type = E_aml_Z_value_Z_type_S_uninitialized;
+            if( i.type != E_aml_Z_value_Z_type_S_uninitialized )
+            {   struct E_aml_Z_buffer *buffer = E_aml_S_object[ object_i ].data;
+                if( i.n + bytes > buffer->n )
+                    return ~0;
+            }
+        }
     }
     N8 n;
     Pc name = E_aml_Q_path_R_root( &n );
@@ -3251,7 +3249,7 @@ E_aml_M_field_finish_2( N bytes
     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
     E_font_I_print( ",bytes field=" ); E_font_I_print( name_ );
     W( name_ );
-    if( E_aml_Q_current_path_S_precompilation_i )
+    if( E_aml_Q_current_path_S_precompilation )
     {   
         W(name);
     }else
@@ -3266,15 +3264,32 @@ E_aml_M_field_finish_2( N bytes
         {   W(name);
             return ~0;
         }
-        struct E_aml_Z_buffer_field *M_(field);
-        if( !field )
-        {   W(name);
-            return ~0;
-        }
-        field->pathname = ( struct E_aml_Z_pathname ){ name, n };
-        field->i = i.n * 8;
-        field->u = bytes * 8;
-        E_aml_S_object[ object_i ].data = field;
+        struct E_aml_Z_buffer *buffer = E_aml_S_object[ object_i ].data;
+        if( ~buffer->n )
+            o.type = E_aml_Z_value_Z_type_S_uninitialized;
+        if( o.type != E_aml_Z_value_Z_type_S_uninitialized
+        && i.type != E_aml_Z_value_Z_type_S_uninitialized
+        )
+        {   struct E_aml_Z_buffer_field *M_(field);
+            if( !field )
+                return ~0;
+            if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy )
+                field->pathname = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.pathname;
+            else
+            {   field->pathname.s = E_text_Z_sl_M_duplicate( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.pathname.s
+                , E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.pathname.n
+                );
+                if( !field->pathname.s )
+                {   W(field);
+                    return ~0;
+                }
+                field->pathname.n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.pathname.n;
+            }
+            field->i = i.n * 8;
+            field->u = bytes * 8;
+            E_aml_S_object[ object_i ].data = field;
+        }else
+            E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_uninitialized;
     }
     return 0;
 }
@@ -3357,7 +3372,7 @@ E_aml_M_cmp( N8 op
 _internal
 N
 E_aml_M_res1( void
-){  if( E_aml_Q_current_path_S_precompilation_i )
+){  if( E_aml_Q_current_path_S_precompilation )
     {   N current_path_i = E_aml_S_current_path_n;
         for_n_rev( i, E_aml_S_parse_stack_n )
         {   if(( E_aml_S_parse_stack[i].entity == E_aml_Z_parse_stack_Z_entity_S_restore_current_path
@@ -3367,7 +3382,7 @@ E_aml_M_res1( void
               || E_aml_S_parse_stack[i].entity == E_aml_Z_parse_stack_Z_entity_S_processor_finish
               || E_aml_S_parse_stack[i].entity == E_aml_Z_parse_stack_Z_entity_S_procedure_finish
             )
-            && E_aml_Q_current_path_S_precompilation_i != current_path_i--
+            && E_aml_Q_current_path_S_precompilation != current_path_i--
             ) // Wyjście do nadrzędnego bloku metody po błędzie składni.
             {   for_n( j, E_aml_S_current_path_n - current_path_i )
                     W( E_aml_S_current_path[ current_path_i + j ].s );
@@ -3388,8 +3403,48 @@ E_aml_M_res1( void
                 if( !E_mem_Q_blk_I_remove( &E_aml_S_parse_stack, i, E_aml_S_parse_stack_n - i ))
                     return ~0;
                 E_aml_S_parse_stack_n = i;
-                E_aml_Q_current_path_S_precompilation_i = 0;
+                E_aml_Q_current_path_S_precompilation = 0;
                 return 0;
+            }
+            if( !current_path_i )
+                break;
+        }
+    }else if( E_aml_S_current_path_n ) // Wyjście do nadrzędnego obiektu po błędzie składni.
+    {   N current_path_i = E_aml_S_current_path_n;
+        for_n_rev( i, E_aml_S_parse_stack_n )
+        {   if( E_aml_S_parse_stack[i].entity == E_aml_Z_parse_stack_Z_entity_S_restore_current_path
+            || E_aml_S_parse_stack[i].entity == E_aml_Z_parse_stack_Z_entity_S_power_res_finish
+            || E_aml_S_parse_stack[i].entity == E_aml_Z_parse_stack_Z_entity_S_thermal_zone_finish
+            || E_aml_S_parse_stack[i].entity == E_aml_Z_parse_stack_Z_entity_S_device_finish
+            || E_aml_S_parse_stack[i].entity == E_aml_Z_parse_stack_Z_entity_S_processor_finish
+            || E_aml_S_parse_stack[i].entity == E_aml_Z_parse_stack_Z_entity_S_procedure_finish
+            )
+            {   current_path_i--;
+                N object_i = E_aml_Q_object_R(( struct E_aml_Z_pathname ){ E_aml_S_current_path[ current_path_i ].s, E_aml_S_current_path[ current_path_i ].n });
+                if( ~object_i ) // Pomijanie ‘scope’.
+                {   E_aml_Q_object_W_data( object_i );
+                    E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_uninitialized;
+                    for_n( j, E_aml_S_current_path_n - current_path_i )
+                        W( E_aml_S_current_path[ current_path_i + j ].s );
+                    if( !E_mem_Q_blk_I_remove( &E_aml_S_current_path, current_path_i, E_aml_S_current_path_n - current_path_i ))
+                        return ~0;
+                    E_aml_S_current_path_n -= E_aml_S_current_path_n - current_path_i;
+                    if( E_aml_S_current_path_n )
+                    {   Pc name_ = M( E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].n * 4 + 1 );
+                        E_text_Z_s_P_copy_sl_0( name_, E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].s, E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].n * 4 );
+                        E_font_I_print( "\n,go over to=" ); E_font_I_print( name_ );
+                        W( name_ );
+                    }else
+                        E_font_I_print( "\n,go over to=\\" );
+                    if( !~E_aml_S_parse_stack[ i - 1 ].n ) // Dla listy wyliczanej w nieskończoność interpretacja zakończyła się.
+                        if( !--i )
+                            break;
+                    E_aml_S_parse_data = E_aml_S_parse_stack[i].data_end;
+                    if( !E_mem_Q_blk_I_remove( &E_aml_S_parse_stack, i, E_aml_S_parse_stack_n - i ))
+                        return ~0;
+                    E_aml_S_parse_stack_n = i;
+                    return 0;
+                }
             }
             if( !current_path_i )
                 break;
@@ -3397,39 +3452,10 @@ E_aml_M_res1( void
     }
     return ~0;
 }
-_private
+_internal
 N
-E_aml_M( Pc table
-, N l
-){  if( !~E_aml_Q_current_path_M() )
-        return ~0;
-    E_aml_S_parse_stack_n = 1;
-    Mt_( E_aml_S_parse_stack, E_aml_S_parse_stack_n );
-    if( !E_aml_S_parse_stack )
-    {   E_aml_Q_current_path_W();
-        return ~0;
-    }
-    if( !~E_aml_Q_object_M() )
-    {   W( E_aml_S_parse_stack );
-        E_aml_Q_current_path_W();
-        return ~0;
-    }
-    E_aml_S_parse_data = table;
-    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].entity = E_aml_Z_parse_stack_Z_entity_S_term;
-    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].n = ~0;
-    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end = table + l;
-    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.continue_ = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.break_ = 0;
-    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
-    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.tmp_p = 0;
-    E_aml_S_procedure_invocation_stack_n = 0;
-    Mt_( E_aml_S_procedure_invocation_stack, E_aml_S_procedure_invocation_stack_n );
-    if( !E_aml_S_procedure_invocation_stack )
-    {   E_aml_Q_object_W();
-        W( E_aml_S_parse_stack );
-        E_aml_Q_current_path_W();
-        return ~0;
-    }
-    N stack_n_last;
+E_aml_M_parse( void
+){  N stack_n_last;
     Pc data = 0;
     N ret = 0;
 Loop:
@@ -3438,14 +3464,15 @@ Loop:
         //E_font_I_print( "\nentity=" ); E_font_I_print_hex(entity);
         //E_font_I_print( ",data=" ); E_font_I_print_hex( (N)E_aml_S_parse_data );
         //E_font_I_print( ",data_end=" ); E_font_I_print_hex( (N)E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end );
-        //E_font_I_print( ",value=" ); E_font_I_print_hex( (( N * )E_aml_S_parse_data )[0] ); E_font_I_print( "," ); E_font_I_print_hex( (( N * )E_aml_S_parse_data )[1] );
+        //E_font_I_print( ",value=" ); E_font_I_print_hex( (( N * )E_aml_S_parse_data )[0] );
+        //E_font_I_print( "," ); E_font_I_print_hex( (( N * )E_aml_S_parse_data )[1] );
         switch(entity)
         { case E_aml_Z_parse_stack_Z_entity_S_result_to_n:
                 E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].n;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_restore_current_path:
                 if( !~E_aml_Q_current_path_I_pop() )
-                    goto Error;
+                    return ~0;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_term:
                 ret = E_aml_I_term();
@@ -3471,7 +3498,7 @@ Loop:
                   case 0x6d:
                   case 0x6e:
                         E_font_I_print( ",arg" );
-                        if( E_aml_Q_current_path_S_precompilation_i )
+                        if( E_aml_Q_current_path_S_precompilation )
                         {
                         }else
                         {   if( !E_aml_S_procedure_invocation_stack_n )
@@ -3512,7 +3539,7 @@ Loop:
                   case 0x66:
                   case 0x67:
                         E_font_I_print( ",local" );
-                        if( E_aml_Q_current_path_S_precompilation_i )
+                        if( E_aml_Q_current_path_S_precompilation )
                         {
                         }else
                         {   if( !E_aml_S_procedure_invocation_stack_n )
@@ -3531,7 +3558,7 @@ Loop:
                   default:
                     {   E_aml_S_parse_data--;
                         if( !E_mem_Q_blk_I_append( &E_aml_S_parse_stack, 2 ))
-                            goto Error;
+                            return ~0;
                         Pc data_end = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end;
                         E_aml_S_parse_stack[ E_aml_S_parse_stack_n ].entity = E_aml_Z_parse_stack_Z_entity_S_term_arg_finish_1;
                         E_aml_S_parse_stack[ E_aml_S_parse_stack_n ].n = 0;
@@ -3586,15 +3613,15 @@ Loop:
                 ret = E_aml_I_supername();
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_buffer_finish:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {   
                     E_aml_S_parse_data = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end; // Tymczasowo.
                 }else
                 {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
-                        goto Error;
+                        return ~0;
                     N n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.n;
                     if( E_aml_S_parse_data + n > E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
-                        goto Error;
+                        return ~0;
                     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.buffer.p = E_aml_S_parse_data;
                     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.buffer.n = n;
                     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.i = ~0;
@@ -3618,19 +3645,14 @@ Loop:
                         E_aml_Q_value_W( &value_package );
                         break;
                     }
-                    if( E_aml_Q_current_path_S_precompilation_i )
+                    if( E_aml_Q_current_path_S_precompilation )
                     {
                     }else
-                    {   if( !~E_aml_Q_object_R(( struct E_aml_Z_pathname ){ name, n }))
-                        {   W(name);
-                            E_aml_Q_value_W( &value_package );
-                            goto Error;
-                        }
-                        struct E_aml_Z_value *value = E_mem_Q_blk_I_append( &value_package.package->value, 1 );
+                    {   struct E_aml_Z_value *value = E_mem_Q_blk_I_append( &value_package.package->value, 1 );
                         if( !value )
                         {   W(name);
                             E_aml_Q_value_W( &value_package );
-                            goto Error;
+                            return ~0;
                         }
                         value_package.package->n++;
                         value->pathname = ( struct E_aml_Z_pathname ){ name, n };
@@ -3638,17 +3660,18 @@ Loop:
                         E_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result = value_package;
                     }
                 }else
-                    if( E_aml_Q_current_path_S_precompilation_i )
+                    if( E_aml_Q_current_path_S_precompilation )
                     {
                     }else
                     {   struct E_aml_Z_value *value = E_mem_Q_blk_I_append( &value_package.package->value, 1 );
                         if( !value )
-                        {   E_aml_Q_value_W( &E_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result );
-                            goto Error;
+                        {   E_aml_Q_value_W( &value_package );
+                            return ~0;
                         }
                         switch( E_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result.type )
                         { case E_aml_Z_value_Z_type_S_number:
                                 value->n = E_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result.n;
+                                value->type = E_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result.type;
                                 break;
                           case E_aml_Z_value_Z_type_S_string:
                             {   Pc s;
@@ -3659,11 +3682,13 @@ Loop:
                                 {   s = E_text_Z_s0_M_duplicate( E_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result.p );
                                     if( !s )
                                     {   E_aml_Q_value_W( &value_package );
-                                        goto Error;
+                                        return ~0;
                                     }
                                 }
                                 value->p = s;
+                                value->copy = yes;
                                 value->i = E_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result.i;
+                                value->type = E_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result.type;
                                 break;
                             }
                           case E_aml_Z_value_Z_type_S_buffer:
@@ -3676,11 +3701,13 @@ Loop:
                                     );
                                     if( !value->buffer.p )
                                     {   E_aml_Q_value_W( &value_package );
-                                        goto Error;
+                                        return ~0;
                                     }
                                 }
                                 value->buffer.n = E_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result.buffer.n;
+                                value->copy = yes;
                                 value->i = E_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result.i;
+                                value->type = E_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result.type;
                                 break;
                             }
                           case E_aml_Z_value_Z_type_S_package:
@@ -3691,10 +3718,8 @@ Loop:
                             }
                           default:
                                 E_aml_Q_value_W( &value_package );
-                                goto Error;
+                                return ~0;
                         }
-                        value->copy = no;
-                        value->type = E_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result.type;
                         value_package.package->n++;
                         E_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result = value_package;
                     }
@@ -3706,179 +3731,219 @@ Loop:
                 {   ret = ~0 - 1;
                     break;
                 }
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {   E_aml_S_parse_data = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end; // Tymczasowo.
                 }else
-                {   if( (N8)*E_aml_S_parse_data & 0x80 )
-                        goto Error;
-                    struct E_aml_Z_value bank_value;
-                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_pathname
-                    )
-                        goto Error;
-                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
-                    {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
-                        if( !~object_i
-                        || E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_number
-                        )
-                            goto Error;
-                        bank_value = E_aml_Q_object_I_to_value( object_i );
-                    }else
-                        bank_value = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
-                    struct E_aml_Z_value *value = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.tmp_p;
+                {   struct E_aml_Z_value *value = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.tmp_p;
                     N object_i = E_aml_Q_object_R( value[0].pathname );
-                    struct E_aml_Z_op_region *region = E_aml_S_object[ object_i ].data;
-                    for_n( bank_field_i, region->bank_field_n )
-                        if( E_text_Z_sl_T_eq( region->bank_field[ bank_field_i ].name, value[1].p, 4 )
-                        && region->bank_field[ bank_field_i ].value == bank_value.n
-                        )
-                            goto Error;
-                    struct E_aml_Z_bank_field *bank_field = E_mem_Q_blk_I_add( &region->bank_field, 1, 0, 0 );
-                    if( !bank_field )
-                        goto Error;
-                    bank_field->field_n = 0;
-                    Mt_( bank_field->field, bank_field->field_n );
-                    if( !bank_field->field )
-                        goto Error;
-                    bank_field->value = bank_value.n;
-                    bank_field->access = (N8)*E_aml_S_parse_data & 3;
-                    bank_field->lock = (N8)*E_aml_S_parse_data & 8;
-                    bank_field->update_rule = (N8)*E_aml_S_parse_data >> 5;
-                    E_aml_S_parse_data++;
-                    N i = 0;
-                    while( E_aml_S_parse_data != E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
-                        switch( *E_aml_S_parse_data++ )
-                        { case 0: // reserved field
-                            {   if( E_aml_S_parse_data == E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
-                                {   ret = ~0 - 1;
-                                    break;
-                                }
-                                N n = E_aml_R_pkg_length();
-                                if( !~n )
-                                    goto Error;
-                                E_font_I_print( ", reserved field" );
-                                struct E_aml_Z_field *field = E_mem_Q_blk_I_add( &bank_field->field, 1, 0, 0 );
-                                if( !field )
-                                    goto Error;
-                                field->i = i;
-                                field->type = E_aml_Z_field_Z_type_S_reserved;
-                                bank_field->field_n++;
-                                i += n;
-                                break;
-                            }
-                          case 1: // access field
-                            {   if( E_aml_S_parse_data + 2 > E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
-                                {   ret = ~0 - 1;
-                                    break;
-                                }
-                                struct E_aml_Z_field *field = E_mem_Q_blk_I_add( &bank_field->field, 1, 0, 0 );
-                                if( !field )
-                                    goto Error;
-                                field->i = i;
-                                //TODO Dodać ‘access type’ do drzewa zinterpretowanej przestrzeni ACPI.
-                                E_aml_S_parse_data++;
-                                //TODO Dodać ‘access attrib’ do drzewa zinterpretowanej przestrzeni ACPI.
-                                E_aml_S_parse_data++;
-                                field->type = E_aml_Z_field_Z_type_S_access;
-                                bank_field->field_n++;
-                                //i += n;
-                                break;
-                            }
-                          case 2: // connect field
-                            {   E_font_I_print( ", connect field" );
-                                goto Error; //NDFN
-                                struct E_aml_Z_field *field = E_mem_Q_blk_I_add( &bank_field->field, 1, 0, 0 );
-                                if( !field )
-                                    goto Error;
-                                field->i = i;
-                                //field->name = 
-                                field->type = E_aml_Z_field_Z_type_S_connect;
-                                bank_field->field_n++;
-                                //i += n;
-                                break;
-                            }
-                          case 3: // extended access field
-                            {   if( E_aml_S_parse_data + 3 > E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
-                                    goto Error;
-                                struct E_aml_Z_field *field = E_mem_Q_blk_I_add( &bank_field->field, 1, 0, 0 );
-                                if( !field )
-                                    goto Error;
-                                field->i = i;
-                                //TODO Dodać ‘access type’ do drzewa zinterpretowanej przestrzeni ACPI.
-                                E_aml_S_parse_data++;
-                                //TODO Dodać ‘extended access attrib’ do drzewa zinterpretowanej przestrzeni ACPI.
-                                E_aml_S_parse_data++;
-                                //TODO Dodać ‘access length’ do drzewa zinterpretowanej przestrzeni ACPI.
-                                E_aml_S_parse_data++; //NDFN Jaki rozmiar.
-                                field->type = E_aml_Z_field_Z_type_S_ex_access;
-                                bank_field->field_n++;
-                                //i += n;
-                                break;
-                            }
-                          default: // named field
-                            {   E_aml_S_parse_data--;
-                                if( E_aml_S_parse_data + 4 > E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
-                                    goto Error;
-                                Pc name_ = M( 4 + 1 );
-                                E_text_Z_s_P_copy_sl_0( name_, E_aml_S_parse_data, 4 );
-                                E_font_I_print( ",field=" ); E_font_I_print( name_ );
-                                W( name_ );
-                                struct E_aml_Z_field *field = E_mem_Q_blk_I_add( &bank_field->field, 1, 0, 0 );
-                                if( !field )
-                                    goto Error;
-                                field->name = E_aml_Q_path_R_segment();
-                                if( !~(N)field->name
-                                || (N)field->name == ~0 - 1
-                                )
-                                    goto Error;
-                                N n = E_aml_R_pkg_length();
-                                if( !~n )
-                                {   W( field->name );
-                                    goto Error;
-                                }
-                                E_font_I_print( ", field" );
-                                field->i = i;
-                                field->n = n;
-                                field->type = E_aml_Z_field_Z_type_S_named;
-                                bank_field->field_n++;
-                                i += n;
-                                break;
-                            }
+                    struct E_aml_Z_value bank_value;
+                    if( (N8)*E_aml_S_parse_data & 0x80 )
+                        bank_value.type = E_aml_Z_value_Z_type_S_uninitialized;
+                    else
+                    {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
+                        {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
+                            if( ~object_i
+                            && E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_number
+                            )
+                                bank_value = E_aml_Q_object_I_to_value( object_i );
+                            else
+                                bank_value.type = E_aml_Z_value_Z_type_S_uninitialized;
+                        }else if( bank_value.type == E_aml_Z_value_Z_type_S_number )
+                            bank_value = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                        else
+                            bank_value.type = E_aml_Z_value_Z_type_S_uninitialized;
+                        struct E_aml_Z_op_region *region = E_aml_S_object[ object_i ].data;
+                        for_n( bank_field_i, region->bank_field_n )
+                            if( E_text_Z_sl_T_eq( region->bank_field[ bank_field_i ].name, value[1].p, 4 )
+                            && region->bank_field[ bank_field_i ].value == bank_value.n
+                            )
+                                return ~0;
+                        struct E_aml_Z_bank_field *bank_field;
+                        if( bank_value.type != E_aml_Z_value_Z_type_S_uninitialized )
+                        {   bank_field = E_mem_Q_blk_I_add( &region->bank_field, 1, 0, 0 );
+                            if( !bank_field )
+                                return ~0;
+                            bank_field->field_n = 0;
+                            Mt_( bank_field->field, bank_field->field_n );
+                            if( !bank_field->field )
+                                return ~0;
+                            bank_field->value = bank_value.n;
+                            bank_field->access = (N8)*E_aml_S_parse_data & 3;
+                            bank_field->lock = (N8)*E_aml_S_parse_data & 8;
+                            bank_field->update_rule = (N8)*E_aml_S_parse_data >> 5;
                         }
+                        E_aml_S_parse_data++;
+                        N i = 0;
+                        while( E_aml_S_parse_data != E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
+                            switch( *E_aml_S_parse_data++ )
+                            { case 0: // reserved field
+                                {   if( E_aml_S_parse_data == E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
+                                    {   ret = ~0 - 1;
+                                        break;
+                                    }
+                                    N n = E_aml_R_pkg_length();
+                                    if( !~n )
+                                        return ~0;
+                                    E_font_I_print( ", reserved field" );
+                                    if( bank_value.type != E_aml_Z_value_Z_type_S_uninitialized )
+                                    {   struct E_aml_Z_field *field = E_mem_Q_blk_I_add( &bank_field->field, 1, 0, 0 );
+                                        if( !field )
+                                            return ~0;
+                                        field->i = i;
+                                        field->type = E_aml_Z_field_Z_type_S_reserved;
+                                        bank_field->field_n++;
+                                        i += n;
+                                    }
+                                    break;
+                                }
+                              case 1: // access field
+                                {   if( E_aml_S_parse_data + 2 > E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
+                                    {   ret = ~0 - 1;
+                                        break;
+                                    }
+                                    struct E_aml_Z_field *field;
+                                    if( bank_value.type != E_aml_Z_value_Z_type_S_uninitialized )
+                                    {   field = E_mem_Q_blk_I_add( &bank_field->field, 1, 0, 0 );
+                                        if( !field )
+                                            return ~0;
+                                        field->i = i;
+                                    }
+                                    //TODO Dodać ‘access type’ do drzewa zinterpretowanej przestrzeni ACPI.
+                                    E_aml_S_parse_data++;
+                                    //TODO Dodać ‘access attrib’ do drzewa zinterpretowanej przestrzeni ACPI.
+                                    E_aml_S_parse_data++;
+                                    if( bank_value.type != E_aml_Z_value_Z_type_S_uninitialized )
+                                    {   field->type = E_aml_Z_field_Z_type_S_access;
+                                        bank_field->field_n++;
+                                        //i += n;
+                                    }
+                                    break;
+                                }
+                              case 2: // connect field
+                                {   E_font_I_print( ", connect field" );
+                                    return ~0; //NDFN
+                                    if( bank_value.type != E_aml_Z_value_Z_type_S_uninitialized )
+                                    {   struct E_aml_Z_field *field = E_mem_Q_blk_I_add( &bank_field->field, 1, 0, 0 );
+                                        if( !field )
+                                            return ~0;
+                                        field->i = i;
+                                        //field->name = 
+                                        field->type = E_aml_Z_field_Z_type_S_connect;
+                                        bank_field->field_n++;
+                                        //i += n;
+                                    }
+                                    break;
+                                }
+                              case 3: // extended access field
+                                {   if( E_aml_S_parse_data + 3 > E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
+                                        return ~0;
+                                    struct E_aml_Z_field *field;
+                                    if( bank_value.type != E_aml_Z_value_Z_type_S_uninitialized )
+                                    {   field = E_mem_Q_blk_I_add( &bank_field->field, 1, 0, 0 );
+                                        if( !field )
+                                            return ~0;
+                                        field->i = i;
+                                    }
+                                    //TODO Dodać ‘access type’ do drzewa zinterpretowanej przestrzeni ACPI.
+                                    E_aml_S_parse_data++;
+                                    //TODO Dodać ‘extended access attrib’ do drzewa zinterpretowanej przestrzeni ACPI.
+                                    E_aml_S_parse_data++;
+                                    //TODO Dodać ‘access length’ do drzewa zinterpretowanej przestrzeni ACPI.
+                                    E_aml_S_parse_data++; //NDFN Jaki rozmiar.
+                                    if( bank_value.type != E_aml_Z_value_Z_type_S_uninitialized )
+                                    {   field->type = E_aml_Z_field_Z_type_S_ex_access;
+                                        bank_field->field_n++;
+                                        //i += n;
+                                    }
+                                    break;
+                                }
+                              default: // named field
+                                {   E_aml_S_parse_data--;
+                                    if( E_aml_S_parse_data + 4 > E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
+                                        return ~0;
+                                    Pc name_ = M( 4 + 1 );
+                                    E_text_Z_s_P_copy_sl_0( name_, E_aml_S_parse_data, 4 );
+                                    E_font_I_print( ",field=" ); E_font_I_print( name_ );
+                                    W( name_ );
+                                    struct E_aml_Z_field *field;
+                                    if( bank_value.type != E_aml_Z_value_Z_type_S_uninitialized )
+                                    {   field = E_mem_Q_blk_I_add( &bank_field->field, 1, 0, 0 );
+                                        if( !field )
+                                            return ~0;
+                                        field->name = E_aml_Q_path_R_segment();
+                                        if( !~(N)field->name
+                                        || (N)field->name == ~0 - 1
+                                        )
+                                            return ~0;
+                                    }
+                                    N n = E_aml_R_pkg_length();
+                                    if( !~n )
+                                    {   W( field->name );
+                                        return ~0;
+                                    }
+                                    E_font_I_print( ", field" );
+                                    if( bank_value.type != E_aml_Z_value_Z_type_S_uninitialized )
+                                    {   field->i = i;
+                                        field->n = n;
+                                        field->type = E_aml_Z_field_Z_type_S_named;
+                                        bank_field->field_n++;
+                                        i += n;
+                                    }
+                                    break;
+                                }
+                            }
+                    }
+                    if( bank_value.type == E_aml_Z_value_Z_type_S_uninitialized )
+                    {   E_aml_Q_object_W_data( object_i );
+                        E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_uninitialized;
+                    }
                 }
                 break;
             }
           case E_aml_Z_parse_stack_Z_entity_S_bit_field_finish_1:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                    if( !~E_aml_M_field_finish_1() )
-                        goto Error;
+                {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
+                }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_bit_field_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_bit_field_finish_2:
-            {   struct E_aml_Z_value i;
-                if( E_aml_Q_current_path_S_precompilation_i )
+            {   struct E_aml_Z_value o, i;
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_pathname
-                    )
-                        goto Error;
-                    struct E_aml_Z_value i;
-                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
                     {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
-                        if( !~object_i
-                        || E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_number
+                        if( ~object_i
+                        && E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_number
                         )
-                            goto Error;
-                        i = E_aml_Q_object_I_to_value( object_i );
-                    }else
+                            i = E_aml_Q_object_I_to_value( object_i );
+                        else
+                            i.type = E_aml_Z_value_Z_type_S_uninitialized;
+                    }else if( i.type == E_aml_Z_value_Z_type_S_number )
                         i = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
-                    N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.pathname );
-                    struct E_aml_Z_buffer *buffer = E_aml_S_object[ object_i ].data;
-                    if( i.n / 8 + ( i.n % 8 ? 1 : 0 ) > buffer->n )
-                        goto Error;
+                    else
+                        i.type = E_aml_Z_value_Z_type_S_uninitialized;
+                    if( i.type != E_aml_Z_value_Z_type_S_uninitialized )
+                    {   N object_i;
+                        if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
+                        {   object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.pathname );
+                            if( ~object_i
+                            && E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_buffer
+                            )
+                                o = E_aml_Q_object_I_to_value( object_i );
+                            else
+                                o.type = E_aml_Z_value_Z_type_S_uninitialized;
+                        }else
+                            o.type = E_aml_Z_value_Z_type_S_uninitialized;
+                        if( o.type != E_aml_Z_value_Z_type_S_uninitialized )
+                        {   struct E_aml_Z_buffer *buffer = E_aml_S_object[ object_i ].data;
+                            if( i.n / 8 + ( i.n % 8 ? 1 : 0 ) > buffer->n )
+                                return ~0;
+                        }
+                    }
                 }
                 N8 n;
                 Pc name = E_aml_Q_path_R_root( &n );
@@ -3890,7 +3955,7 @@ Loop:
                 E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
                 E_font_I_print( ",bit field=" ); E_font_I_print( name_ );
                 W( name_ );
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {   
                     W(name);
                 }else
@@ -3898,72 +3963,78 @@ Loop:
                     && !~E_aml_Q_object_R(( struct E_aml_Z_pathname ){ name, n - 1 })
                     )
                     {   W(name);
-                        goto Error;
+                        return ~0;
                     }
                     N object_i = E_aml_Q_object_I_add( E_aml_Z_object_Z_type_S_buffer_field, ( struct E_aml_Z_pathname ){ name, n });
                     if( (S)object_i < 0 )
                     {   W(name);
-                        goto Error;
+                        return ~0;
                     }
-                    struct E_aml_Z_buffer_field *M_(field);
-                    if( !field )
-                    {   W(name);
-                        goto Error;
-                    }
-                    field->pathname = ( struct E_aml_Z_pathname ){ name, n };
-                    field->i = i.n;
-                    field->u = 1;
-                    E_aml_S_object[ object_i ].data = field;
+                    if( i.type != E_aml_Z_value_Z_type_S_uninitialized
+                    && o.type != E_aml_Z_value_Z_type_S_uninitialized
+                    )
+                    {   struct E_aml_Z_buffer_field *M_(field);
+                        if( !field )
+                            return ~0;
+                        if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy )
+                            field->pathname = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.pathname;
+                        else
+                        {   field->pathname.s = E_text_Z_sl_M_duplicate( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.pathname.s
+                            , E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.pathname.n
+                            );
+                            if( !field->pathname.s )
+                            {   W(field);
+                                return ~0;
+                            }
+                            field->pathname.n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.pathname.n;
+                        }
+                        field->i = i.n;
+                        field->u = 1;
+                        E_aml_S_object[ object_i ].data = field;
+                    }else
+                        E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_uninitialized;
                 }
                 break;
             }
           case E_aml_Z_parse_stack_Z_entity_S_byte_field_finish_1:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                    if( !~E_aml_M_field_finish_1() )
-                        goto Error;
+                {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
+                }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_byte_field_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_byte_field_finish_2:
                 ret = E_aml_M_field_finish_2(1);
                 if( (S)ret < 0 )
-                    goto Error;
+                    return ~0;
                 if(ret)
                     ret = -ret;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_dword_field_finish_1:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                    if( !~E_aml_M_field_finish_1() )
-                        goto Error;
+                {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
+                }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_dword_field_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_dword_field_finish_2:
                 ret = E_aml_M_field_finish_2(4);
                 if( (S)ret < 0 )
-                    goto Error;
+                    return ~0;
                 if(ret)
                     ret = -ret;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_field_finish_1:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_pathname )
-                        goto Error;
-                    N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
-                    if( !~object_i
-                    || E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_buffer
-                    )
-                        goto Error;
-                    struct E_aml_Z_buffer *buffer = E_aml_S_object[ object_i ].data;
-                    if( ~buffer->n )
-                        goto Error;
-                    struct E_aml_Z_value *Mt_( value, E_aml_S_parse_stack_S_tmp_p_n );
+                {   struct E_aml_Z_value *Mt_( value, E_aml_S_parse_stack_S_tmp_p_n );
                     if( !value )
-                        goto Error;
+                        return ~0;
                     value[0] = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
                     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
                     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.tmp_p = value;
@@ -3973,62 +4044,69 @@ Loop:
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_field_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_field_finish_2:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_pathname
-                    )
-                        goto Error;
-                    struct E_aml_Z_value i;
-                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
-                    {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
-                        if( !~object_i
-                        || E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_number
-                        )
-                            goto Error;
-                        i = E_aml_Q_object_I_to_value( object_i );
-                    }else
-                        i = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
-                    struct E_aml_Z_value *value = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.tmp_p;
-                    N object_i = E_aml_Q_object_R( value[0].pathname );
-                    struct E_aml_Z_buffer *buffer = E_aml_S_object[ object_i ].data;
-                    if( i.n / 8 + ( i.n % 8 ? 1 : 0 ) > buffer->n )
-                        goto Error;
-                    value[1] = i;
+                {   struct E_aml_Z_value *value = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.tmp_p;
+                    value[1] = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
                 }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_field_finish_3, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_field_finish_3:
-            {   struct E_aml_Z_value i, u;
-                if( E_aml_Q_current_path_S_precompilation_i )
+            {   struct E_aml_Z_value *value;
+                struct E_aml_Z_value o, i, u;
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_pathname
-                    )
-                        goto Error;
-                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
                     {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
-                        if( !~object_i
-                        || E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_number
+                        if( ~object_i
+                        && E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_number
                         )
-                            goto Error;
-                        u = E_aml_Q_object_I_to_value( object_i );
-                    }else
+                            u = E_aml_Q_object_I_to_value( object_i );
+                        else
+                            u.type = E_aml_Z_value_Z_type_S_uninitialized;
+                    }else if( u.type == E_aml_Z_value_Z_type_S_number )
                         u = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
-                    struct E_aml_Z_value *value = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.tmp_p;
-                    if( value[1].type == E_aml_Z_value_Z_type_S_pathname )
-                    {   N object_i = E_aml_Q_object_R( value[1].pathname );
-                        i = E_aml_Q_object_I_to_value( object_i );
-                    }else
-                        i = value[1];
-                    N object_i = E_aml_Q_object_R( value[0].pathname );
-                    struct E_aml_Z_buffer *buffer = E_aml_S_object[ object_i ].data;
-                    if( !u.n
-                    || ( i.n + u.n ) / 8 + (( i.n + u.n ) % 8 ? 1 : 0 ) > buffer->n
-                    )
-                        goto Error;
+                    else
+                        u.type = E_aml_Z_value_Z_type_S_uninitialized;
+                    if( u.type != E_aml_Z_value_Z_type_S_uninitialized )
+                    {   if( !u.n )
+                            return ~0;
+                        value = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.tmp_p;
+                        N object_i;
+                        if( value[0].type == E_aml_Z_value_Z_type_S_pathname )
+                        {   object_i = E_aml_Q_object_R( value[0].pathname );
+                            if( ~object_i
+                            && E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_buffer
+                            && !~E_aml_S_object[ object_i ].n
+                            )
+                                o = E_aml_Q_object_I_to_value( object_i );
+                            else
+                                o.type = E_aml_Z_value_Z_type_S_uninitialized;
+                        }else
+                            o.type = E_aml_Z_value_Z_type_S_uninitialized;
+                        if( o.type != E_aml_Z_value_Z_type_S_uninitialized )
+                        {   if( value[1].type == E_aml_Z_value_Z_type_S_pathname )
+                            {   N object_i = E_aml_Q_object_R( value[1].pathname );
+                                if( ~object_i
+                                && E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_number
+                                )
+                                    i = E_aml_Q_object_I_to_value( object_i );
+                                else
+                                    i.type = E_aml_Z_value_Z_type_S_uninitialized;
+                            }else if( i.type == E_aml_Z_value_Z_type_S_number )
+                                i = value[1];
+                            else
+                                i.type = E_aml_Z_value_Z_type_S_uninitialized;
+                            if( i.type != E_aml_Z_value_Z_type_S_uninitialized )
+                            {   struct E_aml_Z_buffer *buffer = E_aml_S_object[ object_i ].data;
+                                if( i.n / 8 + ( i.n % 8 ? 1 : 0 ) > buffer->n )
+                                    i.type = E_aml_Z_value_Z_type_S_uninitialized;
+                            }
+                        }
+                    }
                 }
                 N8 n;
                 Pc name = E_aml_Q_path_R_root( &n );
@@ -4040,7 +4118,7 @@ Loop:
                 E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
                 E_font_I_print( ",bytes field=" ); E_font_I_print( name_ );
                 W( name_ );
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {   
                     W(name);
                 }else
@@ -4048,52 +4126,67 @@ Loop:
                     && !~E_aml_Q_object_R(( struct E_aml_Z_pathname ){ name, n - 1 })
                     )
                     {   W(name);
-                        goto Error;
+                        return ~0;
                     }
                     N object_i = E_aml_Q_object_I_add( E_aml_Z_object_Z_type_S_buffer_field, ( struct E_aml_Z_pathname ){ name, n });
                     if( (S)object_i < 0 )
                     {   W(name);
-                        goto Error;
+                        return ~0;
                     }
-                    struct E_aml_Z_buffer_field *M_(field);
-                    if( !field )
-                    {   W(name);
-                        goto Error;
-                    }
-                    field->pathname = ( struct E_aml_Z_pathname ){ name, n };
-                    field->i = i.n;
-                    field->u = u.n;
-                    E_aml_S_object[ object_i ].data = field;
+                    if( u.type != E_aml_Z_value_Z_type_S_uninitialized
+                    && o.type != E_aml_Z_value_Z_type_S_uninitialized
+                    && i.type != E_aml_Z_value_Z_type_S_uninitialized
+                    )
+                    {   struct E_aml_Z_buffer_field *M_(field);
+                        if( !field )
+                            return ~0;
+                        if( value[0].copy )
+                            field->pathname = value[0].pathname;
+                        else
+                        {   field->pathname.s = E_text_Z_sl_M_duplicate( value[0].pathname.s, value[0].pathname.n );
+                            if( !field->pathname.s )
+                            {   W(field);
+                                return ~0;
+                            }
+                            field->pathname.n = value[0].pathname.n;
+                        }
+                        field->i = i.n;
+                        field->u = u.n;
+                        E_aml_S_object[ object_i ].data = field;
+                    }else
+                        E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_uninitialized;
                 }
                 break;
             }
           case E_aml_Z_parse_stack_Z_entity_S_qword_field_finish_1:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                    if( !~E_aml_M_field_finish_1() )
-                        goto Error;
+                {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
+                }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_qword_field_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_qword_field_finish_2:
                 ret = E_aml_M_field_finish_2(8);
                 if( (S)ret < 0 )
-                    goto Error;
+                    return ~0;
                 if(ret)
                     ret = -ret;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_word_field_finish_1:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                    if( !~E_aml_M_field_finish_1() )
-                        goto Error;
+                {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
+                }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_word_field_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_word_field_finish_2:
                 ret = E_aml_M_field_finish_2(2);
                 if( (S)ret < 0 )
-                    goto Error;
+                    return ~0;
                 if(ret)
                     ret = -ret;
                 break;
@@ -4109,86 +4202,112 @@ Loop:
                 //TODO Dodać ‘oem table id’ do drzewa zinterpretowanej przestrzeni ACPI.
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_op_region_finish_1:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   struct E_aml_Z_value i;
                     if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number
                     && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_pathname
                     )
-                        goto Error;
+                        i.type = E_aml_Z_value_Z_type_S_uninitialized;
                     if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
                     {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
                         if( !~object_i
                         || E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_number
                         )
-                            goto Error;
-                        i = E_aml_Q_object_I_to_value( object_i );
+                            i.type = E_aml_Z_value_Z_type_S_uninitialized;
+                        else
+                            i = E_aml_Q_object_I_to_value( object_i );
                     }else
                         i = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
                     struct E_aml_Z_value *value = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.tmp_p;
                     N object_i = E_aml_Q_object_R( value[0].pathname );
-                    struct E_aml_Z_op_region *region = E_aml_S_object[ object_i ].data;
-                    region->i = i.n;
+                    if( i.type != E_aml_Z_value_Z_type_S_uninitialized )
+                    {   struct E_aml_Z_op_region *region = E_aml_S_object[ object_i ].data;
+                        region->i = i.n;
+                    }else
+                    {   E_aml_Q_value_W( &value[0] );
+                        value[0].type = E_aml_Z_value_Z_type_S_uninitialized;
+                        value[0].copy = no;
+                        E_aml_Q_object_W_data( object_i );
+                        E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_uninitialized;
+                    }
                 }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_op_region_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_op_region_finish_2:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   struct E_aml_Z_value l;
                     if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number
                     && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_pathname
                     )
-                        goto Error;
+                        l.type = E_aml_Z_value_Z_type_S_uninitialized;
                     if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
                     {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
                         if( !~object_i
                         || E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_number
                         )
-                            goto Error;
+                            l.type = E_aml_Z_value_Z_type_S_uninitialized;
                         l = E_aml_Q_object_I_to_value( object_i );
                     }else
                         l = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
                     struct E_aml_Z_value *value = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.tmp_p;
-                    N object_i = E_aml_Q_object_R( value[0].pathname );
-                    struct E_aml_Z_op_region *region = E_aml_S_object[ object_i ].data;
-                    region->l = l.n;
+                    if( value[0].type != E_aml_Z_value_Z_type_S_uninitialized )
+                    {   N object_i = E_aml_Q_object_R( value[0].pathname );
+                        if( l.type != E_aml_Z_value_Z_type_S_uninitialized )
+                        {   struct E_aml_Z_op_region *region = E_aml_S_object[ object_i ].data;
+                            region->l = l.n;
+                        }else
+                        {   E_aml_Q_object_W_data( object_i );
+                            E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_uninitialized;
+                        }
+                    }
                 }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_power_res_finish:
                 //TODO Dodać ‘power res’ do drzewa zinterpretowanej przestrzeni ACPI.
                 if( !~E_aml_Q_current_path_I_pop() )
-                    goto Error;
+                    return ~0;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_thermal_zone_finish:
                 //TODO Dodać ‘thermal zone’ do drzewa zinterpretowanej przestrzeni ACPI.
                 if( !~E_aml_Q_current_path_I_pop() )
-                    goto Error;
+                    return ~0;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_device_finish:
                 //TODO Dodać ‘device’ do drzewa zinterpretowanej przestrzeni ACPI.
                 if( !~E_aml_Q_current_path_I_pop() )
-                    goto Error;
+                    return ~0;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_processor_finish:
                 //TODO Dodać ‘processor’ do drzewa zinterpretowanej przestrzeni ACPI.
                 if( !~E_aml_Q_current_path_I_pop() )
-                    goto Error;
+                    return ~0;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_if_op_finish_1:
                 E_aml_S_parse_data = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end;
                 if( E_aml_S_parse_data != E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
-                    if( E_aml_Q_current_path_S_precompilation_i )
+                    if( E_aml_Q_current_path_S_precompilation )
                     {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_if_op_finish_2, E_aml_Z_parse_stack_Z_entity_S_term );
                         E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].n = ~0;
                         E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.last_op_if = 0;
                     }else
-                    {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
-                            goto Error;
-                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
-                        if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.n )
+                    {   struct E_aml_Z_value v;
+                        if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
+                        {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.pathname );
+                            if( ~object_i
+                            && E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_number
+                            )
+                                v = E_aml_Q_object_I_to_value( object_i );
+                            else
+                                v.type = E_aml_Z_value_Z_type_S_uninitialized;
+                        }else
+                            v = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result;
+                        if( v.type != E_aml_Z_value_Z_type_S_number )
+                            return ~0;
+                        if( v.n )
                         {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_if_op_finish_2, E_aml_Z_parse_stack_Z_entity_S_term );
                             E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].n = ~0;
                             E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.last_op_if = 0;
@@ -4228,14 +4347,25 @@ Loop:
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_while_op_finish_1:
                 if( E_aml_S_parse_data != E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
-                    if( E_aml_Q_current_path_S_precompilation_i )
+                    if( E_aml_Q_current_path_S_precompilation )
                     {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_while_op_finish_2, E_aml_Z_parse_stack_Z_entity_S_term );
                         E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].n = ~0;
                         E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.last_op_if = 0;
                     }else
-                    {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
-                            goto Error;
-                        if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.n )
+                    {   struct E_aml_Z_value v;
+                        if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
+                        {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.pathname );
+                            if( ~object_i
+                            && E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_number
+                            )
+                                v = E_aml_Q_object_I_to_value( object_i );
+                            else
+                                v.type = E_aml_Z_value_Z_type_S_uninitialized;
+                        }else
+                            v = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result;
+                        if( v.type != E_aml_Z_value_Z_type_S_number )
+                            return ~0;
+                        if( v.n )
                         {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.break_ = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end;
                             E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_while_op_finish_2, E_aml_Z_parse_stack_Z_entity_S_term );
                             E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].n = ~0;
@@ -4244,7 +4374,7 @@ Loop:
                     }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_while_op_finish_2:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   E_aml_S_parse_data = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.continue_;
@@ -4260,11 +4390,12 @@ Loop:
                 E_aml_S_parse_data += 2;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_add_op_finish_1:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                    if( !~E_aml_M_number_pathname_v2_finish_1() )
-                        goto Error;
+                {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
+                }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_add_op_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_add_op_finish_2:
@@ -4272,13 +4403,12 @@ Loop:
                 {   ret = ~0 - 1;
                     break;
                 }
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   N v_1, v_2;
-                    if( !~E_aml_M_number_pathname_v2_finish_2( &v_1, &v_2 ))
-                        goto Error;
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = v_1 + v_2;
+                    if( ~E_aml_M_number_pathname_v2_finish_2( &v_1, &v_2 ))
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = v_1 + v_2;
                 }
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_add_op_finish_3, E_aml_Z_parse_stack_Z_entity_S_supername );
@@ -4287,18 +4417,19 @@ Loop:
                 E_aml_S_parse_data++;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_add_op_finish_3:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                     if( !~E_aml_M_number_finish_3() )
-                        goto Error;
+                        return ~0;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_and_op_finish_1:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                    if( !~E_aml_M_number_pathname_v2_finish_1() )
-                        goto Error;
+                {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
+                }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_and_op_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_and_op_finish_2:
@@ -4306,13 +4437,12 @@ Loop:
                 {   ret = ~0 - 1;
                     break;
                 }
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   N v_1, v_2;
-                    if( !~E_aml_M_number_pathname_v2_finish_2( &v_1, &v_2 ))
-                        goto Error;
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = v_1 & v_2;
+                    if( ~E_aml_M_number_pathname_v2_finish_2( &v_1, &v_2 ))
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = v_1 & v_2;
                 }
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_and_op_finish_3, E_aml_Z_parse_stack_Z_entity_S_supername );
@@ -4321,35 +4451,19 @@ Loop:
                 E_aml_S_parse_data++;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_and_op_finish_3:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                     if( !~E_aml_M_number_finish_3() )
-                        goto Error;
+                        return ~0;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_concat_finish_1:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                {   struct E_aml_Z_value v_0;
-                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
-                    {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
-                        if( !~object_i
-                        || E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_number
-                        )
-                            goto Error;
-                        v_0 = E_aml_Q_object_I_to_value( object_i );
-                    }else
-                        v_0 = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
-                    if(( v_0.type == E_aml_Z_value_Z_type_S_string
-                      || v_0.type == E_aml_Z_value_Z_type_S_buffer
-                    )
-                    && ~v_0.i
-                    )
-                        goto Error;
-                    struct E_aml_Z_value *Mt_( value, E_aml_S_parse_stack_S_tmp_p_n );
+                {   struct E_aml_Z_value *Mt_( value, E_aml_S_parse_stack_S_tmp_p_n );
                     if( !value )
-                        goto Error;
+                        return ~0;
                     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.tmp_p = value;
                     value[0] = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
                     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
@@ -4363,119 +4477,157 @@ Loop:
                 {   ret = ~0 - 1;
                     break;
                 }
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   struct E_aml_Z_value *value = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.tmp_p;
                     N object_0_i;
-                    struct E_aml_Z_value v_0;
+                    struct E_aml_Z_value v_0, v_1;
                     if( value[0].type == E_aml_Z_value_Z_type_S_pathname )
                     {   object_0_i = E_aml_Q_object_R( value[0].pathname );
                         if( !~object_0_i
                         || E_aml_S_object[ object_0_i ].type != E_aml_Z_object_Z_type_S_number
                         )
-                            goto Error;
+                            return ~0;
                         v_0 = E_aml_Q_object_I_to_value( object_0_i );
                     }else
                     {   object_0_i = ~0;
                         v_0 = value[0];
                     }
-                    N object_1_i;
-                    struct E_aml_Z_value v_1;
-                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
-                    {   object_1_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
-                        if( !~object_1_i
-                        || E_aml_S_object[ object_1_i ].type != E_aml_Z_object_Z_type_S_number
-                        )
-                            goto Error;
-                        v_1 = E_aml_Q_object_I_to_value( object_1_i );
-                    }else
-                    {   object_1_i = ~0;
-                        v_1 = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
-                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
-                    }
-                    if( v_0.type == E_aml_Z_value_Z_type_S_number
-                    || v_0.type == E_aml_Z_value_Z_type_S_string
-                    || v_0.type == E_aml_Z_value_Z_type_S_buffer
+                    if(( v_0.type == E_aml_Z_value_Z_type_S_string
+                      || v_0.type == E_aml_Z_value_Z_type_S_buffer
                     )
-                    {   struct E_aml_Z_value *e;
-                        if( E_aml_M_convert( &e
-                        , E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy
-                        , &v_0
-                        , &v_1
-                        ) < 0 )
-                            goto Error;
-                        switch( v_0.type )
-                        { case E_aml_Z_value_Z_type_S_number:
-                            {   struct E_aml_Z_buffer buffer;
-                                buffer.n = 2 * sizeof(N);
-                                buffer.p = M( buffer.n );
-                                if( !buffer.p )
-                                {   W(e);
-                                    goto Error;
+                    && ~v_0.i
+                    )
+                        v_0.type = E_aml_Z_value_Z_type_S_uninitialized;
+                    if( v_0.type != E_aml_Z_value_Z_type_S_uninitialized )
+                    {   N object_1_i;
+                        if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
+                        {   object_1_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
+                            if( ~object_1_i
+                            && E_aml_S_object[ object_1_i ].type == E_aml_Z_object_Z_type_S_number
+                            )
+                                v_1 = E_aml_Q_object_I_to_value( object_1_i );
+                            else
+                                v_1.type = E_aml_Z_value_Z_type_S_uninitialized;
+                        }else
+                        {   object_1_i = ~0;
+                            v_1 = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
+                        }
+                        if( v_1.type != E_aml_Z_value_Z_type_S_uninitialized )
+                        {   if( v_0.type == E_aml_Z_value_Z_type_S_number
+                            || v_0.type == E_aml_Z_value_Z_type_S_string
+                            || v_0.type == E_aml_Z_value_Z_type_S_buffer
+                            )
+                            {   struct E_aml_Z_value *e;
+                                N ret = E_aml_M_convert( &e, E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy, &v_0, &v_1 );
+                                if( !~ret )
+                                    return ~0;
+                                if( ret == ~0 - 1 )
+                                {   if( v_0.type == E_aml_Z_value_Z_type_S_string )
+                                    {   Pc s_1;
+                                        if( !~object_1_i )
+                                            if( v_1.type == E_aml_Z_value_Z_type_S_package )
+                                                s_1 = "[Package]";
+                                            else
+                                                v_1.type = E_aml_Z_value_Z_type_S_uninitialized;
+                                        else
+                                            s_1 = E_aml_Q_object_N( object_0_i );
+                                        if( v_1.type != E_aml_Z_value_Z_type_S_uninitialized )
+                                        {   M_(e);
+                                            if( !e )
+                                                return ~0;
+                                            e->p = s_1;
+                                            e->copy = no;
+                                            e->type = E_aml_Z_value_Z_type_S_string;
+                                        }
+                                    }else
+                                        v_1.type = E_aml_Z_value_Z_type_S_uninitialized;
                                 }
-                                (( N * )buffer.p )[0] = v_0.n;
-                                (( N * )buffer.p )[1] = e->n;
-                                E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.buffer = buffer;
-                                E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_buffer;
-                                break;
-                            }
-                          case E_aml_Z_value_Z_type_S_string:
-                            {   N l_0 = E_text_Z_s0_R_l( v_0.p );
-                                N l_1 = E_text_Z_s0_R_l( e->p );
+                                if( v_1.type != E_aml_Z_value_Z_type_S_uninitialized )
+                                {   switch( v_0.type )
+                                    { case E_aml_Z_value_Z_type_S_number:
+                                        {   struct E_aml_Z_buffer buffer;
+                                            buffer.n = 2 * sizeof(N);
+                                            buffer.p = M( buffer.n );
+                                            if( !buffer.p )
+                                            {   E_aml_Q_value_W(e);
+                                                W(e);
+                                                return ~0;
+                                            }
+                                            (( N * )buffer.p )[0] = v_0.n;
+                                            (( N * )buffer.p )[1] = e->n;
+                                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.buffer = buffer;
+                                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_buffer;
+                                            break;
+                                        }
+                                      case E_aml_Z_value_Z_type_S_string:
+                                        {   N l_0 = E_text_Z_s0_R_l( v_0.p );
+                                            N l_1 = E_text_Z_s0_R_l( e->p );
+                                            Pc s = M( l_0 + l_1 + 1 );
+                                            if( !s )
+                                            {   E_aml_Q_value_W(e);
+                                                W(e);
+                                                return ~0;
+                                            }
+                                            E_text_Z_s_P_copy_s0_0( E_text_Z_s_P_copy_s0( s, v_0.p ), e->p );
+                                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.p = s;
+                                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_string;
+                                            break;
+                                        }
+                                      default:
+                                        {   struct E_aml_Z_buffer buffer;
+                                            buffer.n = v_0.buffer.n + e->buffer.n;
+                                            buffer.p = M( buffer.n );
+                                            if( !buffer.p )
+                                            {   E_aml_Q_value_W(e);
+                                                W(e);
+                                                return ~0;
+                                            }
+                                            E_mem_Q_blk_I_copy( buffer.p, v_0.buffer.p, v_0.buffer.n );
+                                            E_mem_Q_blk_I_copy( buffer.p + v_0.buffer.n, e->buffer.p, e->buffer.n );
+                                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.buffer = buffer;
+                                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_buffer;
+                                            break;
+                                        }
+                                    }
+                                    E_aml_Q_value_W(e);
+                                    W(e);
+                                }
+                            }else
+                            {   Pc s_0;
+                                if( !~object_0_i )
+                                    if( v_0.type == E_aml_Z_value_Z_type_S_package )
+                                        s_0 = "[Package]";
+                                    else
+                                        return ~0;
+                                else
+                                    s_0 = E_aml_Q_object_N( object_0_i );
+                                Pc s_1;
+                                if( !~object_1_i )
+                                    if( v_1.type == E_aml_Z_value_Z_type_S_package )
+                                        s_1 = "[Package]";
+                                    else
+                                        return ~0;
+                                else
+                                    s_1 = E_aml_Q_object_N( object_1_i );
+                                N l_0 = E_text_Z_s0_R_l( s_0 );
+                                N l_1 = E_text_Z_s0_R_l( s_1 );
                                 Pc s = M( l_0 + l_1 + 1 );
                                 if( !s )
-                                {   W(e);
-                                    goto Error;
-                                }
-                                E_text_Z_s_P_copy_s0_0( E_text_Z_s_P_copy_s0( s, v_0.p ), e->p );
+                                    return ~0;
+                                E_text_Z_s_P_copy_s0_0( E_text_Z_s_P_copy_s0( s, s_0 ), s_1 );
                                 E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.p = s;
                                 E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_string;
-                                break;
                             }
-                          default:
-                            {   struct E_aml_Z_buffer buffer;
-                                buffer.n = v_0.buffer.n + e->buffer.n;
-                                buffer.p = M( buffer.n );
-                                if( !buffer.p )
-                                {   W(e);
-                                    goto Error;
-                                }
-                                E_mem_Q_blk_I_copy( buffer.p, v_0.buffer.p, v_0.buffer.n );
-                                E_mem_Q_blk_I_copy( buffer.p + v_0.buffer.n, e->buffer.p, e->buffer.n );
-                                E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.buffer = buffer;
-                                E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_buffer;
-                                break;
-                            }
+                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy = yes;
                         }
-                        W(e);
-                    }else
-                    {   Pc s_0;
-                        if( !~object_0_i )
-                            if( v_0.type == E_aml_Z_value_Z_type_S_package )
-                                s_0 = "[Package]";
-                            else
-                                goto Error;
-                        else
-                            s_0 = E_aml_Q_object_N( object_0_i );
-                        Pc s_1;
-                        if( !~object_1_i )
-                            if( v_1.type == E_aml_Z_value_Z_type_S_package )
-                                s_1 = "[Package]";
-                            else
-                                goto Error;
-                        else
-                            s_1 = E_aml_Q_object_N( object_1_i );
-                        N l_0 = E_text_Z_s0_R_l( s_0 );
-                        N l_1 = E_text_Z_s0_R_l( s_1 );
-                        Pc s = M( l_0 + l_1 + 1 );
-                        if( !s )
-                            goto Error;
-                        E_text_Z_s_P_copy_s0_0( E_text_Z_s_P_copy_s0( s, s_0 ), s_1 );
-                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.p = s;
-                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_string;
                     }
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy = yes;
+                    if( v_0.type == E_aml_Z_value_Z_type_S_uninitialized
+                    || v_1.type == E_aml_Z_value_Z_type_S_uninitialized
+                    )
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_uninitialized;
                 }
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_concat_finish_3, E_aml_Z_parse_stack_Z_entity_S_supername );
@@ -4484,18 +4636,18 @@ Loop:
                 E_aml_S_parse_data++;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_concat_finish_3:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   N ret = E_aml_M_arg_local_debug();
                     if( !~ret )
-                        goto Error;
+                        return ~0;
                     if( !ret )
                         switch( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type )
                         { case E_aml_Z_value_Z_type_S_string:
                             {   N object_i = E_aml_M_clear_object();
                                 if( !~object_i )
-                                    goto Error;
+                                    return ~0;
                                 E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy = no;
                                 Pc s = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.p;
                                 E_aml_S_object[ object_i ].data = s;
@@ -4503,19 +4655,26 @@ Loop:
                                 E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_string;
                                 break;
                             }
-                          default:
+                          case E_aml_Z_value_Z_type_S_buffer:
                             {   N object_i = E_aml_M_clear_object();
                                 if( !~object_i )
-                                    goto Error;
+                                    return ~0;
                                 struct E_aml_Z_buffer *M_(buffer);
                                 if( !buffer )
-                                    goto Error;
+                                    return ~0;
                                 E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy = no;
                                 buffer->p = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.buffer.p;
                                 buffer->n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.buffer.n;
                                 E_aml_S_object[ object_i ].data = buffer;
                                 E_aml_S_object[ object_i ].n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.i;
                                 E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_buffer;
+                                break;
+                            }
+                          default:
+                            {   N object_i = E_aml_M_clear_object();
+                                if( !~object_i )
+                                    return ~0;
+                                E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_uninitialized;
                                 break;
                             }
                         }
@@ -4543,7 +4702,7 @@ Loop:
                 {   ret = ~0 - 1;
                     break;
                 }
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   B ret = yes;
@@ -4554,7 +4713,7 @@ Loop:
                     }
                     struct E_aml_Z_value *Mt_( value, E_aml_S_parse_stack_S_tmp_p_n );
                     if( !value )
-                        goto Error;
+                        return ~0;
                     value[0] = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
                     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
                     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.tmp_p = value;
@@ -4570,17 +4729,19 @@ Loop:
                 E_aml_S_parse_data++;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_cond_refof_finish_2:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   N ret = E_aml_M_arg_local_debug();
                     if( !~ret )
-                        goto Error;
+                        return ~0;
                     if( !ret )
                     {   struct E_aml_Z_value *value = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.tmp_p;
                         struct E_aml_Z_value v;
                         if( value[0].type == E_aml_Z_value_Z_type_S_pathname )
                         {   N object_i = E_aml_Q_object_R( value[0].pathname );
+                            if( ~object_i )
+                                return ~0;
                             v = E_aml_Q_object_I_to_value( object_i );
                         }else
                             v = value[0];
@@ -4588,7 +4749,7 @@ Loop:
                         { case E_aml_Z_value_Z_type_S_number:
                             {   N object_i = E_aml_M_clear_object();
                                 if( !~object_i )
-                                    goto Error;
+                                    return ~0;
                                 E_aml_S_object[ object_i ].n = v.n;
                                 E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_number;
                                 break;
@@ -4596,7 +4757,7 @@ Loop:
                           case E_aml_Z_value_Z_type_S_string:
                             {   N object_i = E_aml_M_clear_object();
                                 if( !~object_i )
-                                    goto Error;
+                                    return ~0;
                                 Pc s;
                                 if( v.copy )
                                 {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy = no;
@@ -4604,7 +4765,7 @@ Loop:
                                 }else
                                 {   s = E_text_Z_s0_M_duplicate( v.p );
                                     if( !s )
-                                        goto Error;
+                                        return ~0;
                                 }
                                 E_aml_S_object[ object_i ].data = s;
                                 E_aml_S_object[ object_i ].n = v.i;
@@ -4614,10 +4775,10 @@ Loop:
                           case E_aml_Z_value_Z_type_S_buffer:
                             {   N object_i = E_aml_M_clear_object();
                                 if( !~object_i )
-                                    goto Error;
+                                    return ~0;
                                 struct E_aml_Z_buffer *M_(buffer);
                                 if( !buffer )
-                                    goto Error;
+                                    return ~0;
                                 if( v.copy )
                                 {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy = no;
                                     buffer->p = v.buffer.p;
@@ -4625,7 +4786,7 @@ Loop:
                                 {   buffer->p = E_text_Z_sl_M_duplicate( v.buffer.p, v.buffer.n );
                                     if( !buffer->p )
                                     {   W(buffer);
-                                        goto Error;
+                                        return ~0;
                                     }
                                 }
                                 buffer->n = v.buffer.n;
@@ -4637,7 +4798,7 @@ Loop:
                           case E_aml_Z_value_Z_type_S_package:
                             {   N object_i = E_aml_M_clear_object();
                                 if( !~object_i )
-                                    goto Error;
+                                    return ~0;
                                 struct E_aml_Z_package *package;
                                 if( v.copy )
                                 {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy = no;
@@ -4645,15 +4806,20 @@ Loop:
                                 }else
                                 {   package = E_aml_Q_object_I_package_duplicate( v.package );
                                     if( !package )
-                                        goto Error;
+                                        return ~0;
                                 }
                                 E_aml_S_object[ object_i ].data = package;
                                 E_aml_S_object[ object_i ].n = v.i;
                                 E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_package;
                                 break;
                             }
-                          default:
-                                goto Error;
+                          default: //TODO Zamiast tego tworzyć aliasy?
+                            {   N object_i = E_aml_M_clear_object();
+                                if( !~object_i )
+                                    return ~0;
+                                E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_uninitialized;
+                                break;
+                            }
                         }
                     }
                 }
@@ -4663,13 +4829,13 @@ Loop:
                 {   ret = ~0 - 1;
                     break;
                 }
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname
                     && !~E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname )
                     )
-                        goto Error;
+                        return ~0;
                     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
                     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
                 }
@@ -4680,12 +4846,12 @@ Loop:
                 E_aml_S_parse_data++;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_copy_object_finish_2:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   N ret = E_aml_M_arg_local_debug();
                     if( !~ret )
-                        goto Error;
+                        return ~0;
                     if(ret)
                         break;
                     struct E_aml_Z_value v;
@@ -4698,7 +4864,7 @@ Loop:
                     { case E_aml_Z_value_Z_type_S_number:
                         {   N object_i = E_aml_M_clear_object();
                             if( !~object_i )
-                                goto Error;
+                                return ~0;
                             E_aml_S_object[ object_i ].n = v.n;
                             E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_number;
                             break;
@@ -4706,7 +4872,7 @@ Loop:
                       case E_aml_Z_value_Z_type_S_string:
                         {   N object_i = E_aml_M_clear_object();
                             if( !~object_i )
-                                goto Error;
+                                return ~0;
                             Pc s;
                             if( v.copy )
                             {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy = no;
@@ -4714,7 +4880,7 @@ Loop:
                             }else
                             {   s = E_text_Z_s0_M_duplicate( v.p );
                                 if( !s )
-                                    goto Error;
+                                    return ~0;
                             }
                             E_aml_S_object[ object_i ].data = s;
                             E_aml_S_object[ object_i ].n = v.i;
@@ -4724,10 +4890,10 @@ Loop:
                       case E_aml_Z_value_Z_type_S_buffer:
                         {   N object_i = E_aml_M_clear_object();
                             if( !~object_i )
-                                goto Error;
+                                return ~0;
                             struct E_aml_Z_buffer *M_(buffer);
                             if( !buffer )
-                                goto Error;
+                                return ~0;
                             if( v.copy )
                             {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy = no;
                                 buffer->p = v.buffer.p;
@@ -4735,7 +4901,7 @@ Loop:
                             {   buffer->p = E_text_Z_sl_M_duplicate( v.buffer.p, v.buffer.n );
                                 if( !buffer->p )
                                 {   W(buffer);
-                                    goto Error;
+                                    return ~0;
                                 }
                             }
                             buffer->n = v.buffer.n;
@@ -4747,7 +4913,7 @@ Loop:
                       case E_aml_Z_value_Z_type_S_package:
                         {   N object_i = E_aml_M_clear_object();
                             if( !~object_i )
-                                goto Error;
+                                return ~0;
                             struct E_aml_Z_package *package;
                             if( v.copy )
                             {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy = no;
@@ -4755,7 +4921,7 @@ Loop:
                             }else
                             {   package = E_aml_Q_object_I_package_duplicate( v.package );
                                 if( !package )
-                                    goto Error;
+                                    return ~0;
                             }
                             E_aml_S_object[ object_i ].data = package;
                             E_aml_S_object[ object_i ].n = v.i;
@@ -4763,82 +4929,81 @@ Loop:
                             break;
                         }
                       default:
-                            goto Error;
+                            return ~0;
                     }
                 }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_decrement_finish:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                {  if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_arg_ref )
+                {   struct E_aml_Z_pathname pathname;
+                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_arg_ref )
                     {   if( !E_aml_S_procedure_invocation_stack_n )
-                            goto Error;
+                            return ~0;
                         N arg_i = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.i;
-                        if( E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].arg[ arg_i ].type != E_aml_Z_value_Z_type_S_number )
-                            goto Error;
-                        E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].arg[ arg_i ].n--;
-                        break;
-                    }
-                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_local_ref )
+                        if( E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].arg[ arg_i ].type != E_aml_Z_value_Z_type_S_pathname )
+                            return ~0;
+                        pathname = E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].arg[ arg_i ].pathname;
+                    }else if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_local_ref )
                     {   if( !E_aml_S_procedure_invocation_stack_n )
-                            goto Error;
+                            return ~0;
                         N local_i = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.i;
-                        if( E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].local[ local_i ].type != E_aml_Z_value_Z_type_S_number )
-                            goto Error;
-                        E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].local[ local_i ].n--;
+                        if( E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].local[ local_i ].type != E_aml_Z_value_Z_type_S_pathname )
+                            return ~0;
+                        pathname = E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].local[ local_i ].pathname;
+                    }else if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_debug_ref )
                         break;
-                    }
-                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_debug_ref )
-                        break;
-                    N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
+                    else
+                        pathname = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname;
+                    N object_i = E_aml_Q_object_R(pathname);
                     if( !~object_i
                     || E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_number
                     )
-                        goto Error;
+                        return ~0;
                     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = --E_aml_S_object[ object_i ].n;
                     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_number;
                 }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_derefof_finish:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   N ret = E_aml_M_arg_local_debug();
                     if( !~ret )
-                        goto Error;
-                    if(ret)
-                        break;
-                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
-                        goto Error;
-                    N object_i;
-                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_string )
-                    {   if( E_text_Z_s0_R_l( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.p ) != 4 )
-                            goto Error;
-                        if( E_aml_S_current_path_n )
-                            object_i = E_aml_Q_object_R_relative( E_aml_S_current_path[ E_aml_S_current_path_n - 1 ]
-                            , E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.p
-                            );
+                        return ~0;
+                    if( !ret )
+                    {   N object_i;
+                        if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_string )
+                        {   if( E_text_Z_s0_R_l( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.p ) != 4 )
+                                return ~0;
+                            if( E_aml_S_current_path_n )
+                                object_i = E_aml_Q_object_R_relative( E_aml_S_current_path[ E_aml_S_current_path_n - 1 ]
+                                , E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.p
+                                );
+                            else
+                                object_i = E_aml_Q_object_R(( struct E_aml_Z_pathname ){ E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.p, 1 });
+                        }else
+                            object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
+                        if( ~object_i
+                        && ( E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_number
+                          || E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_string
+                          || E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_buffer
+                          || E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_package
+                        ))
+                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_Q_object_I_to_value( object_i );
                         else
-                            object_i = E_aml_Q_object_R(( struct E_aml_Z_pathname ){ E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.p, 1 });
-                    }else
-                        object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
-                    if( !~object_i
-                    || ( E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_number
-                      && E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_string
-                      && E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_buffer
-                      && E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_package
-                    ))
-                        goto Error;
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_Q_object_I_to_value( object_i );
+                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_uninitialized;
+                    }
                 }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_divide_finish_1:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                    if( !~E_aml_M_number_pathname_v2_finish_1() )
-                        goto Error;
+                {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
+                }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_divide_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_divide_finish_2:
@@ -4846,16 +5011,17 @@ Loop:
                 {   ret = ~0 - 1;
                     break;
                 }
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   N v_1, v_2;
-                    if( !~E_aml_M_number_pathname_v2_finish_2( &v_1, &v_2 )
-                    || !v_2
-                    )
-                        goto Error;
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.tmp_n = v_1 % v_2;
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = v_1 / v_2;
+                    if( ~E_aml_M_number_pathname_v2_finish_2( &v_1, &v_2 ))
+                    {   if( !v_2 )
+                            return ~0;
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.tmp_n = v_1 % v_2;
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = v_1 / v_2;
+                    }else
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_uninitialized;
                 }
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_divide_finish_3, E_aml_Z_parse_stack_Z_entity_S_supername );
@@ -4864,18 +5030,21 @@ Loop:
                 E_aml_S_parse_data++;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_divide_finish_3:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   N ret = E_aml_M_arg_local_debug();
                     if( !~ret )
-                        goto Error;
+                        return ~0;
                     if( !ret )
                     {   N object_i = E_aml_M_clear_object();
                         if( !~object_i )
-                            goto Error;
-                        E_aml_S_object[ object_i ].n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.tmp_n;
-                        E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_number;
+                            return ~0;
+                        if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type != E_aml_Z_value_Z_type_S_uninitialized )
+                        {   E_aml_S_object[ object_i ].n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.tmp_n;
+                            E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_number;
+                        }else
+                            E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_uninitialized;
                     }
                 }
                 if( E_aml_S_parse_data == E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
@@ -4889,23 +5058,39 @@ Loop:
                 E_aml_S_parse_data++;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_divide_finish_4:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                     if( !~E_aml_M_number_finish_3() )
-                        goto Error;
+                        return ~0;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_fslb_finish_1:
                 if( E_aml_S_parse_data == E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
                 {   ret = ~0 - 1;
                     break;
                 }
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
-                        goto Error;
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = E_asm_I_bsr( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.n ) + 1;
+                {   struct E_aml_Z_value v;
+                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_number
+                    || E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname
+                    )
+                    {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
+                        {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
+                            if( ~object_i
+                            && E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_number
+                            )
+                                v = E_aml_Q_object_I_to_value( object_i );
+                            else
+                                v.type = E_aml_Z_value_Z_type_S_uninitialized;
+                        }else
+                            v = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                        if( v.type != E_aml_Z_value_Z_type_S_uninitialized )
+                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = E_asm_I_bsr( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.n ) + 1;
+                    }
+                    if( v.type == E_aml_Z_value_Z_type_S_uninitialized )
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_uninitialized;
                 }
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_fslb_finish_2, E_aml_Z_parse_stack_Z_entity_S_supername );
@@ -4914,23 +5099,39 @@ Loop:
                 E_aml_S_parse_data++;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_fslb_finish_2:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                     if( !~E_aml_M_number_finish_3() )
-                        goto Error;
+                        return ~0;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_fsrb_finish_1:
                 if( E_aml_S_parse_data == E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
                 {   ret = ~0 - 1;
                     break;
                 }
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
-                        goto Error;
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = E_asm_I_bsf( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.n ) + 1;
+                {   struct E_aml_Z_value v;
+                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_number
+                    || E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname
+                    )
+                    {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
+                        {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
+                            if( ~object_i
+                            && E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_number
+                            )
+                                v = E_aml_Q_object_I_to_value( object_i );
+                            else
+                                v.type = E_aml_Z_value_Z_type_S_uninitialized;
+                        }else
+                            v = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                        if( v.type != E_aml_Z_value_Z_type_S_uninitialized )
+                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = E_asm_I_bsf( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.n ) + 1;
+                    }
+                    if( v.type == E_aml_Z_value_Z_type_S_uninitialized )
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_uninitialized;
                 }
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_fsrb_finish_2, E_aml_Z_parse_stack_Z_entity_S_supername );
@@ -4939,43 +5140,48 @@ Loop:
                 E_aml_S_parse_data++;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_fsrb_finish_2:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                     if( !~E_aml_M_number_finish_3() )
-                        goto Error;
+                        return ~0;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_from_bcd_finish_1:
                 if( E_aml_S_parse_data == E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
                 {   ret = ~0 - 1;
                     break;
                 }
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_pathname
+                {   struct E_aml_Z_value v;
+                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_number
+                    || E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname
                     )
-                        goto Error;
-                    struct E_aml_Z_value v;
-                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
-                    {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
-                        if( !~object_i
-                        || E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_number
-                        )
-                            goto Error;
-                        v = E_aml_Q_object_I_to_value( object_i );
-                    }else
-                        v = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
-                    N n = 0;
-                    for_n_rev( i, sizeof( v.n ))
-                    {   n *= 10;
-                        n += v.n >> 4;
-                        n *= 10;
-                        n += v.n & 0xf;
+                    {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
+                        {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
+                            if( ~object_i
+                            && E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_number
+                            )
+                                v = E_aml_Q_object_I_to_value( object_i );
+                            else
+                                v.type = E_aml_Z_value_Z_type_S_uninitialized;
+                        }else
+                            v = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                        if( v.type != E_aml_Z_value_Z_type_S_uninitialized )
+                        {   N n = 0;
+                            for_n_rev( i, sizeof( v.n ))
+                            {   n *= 10;
+                                n += v.n >> 4;
+                                n *= 10;
+                                n += v.n & 0xf;
+                            }
+                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = n;
+                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_number;
+                        }
                     }
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = n;
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_number;
+                    if( v.type == E_aml_Z_value_Z_type_S_uninitialized )
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_uninitialized;
                 }
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_from_bcd_finish_2, E_aml_Z_parse_stack_Z_entity_S_supername );
@@ -4984,68 +5190,51 @@ Loop:
                 E_aml_S_parse_data++;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_from_bcd_finish_2:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                     if( !~E_aml_M_number_finish_3() )
-                        goto Error;
+                        return ~0;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_increment_finish:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                {  if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_arg_ref )
+                {   struct E_aml_Z_pathname pathname;
+                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_arg_ref )
                     {   if( !E_aml_S_procedure_invocation_stack_n )
-                            goto Error;
+                            return ~0;
                         N arg_i = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.i;
-                        if( E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].arg[ arg_i ].type != E_aml_Z_value_Z_type_S_number )
-                            goto Error;
-                        E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].arg[ arg_i ].n++;
-                        break;
-                    }
-                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_local_ref )
+                        if( E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].arg[ arg_i ].type != E_aml_Z_value_Z_type_S_pathname )
+                            return ~0;
+                        pathname = E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].arg[ arg_i ].pathname;
+                    }else if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_local_ref )
                     {   if( !E_aml_S_procedure_invocation_stack_n )
-                            goto Error;
+                            return ~0;
                         N local_i = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.i;
-                        if( E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].local[ local_i ].type != E_aml_Z_value_Z_type_S_number )
-                            goto Error;
-                        E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].local[ local_i ].n++;
+                        if( E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].local[ local_i ].type != E_aml_Z_value_Z_type_S_pathname )
+                            return ~0;
+                        pathname = E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].local[ local_i ].pathname;
+                    }else if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_debug_ref )
                         break;
-                    }
-                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_debug_ref )
-                        break;
-                    N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
+                    else
+                        pathname = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname;
+                    N object_i = E_aml_Q_object_R(pathname);
                     if( !~object_i
                     || E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_number
                     )
-                        goto Error;
+                        return ~0;
                     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = ++E_aml_S_object[ object_i ].n;
                     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_number;
                 }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_index_finish_1:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_string
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_buffer
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_package
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_pathname
-                    )
-                        goto Error;
-                    N object_i;
-                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
-                    {   object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
-                        if( !~object_i
-                        || ( E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_string
-                          && E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_buffer
-                          && E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_package
-                        ))
-                            goto Error;
-                    }
-                    struct E_aml_Z_value *Mt_( value, E_aml_S_parse_stack_S_tmp_p_n );
+                {   struct E_aml_Z_value *Mt_( value, E_aml_S_parse_stack_S_tmp_p_n );
                     if( !value )
-                        goto Error;
+                        return ~0;
                     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.tmp_p = value;
                     value[0] = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
                     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
@@ -5059,74 +5248,93 @@ Loop:
                 {   ret = ~0 - 1;
                     break;
                 }
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_pathname
-                    )
-                        goto Error;
-                    struct E_aml_Z_value i;
+                {   struct E_aml_Z_value o, i;
                     if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
                     {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
-                        if( !~object_i
-                        || E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_number
+                        if( ~object_i
+                        && E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_number
                         )
-                            goto Error;
-                        i = E_aml_Q_object_I_to_value( object_i );
+                            i = E_aml_Q_object_I_to_value( object_i );
+                        else
+                            i.type = E_aml_Z_value_Z_type_S_uninitialized;
                     }else
                         i = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
-                    struct E_aml_Z_value *value = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.tmp_p;
-                    struct E_aml_Z_value o;
-                    if( value[1].type == E_aml_Z_value_Z_type_S_pathname )
-                    {   N object_i = E_aml_Q_object_R( value[0].pathname );
-                        o = E_aml_Q_object_I_to_value( object_i );
-                    }else
-                        o = value[0];
-                    struct E_aml_Z_value *value_;
-                    N i_ = o.i;
-                    if( ~i_
-                    && o.type == E_aml_Z_value_Z_type_S_package
-                    )
-                    {   value_ = &o.package->value[ i_ ];
-                        i_ = ~0;
-                    }else
-                        value_ = &o;
-                    if( !~i_ )
-                        switch( value_->type )
-                        { case E_aml_Z_value_Z_type_S_string:
-                                if( i.n >= E_text_Z_s0_R_l( value_->p ))
-                                    goto Error;
-                                break;
-                          case E_aml_Z_value_Z_type_S_buffer:
-                                if( i.n >= value_->buffer.n )
-                                    goto Error;
-                                break;
-                          default:
-                                if( i.n >= value_->package->n )
-                                    goto Error;
-                                break;
-                        }
-                    else
-                    {   i_ = o.i;
-                        switch( value_->type )
-                        { case E_aml_Z_value_Z_type_S_string:
-                                if( i.n >= E_text_Z_s0_R_l( value_->p )
-                                || i_ >= 1
-                                )
-                                    goto Error;
-                                break;
-                          default:
-                                if( i.n >= value_->buffer.n
-                                || i_ >= 1
-                                )
-                                    goto Error;
-                                break;
+                    if( i.type != E_aml_Z_value_Z_type_S_number )
+                        i.type = E_aml_Z_value_Z_type_S_uninitialized;
+                    if( i.type != E_aml_Z_value_Z_type_S_uninitialized )
+                    {   struct E_aml_Z_value *value = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.tmp_p;
+                        if( value[1].type == E_aml_Z_value_Z_type_S_pathname )
+                        {   N object_i = E_aml_Q_object_R( value[0].pathname );
+                            if( ~object_i
+                            && ( E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_string
+                              || E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_buffer
+                              || E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_package
+                            ))
+                                o = E_aml_Q_object_I_to_value( object_i );
+                            else
+                                o.type = E_aml_Z_value_Z_type_S_uninitialized;
+                        }else
+                            o = value[0];
+                        if( o.type != E_aml_Z_value_Z_type_S_string
+                        && o.type != E_aml_Z_value_Z_type_S_buffer
+                        && o.type != E_aml_Z_value_Z_type_S_package
+                        && o.type != E_aml_Z_value_Z_type_S_pathname
+                        )
+                            o.type = E_aml_Z_value_Z_type_S_uninitialized;
+                        if( o.type != E_aml_Z_value_Z_type_S_uninitialized )
+                        {   struct E_aml_Z_value *value_;
+                            N i_ = o.i;
+                            if( ~i_
+                            && o.type == E_aml_Z_value_Z_type_S_package
+                            )
+                            {   value_ = &o.package->value[ i_ ];
+                                i_ = ~0;
+                            }else
+                                value_ = &o;
+                            if( !~i_ )
+                                switch( value_->type )
+                                { case E_aml_Z_value_Z_type_S_string:
+                                        if( i.n >= E_text_Z_s0_R_l( value_->p ))
+                                            return ~0;
+                                        break;
+                                  case E_aml_Z_value_Z_type_S_buffer:
+                                        if( i.n >= value_->buffer.n )
+                                            return ~0;
+                                        break;
+                                  default:
+                                        if( i.n >= value_->package->n )
+                                            return ~0;
+                                        break;
+                                }
+                            else
+                            {   i_ = o.i;
+                                switch( value_->type )
+                                { case E_aml_Z_value_Z_type_S_string:
+                                        if( i.n >= E_text_Z_s0_R_l( value_->p )
+                                        || i_ >= 1
+                                        )
+                                            return ~0;
+                                        break;
+                                  default:
+                                        if( i.n >= value_->buffer.n
+                                        || i_ >= 1
+                                        )
+                                            return ~0;
+                                        break;
+                                }
+                            }
+                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
+                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.i = i.n;
                         }
                     }
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.i = i.n;
+                    if( i.type == E_aml_Z_value_Z_type_S_uninitialized
+                    || o.type == E_aml_Z_value_Z_type_S_uninitialized
+                    )
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_uninitialized;
                 }
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_index_finish_3, E_aml_Z_parse_stack_Z_entity_S_supername );
@@ -5135,18 +5343,18 @@ Loop:
                 E_aml_S_parse_data++;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_index_finish_3:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   N ret = E_aml_M_arg_local_debug();
                     if( !~ret )
-                        goto Error;
+                        return ~0;
                     if( !ret )
                         switch( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type )
                         { case E_aml_Z_value_Z_type_S_string:
                             {   N object_i = E_aml_M_clear_object();
                                 if( !~object_i )
-                                    goto Error;
+                                    return ~0;
                                 Pc s;
                                 if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy )
                                 {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy = no;
@@ -5154,7 +5362,7 @@ Loop:
                                 }else
                                 {   s = E_text_Z_s0_M_duplicate( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.p );
                                     if( !s )
-                                        goto Error;
+                                        return ~0;
                                 }
                                 E_aml_S_object[ object_i ].data = s;
                                 E_aml_S_object[ object_i ].n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.i;
@@ -5164,10 +5372,10 @@ Loop:
                           case E_aml_Z_value_Z_type_S_buffer:
                             {   N object_i = E_aml_M_clear_object();
                                 if( !~object_i )
-                                    goto Error;
+                                    return ~0;
                                 struct E_aml_Z_buffer *M_(buffer);
                                 if( !buffer )
-                                    goto Error;
+                                    return ~0;
                                 if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy )
                                 {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy = no;
                                     buffer->p = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.buffer.p;
@@ -5177,7 +5385,7 @@ Loop:
                                     );
                                     if( !buffer->p )
                                     {   W(buffer);
-                                        goto Error;
+                                        return ~0;
                                     }
                                 }
                                 buffer->n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.buffer.n;
@@ -5186,10 +5394,10 @@ Loop:
                                 E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_buffer;
                                 break;
                             }
-                          default:
+                          case E_aml_Z_value_Z_type_S_package:
                             {   N object_i = E_aml_M_clear_object();
                                 if( !~object_i )
-                                    goto Error;
+                                    return ~0;
                                 struct E_aml_Z_package *package;
                                 if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy )
                                 {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy = no;
@@ -5197,229 +5405,232 @@ Loop:
                                 }else
                                 {   package = E_aml_Q_object_I_package_duplicate( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.package );
                                     if( !package )
-                                        goto Error;
+                                        return ~0;
                                 }
                                 E_aml_S_object[ object_i ].data = package;
                                 E_aml_S_object[ object_i ].n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.i;
                                 E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_package;
                                 break;
                             }
+                          default:
+                            {   N object_i = E_aml_M_clear_object();
+                                if( !~object_i )
+                                    return ~0;
+                                E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_uninitialized;
+                                break;
+                            }
                         }
                 }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_land_finish_1:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                    if( !~E_aml_M_number_pathname_v2_finish_1() )
-                        goto Error;
+                {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
+                }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_land_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_land_finish_2:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   N v_1, v_2;
-                    if( !~E_aml_M_number_pathname_v2_finish_2( &v_1, &v_2 ))
-                        goto Error;
-                    if( v_1 )
-                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = v_2;
+                    if( ~E_aml_M_number_pathname_v2_finish_2( &v_1, &v_2 ))
+                        if( v_1 )
+                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = v_2;
                 }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_lequal_finish_1:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_string
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_buffer
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_pathname
-                    )
-                        goto Error;
-                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
-                    {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
-                        if( !~object_i
-                        || ( E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_number
-                          && E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_string
-                          && E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_buffer
-                        ))
-                            goto Error;
-                    }
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
                 }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_lequal_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_lequal_finish_2:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_string
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_buffer
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_pathname
+                {   struct E_aml_Z_value v_0, v_1;
+                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_number
+                    || E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_string
+                    || E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_buffer
+                    || E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname
                     )
-                        goto Error;
-                    struct E_aml_Z_value v_0;
-                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
-                    {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.pathname );
-                        v_0 = E_aml_Q_object_I_to_value( object_i );
-                    }else
-                        v_0 = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
-                    struct E_aml_Z_value v_1;
-                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
-                    {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
-                        if( !~object_i )
-                            goto Error;
-                        v_1 = E_aml_Q_object_I_to_value( object_i );
-                    }else
-                        v_1 = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
-                    struct E_aml_Z_value *e;
-                    if( E_aml_M_convert( &e
-                    , E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy
-                    , &v_0
-                    , &v_1
-                    ) < 0 )
-                        goto Error;
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = E_aml_Q_value_T_cmp_eq( &v_0, e );
-                    W(e);
+                    {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
+                        {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.pathname );
+                            if( ~object_i
+                            && ( E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_number
+                              || E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_string
+                              || E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_buffer
+                            ))
+                                v_0 = E_aml_Q_object_I_to_value( object_i );
+                            else
+                                v_0.type = E_aml_Z_value_Z_type_S_uninitialized;
+                        }else
+                            v_0 = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                        if( v_0.type != E_aml_Z_value_Z_type_S_uninitialized )
+                        {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
+                            {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
+                                if( ~object_i )
+                                    v_1 = E_aml_Q_object_I_to_value( object_i );
+                                else
+                                    v_1.type = E_aml_Z_value_Z_type_S_uninitialized;
+                            }else
+                                v_1 = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                            if( v_1.type != E_aml_Z_value_Z_type_S_uninitialized )
+                            {   struct E_aml_Z_value *e;
+                                N ret = E_aml_M_convert( &e, E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy, &v_0, &v_1 );
+                                if( !~ret )
+                                    return ~0;
+                                if( ret == ~0 - 1 )
+                                    v_1.type = E_aml_Z_value_Z_type_S_uninitialized;
+                                else
+                                {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = E_aml_Q_value_T_cmp_eq( &v_0, e );
+                                    E_aml_Q_value_W(e);
+                                    W(e);
+                                }
+                            }
+                        }
+                    }
+                    if( v_0.type == E_aml_Z_value_Z_type_S_uninitialized
+                    || v_1.type == E_aml_Z_value_Z_type_S_uninitialized
+                    )
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_uninitialized;
                 }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_lgreater_finish_1:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_string
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_buffer
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_pathname
-                    )
-                        goto Error;
-                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
-                    {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
-                        if( !~object_i
-                        || ( E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_number
-                          && E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_string
-                          && E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_buffer
-                        ))
-                            goto Error;
-                    }
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
                 }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_lgreater_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_lgreater_finish_2:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_string
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_buffer
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_pathname
+                {   struct E_aml_Z_value v_0, v_1;
+                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_number
+                    || E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_string
+                    || E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_buffer
+                    || E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname
                     )
-                        goto Error;
-                    struct E_aml_Z_value v_0;
-                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
-                    {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.pathname );
-                        v_0 = E_aml_Q_object_I_to_value( object_i );
-                    }else
-                        v_0 = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
-                    struct E_aml_Z_value v_1;
-                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
-                    {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
-                        if( !~object_i )
-                            goto Error;
-                        v_1 = E_aml_Q_object_I_to_value( object_i );
-                    }else
-                        v_1 = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
-                    struct E_aml_Z_value *e;
-                    if( E_aml_M_convert( &e
-                    , E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy
-                    , &v_0
-                    , &v_1
-                    ) < 0 )
-                        goto Error;
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = E_aml_Q_value_T_cmp_gt( &v_0, e );
-                    W(e);
+                    {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
+                        {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.pathname );
+                            if( ~object_i
+                            && ( E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_number
+                              || E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_string
+                              || E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_buffer
+                            ))
+                                v_0 = E_aml_Q_object_I_to_value( object_i );
+                            else
+                                v_0.type = E_aml_Z_value_Z_type_S_uninitialized;
+                        }else
+                            v_0 = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                        if( v_0.type != E_aml_Z_value_Z_type_S_uninitialized )
+                        {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
+                            {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
+                                if( ~object_i )
+                                    v_1 = E_aml_Q_object_I_to_value( object_i );
+                                else
+                                    v_1.type = E_aml_Z_value_Z_type_S_uninitialized;
+                            }else
+                                v_1 = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                            if( v_1.type != E_aml_Z_value_Z_type_S_uninitialized )
+                            {   struct E_aml_Z_value *e;
+                                N ret = E_aml_M_convert( &e, E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy, &v_0, &v_1 );
+                                if( !~ret )
+                                    return ~0;
+                                if( ret == ~0 - 1 )
+                                    v_1.type = E_aml_Z_value_Z_type_S_uninitialized;
+                                else
+                                {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = E_aml_Q_value_T_cmp_gt( &v_0, e );
+                                    E_aml_Q_value_W(e);
+                                    W(e);
+                                }
+                            }
+                        }
+                    }
+                    if( v_0.type == E_aml_Z_value_Z_type_S_uninitialized
+                    || v_1.type == E_aml_Z_value_Z_type_S_uninitialized
+                    )
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_uninitialized;
                 }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_lless_finish_1:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_string
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_buffer
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_pathname
-                    )
-                        goto Error;
-                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
-                    {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
-                        if( !~object_i
-                        || ( E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_number
-                          && E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_string
-                          && E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_buffer
-                        ))
-                            goto Error;
-                    }
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
                 }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_lless_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_lless_finish_2:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_string
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_buffer
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_pathname
+                {   struct E_aml_Z_value v_0, v_1;
+                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_number
+                    || E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_string
+                    || E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_buffer
+                    || E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname
                     )
-                        goto Error;
-                    struct E_aml_Z_value v_0;
-                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
-                    {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.pathname );
-                        v_0 = E_aml_Q_object_I_to_value( object_i );
-                    }else
-                        v_0 = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
-                    struct E_aml_Z_value v_1;
-                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
-                    {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
-                        if( !~object_i )
-                            goto Error;
-                        v_1 = E_aml_Q_object_I_to_value( object_i );
-                    }else
-                        v_1 = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
-                    struct E_aml_Z_value *e;
-                    if( E_aml_M_convert( &e
-                    , E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy
-                    , &v_0
-                    , &v_1
-                    ) < 0 )
-                        goto Error;
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = E_aml_Q_value_T_cmp_lt( &v_0, e );
-                    W(e);
+                    {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
+                        {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.pathname );
+                            if( ~object_i
+                            && ( E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_number
+                              || E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_string
+                              || E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_buffer
+                            ))
+                                v_0 = E_aml_Q_object_I_to_value( object_i );
+                            else
+                                v_0.type = E_aml_Z_value_Z_type_S_uninitialized;
+                        }else
+                            v_0 = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                        if( v_0.type != E_aml_Z_value_Z_type_S_uninitialized )
+                        {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
+                            {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
+                                if( ~object_i )
+                                    v_1 = E_aml_Q_object_I_to_value( object_i );
+                                else
+                                    v_1.type = E_aml_Z_value_Z_type_S_uninitialized;
+                            }else
+                                v_1 = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                            if( v_1.type != E_aml_Z_value_Z_type_S_uninitialized )
+                            {   struct E_aml_Z_value *e;
+                                N ret = E_aml_M_convert( &e, E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy, &v_0, &v_1 );
+                                if( !~ret )
+                                    return ~0;
+                                if( ret == ~0 - 1 )
+                                    v_1.type = E_aml_Z_value_Z_type_S_uninitialized;
+                                else
+                                {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = E_aml_Q_value_T_cmp_lt( &v_0, e );
+                                    E_aml_Q_value_W(e);
+                                    W(e);
+                                }
+                            }
+                        }
+                    }
+                    if( v_0.type == E_aml_Z_value_Z_type_S_uninitialized
+                    || v_1.type == E_aml_Z_value_Z_type_S_uninitialized
+                    )
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_uninitialized;
                 }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_mid_finish_1:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_string
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_buffer
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_pathname
-                    )
-                        goto Error;
-                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
-                    {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
-                        if( !~object_i
-                        || ( E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_string
-                          && E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_buffer
-                        ))
-                            goto Error;
-                    }
-                    struct E_aml_Z_value *Mt_( value, E_aml_S_parse_stack_S_tmp_p_n );
+                {   struct E_aml_Z_value *Mt_( value, E_aml_S_parse_stack_S_tmp_p_n );
                     if( !value )
-                        goto Error;
+                        return ~0;
                     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.tmp_p = value;
                     value[0] = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
                     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
@@ -5429,28 +5640,10 @@ Loop:
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_mid_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_mid_finish_2:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_pathname
-                    )
-                        goto Error;
-                    struct E_aml_Z_value i;
-                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
-                    {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
-                        if( !~object_i
-                        || E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_number
-                        )
-                            goto Error;
-                        i = E_aml_Q_object_I_to_value( object_i );
-                    }else
-                        i = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
-                    struct E_aml_Z_value *value = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.tmp_p;
-                    if( ~i.i
-                    && i.i
-                    )
-                        goto Error;
+                {   struct E_aml_Z_value *value = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.tmp_p;
                     value[1] = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
                     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
                 }
@@ -5461,73 +5654,104 @@ Loop:
                 {   ret = ~0 - 1;
                     break;
                 }
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number
                     && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_pathname
                     )
-                        goto Error;
-                    struct E_aml_Z_value l;
+                        return ~0;
+                    struct E_aml_Z_value o, i, l;
                     if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
                     {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
-                        if( !~object_i
-                        || E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_number
+                        if( ~object_i
+                        && E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_number
                         )
-                            goto Error;
-                        l = E_aml_Q_object_I_to_value( object_i );
+                            l = E_aml_Q_object_I_to_value( object_i );
+                        else
+                            l.type = E_aml_Z_value_Z_type_S_uninitialized;
                     }else
                         l = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
-                    struct E_aml_Z_value *value = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.tmp_p;
-                    struct E_aml_Z_value o;
-                    if( value[1].type == E_aml_Z_value_Z_type_S_pathname )
-                    {   N object_i = E_aml_Q_object_R( value[0].pathname );
-                        o = E_aml_Q_object_I_to_value( object_i );
-                    }else
-                        o = value[0];
-                    struct E_aml_Z_value i;
-                    if( value[1].type == E_aml_Z_value_Z_type_S_pathname )
-                    {   N object_i = E_aml_Q_object_R( value[0].pathname );
-                        i = E_aml_Q_object_I_to_value( object_i );
-                    }else
-                        i = value[1];
-                    N i_ = i.n;
-                    N l_ = l.n;
-                    switch( o.type )
-                    { case E_aml_Z_value_Z_type_S_string:
-                        {   N l__ = E_text_Z_s0_R_l( o.p );
-                            if( l_ > l__ )
-                                l_ = l__;
-                            break;
+                    if( l.type != E_aml_Z_value_Z_type_S_number )
+                        l.type = E_aml_Z_value_Z_type_S_uninitialized;
+                    if( l.type != E_aml_Z_value_Z_type_S_uninitialized )
+                    {   struct E_aml_Z_value *value = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.tmp_p;
+                        if( value[1].type == E_aml_Z_value_Z_type_S_pathname )
+                        {   N object_i = E_aml_Q_object_R( value[0].pathname );
+                            if( ~object_i
+                            && ( E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_string
+                              || E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_buffer
+                            ))
+                                o = E_aml_Q_object_I_to_value( object_i );
+                            else
+                                o.type = E_aml_Z_value_Z_type_S_uninitialized;
+                        }else
+                            o = value[0];
+                        if(( o.type != E_aml_Z_value_Z_type_S_string
+                          && o.type != E_aml_Z_value_Z_type_S_buffer
+                        )
+                        || ~o.i
+                        )
+                            o.type = E_aml_Z_value_Z_type_S_uninitialized;
+                        if( o.type != E_aml_Z_value_Z_type_S_uninitialized )
+                        {   if( value[1].type == E_aml_Z_value_Z_type_S_pathname )
+                            {   N object_i = E_aml_Q_object_R( value[0].pathname );
+                                if( ~object_i
+                                && E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_number
+                                )
+                                    i = E_aml_Q_object_I_to_value( object_i );
+                                else
+                                    i.type = E_aml_Z_value_Z_type_S_uninitialized;
+                            }else
+                                i = value[1];
+                            if( i.type != E_aml_Z_value_Z_type_S_number )
+                                i.type = E_aml_Z_value_Z_type_S_uninitialized;
+                            if( i.type != E_aml_Z_value_Z_type_S_uninitialized )
+                            {   N i_ = i.n;
+                                N l_ = l.n;
+                                switch( o.type )
+                                { case E_aml_Z_value_Z_type_S_string:
+                                    {   N l__ = E_text_Z_s0_R_l( o.p );
+                                        if( l_ > l__ )
+                                            l_ = l__;
+                                        break;
+                                    }
+                                  default:
+                                        if( l_ > o.buffer.n )
+                                            l_ = o.buffer.n;
+                                        break;
+                                }
+                                if( i_ > l_ )
+                                    i_ = l_;
+                                switch( o.type )
+                                { case E_aml_Z_value_Z_type_S_string:
+                                    {   Pc s = M( l_ - i_ + 1 );
+                                        if( !s )
+                                            return ~0;
+                                        E_text_Z_s_P_copy_sl_0( s, o.buffer.p + i_, l_ - i_ );
+                                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.p = s;
+                                        break;
+                                    }
+                                  default:
+                                    {   Pc s = M( l_ - i_ );
+                                        if( !s )
+                                            return ~0;
+                                        E_mem_Q_blk_I_copy( s, o.buffer.p + i_, l_ - i_ );
+                                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.buffer.p = s;
+                                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.buffer.n = l_ - i_;
+                                        break;
+                                    }
+                                }
+                                E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = o.type;
+                                E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy = yes;
+                            }
                         }
-                      default:
-                            if( l_ > o.buffer.n )
-                                l_ = o.buffer.n;
-                            break;
                     }
-                    if( i_ > l_ )
-                        i_ = l_;
-                    switch( o.type )
-                    { case E_aml_Z_value_Z_type_S_string:
-                        {   Pc s = M( l_ - i_ + 1 );
-                            if( !s )
-                                goto Error;
-                            E_text_Z_s_P_copy_sl_0( s, o.buffer.p + i_, l_ - i_ );
-                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.p = s;
-                            break;
-                        }
-                      default:
-                        {   Pc s = M( l_ - i_ );
-                            if( !s )
-                                goto Error;
-                            E_mem_Q_blk_I_copy( s, o.buffer.p + i_, l_ - i_ );
-                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.buffer.p = s;
-                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.buffer.n = l_ - i_;
-                            break;
-                        }
-                    }
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = o.type;
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy = yes;
+                    if( l.type == E_aml_Z_value_Z_type_S_uninitialized
+                    || o.type == E_aml_Z_value_Z_type_S_uninitialized
+                    || i.type == E_aml_Z_value_Z_type_S_uninitialized
+                    )
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_uninitialized;
                 }
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_mid_finish_4, E_aml_Z_parse_stack_Z_entity_S_supername );
@@ -5536,18 +5760,18 @@ Loop:
                 E_aml_S_parse_data++;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_mid_finish_4:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   N ret = E_aml_M_arg_local_debug();
                     if( !~ret )
-                        goto Error;
+                        return ~0;
                     if( !ret )
                         switch( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type )
                         { case E_aml_Z_value_Z_type_S_string:
                             {   N object_i = E_aml_M_clear_object();
                                 if( !~object_i )
-                                    goto Error;
+                                    return ~0;
                                 E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy = no;
                                 Pc s = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.p;
                                 E_aml_S_object[ object_i ].data = s;
@@ -5558,10 +5782,10 @@ Loop:
                           default:
                             {   N object_i = E_aml_M_clear_object();
                                 if( !~object_i )
-                                    goto Error;
+                                    return ~0;
                                 struct E_aml_Z_buffer *M_(buffer);
                                 if( !buffer )
-                                    goto Error;
+                                    return ~0;
                                 E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy = no;
                                 buffer->p = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.buffer.p;
                                 buffer->n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.buffer.n;
@@ -5574,12 +5798,13 @@ Loop:
                 }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_lnot_finish:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
-                        goto Error;
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = !E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.n;
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_number )
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = !E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.n;
+                    else
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_uninitialized;
                 }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_load_table_finish_1:
@@ -5601,22 +5826,22 @@ Loop:
                 //TODO Umieścić operację ‘load table’ w drzewie zinterpretowanej przestrzeni ACPI.
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_lor_finish_1:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                    if( !~E_aml_M_number_pathname_v2_finish_1() )
-                        goto Error;
+                {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
+                }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_lor_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_lor_finish_2:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   N v_1, v_2;
-                    if( !~E_aml_M_number_pathname_v2_finish_2( &v_1, &v_2 ))
-                        goto Error;
-                    if( !v_1 )
-                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = v_2;
+                    if( ~E_aml_M_number_pathname_v2_finish_2( &v_1, &v_2 ))
+                        if( !v_1 )
+                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = v_2;
                 }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_match_finish_1:
@@ -5624,27 +5849,18 @@ Loop:
                 {   ret = ~0 - 1;
                     break;
                 }
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_package
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_pathname
-                    )
-                        goto Error;
-                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
-                    {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
-                        if( !~object_i )
-                            goto Error;
-                    }
-                    struct E_aml_Z_value *Mt_( value, E_aml_S_parse_stack_S_tmp_p_n );
+                {   struct E_aml_Z_value *Mt_( value, E_aml_S_parse_stack_S_tmp_p_n );
                     if( !value )
-                        goto Error;
+                        return ~0;
                     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.tmp_p = value;
                     value[0] = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
                     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
                     value[1].n = *E_aml_S_parse_data;
                     if( value[1].n > 5 )
-                        goto Error;
+                        return ~0;
                     for_n( i, E_aml_S_parse_stack_S_tmp_p_n - 1 )
                         value[ 1 + i ].copy = no;
                 }
@@ -5656,145 +5872,174 @@ Loop:
                 {   ret = ~0 - 1;
                     break;
                 }
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_string
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_buffer
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_pathname
-                    )
-                        goto Error;
-                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
-                    {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
-                        if( !~object_i )
-                            goto Error;
-                    }
-                    struct E_aml_Z_value *value = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.tmp_p;
+                {   struct E_aml_Z_value *value = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.tmp_p;
                     value[2] = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
                     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
                     value[3].n = *E_aml_S_parse_data;
                     if( value[3].n > 5 )
-                        goto Error;
+                        return ~0;
                 }
                 E_aml_S_parse_data++;
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_match_finish_3, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_match_finish_3:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_string
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_buffer
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_pathname
-                    )
-                        goto Error;
-                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
-                    {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
-                        if( !~object_i )
-                            goto Error;
-                    }
-                    struct E_aml_Z_value *value = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.tmp_p;
+                {   struct E_aml_Z_value *value = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.tmp_p;
                     value[4] = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
                     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
                 }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_match_finish_4, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_match_finish_4:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
-                        goto Error;
-                    N start;
+                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number
+                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_pathname
+                    )
+                        return ~0;
+                    struct E_aml_Z_value start, package, match_1, match_2;
                     if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
                     {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
-                        if( E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_number )
-                            goto Error;
-                        start = E_aml_S_object[ object_i ].n;
+                        if( E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_number )
+                            start = E_aml_Q_object_I_to_value( object_i );
+                        else
+                            start.type = E_aml_Z_value_Z_type_S_uninitialized;
                     }else
-                        start = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.n;
+                        start = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                    if( start.type != E_aml_Z_value_Z_type_S_number )
+                        start.type = E_aml_Z_value_Z_type_S_uninitialized;
                     struct E_aml_Z_value *value = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.tmp_p;
-                    if( start >= value[0].package->n )
-                    {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = ~0;
-                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_number;
-                        break;
+                    if( start.type != E_aml_Z_value_Z_type_S_uninitialized )
+                    {   if( value[0].type == E_aml_Z_value_Z_type_S_pathname )
+                        {   N object_i = E_aml_Q_object_R( value[0].pathname );
+                            if( ~object_i
+                            && E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_package
+                            )
+                                package = E_aml_Q_object_I_to_value( object_i );
+                            else
+                                package.type = E_aml_Z_value_Z_type_S_uninitialized;
+                        }else
+                            package = value[0];
+                        if( package.type != E_aml_Z_value_Z_type_S_package )
+                            package.type = E_aml_Z_value_Z_type_S_uninitialized;
+                        if( package.type != E_aml_Z_value_Z_type_S_uninitialized )
+                        {   if( value[2].type == E_aml_Z_value_Z_type_S_pathname )
+                            {   N object_i = E_aml_Q_object_R( value[2].pathname );
+                                if( ~object_i
+                                && ( E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_number
+                                  || E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_string
+                                  || E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_buffer
+                                ))
+                                    match_1 = E_aml_Q_object_I_to_value( object_i );
+                                else
+                                    match_1.type = E_aml_Z_value_Z_type_S_uninitialized;
+                            }else
+                                match_1 = value[2];
+                            if( match_1.type != E_aml_Z_value_Z_type_S_number
+                            && match_1.type != E_aml_Z_value_Z_type_S_string
+                            && match_1.type != E_aml_Z_value_Z_type_S_buffer
+                            )
+                                match_1.type = E_aml_Z_value_Z_type_S_uninitialized;
+                            if( !value[1].n
+                            || match_1.type != E_aml_Z_value_Z_type_S_uninitialized
+                            )
+                            {   if( value[4].type == E_aml_Z_value_Z_type_S_pathname )
+                                {   N object_i = E_aml_Q_object_R( value[4].pathname );
+                                    if( ~object_i
+                                    && ( E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_number
+                                      || E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_string
+                                      || E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_buffer
+                                    ))
+                                        match_2 = E_aml_Q_object_I_to_value( object_i );
+                                    else
+                                        match_2.type = E_aml_Z_value_Z_type_S_uninitialized;
+                                }else
+                                    match_2 = value[4];
+                                if( match_2.type != E_aml_Z_value_Z_type_S_number
+                                && match_2.type != E_aml_Z_value_Z_type_S_string
+                                && match_2.type != E_aml_Z_value_Z_type_S_buffer
+                                )
+                                    match_2.type = E_aml_Z_value_Z_type_S_uninitialized;
+                                if( !value[3].n
+                                || match_2.type != E_aml_Z_value_Z_type_S_uninitialized
+                                )
+                                {   if( start.n >= package.n )
+                                    {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = ~0;
+                                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_number;
+                                        break;
+                                    }
+                                    if( !value[1].n
+                                    && !value[3].n
+                                    )
+                                    {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = 0;
+                                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_number;
+                                        break;
+                                    }
+                                    N8 i;
+                                    for( i = start.n; i != package.package->n; i++ )
+                                    {   struct E_aml_Z_value *e;
+                                        N convert = E_aml_M_convert( &e, package.copy, &package.package->value[i], &match_1 );
+                                        if( !~convert )
+                                            return ~0;
+                                        if( convert == ~0 - 1 )
+                                            continue;
+                                        N cmp_1 = E_aml_M_cmp( value[1].n, e, &match_1 );
+                                        E_aml_Q_value_W(e);
+                                        W(e);
+                                        if( !~cmp_1 )
+                                            return ~0;
+                                        if( match_1.type != match_2.type )
+                                        {   N convert = E_aml_M_convert( &e, package.copy, &package.package->value[i], &match_2 );
+                                            if( !~convert )
+                                                return ~0;
+                                            if( convert == ~0 - 1 )
+                                                continue;
+                                        }
+                                        N cmp_2 = E_aml_M_cmp( value[3].n, e, &match_2 );
+                                        E_aml_Q_value_W(e);
+                                        W(e);
+                                        if( !~cmp_2 )
+                                            return ~0;
+                                        if( cmp_1
+                                        && cmp_2
+                                        )
+                                        {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = i;
+                                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_number;
+                                            break;
+                                        }
+                                    }
+                                    if( i == package.package->n )
+                                    {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = ~0;
+                                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_number;
+                                    }
+                                }
+                            }
+                        }
                     }
-                    if( !value[1].n
-                    && !value[3].n
+                    if( start.type == E_aml_Z_value_Z_type_S_uninitialized
+                    || package.type == E_aml_Z_value_Z_type_S_uninitialized
+                    || ( value[1].n
+                      && match_1.type == E_aml_Z_value_Z_type_S_uninitialized
                     )
-                    {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = 0;
-                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_number;
-                        break;
-                    }
-                    struct E_aml_Z_value package;
-                    if( value[0].type == E_aml_Z_value_Z_type_S_pathname )
-                    {   N object_i = E_aml_Q_object_R( value[0].pathname );
-                        if( E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_package )
-                            goto Error;
-                        package = E_aml_Q_object_I_to_value( object_i );
-                    }else
-                        package = value[0];
-                    struct E_aml_Z_value match_1;
-                    if( value[2].type == E_aml_Z_value_Z_type_S_pathname )
-                    {   N object_i = E_aml_Q_object_R( value[2].pathname );
-                        if( E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_package )
-                            goto Error;
-                        match_1 = E_aml_Q_object_I_to_value( object_i );
-                    }else
-                        match_1 = value[2];
-                    struct E_aml_Z_value match_2;
-                    if( value[4].type == E_aml_Z_value_Z_type_S_pathname )
-                    {   N object_i = E_aml_Q_object_R( value[4].pathname );
-                        if( E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_package )
-                            goto Error;
-                        match_2 = E_aml_Q_object_I_to_value( object_i );
-                    }else
-                        match_2 = value[4];
-                    N8 i;
-                    for( i = start; i != package.package->n; i++ )
-                    {   struct E_aml_Z_value *e;
-                        N convert = E_aml_M_convert( &e, package.copy, &package.package->value[i], &match_1 );
-                        if( !~convert )
-                            goto Error;
-                        if( convert == ~0 - 1 )
-                            continue;
-                        N cmp_1 = E_aml_M_cmp( value[1].n, e, &match_1 );
-                        W(e);
-                        if( !~cmp_1 )
-                            goto Error;
-                        if( match_1.type != match_2.type )
-                        {   N convert = E_aml_M_convert( &e, package.copy, &package.package->value[i], &match_2 );
-                            if( !~convert )
-                                goto Error;
-                            if( convert == ~0 - 1 )
-                                continue;
-                        }
-                        N cmp_2 = E_aml_M_cmp( value[3].n, e, &match_2 );
-                        W(e);
-                        if( !~cmp_2 )
-                            goto Error;
-                        if( cmp_1
-                        && cmp_2
-                        )
-                        {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = i;
-                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_number;
-                            break;
-                        }
-                    }
-                    if( i == package.package->n )
-                    {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = ~0;
-                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_number;
-                    }
+                    || ( value[3].n
+                      && match_2.type == E_aml_Z_value_Z_type_S_uninitialized
+                    ))
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_uninitialized;
                 }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_mod_finish_1:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                    if( !~E_aml_M_number_pathname_v2_finish_1() )
-                        goto Error;
+                {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
+                }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_mod_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_mod_finish_2:
@@ -5802,13 +6047,12 @@ Loop:
                 {   ret = ~0 - 1;
                     break;
                 }
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   N v_1, v_2;
-                    if( !~E_aml_M_number_pathname_v2_finish_2( &v_1, &v_2 ))
-                        goto Error;
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = v_1 % v_2;
+                    if( ~E_aml_M_number_pathname_v2_finish_2( &v_1, &v_2 ))
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = v_1 % v_2;
                 }
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_mod_finish_3, E_aml_Z_parse_stack_Z_entity_S_supername );
@@ -5817,18 +6061,19 @@ Loop:
                 E_aml_S_parse_data++;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_mod_finish_3:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                     if( !~E_aml_M_number_finish_3() )
-                        goto Error;
+                        return ~0;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_multiply_finish_1:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                    if( !~E_aml_M_number_pathname_v2_finish_1() )
-                        goto Error;
+                {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
+                }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_multiply_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_multiply_finish_2:
@@ -5836,13 +6081,12 @@ Loop:
                 {   ret = ~0 - 1;
                     break;
                 }
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   N v_1, v_2;
-                    if( !~E_aml_M_number_pathname_v2_finish_2( &v_1, &v_2 ))
-                        goto Error;
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = v_1 * v_2;
+                    if( ~E_aml_M_number_pathname_v2_finish_2( &v_1, &v_2 ))
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = v_1 * v_2;
                 }
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_multiply_finish_3, E_aml_Z_parse_stack_Z_entity_S_supername );
@@ -5851,18 +6095,19 @@ Loop:
                 E_aml_S_parse_data++;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_multiply_finish_3:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                     if( !~E_aml_M_number_finish_3() )
-                        goto Error;
+                        return ~0;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_nand_finish_1:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                    if( !~E_aml_M_number_pathname_v2_finish_1() )
-                        goto Error;
+                {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
+                }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_nand_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_nand_finish_2:
@@ -5870,13 +6115,12 @@ Loop:
                 {   ret = ~0 - 1;
                     break;
                 }
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   N v_1, v_2;
-                    if( !~E_aml_M_number_pathname_v2_finish_2( &v_1, &v_2 ))
-                        goto Error;
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = ~( v_1 & v_2 );
+                    if( ~E_aml_M_number_pathname_v2_finish_2( &v_1, &v_2 ))
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = ~( v_1 & v_2 );
                 }
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_nand_finish_3, E_aml_Z_parse_stack_Z_entity_S_supername );
@@ -5885,18 +6129,19 @@ Loop:
                 E_aml_S_parse_data++;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_nand_finish_3:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                     if( !~E_aml_M_number_finish_3() )
-                        goto Error;
+                        return ~0;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_nor_finish_1:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                    if( !~E_aml_M_number_pathname_v2_finish_1() )
-                        goto Error;
+                {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
+                }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_nor_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_nor_finish_2:
@@ -5904,13 +6149,12 @@ Loop:
                 {   ret = ~0 - 1;
                     break;
                 }
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   N v_1, v_2;
-                    if( !~E_aml_M_number_pathname_v2_finish_2( &v_1, &v_2 ))
-                        goto Error;
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = ~( v_1 | v_2 );
+                    if( ~E_aml_M_number_pathname_v2_finish_2( &v_1, &v_2 ))
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = ~( v_1 | v_2 );
                 }
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_nor_finish_3, E_aml_Z_parse_stack_Z_entity_S_supername );
@@ -5919,23 +6163,33 @@ Loop:
                 E_aml_S_parse_data++;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_nor_finish_3:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                     if( !~E_aml_M_number_finish_3() )
-                        goto Error;
+                        return ~0;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_not_finish_1:
                 if( E_aml_S_parse_data == E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
                 {   ret = ~0 - 1;
                     break;
                 }
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number )
-                        goto Error;
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = ~E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.n;
+                {   struct E_aml_Z_value v;
+                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
+                    {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
+                        if( ~object_i )
+                            v = E_aml_Q_object_I_to_value( object_i );
+                        else
+                            v.type = E_aml_Z_value_Z_type_S_uninitialized;
+                    }else
+                        v = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                    if( v.type == E_aml_Z_value_Z_type_S_number )
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = ~v.n;
+                    else
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = E_aml_Z_value_Z_type_S_uninitialized;
                 }
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_not_finish_2, E_aml_Z_parse_stack_Z_entity_S_supername );
@@ -5944,31 +6198,34 @@ Loop:
                 E_aml_S_parse_data++;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_not_finish_2:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                     if( !~E_aml_M_number_finish_3() )
-                        goto Error;
+                        return ~0;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_object_type_finish:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_pathname )
-                        goto Error;
+                        return ~0;
                     N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
                     if( !~object_i )
-                        goto Error;
+                    {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_uninitialized;
+                        break;
+                    }
                     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = E_aml_S_object[ object_i ].type;
                     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_number;
                 }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_or_finish_1:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                    if( !~E_aml_M_number_pathname_v2_finish_1() )
-                        goto Error;
+                {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
+                }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_or_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_or_finish_2:
@@ -5976,13 +6233,12 @@ Loop:
                 {   ret = ~0 - 1;
                     break;
                 }
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   N v_1, v_2;
-                    if( !~E_aml_M_number_pathname_v2_finish_2( &v_1, &v_2 ))
-                        goto Error;
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = v_1 | v_2;
+                    if( ~E_aml_M_number_pathname_v2_finish_2( &v_1, &v_2 ))
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = v_1 | v_2;
                 }
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_or_finish_3, E_aml_Z_parse_stack_Z_entity_S_supername );
@@ -5991,31 +6247,34 @@ Loop:
                 E_aml_S_parse_data++;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_or_finish_3:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                     if( !~E_aml_M_number_finish_3() )
-                        goto Error;
+                        return ~0;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_refof_finish:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
                     {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
                         if( !~object_i )
-                            goto Error;
+                        {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_uninitialized;
+                            break;
+                        }
                     }
                     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
                     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
                 }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_shift_left_finish_1:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                    if( !~E_aml_M_number_pathname_v2_finish_1() )
-                        goto Error;
+                {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
+                }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_shift_left_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_shift_left_finish_2:
@@ -6023,13 +6282,12 @@ Loop:
                 {   ret = ~0 - 1;
                     break;
                 }
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   N v_1, v_2;
-                    if( !~E_aml_M_number_pathname_v2_finish_2( &v_1, &v_2 ))
-                        goto Error;
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = v_1 << v_2;
+                    if( ~E_aml_M_number_pathname_v2_finish_2( &v_1, &v_2 ))
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = v_1 << v_2;
                 }
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_shift_left_finish_3, E_aml_Z_parse_stack_Z_entity_S_supername );
@@ -6038,18 +6296,19 @@ Loop:
                 E_aml_S_parse_data++;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_shift_left_finish_3:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                     if( !~E_aml_M_number_finish_3() )
-                        goto Error;
+                        return ~0;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_shift_right_finish_1:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                    if( !~E_aml_M_number_pathname_v2_finish_1() )
-                        goto Error;
+                {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
+                }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_shift_left_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_shift_right_finish_2:
@@ -6057,13 +6316,12 @@ Loop:
                 {   ret = ~0 - 1;
                     break;
                 }
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   N v_1, v_2;
-                    if( !~E_aml_M_number_pathname_v2_finish_2( &v_1, &v_2 ))
-                        goto Error;
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = v_1 >> v_2;
+                    if( ~E_aml_M_number_pathname_v2_finish_2( &v_1, &v_2 ))
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = v_1 >> v_2;
                 }
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_shift_right_finish_3, E_aml_Z_parse_stack_Z_entity_S_supername );
@@ -6072,47 +6330,47 @@ Loop:
                 E_aml_S_parse_data++;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_shift_right_finish_3:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                     if( !~E_aml_M_number_finish_3() )
-                        goto Error;
+                        return ~0;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_sizeof_finish:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_arg_ref )
                     {   if( !E_aml_S_procedure_invocation_stack_n )
-                            goto Error;
+                            return ~0;
                         N arg_i = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.i;
                         if( E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].arg[ arg_i ].type != E_aml_Z_value_Z_type_S_pathname )
-                            goto Error;
+                            return ~0;
                         E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result = E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].arg[ arg_i ];
                     }else if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_local_ref )
                     {   if( !E_aml_S_procedure_invocation_stack_n )
-                            goto Error;
+                            return ~0;
                         N local_i = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.i;
                         if( E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].local[ local_i ].type != E_aml_Z_value_Z_type_S_pathname )
-                            goto Error;
+                            return ~0;
                         E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result = E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].local[ local_i ];
                     }else if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_debug_ref )
                         break;
                     if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_pathname )
-                        goto Error;
+                        return ~0;
                     N object_i = E_aml_M_clear_object();
                     if( !~object_i
                     || ( E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_string
                       && E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_buffer
                       && E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_package
                     ))
-                        goto Error;
+                        return ~0;
                     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = E_aml_Q_object_R_l( object_i );
                     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_number;
                 }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_store_finish_1:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
@@ -6121,151 +6379,160 @@ Loop:
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_store_finish_2, E_aml_Z_parse_stack_Z_entity_S_supername );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_store_finish_2:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   N ret = E_aml_M_arg_local_debug();
                     if( !~ret )
-                        goto Error;
+                        return ~0;
                     if( !ret )
                     {   //NDFN Tutaj powinna być konwersja typu.
                         struct E_aml_Z_value v;
                         if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
                         {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.pathname );
-                            if( !~object_i )
-                                goto Error;
-                            v = E_aml_Q_object_I_to_value( object_i );
+                            if( ~object_i )
+                                v = E_aml_Q_object_I_to_value( object_i );
+                            else
+                                v.type = E_aml_Z_value_Z_type_S_uninitialized;
                         }else
                             v = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result;
-                        N i = v.i;
-                        if( ~i
-                        && v.type == E_aml_Z_value_Z_type_S_package
-                        )
-                        {   v = v.package->value[i];
-                            if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type != E_aml_Z_value_Z_type_S_pathname )
-                                E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy = no;
-                            i = ~0;
-                        }
-                        if( !~i )
-                            switch( v.type )
-                            { case E_aml_Z_value_Z_type_S_number:
-                                {   N object_i = E_aml_M_clear_object();
-                                    if( !~object_i )
-                                        goto Error;
-                                    E_aml_S_object[ object_i ].n = v.n;
-                                    E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_number;
-                                    break;
-                                }
-                              case E_aml_Z_value_Z_type_S_string:
-                                {   N object_i = E_aml_M_clear_object();
-                                    if( !~object_i )
-                                        goto Error;
-                                    Pc s;
-                                    if( v.copy )
-                                    {   v.copy = no;
-                                        s = v.p;
-                                    }else
-                                    {   s = E_text_Z_s0_M_duplicate( v.p );
-                                        if( !s )
-                                            goto Error;
+                        if( v.type != E_aml_Z_value_Z_type_S_uninitialized )
+                        {   N i = v.i;
+                            if( ~i
+                            && v.type == E_aml_Z_value_Z_type_S_package
+                            )
+                            {   v = v.package->value[i];
+                                if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type != E_aml_Z_value_Z_type_S_pathname )
+                                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy = no;
+                                i = ~0;
+                            }
+                            if( !~i )
+                                switch( v.type )
+                                { case E_aml_Z_value_Z_type_S_number:
+                                    {   N object_i = E_aml_M_clear_object();
+                                        if( !~object_i )
+                                            return ~0;
+                                        E_aml_S_object[ object_i ].n = v.n;
+                                        E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_number;
+                                        break;
                                     }
-                                    E_aml_S_object[ object_i ].data = s;
-                                    E_aml_S_object[ object_i ].n = ~0;
-                                    E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_string;
-                                    break;
+                                  case E_aml_Z_value_Z_type_S_string:
+                                    {   N object_i = E_aml_M_clear_object();
+                                        if( !~object_i )
+                                            return ~0;
+                                        Pc s;
+                                        if( v.copy )
+                                        {   v.copy = no;
+                                            s = v.p;
+                                        }else
+                                        {   s = E_text_Z_s0_M_duplicate( v.p );
+                                            if( !s )
+                                                return ~0;
+                                        }
+                                        E_aml_S_object[ object_i ].data = s;
+                                        E_aml_S_object[ object_i ].n = ~0;
+                                        E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_string;
+                                        break;
+                                    }
+                                  case E_aml_Z_value_Z_type_S_buffer:
+                                    {   N object_i = E_aml_M_clear_object();
+                                        if( !~object_i )
+                                            return ~0;
+                                        struct E_aml_Z_buffer *M_(buffer);
+                                        if( !buffer )
+                                            return ~0;
+                                        if( v.copy )
+                                        {   v.copy = no;
+                                            buffer->p = v.buffer.p;
+                                        }else
+                                        {   buffer->p = E_text_Z_sl_M_duplicate( v.buffer.p, v.buffer.n );
+                                            if( !buffer->p )
+                                            {   W(buffer);
+                                                return ~0;
+                                            }
+                                        }
+                                        buffer->n = v.buffer.n;
+                                        E_aml_S_object[ object_i ].data = buffer;
+                                        E_aml_S_object[ object_i ].n = ~0;
+                                        E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_buffer;
+                                        break;
+                                    }
+                                  case E_aml_Z_value_Z_type_S_package:
+                                    {   N object_i = E_aml_M_clear_object();
+                                        if( !~object_i )
+                                            return ~0;
+                                        struct E_aml_Z_package *package;
+                                        if( v.copy )
+                                        {   v.copy = no;
+                                            package = v.package;
+                                        }else
+                                        {   package = E_aml_Q_object_I_package_duplicate( v.package );
+                                            if( !package )
+                                                return ~0;
+                                        }
+                                        E_aml_S_object[ object_i ].data = package;
+                                        E_aml_S_object[ object_i ].n = ~0;
+                                        E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_package;
+                                        break;
+                                    }
+                                  default:
+                                        return ~0;
                                 }
-                              case E_aml_Z_value_Z_type_S_buffer:
-                                {   N object_i = E_aml_M_clear_object();
-                                    if( !~object_i )
-                                        goto Error;
-                                    struct E_aml_Z_buffer *M_(buffer);
-                                    if( !buffer )
-                                        goto Error;
-                                    if( v.copy )
-                                    {   v.copy = no;
-                                        buffer->p = v.buffer.p;
-                                    }else
-                                    {   buffer->p = E_text_Z_sl_M_duplicate( v.buffer.p, v.buffer.n );
+                            else
+                                switch( v.type )
+                                { case E_aml_Z_value_Z_type_S_string:
+                                    {   N object_i = E_aml_M_clear_object();
+                                        if( !~object_i )
+                                            return ~0;
+                                        Pc s = M( 1 + 1 );
+                                        if( !s )
+                                            return ~0;
+                                        Pc s_ = v.p;
+                                        s[0] = s_[i];
+                                        s[1] = '\0';
+                                        E_aml_S_object[ object_i ].data = s;
+                                        E_aml_S_object[ object_i ].n = ~0;
+                                        E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_string;
+                                        break;
+                                    }
+                                  case E_aml_Z_value_Z_type_S_buffer:
+                                    {   N object_i = E_aml_M_clear_object();
+                                        if( !~object_i )
+                                            return ~0;
+                                        struct E_aml_Z_buffer *M_(buffer);
+                                        if( !buffer )
+                                            return ~0;
+                                        buffer->p = M(1);
                                         if( !buffer->p )
                                         {   W(buffer);
-                                            goto Error;
+                                            return ~0;
                                         }
+                                        buffer->n = 1;
+                                        buffer->p[0] = v.buffer.p[i];
+                                        E_aml_S_object[ object_i ].data = buffer;
+                                        E_aml_S_object[ object_i ].n = ~0;
+                                        E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_buffer;
+                                        break;
                                     }
-                                    buffer->n = v.buffer.n;
-                                    E_aml_S_object[ object_i ].data = buffer;
-                                    E_aml_S_object[ object_i ].n = ~0;
-                                    E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_buffer;
-                                    break;
+                                  default:
+                                        return ~0;
                                 }
-                              case E_aml_Z_value_Z_type_S_package:
-                                {   N object_i = E_aml_M_clear_object();
-                                    if( !~object_i )
-                                        goto Error;
-                                    struct E_aml_Z_package *package;
-                                    if( v.copy )
-                                    {   v.copy = no;
-                                        package = v.package;
-                                    }else
-                                    {   package = E_aml_Q_object_I_package_duplicate( v.package );
-                                        if( !package )
-                                            goto Error;
-                                    }
-                                    E_aml_S_object[ object_i ].data = package;
-                                    E_aml_S_object[ object_i ].n = ~0;
-                                    E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_package;
-                                    break;
-                                }
-                              default:
-                                    goto Error;
-                            }
-                        else
-                            switch( v.type )
-                            { case E_aml_Z_value_Z_type_S_string:
-                                {   N object_i = E_aml_M_clear_object();
-                                    if( !~object_i )
-                                        goto Error;
-                                    Pc s = M( 1 + 1 );
-                                    if( !s )
-                                        goto Error;
-                                    Pc s_ = v.p;
-                                    s[0] = s_[i];
-                                    s[1] = '\0';
-                                    E_aml_S_object[ object_i ].data = s;
-                                    E_aml_S_object[ object_i ].n = ~0;
-                                    E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_string;
-                                    break;
-                                }
-                              case E_aml_Z_value_Z_type_S_buffer:
-                                {   N object_i = E_aml_M_clear_object();
-                                    if( !~object_i )
-                                        goto Error;
-                                    struct E_aml_Z_buffer *M_(buffer);
-                                    if( !buffer )
-                                        goto Error;
-                                    buffer->p = M(1);
-                                    if( !buffer->p )
-                                    {   W(buffer);
-                                        goto Error;
-                                    }
-                                    buffer->n = 1;
-                                    buffer->p[0] = v.buffer.p[i];
-                                    E_aml_S_object[ object_i ].data = buffer;
-                                    E_aml_S_object[ object_i ].n = ~0;
-                                    E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_buffer;
-                                    break;
-                                }
-                              default:
-                                    goto Error;
-                            }
+                        }else
+                        {   N object_i = E_aml_M_clear_object();
+                            if( !~object_i )
+                                return ~0;
+                            E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_uninitialized;
+                        }
                     }
                 }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_subtract_finish_1:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                    if( !~E_aml_M_number_pathname_v2_finish_1() )
-                        goto Error;
+                {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
+                }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_subtract_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_subtract_finish_2:
@@ -6273,13 +6540,12 @@ Loop:
                 {   ret = ~0 - 1;
                     break;
                 }
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   N v_1, v_2;
-                    if( !~E_aml_M_number_pathname_v2_finish_2( &v_1, &v_2 ))
-                        goto Error;
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = v_1 - v_2;
+                    if( ~E_aml_M_number_pathname_v2_finish_2( &v_1, &v_2 ))
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = v_1 - v_2;
                 }
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_subtract_finish_3, E_aml_Z_parse_stack_Z_entity_S_supername );
@@ -6288,40 +6554,46 @@ Loop:
                 E_aml_S_parse_data++;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_subtract_finish_3:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                     if( !~E_aml_M_number_finish_3() )
-                        goto Error;
+                        return ~0;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_to_bcd_finish_1:
                 if( E_aml_S_parse_data == E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
                 {   ret = ~0 - 1;
                     break;
                 }
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   struct E_aml_Z_value v;
                     if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
                     {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
-                        if( !~object_i
-                        || E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_number
+                        if( ~object_i
+                        && E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_number
                         )
-                            goto Error;
-                        v = E_aml_Q_object_I_to_value( object_i );
+                            v = E_aml_Q_object_I_to_value( object_i );
+                        else
+                            v.type = E_aml_Z_value_Z_type_S_uninitialized;
                     }else
                     {   v = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
                         if( v.type != E_aml_Z_value_Z_type_S_number )
-                            goto Error;
+                            v.type = E_aml_Z_value_Z_type_S_uninitialized;
                     }
-                    N l = E_text_Z_n_N_bcd_G( v.n, sizeof( v.n ));
-                    if( l > sizeof( v.n ))
-                        goto Error;
-                    N ret = 0;
-                    E_text_Z_n_N_bcd( (Pc)&ret + l, v.n, sizeof( v.n ), l );
-                    v.n = ret;
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = v;
+                    if( v.type != E_aml_Z_value_Z_type_S_uninitialized )
+                    {   N l = E_text_Z_n_N_bcd_G( v.n, sizeof( v.n ));
+                        if( l <= sizeof( v.n ))
+                        {   N ret = 0;
+                            E_text_Z_n_N_bcd( (Pc)&ret + l, v.n, sizeof( v.n ), l );
+                            v.n = ret;
+                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = v;
+                        }else
+                            v.type = E_aml_Z_value_Z_type_S_uninitialized;
+                    }
+                    if( v.type == E_aml_Z_value_Z_type_S_uninitialized )
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_uninitialized;
                 }
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_to_bcd_finish_2, E_aml_Z_parse_stack_Z_entity_S_supername );
@@ -6330,43 +6602,51 @@ Loop:
                 E_aml_S_parse_data++;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_to_bcd_finish_2:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                     if( !~E_aml_M_number_finish_3() )
-                        goto Error;
+                        return ~0;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_to_buffer_finish_1:
                 if( E_aml_S_parse_data == E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
                 {   ret = ~0 - 1;
                     break;
                 }
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   struct E_aml_Z_value v;
                     if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
                     {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
-                        if( !~object_i
-                        || ( E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_number
-                          && E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_string
-                          && E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_buffer
+                        if( ~object_i
+                        && ( E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_number
+                          || E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_string
+                          || E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_buffer
                         ))
-                            goto Error;
-                        v = E_aml_Q_object_I_to_value( object_i );
+                            v = E_aml_Q_object_I_to_value( object_i );
+                        else
+                            v.type = E_aml_Z_value_Z_type_S_uninitialized;
                     }else
                     {   v = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
                         if( v.type != E_aml_Z_value_Z_type_S_number
                         && v.type != E_aml_Z_value_Z_type_S_string
                         && v.type != E_aml_Z_value_Z_type_S_buffer
                         )
-                            goto Error;
+                            v.type = E_aml_Z_value_Z_type_S_uninitialized;
                     }
-                    if( E_aml_Q_value_N_convert( E_aml_Z_value_Z_type_S_number, &v ) < 0 )
-                        goto Error;
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = v;
-                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_pathname )
-                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
+                    if( v.type != E_aml_Z_value_Z_type_S_uninitialized )
+                    {   N ret = E_aml_Q_value_N_convert( E_aml_Z_value_Z_type_S_buffer, &v );
+                        if( !ret )
+                        {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = v;
+                            if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_pathname )
+                                E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
+                        }else if( ret == ~0 - 1 )
+                            v.type = E_aml_Z_value_Z_type_S_uninitialized;
+                        else
+                            return ~0;
+                    }else
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_uninitialized;
                 }
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_to_buffer_finish_2, E_aml_Z_parse_stack_Z_entity_S_supername );
@@ -6375,35 +6655,38 @@ Loop:
                 E_aml_S_parse_data++;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_to_buffer_finish_2:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   N ret = E_aml_M_arg_local_debug();
                     if( !~ret )
-                        goto Error;
+                        return ~0;
                     if( !ret )
                     {   N object_i = E_aml_M_clear_object();
                         if( !~object_i )
-                            goto Error;
-                        struct E_aml_Z_buffer *M_(buffer);
-                        if( !buffer )
-                            goto Error;
-                        if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy )
-                        {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy = no;
-                            buffer->p = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.buffer.p;
-                        }else
-                        {   buffer->p = E_text_Z_sl_M_duplicate( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.buffer.p
-                            , E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.buffer.n
-                            );
-                            if( !buffer->p )
-                            {   W(buffer);
-                                goto Error;
+                            return ~0;
+                        if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type != E_aml_Z_value_Z_type_S_uninitialized )
+                        {   struct E_aml_Z_buffer *M_(buffer);
+                            if( !buffer )
+                                return ~0;
+                            if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy )
+                            {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy = no;
+                                buffer->p = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.buffer.p;
+                            }else
+                            {   buffer->p = E_text_Z_sl_M_duplicate( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.buffer.p
+                                , E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.buffer.n
+                                );
+                                if( !buffer->p )
+                                {   W(buffer);
+                                    return ~0;
+                                }
                             }
-                        }
-                        buffer->n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.buffer.n;
-                        E_aml_S_object[ object_i ].data = buffer;
-                        E_aml_S_object[ object_i ].n = ~0;
-                        E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_buffer;
+                            buffer->n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.buffer.n;
+                            E_aml_S_object[ object_i ].data = buffer;
+                            E_aml_S_object[ object_i ].n = ~0;
+                            E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_buffer;
+                        }else
+                            E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_uninitialized;
                     }
                 }
                 break;
@@ -6412,48 +6695,54 @@ Loop:
                 {   ret = ~0 - 1;
                     break;
                 }
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   struct E_aml_Z_value v;
                     if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
                     {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
-                        if( !~object_i
-                        || ( E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_number
-                          && E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_string
-                          && E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_buffer
+                        if( ~object_i
+                        && ( E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_number
+                          || E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_string
+                          || E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_buffer
                         ))
-                            goto Error;
-                        v = E_aml_Q_object_I_to_value( object_i );
+                            v = E_aml_Q_object_I_to_value( object_i );
+                        else
+                            v.type = E_aml_Z_value_Z_type_S_uninitialized;
                     }else
                     {   v = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
                         if( v.type != E_aml_Z_value_Z_type_S_number
                         && v.type != E_aml_Z_value_Z_type_S_string
                         && v.type != E_aml_Z_value_Z_type_S_buffer
                         )
-                            goto Error;
+                            v.type = E_aml_Z_value_Z_type_S_uninitialized;
                     }
                     switch( v.type )
                     { case E_aml_Z_value_Z_type_S_number:
-                            if( E_aml_Q_value_N_convert( E_aml_Z_value_Z_type_S_string, &v ) < 0 )
-                                goto Error;
-                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = v;
+                        {   N ret = E_aml_Q_value_N_convert( E_aml_Z_value_Z_type_S_string, &v );
+                            if( !ret )
+                                E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = v;
+                            else if( ret == ~0 - 1 )
+                                E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_uninitialized;
+                            else
+                                return ~0;
                             break;
+                        }
                       case E_aml_Z_value_Z_type_S_string:
                             E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = v;
                             if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_pathname )
                                 E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
                             break;
-                      default:
+                      case E_aml_Z_value_Z_type_S_buffer:
                         {   Pc s = M(0);
                             if( !s )
-                                goto Error;
+                                return ~0;
                             N l = 0;
                             for_n( i, v.buffer.n )
                             {   N l_ = E_text_Z_n_N_s_G( v.buffer.p[i], sizeof( v.buffer.p[i] ), 10 );
                                 if( !E_mem_Q_blk_I_append( &s, l_ + 1 ))
                                 {   W(s);
-                                    goto Error;
+                                    return ~0;
                                 }
                                 l += l_;
                                 s[l] = ',';
@@ -6463,7 +6752,7 @@ Loop:
                             if( !l )
                             {   if( !E_mem_Q_blk_I_append( &s, 1 ))
                                 {   W(s);
-                                    goto Error;
+                                    return ~0;
                                 }
                                 l++;
                             }
@@ -6473,6 +6762,9 @@ Loop:
                             E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_string;
                             break;
                         }
+                      default:
+                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_uninitialized;
+                            break;
                     }
                 }
                 if( *E_aml_S_parse_data )
@@ -6482,27 +6774,30 @@ Loop:
                 E_aml_S_parse_data++;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_to_decimal_string_finish_2:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   N ret = E_aml_M_arg_local_debug();
                     if( !~ret )
-                        goto Error;
+                        return ~0;
                     if( !ret )
                     {   N object_i = E_aml_M_clear_object();
                         if( !~object_i )
-                            goto Error;
-                        if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy )
-                        {   E_aml_S_object[ object_i ].data = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.p;
-                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy = no;
+                            return ~0;
+                        if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type != E_aml_Z_value_Z_type_S_uninitialized )
+                        {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy )
+                            {   E_aml_S_object[ object_i ].data = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.p;
+                                E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy = no;
+                            }else
+                            {   Pc s = E_text_Z_s0_M_duplicate( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.p );
+                                if( !s )
+                                    return ~0;
+                                E_aml_S_object[ object_i ].data = s;
+                            }
+                            E_aml_S_object[ object_i ].n = ~0;
+                            E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_string;
                         }else
-                        {   Pc s = E_text_Z_s0_M_duplicate( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.p );
-                            if( !s )
-                                goto Error;
-                            E_aml_S_object[ object_i ].data = s;
-                        }
-                        E_aml_S_object[ object_i ].n = ~0;
-                        E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_string;
+                            E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_uninitialized;
                     }
                 }
                 break;
@@ -6511,33 +6806,34 @@ Loop:
                 {   ret = ~0 - 1;
                     break;
                 }
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   struct E_aml_Z_value v;
                     if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
                     {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
-                        if( !~object_i
-                        || ( E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_number
-                          && E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_string
-                          && E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_buffer
+                        if( ~object_i
+                        && ( E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_number
+                          || E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_string
+                          || E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_buffer
                         ))
-                            goto Error;
-                        v = E_aml_Q_object_I_to_value( object_i );
+                            v = E_aml_Q_object_I_to_value( object_i );
+                        else
+                            v.type = E_aml_Z_value_Z_type_S_uninitialized;
                     }else
                     {   v = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
                         if( v.type != E_aml_Z_value_Z_type_S_number
                         && v.type != E_aml_Z_value_Z_type_S_string
                         && v.type != E_aml_Z_value_Z_type_S_buffer
                         )
-                            goto Error;
+                            v.type = E_aml_Z_value_Z_type_S_uninitialized;
                     }
                     switch( v.type )
                     { case E_aml_Z_value_Z_type_S_number:
                         {   N l = E_text_Z_n_N_s_G( v.n, sizeof( v.n ), 16 );
                             Pc s = M( 2 + l + 1 );
                             if( !s )
-                                goto Error;
+                                return ~0;
                             s[ 2 + l ] = '\0';
                             E_text_Z_n_N_s( s + 2 + l, v.n, sizeof( v.n ), 16 );
                             s[1] = 'x';
@@ -6553,16 +6849,16 @@ Loop:
                             if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_pathname )
                                 E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
                             break;
-                      default:
+                      case E_aml_Z_object_Z_type_S_buffer:
                         {   Pc s = M(0);
                             if( !s )
-                                goto Error;
+                                return ~0;
                             N l = 0;
                             for_n( i, v.buffer.n )
                             {   N l_ = E_text_Z_n_N_s_G( v.buffer.p[i], sizeof( v.buffer.p[i] ), 16 );
                                 if( !E_mem_Q_blk_I_append( &s, l_ + 1 ))
                                 {   W(s);
-                                    goto Error;
+                                    return ~0;
                                 }
                                 l += l_;
                                 s[l] = ',';
@@ -6572,7 +6868,7 @@ Loop:
                             if( !l )
                             {   if( !E_mem_Q_blk_I_append( &s, 1 ))
                                 {   W(s);
-                                    goto Error;
+                                    return ~0;
                                 }
                                 l++;
                             }
@@ -6582,6 +6878,9 @@ Loop:
                             E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_string;
                             break;
                         }
+                      default:
+                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_uninitialized;
+                            break;
                     }
                 }
                 if( *E_aml_S_parse_data )
@@ -6591,27 +6890,30 @@ Loop:
                 E_aml_S_parse_data++;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_to_hex_string_finish_2:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   N ret = E_aml_M_arg_local_debug();
                     if( !~ret )
-                        goto Error;
+                        return ~0;
                     if( !ret )
                     {   N object_i = E_aml_M_clear_object();
                         if( !~object_i )
-                            goto Error;
-                        if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy )
-                        {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy = no;
-                            E_aml_S_object[ object_i ].data = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.p;
+                            return ~0;
+                        if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type != E_aml_Z_value_Z_type_S_uninitialized )
+                        {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy )
+                            {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy = no;
+                                E_aml_S_object[ object_i ].data = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.p;
+                            }else
+                            {   Pc s = E_text_Z_s0_M_duplicate( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.p );
+                                if( !s )
+                                    return ~0;
+                                E_aml_S_object[ object_i ].data = s;
+                            }
+                            E_aml_S_object[ object_i ].n = ~0;
+                            E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_string;
                         }else
-                        {   Pc s = E_text_Z_s0_M_duplicate( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.p );
-                            if( !s )
-                                goto Error;
-                            E_aml_S_object[ object_i ].data = s;
-                        }
-                        E_aml_S_object[ object_i ].n = ~0;
-                        E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_string;
+                            E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_uninitialized;
                     }
                 }
                 break;
@@ -6620,33 +6922,40 @@ Loop:
                 {   ret = ~0 - 1;
                     break;
                 }
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_string
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_buffer
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_pathname
+                {   struct E_aml_Z_value v;
+                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_number
+                    || E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_string
+                    || E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_buffer
+                    || E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname
                     )
-                        goto Error;
-                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
-                    {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
-                        if( !~object_i
-                        || ( E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_number
-                          && E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_string
-                          && E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_buffer
-                        ))
-                            goto Error;
-                        struct E_aml_Z_value v = E_aml_Q_object_I_to_value( object_i );
-                        if( E_aml_Q_value_N_convert( E_aml_Z_value_Z_type_S_number, &v ) < 0 )
-                            goto Error;
-                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = v;
+                    {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
+                        {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
+                            if( ~object_i
+                            && ( E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_number
+                              || E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_string
+                              || E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_buffer
+                            ))
+                            {   v = E_aml_Q_object_I_to_value( object_i );
+                            }else
+                                v.type = E_aml_Z_value_Z_type_S_uninitialized;
+                        }else
+                            v = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                        N ret = E_aml_Q_value_N_convert( E_aml_Z_value_Z_type_S_number, &v );
+                        if( !ret )
+                        {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = v;
+                            if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_pathname )
+                                E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
+                        }else if( ret == ~0 - 1 )
+                            v.type = E_aml_Z_value_Z_type_S_uninitialized;
+                        else
+                            return ~0;
                     }else
-                    {   if( E_aml_Q_value_N_convert( E_aml_Z_value_Z_type_S_number, &E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result ) < 0 )
-                            goto Error;
-                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
-                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
-                    }
+                        v.type = E_aml_Z_value_Z_type_S_uninitialized;
+                    if( v.type == E_aml_Z_value_Z_type_S_uninitialized )
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_uninitialized;
                 }
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_to_integer_finish_2, E_aml_Z_parse_stack_Z_entity_S_supername );
@@ -6655,26 +6964,17 @@ Loop:
                 E_aml_S_parse_data++;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_to_integer_finish_2:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                     if( !~E_aml_M_number_finish_3() )
-                        goto Error;
+                        return ~0;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_to_string_finish_1:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_buffer
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_pathname
-                    )
-                        goto Error;
-                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
-                    {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
-                        if( E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_buffer )
-                            goto Error;
-                    }
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
                     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
                 }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_to_string_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
@@ -6684,51 +6984,68 @@ Loop:
                 {   ret = ~0 - 1;
                     break;
                 }
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                {   
-                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_number
-                    && E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_pathname
+                {   struct E_aml_Z_value v_1, v_2;
+                    if(( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type == E_aml_Z_value_Z_type_S_buffer
+                      || E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname
                     )
-                        goto Error;
-                    struct E_aml_Z_buffer *v_1;
-                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
-                    {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.pathname );
-                        v_1 = E_aml_S_object[ object_i ].data;
-                    }else
-                        v_1 = &E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.buffer;
-                    N v_2;
-                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
-                    {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
-                        if( E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_number )
-                            goto Error;
-                        v_2 = E_aml_S_object[ object_i ].n;
-                    }else
-                        v_2 = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.n;
-                    Pc p = v_1->p;
-                    N l = J_min( v_1->n, v_2 );
-                    Pc s = E_text_Z_sl_R_search_0( p, l );
-                    if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy )
-                        if( s != p + l )
-                        {   if( !E_mem_Q_blk_I_remove( &p, s + 1 - p, l - ( s + 1 - p )))
-                                goto Error;
+                    && ( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_number
+                      || E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname
+                    ))
+                    {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
+                        {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.pathname );
+                            if( E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_buffer )
+                            {   struct E_aml_Z_buffer *buffer = E_aml_S_object[ object_i ].data;
+                                v_1.buffer = *buffer;
+                                v_1.type = E_aml_Z_value_Z_type_S_buffer;
+                            }else
+                                v_1.type = E_aml_Z_value_Z_type_S_uninitialized;
                         }else
-                        {   if( !E_mem_Q_blk_I_append( &p, 1 ))
-                                goto Error;
-                            p[l] = '\0';
+                            v_1 = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result;
+                        if( v_1.type != E_aml_Z_value_Z_type_S_uninitialized )
+                        {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_aml_Z_value_Z_type_S_pathname )
+                            {   N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
+                                if( E_aml_S_object[ object_i ].type == E_aml_Z_object_Z_type_S_number )
+                                {   v_2.n = E_aml_S_object[ object_i ].n;
+                                    v_2.type = E_aml_Z_value_Z_type_S_number;
+                                }else
+                                    v_2.type = E_aml_Z_value_Z_type_S_uninitialized;
+                            }else
+                                v_2 = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                            if( v_2.type != E_aml_Z_value_Z_type_S_uninitialized )
+                            {   Pc p = v_1.buffer.p;
+                                N l = J_min( v_1.buffer.n, v_2.n );
+                                Pc s = E_text_Z_sl_R_search_0( p, l );
+                                if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy )
+                                    if( s != p + l )
+                                    {   if( !E_mem_Q_blk_I_remove( &p, s + 1 - p, l - ( s + 1 - p )))
+                                            return ~0;
+                                    }else
+                                    {   if( !E_mem_Q_blk_I_append( &p, 1 ))
+                                            return ~0;
+                                        p[l] = '\0';
+                                    }
+                                else
+                                {   Pc p_ = M( s - p + 1 );
+                                    if( !p_ )
+                                        return ~0;
+                                    E_text_Z_s_P_copy_sl_0( p_, p, s - p );
+                                    p = p_;
+                                }
+                                E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.p = p;
+                                E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.i = ~0;
+                                E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy = yes;
+                                E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_string;
+                            }
                         }
-                    else
-                    {   Pc p_ = M( s - p + 1 );
-                        if( !p_ )
-                            goto Error;
-                        E_text_Z_s_P_copy_sl_0( p_, p, s - p );
-                        p = p_;
-                    }
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.p = p;
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.i = ~0;
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy = yes;
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_string;
+                    }else
+                        v_1.type = E_aml_Z_value_Z_type_S_uninitialized;
+                    if( v_1.type == E_aml_Z_value_Z_type_S_uninitialized
+                    || v_2.type == E_aml_Z_value_Z_type_S_uninitialized
+                    )
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_uninitialized;
                 }
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_to_string_finish_3, E_aml_Z_parse_stack_Z_entity_S_supername );
@@ -6737,21 +7054,24 @@ Loop:
                 E_aml_S_parse_data++;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_to_string_finish_3:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   N ret = E_aml_M_arg_local_debug();
                     if( !~ret )
-                        goto Error;
+                        return ~0;
                     if( !ret )
                     {   N object_i = E_aml_M_clear_object();
                         if( !~object_i )
-                            goto Error;
-                        E_aml_S_object[ object_i ].data = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.p;
-                        E_aml_S_object[ object_i ].n = ~0;
-                        E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_string;
+                            return ~0;
+                        if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type != E_aml_Z_value_Z_type_S_uninitialized )
+                        {   E_aml_S_object[ object_i ].data = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.p;
+                            E_aml_S_object[ object_i ].n = ~0;
+                            E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_string;
+                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy = no;
+                        }else
+                            E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_uninitialized;
                     }
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.copy = no;
                 }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_wait_finish_1:
@@ -6761,11 +7081,12 @@ Loop:
                 //TODO Umieścić operację ‘wait’ w drzewie zinterpretowanej przestrzeni ACPI.
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_xor_finish_1:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                    if( !~E_aml_M_number_pathname_v2_finish_1() )
-                        goto Error;
+                {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result;
+                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
+                }
                 E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_xor_finish_2, E_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_xor_finish_2:
@@ -6773,13 +7094,12 @@ Loop:
                 {   ret = ~0 - 1;
                     break;
                 }
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   N v_1, v_2;
-                    if( !~E_aml_M_number_pathname_v2_finish_2( &v_1, &v_2 ))
-                        goto Error;
-                    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = v_1 ^ v_2;
+                    if( ~E_aml_M_number_pathname_v2_finish_2( &v_1, &v_2 ))
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = v_1 ^ v_2;
                 }
                 if( *E_aml_S_parse_data )
                 {   E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_xor_finish_3, E_aml_Z_parse_stack_Z_entity_S_supername );
@@ -6788,28 +7108,27 @@ Loop:
                 E_aml_S_parse_data++;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_xor_finish_3:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                     if( !~E_aml_M_number_finish_3() )
-                        goto Error;
+                        return ~0;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_fatal_finish:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
-                    goto Error;
+                    return ~0;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_load_finish:
                 //TODO Umieścić operację ‘load’ w drzewie zinterpretowanej przestrzeni ACPI.
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_procedure_finish:
-                E_aml_Q_current_path_P_precompilation(no);
                 if( !~E_aml_Q_current_path_I_pop() )
-                    goto Error;
+                    return ~0;
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_procedure_invocation_finish:
-                if( E_aml_Q_current_path_S_precompilation_i )
+                if( E_aml_Q_current_path_S_precompilation )
                 {
                 }else
                 {   for_n( i, J_a_R_n( E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n ].arg ))
@@ -6824,22 +7143,25 @@ Loop:
                         )
                             E_aml_Q_value_W( &E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n ].local[i] );
                     if( !E_mem_Q_blk_I_remove( &E_aml_S_procedure_invocation_stack, --E_aml_S_procedure_invocation_stack_n, 1 ))
-                        goto Error;
+                        return ~0;
                     if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.procedure_osi )
                     {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_number;
                         E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = no; //TODO W miarę dodawania obsługi funkcjonalności ACPI umieszczać sprawdzenia.
+                    }else // Tymczasowo.
+                    {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_aml_Z_value_Z_type_S_number;
+                        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n = 0;
                     }
                 }
                 break;
         }
         if( !~ret )
-            goto Error;
+            return ~0;
         if( ret == ~0 - 1 )
         {   if( !E_aml_M_res1() )
             {   ret = 0;
                 goto Loop;
             }
-            goto Error;
+            return ~0;
         }
         //E_font_I_print( "\nstack_n=" ); E_font_I_print_hex( E_aml_S_parse_stack_n );
         //E_font_I_print( ",stack_n_last=" ); E_font_I_print_hex( stack_n_last );
@@ -6857,7 +7179,7 @@ Loop:
         )
         {   E_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.tmp_p = E_aml_S_parse_stack[ stack_n_last - 1 ].execution_context.tmp_p;
             if( !E_mem_Q_blk_I_remove( &E_aml_S_parse_stack, stack_n_last - 1, 1 ))
-                goto Error;
+                return ~0;
             E_aml_S_parse_stack_n--;
         }
         //for_n_( j, E_aml_S_parse_stack_n )
@@ -6873,7 +7195,7 @@ Loop:
             ) // Sprawdzanie dla konkretnych “n”, czy interpretacja zakończyła się na końcu wcześniej odczytanego rozmiaru “pkg_length”.
             {   if( !E_aml_M_res1() )
                     goto Loop;
-                goto Error;
+                return ~0;
             }
             if( !E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].data_end ) // Czy poprzedni element na stosie jest nie zainicjowanym którymś “finish”.
                 E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].data_end = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end; // Zachowaj “data_end” do sprawdzenia podczas któregoś “finish”.
@@ -6891,7 +7213,7 @@ Loop:
                 W(value);
             }
             if( !E_mem_Q_blk_I_remove( &E_aml_S_parse_stack, --E_aml_S_parse_stack_n, 1 ))
-                goto Error;
+                return ~0;
         }
         if( !~E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].n )
         {   if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy )
@@ -6910,7 +7232,7 @@ Loop:
             {   if( !--E_aml_S_parse_stack_n )
                     break;
                 if( !E_mem_Q_blk_I_remove( &E_aml_S_parse_stack, E_aml_S_parse_stack_n, 1 ))
-                    goto Error;
+                    return ~0;
             }
         }
         if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.last_op_if )
@@ -6924,11 +7246,48 @@ Loop:
         {   if( data == E_aml_S_parse_data ) // Czy kolejne “n” nic nie wykonują.
             {   if( !E_aml_M_res1() )
                     goto Loop;
-                goto Error;
+                return ~0;
             }
             data = E_aml_S_parse_data;
         }
     }
+    return 0;
+}
+_private
+N
+E_aml_M( Pc table
+, N l
+){  if( !~E_aml_Q_current_path_M() )
+        return ~0;
+    E_aml_S_parse_stack_n = 1;
+    Mt_( E_aml_S_parse_stack, E_aml_S_parse_stack_n );
+    if( !E_aml_S_parse_stack )
+    {   E_aml_Q_current_path_W();
+        return ~0;
+    }
+    if( !~E_aml_Q_object_M() )
+    {   W( E_aml_S_parse_stack );
+        E_aml_Q_current_path_W();
+        return ~0;
+    }
+    E_aml_S_parse_data = table;
+    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].entity = E_aml_Z_parse_stack_Z_entity_S_term;
+    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].n = ~0;
+    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end = table + l;
+    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.continue_ = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.break_ = 0;
+    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
+    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.tmp_p = 0;
+    E_aml_S_procedure_invocation_stack_n = 0;
+    Mt_( E_aml_S_procedure_invocation_stack, E_aml_S_procedure_invocation_stack_n );
+    if( !E_aml_S_procedure_invocation_stack )
+    {   E_aml_Q_object_W();
+        W( E_aml_S_parse_stack );
+        E_aml_Q_current_path_W();
+        return ~0;
+    }
+    E_aml_Q_current_path_S_precompilation = no;
+    if( !~E_aml_M_parse() )
+        goto Error;
     W( E_aml_S_procedure_invocation_stack );
     W( E_aml_S_parse_stack );
     E_aml_Q_current_path_W();
