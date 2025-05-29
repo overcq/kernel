@@ -151,6 +151,7 @@ struct
 { struct E_aml_Z_pathname name; // Tablica posortowana według nazwy.
   P data;
   N n; // Jeśli “type” równe “E_aml_Z_value_Z_type_S_string”, “E_aml_Z_value_Z_type_S_buffer” lub “E_aml_Z_value_Z_type_S_package”, to jest indeksem elementu obiektu; “~0” oznacza brak referencji do elementu.
+  N procedure_invocation; // Jeśli “!0”, to obiekt jest obiektem tymczasowym podczas wykonywania procedury umieszczonej na “E_aml_S_procedure_invocation_stack[ procedure_invocation ]”.
   enum E_aml_S_object_Z_type type;
 } *E_aml_S_object;
 _internal N E_aml_S_object_n;
@@ -590,7 +591,7 @@ E_aml_Q_value_T_cmp_lt( struct E_aml_Z_value *v_1
 //==============================================================================
 _internal
 N
-E_aml_Q_current_path_M( void
+E_aml_E_current_path_M( void
 ){  E_aml_S_current_path_n = 0;
     Mt_( E_aml_S_current_path, E_aml_S_current_path_n );
     if( !E_aml_S_current_path )
@@ -600,7 +601,7 @@ E_aml_Q_current_path_M( void
 }
 _internal
 void
-E_aml_Q_current_path_W( void
+E_aml_E_current_path_W( void
 ){  for_n( i, E_aml_S_current_path_n )
         W( E_aml_S_current_path[i].s );
     W( E_aml_S_current_path );
@@ -638,7 +639,7 @@ E_aml_Q_current_path_I_pop( void
 //==============================================================================
 _internal
 N
-E_aml_Q_object_M( void
+E_aml_E_object_M( void
 ){  E_aml_S_object_n = 2;
     Mt_( E_aml_S_object, E_aml_S_object_n );
     if( !E_aml_S_object )
@@ -698,23 +699,18 @@ E_aml_Q_object_W_data( N object_i
                 W( buffer->p );
                 break;
             }
-          case E_aml_Z_object_Z_type_S_alias:
-            {   struct E_aml_Z_pathname *pathname = E_aml_S_object[ object_i ].data;
-                W( pathname->s );
-                break;
-            }
           case E_aml_Z_object_Z_type_S_package:
                 E_aml_Q_object_W_package( E_aml_S_object[ object_i ].data );
                 break;
-          case E_aml_Z_object_Z_type_S_buffer_field:
-            {   struct E_aml_Z_buffer_field *field = E_aml_S_object[ object_i ].data;
-                W( field->pathname.s );
-                break;
-            }
           case E_aml_Z_object_Z_type_S_op_region:
             {   struct E_aml_Z_op_region *region = E_aml_S_object[ object_i ].data;
                 W( region->field );
                 W( region->bank_field );
+                break;
+            }
+          case E_aml_Z_object_Z_type_S_buffer_field:
+            {   struct E_aml_Z_buffer_field *field = E_aml_S_object[ object_i ].data;
+                W( field->pathname.s );
                 break;
             }
         }
@@ -722,8 +718,27 @@ E_aml_Q_object_W_data( N object_i
     }
 }
 _internal
+N
+E_aml_Q_object_W( N object_i
+){  for_n( i, E_aml_S_object_n )
+        if( E_aml_S_object[i].type == E_aml_Z_object_Z_type_S_alias )
+        {   struct E_aml_Z_pathname *pathname = E_aml_S_object[i].data;
+            if( pathname->s == E_aml_S_object[ object_i ].name.s )
+            {   if( !E_mem_Q_blk_I_remove( &E_aml_S_object, i, 1 ))
+                    return ~0;
+                if( object_i > i )
+                    object_i--;
+                i--;
+            }
+        }
+    E_aml_Q_object_W_data( object_i );
+    if( !E_mem_Q_blk_I_remove( &E_aml_S_object, object_i, 1 ))
+        return ~0;
+    return 0;
+}
+_internal
 void
-E_aml_Q_object_W( void
+E_aml_E_object_W( void
 ){  for_n( i, E_aml_S_object_n )
     {   E_aml_Q_object_W_data(i);
         W( E_aml_S_object[i].name.s );
@@ -912,6 +927,7 @@ E_aml_Q_object_I_add( enum E_aml_S_object_Z_type type
     E_aml_S_object[middle].name = name;
     E_aml_S_object[middle].type = type;
     E_aml_S_object[middle].data = 0;
+    E_aml_S_object[middle].procedure_invocation = E_aml_S_procedure_invocation_stack_n;
     return middle;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1740,7 +1756,8 @@ E_aml_I_object( void
             Pc name = E_aml_Q_path_R_root( &name_n );
             if( !name )
                 return (S8)name_n;
-            if( !~E_aml_Q_object_R(( struct E_aml_Z_pathname ){ name, name_n }))
+            N dest_object_i = E_aml_Q_object_R(( struct E_aml_Z_pathname ){ name, name_n });
+            if( !~dest_object_i )
             {   W(name);
                 return ~1;
             }
@@ -1748,12 +1765,11 @@ E_aml_I_object( void
             E_text_Z_s_P_copy_sl_0( name_, name, name_n * 4 );
             E_font_I_print( ",alias=" ); E_font_I_print( name_ );
             W( name_ );
+            W(name);
             N8 alias_n;
             Pc alias = E_aml_Q_path_R_root( &alias_n );
             if( !alias )
-            {   W(name);
                 return (S8)alias_n;
-            }
             name_ = M( alias_n * 4 + 1 );
             E_text_Z_s_P_copy_sl_0( name_, alias, alias_n * 4 );
             E_font_I_print( ":" ); E_font_I_print( name_ );
@@ -1769,11 +1785,8 @@ E_aml_I_object( void
                 }
                 struct E_aml_Z_pathname *M_(pathname);
                 if( !pathname )
-                {   W(name);
                     return ~0;
-                }
-                pathname->s = name;
-                pathname->n = name_n;
+                *pathname = E_aml_S_object[ dest_object_i ].name;
                 E_aml_S_object[ object_i ].data = pathname;
             }
             E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].match = yes;
@@ -3407,6 +3420,12 @@ E_aml_M_res1( void
                         if( !--i )
                             break;
                     E_aml_S_parse_data = procedure->return_;
+                    for_n_( j, E_aml_S_object_n )
+                        if( E_aml_S_object[j].procedure_invocation == E_aml_S_procedure_invocation_stack_n )
+                        {   if( !~E_aml_Q_object_W(j) )
+                                return ~0;
+                            j--;
+                        }
                     for_n_( j, J_a_R_n( E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].arg ))
                         if( E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].arg[j].type != E_aml_Z_value_Z_type_S_uninitialized )
                             E_aml_Q_value_W( &E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].arg[j] );
@@ -7305,7 +7324,13 @@ Loop:
                 }
                 break;
           case E_aml_Z_parse_stack_Z_entity_S_procedure_invocation_finish_2:
-            {   N object_i = E_aml_Q_object_R( E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].name );
+            {   for_n( j, E_aml_S_object_n )
+                    if( E_aml_S_object[j].procedure_invocation == E_aml_S_procedure_invocation_stack_n )
+                    {   if( !~E_aml_Q_object_W(j) )
+                            return ~0;
+                        j--;
+                    }
+                N object_i = E_aml_Q_object_R( E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].name );
                 struct E_aml_Z_object_data_Z_procedure *procedure = E_aml_S_object[ object_i ].data;
                 E_aml_S_parse_data = procedure->return_;
                 for_n( i, J_a_R_n( E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].arg ))
@@ -7423,17 +7448,17 @@ _private
 N
 E_aml_M( Pc table
 , N l
-){  if( !~E_aml_Q_current_path_M() )
+){  if( !~E_aml_E_current_path_M() )
         return ~0;
     E_aml_S_parse_stack_n = 1;
     Mt_( E_aml_S_parse_stack, E_aml_S_parse_stack_n );
     if( !E_aml_S_parse_stack )
-    {   E_aml_Q_current_path_W();
+    {   E_aml_E_current_path_W();
         return ~0;
     }
-    if( !~E_aml_Q_object_M() )
+    if( !~E_aml_E_object_M() )
     {   W( E_aml_S_parse_stack );
-        E_aml_Q_current_path_W();
+        E_aml_E_current_path_W();
         return ~0;
     }
     E_aml_S_parse_data = table;
@@ -7446,9 +7471,9 @@ E_aml_M( Pc table
     E_aml_S_procedure_invocation_stack_n = 0;
     Mt_( E_aml_S_procedure_invocation_stack, E_aml_S_procedure_invocation_stack_n );
     if( !E_aml_S_procedure_invocation_stack )
-    {   E_aml_Q_object_W();
+    {   E_aml_E_object_W();
         W( E_aml_S_parse_stack );
-        E_aml_Q_current_path_W();
+        E_aml_E_current_path_W();
         return ~0;
     }
     E_aml_Q_current_path_S_precompilation = no;
@@ -7456,10 +7481,10 @@ E_aml_M( Pc table
         goto Error;
     W( E_aml_S_procedure_invocation_stack );
     W( E_aml_S_parse_stack );
-    E_aml_Q_current_path_W();
+    E_aml_E_current_path_W();
     return 0;
 Error:
-    E_aml_Q_object_W();
+    E_aml_E_object_W();
     for_n( i, E_aml_S_procedure_invocation_stack_n )
     {   for_n( j, J_a_R_n( E_aml_S_procedure_invocation_stack[i].arg ))
             if( E_aml_S_procedure_invocation_stack[i].arg[j].type != E_aml_Z_value_Z_type_S_uninitialized )
@@ -7480,7 +7505,7 @@ Error:
         }
     }
     W( E_aml_S_parse_stack );
-    E_aml_Q_current_path_W();
+    E_aml_E_current_path_W();
     E_font_I_print( "\nerror" );
     return ~0;
 }
