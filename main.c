@@ -104,7 +104,6 @@ main( struct E_main_Z_kernel_args *kernel_args
     );
     W( kernel_args->bootloader );
     E_aml_M( E_main_S_kernel.acpi.dsdt_content, E_main_S_kernel.acpi.dsdt_content_l );
-    
     //S status = E_main_S_kernel.uefi_runtime_services.reset_system( H_uefi_Z_reset_Z_shutdown, 0, 0, 0 );
 End:__asm__ volatile (
     "\n"    "cli"
