@@ -229,9 +229,9 @@ E_mem_Q_blk_Q_sys_table_a_I_move_empty_entry( N allocated_i
         , E_main_S_kernel.mem_blk.allocated[ E_main_S_kernel.mem_blk.allocated_id ].p + ( allocated_i + 1 ) * E_main_S_kernel.mem_blk.allocated[ E_main_S_kernel.mem_blk.allocated_id ].u
         , ( allocated_end - ( allocated_i + 1 )) * E_main_S_kernel.mem_blk.allocated[ E_main_S_kernel.mem_blk.allocated_id ].u
         );
-        if( allocated_i <= E_main_S_kernel.mem_blk.free_id )
+        if( allocated_i < E_main_S_kernel.mem_blk.free_id )
             E_main_S_kernel.mem_blk.free_id--;
-        if( allocated_i <= E_main_S_kernel.mem_blk.allocated_id )
+        if( allocated_i < E_main_S_kernel.mem_blk.allocated_id )
             E_main_S_kernel.mem_blk.allocated_id--;
     }
     allocated_p[ allocated_end - 1 ].p = 0;
