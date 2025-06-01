@@ -68,24 +68,6 @@ _internal
 N E_aml_S_procedure_invocation_stack_n;
 _internal B E_aml_Q_procedure_invocation_stack_S_invokeing;
 //------------------------------------------------------------------------------
-struct E_aml_Z_object_data_Z_procedure
-{ Pc data, data_end;
-  struct E_aml_Z_value (*procedure)(void);
-  N8 arg_n;
-};
-enum E_aml_Z_field_Z_type
-{ E_aml_Z_field_Z_type_S_named
-, E_aml_Z_field_Z_type_S_reserved
-, E_aml_Z_field_Z_type_S_access
-, E_aml_Z_field_Z_type_S_ex_access
-, E_aml_Z_field_Z_type_S_connect
-};
-struct E_aml_Z_field
-{ Pc name;
-  N i;
-  N n;
-  enum E_aml_Z_field_Z_type type;
-};
 enum E_aml_Z_field_access
 { E_aml_Z_field_access_S_any
 , E_aml_Z_field_access_S_1
@@ -94,14 +76,29 @@ enum E_aml_Z_field_access
 , E_aml_Z_field_access_S_8
 , E_aml_Z_field_access_S_buffer
 };
-struct E_aml_Z_bank_field
-{ Pc name;
-  N value;
-  struct E_aml_Z_field *field;
-  N field_n;
+enum E_aml_Z_field_Z_type
+{ E_aml_Z_field_Z_type_S_plain
+, E_aml_Z_field_Z_type_S_bank
+//NDFN
+, E_aml_Z_field_Z_type_S_access
+, E_aml_Z_field_Z_type_S_ex_access
+, E_aml_Z_field_Z_type_S_connect
+};
+struct E_aml_Z_field_unit
+{ struct E_aml_Z_pathname region;
+  struct E_aml_Z_pathname bank_field;
+  N bank_value;
+  N i;
+  N n;
   unsigned access       :3;
   unsigned lock         :1;
   unsigned update_rule  :2;
+  enum E_aml_Z_field_Z_type type;
+};
+struct E_aml_Z_object_data_Z_procedure
+{ Pc data, data_end;
+  struct E_aml_Z_value (*procedure)(void);
+  N8 arg_n;
 };
 enum E_aml_Z_op_region_space
 { E_aml_Z_op_region_space_S_system_memory
@@ -118,10 +115,6 @@ enum E_aml_Z_op_region_space
 };
 struct E_aml_Z_op_region
 { struct E_aml_Z_pathname region;
-  struct E_aml_Z_field *field;
-  N field_n;
-  struct E_aml_Z_bank_field *bank_field;
-  N bank_field_n;
   N i;
   N l;
   enum E_aml_Z_op_region_space space;
@@ -677,7 +670,7 @@ E_aml_Q_object_W_package( struct E_aml_Z_package *package
     W(package);
 }
 _internal
-void
+N
 E_aml_Q_object_W_data( N object_i
 ){  if( E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_uninitialized
     && E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_number
@@ -693,16 +686,18 @@ E_aml_Q_object_W_data( N object_i
                 E_aml_Q_object_W_package( E_aml_S_object[ object_i ].data );
                 break;
           case E_aml_Z_object_Z_type_S_op_region:
-            {   struct E_aml_Z_op_region *region = E_aml_S_object[ object_i ].data;
-                for_n( i, region->field_n )
-                    W( region->field[i].name );
-                W( region->field );
-                for_n_( i, region->bank_field_n )
-                {   W( region->bank_field[i].name );
-                    for_n( j, region->bank_field->field_n )
-                        W( region->bank_field->field[j].name );
+            {   N i;
+                for( i = object_i + 1; i != E_aml_S_object_n; i++ )
+                {   if( E_aml_S_object[i].type != E_aml_Z_object_Z_type_S_field_unit )
+                        break;
+                    struct E_aml_Z_field_unit *field = E_aml_S_object[i].data;
+                    if( field->region.s != E_aml_S_object[ object_i ].name.s )
+                        break;
+                    W( E_aml_S_object[i].name.s );
                 }
-                W( region->bank_field );
+                if( !E_mem_Q_blk_I_remove( &E_aml_S_object, object_i + 1, i - ( object_i + 1 )))
+                    return ~0;
+                E_aml_S_object_n -= i - ( object_i + 1 );
                 break;
             }
           case E_aml_Z_object_Z_type_S_buffer_field:
@@ -713,6 +708,7 @@ E_aml_Q_object_W_data( N object_i
         }
         W( E_aml_S_object[ object_i ].data );
     }
+    return 0;
 }
 _internal
 N
@@ -728,7 +724,8 @@ E_aml_Q_object_W( N object_i
                 i--;
             }
         }
-    E_aml_Q_object_W_data( object_i );
+    if( !~E_aml_Q_object_W_data( object_i ))
+        return ~0;
     if( !E_mem_Q_blk_I_remove( &E_aml_S_object, object_i, 1 ))
         return ~0;
     return 0;
@@ -2046,7 +2043,8 @@ E_aml_I_object( void
                     || E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_op_region
                     )
                     {   W( region_name );
-                        return ~1;
+                        E_aml_S_parse_data = pkg_end; // Ignoruje brak ‘operation region’ i przeskakuje dalej.
+                        break;
                     }
                     Pc bank_name = E_aml_Q_path_R_segment_( pkg_end );
                     if( !~(N)bank_name
@@ -2058,19 +2056,9 @@ E_aml_I_object( void
                     E_font_I_print( ",bank=" ); E_font_I_print( name_ );
                     W( name_ );
                     if( E_aml_Q_current_path_S_precompilation )
-                    {
+                    {   W( bank_name );
                     }else
-                    {   struct E_aml_Z_op_region *region = E_aml_S_object[ object_i ].data;
-                        for_n( i, region->field_n )
-                            if( region->field[i].type == E_aml_Z_field_Z_type_S_named
-                            && E_text_Z_sl_T_eq( region->field[i].name, bank_name, 4 )
-                            )
-                                break;
-                        if( i == region->field_n )
-                        {   W( bank_name );
-                            return ~1;
-                        }
-                        struct E_aml_Z_value *Mt_( value, E_aml_S_parse_stack_S_tmp_p_n );
+                    {   struct E_aml_Z_value *Mt_( value, E_aml_S_parse_stack_S_tmp_p_n );
                         if( !value )
                         {   W( bank_name );
                             return ~1;
@@ -2080,7 +2068,7 @@ E_aml_I_object( void
                         value[1].p = bank_name;
                         value[1].copy = yes;
                         E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.tmp_p = value;
-                        for_n_( i, E_aml_S_parse_stack_S_tmp_p_n - 2 )
+                        for_n( i, E_aml_S_parse_stack_S_tmp_p_n - 2 )
                             value[ 2 + i ].copy = no;
                     }
                     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].match = yes;
@@ -2187,34 +2175,15 @@ E_aml_I_object( void
                         {   E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_uninitialized;
                             return ~0;
                         }
-                        region->field_n = 0;
-                        Mt_( region->field, region->field_n );
-                        if( !region->field )
-                        {   W(region);
-                            E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_uninitialized;
-                            return ~0;
-                        }
-                        region->bank_field_n = 0;
-                        Mt_( region->bank_field, region->bank_field_n );
-                        if( !region->bank_field )
-                        {   W( region->field );
-                            W(region);
-                            E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_uninitialized;
-                            return ~0;
-                        }
                         region->space = *E_aml_S_parse_data;
                         if( region->space > E_aml_Z_op_region_space_S_pcc )
-                        {   W( region->bank_field );
-                            W( region->field );
-                            W(region);
+                        {   W(region);
                             E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_uninitialized;
-                            return ~0;
+                            return ~1;
                         }
                         struct E_aml_Z_value *Mt_( value, E_aml_S_parse_stack_S_tmp_p_n );
                         if( !value )
-                        {   W( region->bank_field );
-                            W( region->field );
-                            W(region);
+                        {   W(region);
                             E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_uninitialized;
                             return ~1;
                         }
@@ -2247,19 +2216,19 @@ E_aml_I_object( void
                     E_font_I_print( ",field op=" ); E_font_I_print( name_ );
                     W( name_ );
                     if( E_aml_Q_current_path_S_precompilation )
-                    {   E_aml_S_parse_data = pkg_end; // Tymczasowo.
+                    {   W(name);
+                        E_aml_S_parse_data = pkg_end; // Tymczasowo.
                     }else
                     {   if( !~object_i
                         || E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_op_region
                         )
                         {   W(name);
                             E_aml_S_parse_data = pkg_end; // Ignoruje brak ‘operation region’ i przeskakuje dalej.
-                            return 0;
+                            break;
                         }
                         if( E_aml_S_parse_data == pkg_end )
                             return ~1;
-                        struct E_aml_Z_op_region *region = E_aml_S_object[ object_i ].data;
-                        struct E_aml_Z_bank_field field_default;
+                        struct E_aml_Z_field_unit field_default;
                         field_default.access = (N8)*E_aml_S_parse_data & 3;
                         field_default.lock = (N8)*E_aml_S_parse_data & 8;
                         field_default.update_rule = (N8)*E_aml_S_parse_data >> 5;
@@ -2268,41 +2237,26 @@ E_aml_I_object( void
                         while( E_aml_S_parse_data != pkg_end )
                             switch( *E_aml_S_parse_data++ )
                             { case 0: // reserved field
-                                {   if( E_aml_S_parse_data == pkg_end )
-                                        return ~1;
-                                    N n = E_aml_R_pkg_length_( pkg_end );
+                                {   N n = E_aml_R_pkg_length_( pkg_end );
                                     if( !~n )
                                         return ~1;
                                     E_font_I_print( ",reserved field" );
-                                    struct E_aml_Z_field *field = E_mem_Q_blk_I_add( &region->field, 1, 0, 0 );
-                                    if( !field )
-                                        return ~0;
-                                    field->i = i;
-                                    field->type = E_aml_Z_field_Z_type_S_reserved;
-                                    region->field_n++;
                                     i += n;
                                     break;
                                 }
                               case 1: // access field
                                 {   if( E_aml_S_parse_data + 2 > pkg_end )
                                         return ~1;
-                                    struct E_aml_Z_field *field;
-                                    field = E_mem_Q_blk_I_add( &region->field, 1, 0, 0 );
-                                    if( !field )
-                                        return ~0;
-                                    field->i = i;
+                                    //field->i = i;
                                     //TODO Dodać ‘access type’ do drzewa zinterpretowanej przestrzeni ACPI.
                                     E_aml_S_parse_data++;
                                     //TODO Dodać ‘access attrib’ do drzewa zinterpretowanej przestrzeni ACPI.
                                     E_aml_S_parse_data++;
-                                    field->type = E_aml_Z_field_Z_type_S_access;
-                                    region->field_n++;
+                                    //field->type = E_aml_Z_field_Z_type_S_access;
                                     //i += n;
                                     break;
                                 }
                               case 2: // connect field
-                                    if( E_aml_S_parse_data == pkg_end )
-                                        return ~1;
                                     E_font_I_print( ",connect field" );
                                     return ~0; //NDFN
                                     break;
@@ -2310,53 +2264,61 @@ E_aml_I_object( void
                                     if( E_aml_S_parse_data + 3 > pkg_end )
                                         return ~1;
                                     E_font_I_print( ",ext access field" );
-                                    struct E_aml_Z_field *field;
-                                    field = E_mem_Q_blk_I_add( &region->field, 1, 0, 0 );
-                                    if( !field )
-                                        return ~0;
-                                    field->i = i;
+                                    //field->i = i;
                                     //TODO Dodać ‘access type’ do drzewa zinterpretowanej przestrzeni ACPI.
                                     E_aml_S_parse_data++;
                                     //TODO Dodać ‘extended access attrib’ do drzewa zinterpretowanej przestrzeni ACPI.
                                     E_aml_S_parse_data++;
                                     //TODO Dodać ‘access length’ do drzewa zinterpretowanej przestrzeni ACPI.
                                     E_aml_S_parse_data++; //NDFN Jaki rozmiar.
-                                    field->type = E_aml_Z_field_Z_type_S_ex_access;
-                                    region->field_n++;
+                                    //field->type = E_aml_Z_field_Z_type_S_ex_access;
                                     //i += n;
                                     break;
                               default: // named field
                                 {   E_aml_S_parse_data--;
                                     if( E_aml_S_parse_data + 4 > pkg_end )
                                         return ~1;
-                                    struct E_aml_Z_field *field;
-                                    N field_start;
-                                    field = E_mem_Q_blk_I_add( &region->field, 1, &field_start, 0 );
-                                    if( !field )
-                                        return ~0;
-                                    field->name = E_aml_Q_path_R_segment_( pkg_end );
-                                    if( !~(N)field->name
-                                    || (N)field->name == ~1
+                                    Pc name_ = E_aml_Q_path_R_segment_( pkg_end );
+                                    if( !~(N)name_
+                                    || (N)name_ == ~1
                                     )
-                                        return (S)field->name;
-                                    if( region->field_n )
-                                    {   for_n( field_i, region->field_n - 1 )
-                                            if( region->field[ field_start + field_i ].type == E_aml_Z_field_Z_type_S_named
-                                            && E_text_Z_sl_T_eq( region->field[ field_start + field_i ].name, field->name, 4 )
-                                            )
-                                                return ~1;
-                                    }
-                                    Pc name_ = M( 4 + 1 );
-                                    E_text_Z_s_P_copy_sl_0( name_, field->name, 4 );
-                                    E_font_I_print( ",name=" ); E_font_I_print( name_ );
+                                        return (N)name_;
+                                    Pc name__ = M( 4 + 1 );
+                                    E_text_Z_s_P_copy_sl_0( name__, name_, 4 );
+                                    E_font_I_print( ",name=" ); E_font_I_print( name__ );
+                                    W( name__ );
                                     W( name_ );
-                                    field->type = E_aml_Z_field_Z_type_S_named;
+                                    Pc field_name = M(( E_aml_S_object[ object_i ].name.n + 1 ) * 4 );
+                                    if( !field_name )
+                                    {   W( name_ );
+                                        return ~0;
+                                    }
+                                    E_mem_Q_blk_I_copy( field_name, E_aml_S_object[ object_i ].name.s, E_aml_S_object[ object_i ].name.n * 4 );
+                                    E_mem_Q_blk_I_copy( field_name + E_aml_S_object[ object_i ].name.n * 4, name_, 4 );
+                                    W( name_ );
+                                    N field_object_i = E_aml_Q_object_I_add( E_aml_Z_object_Z_type_S_field_unit, ( struct E_aml_Z_pathname ){ field_name, E_aml_S_object[ object_i ].name.n + 1 });
+                                    if( !~field_object_i
+                                    || field_object_i == ~1
+                                    )
+                                    {   W( field_name );
+                                        return field_object_i;
+                                    }
+                                    struct E_aml_Z_field_unit *M_(field);
+                                    if( !field )
+                                    {   E_aml_S_object[ field_object_i ].type = E_aml_Z_object_Z_type_S_uninitialized;
+                                        return ~0;
+                                    }
+                                    E_aml_S_object[ field_object_i ].data = field;
+                                    field->region = E_aml_S_object[ object_i ].name;
+                                    field->type = E_aml_Z_field_Z_type_S_plain;
                                     N n = E_aml_R_pkg_length_( pkg_end );
                                     if( !~n )
                                         return ~1;
                                     field->i = i;
                                     field->n = n;
-                                    region->field_n++;
+                                    field->access = field_default.access;
+                                    field->lock = field_default.lock;
+                                    field->update_rule = field_default.update_rule;
                                     i += n;
                                     break;
                                 }
@@ -2374,15 +2336,10 @@ E_aml_I_object( void
                     if( pkg_end > E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
                         return ~1;
                     N8 n;
-                    Pc name = E_aml_Q_path_R_root( &n );
+                    N object_i;
+                    Pc name = E_aml_Q_path_R_relative( &n, &object_i );
                     if( !name )
                         return (S8)n;
-                    if( n > 1
-                    && !~E_aml_Q_object_R(( struct E_aml_Z_pathname ){ name, n - 1 })
-                    )
-                    {   W(name);
-                        return ~1;
-                    }
                     Pc name_ = M( n * 4 + 1 );
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
                     E_font_I_print( ",index field=" ); E_font_I_print( name_ );
@@ -2390,12 +2347,12 @@ E_aml_I_object( void
                     if( E_aml_Q_current_path_S_precompilation )
                     {   E_aml_S_parse_data = pkg_end; // Tymczasowo.
                     }else
-                    {   N object_i = E_aml_Q_object_I_add( E_aml_Z_object_Z_type_S_index_field, ( struct E_aml_Z_pathname ){ name, n });
-                        if( !~object_i
-                        || object_i == ~1
+                    {   if( !~object_i
+                        || E_aml_S_object[ object_i ].type != E_aml_Z_object_Z_type_S_op_region
                         )
                         {   W(name);
-                            return object_i;
+                            E_aml_S_parse_data = pkg_end; // Ignoruje brak ‘operation region’ i przeskakuje dalej.
+                            break;
                         }
                         name = E_aml_Q_path_R_root( &n );
                         if( !name )
@@ -2407,18 +2364,22 @@ E_aml_I_object( void
                         E_font_I_print( ",=" ); E_font_I_print( name_ );
                         W( name_ );
                         W(name);
-                        if( ++E_aml_S_parse_data > pkg_end )
+                        if( E_aml_S_parse_data == pkg_end )
                             return ~1;
+                        struct E_aml_Z_field_unit field_default;
+                        field_default.access = (N8)*E_aml_S_parse_data & 3;
+                        field_default.lock = (N8)*E_aml_S_parse_data & 8;
+                        field_default.update_rule = (N8)*E_aml_S_parse_data >> 5;
+                        E_aml_S_parse_data++;
+                        N i = 0;
                         while( E_aml_S_parse_data != pkg_end )
                             switch( *E_aml_S_parse_data++ )
                             { case 0: // reserved field
-                                {   if( E_aml_S_parse_data == pkg_end )
-                                        return ~1;
-                                    E_font_I_print( ",reserved field" );
+                                {   E_font_I_print( ",reserved field" );
                                     N n = E_aml_R_pkg_length_( pkg_end );
                                     if( !~n )
                                         return ~1;
-                                    //TODO Dodać ‘field pkg length’ do drzewa zinterpretowanej przestrzeni ACPI.
+                                    i += n;
                                     break;
                                 }
                               case 1: // access field
@@ -2431,8 +2392,6 @@ E_aml_I_object( void
                                     E_aml_S_parse_data++;
                                     break;
                               case 2: // connect field
-                                    if( E_aml_S_parse_data == pkg_end )
-                                        return ~1;
                                     E_font_I_print( ",connect field" );
                                     return ~0; //NDFN
                                     break;
@@ -2451,31 +2410,47 @@ E_aml_I_object( void
                                 {   E_aml_S_parse_data--;
                                     if( E_aml_S_parse_data + 4 > pkg_end )
                                         return ~1;
-                                    if( !( E_aml_S_parse_data[0] == '_'
-                                    || ( E_aml_S_parse_data[0] >= 'A'
-                                      && E_aml_S_parse_data[0] <= 'Z'
-                                    )))
-                                        return ~1;
-                                    for_n( j, 3 )
-                                        if( !( E_aml_S_parse_data[ 1 + j ] == '_'
-                                        || ( E_aml_S_parse_data[ 1 + j ] >= '0'
-                                          && E_aml_S_parse_data[ 1 + j ] <= '9'
-                                        )
-                                        || ( E_aml_S_parse_data[ 1 + j ] >= 'A'
-                                          && E_aml_S_parse_data[ 1 + j ] <= 'Z'
-                                        )))
-                                            return ~1;
-                                    Pc name_ = M( 4 + 1 );
-                                    E_text_Z_s_P_copy_sl_0( name_, E_aml_S_parse_data, 4 );
-                                    E_font_I_print( ",field=" ); E_font_I_print( name_ );
+                                    Pc name_ = E_aml_Q_path_R_segment_( pkg_end );
+                                    if( !~(N)name_
+                                    || (N)name_ == ~1
+                                    )
+                                        return (N)name_;
+                                    Pc name__ = M( 4 + 1 );
+                                    E_text_Z_s_P_copy_sl_0( name__, name_, 4 );
+                                    E_font_I_print( ",name=" ); E_font_I_print( name__ );
+                                    W( name__ );
+                                    Pc field_name = M(( E_aml_S_object[ object_i ].name.n + 1 ) * 4 );
+                                    if( !field_name )
+                                    {   W( name_ );
+                                        return ~0;
+                                    }
+                                    E_mem_Q_blk_I_copy( field_name, E_aml_S_object[ object_i ].name.s, E_aml_S_object[ object_i ].name.n * 4 );
+                                    E_mem_Q_blk_I_copy( field_name + E_aml_S_object[ object_i ].name.n * 4, name_, 4 );
                                     W( name_ );
-                                    //TODO Dodać ‘field name’ do drzewa zinterpretowanej przestrzeni ACPI.
-                                    E_aml_S_parse_data += 4;
+                                    N field_object_i = E_aml_Q_object_I_add( E_aml_Z_object_Z_type_S_field_unit, ( struct E_aml_Z_pathname ){ field_name, E_aml_S_object[ object_i ].name.n + 1 });
+                                    if( !~field_object_i
+                                    || field_object_i == ~1
+                                    )
+                                    {   W( field_name );
+                                        return field_object_i;
+                                    }
+                                    struct E_aml_Z_field_unit *M_(field);
+                                    if( !field )
+                                    {   E_aml_S_object[ field_object_i ].type = E_aml_Z_object_Z_type_S_uninitialized;
+                                        return ~0;
+                                    }
+                                    E_aml_S_object[ field_object_i ].data = field;
+                                    field->region = E_aml_S_object[ object_i ].name;
+                                    field->type = E_aml_Z_field_Z_type_S_plain;
                                     N n = E_aml_R_pkg_length_( pkg_end );
                                     if( !~n )
                                         return ~1;
-                                    E_font_I_print( ",field" );
-                                    //TODO Dodać ‘field pkg length’ do drzewa zinterpretowanej przestrzeni ACPI.
+                                    field->i = i;
+                                    field->n = n;
+                                    field->access = field_default.access;
+                                    field->lock = field_default.lock;
+                                    field->update_rule = field_default.update_rule;
+                                    i += n;
                                     break;
                                 }
                             }
@@ -3395,38 +3370,12 @@ _internal
 N
 E_aml_M_clear_object( void
 ){  if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_aml_Z_value_Z_type_S_pathname )
-        return ~0;
+        return ~1;
     N object_i = E_aml_Q_object_R( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname );
     if( !~object_i )
+        return ~1;
+    if( !~E_aml_Q_object_W_data( object_i ))
         return ~0;
-    E_aml_Q_object_W_data( object_i );
-    return object_i;
-}
-_internal
-N
-E_aml_M_clear_or_add_object( void
-){  N object_i = E_aml_M_clear_object();
-    if( !~object_i )
-    {   Pc s;
-        if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy )
-        {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
-            s = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname.s;
-        }else
-        {   s = E_text_Z_sl_M_duplicate( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname.s
-            , E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname.n * 4
-            );
-            if( !s )
-                return ~0;
-        }
-        object_i = E_aml_Q_object_I_add( E_aml_Z_object_Z_type_S_uninitialized, ( struct E_aml_Z_pathname ){ s, E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname.n });
-        if( !~object_i
-        || object_i == ~1
-        )
-        {   if( !E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy )
-                W(s);
-            return ~0;
-        }
-    }
     return object_i;
 }
 _internal
@@ -3480,8 +3429,10 @@ E_aml_M_number_finish_3( void
         return ~1;
     if( !ret )
     {   N object_i = E_aml_M_clear_object();
-        if( !~object_i )
-            return ~1;
+        if( !~object_i
+        || object_i == ~1
+        )
+            return object_i;
         if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.type != E_aml_Z_value_Z_type_S_uninitialized )
         {   E_aml_S_object[ object_i ].n = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result.n;
             E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_number;
@@ -3732,7 +3683,8 @@ E_aml_M_res1( void
                 {   current_path_i--;
                     N object_i = E_aml_Q_object_R(( struct E_aml_Z_pathname ){ E_aml_S_current_path[ current_path_i ].s, E_aml_S_current_path[ current_path_i ].n });
                     if( ~object_i ) // Pomijanie ‘scope’.
-                    {   E_aml_Q_object_W_data( object_i );
+                    {   if( !~E_aml_Q_object_W_data( object_i ))
+                            return ~0;
                         E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_uninitialized;
                         for_n( j, E_aml_S_current_path_n - current_path_i )
                             W( E_aml_S_current_path[ current_path_i + j ].s );
@@ -4106,28 +4058,23 @@ Loop:
                             if( bank_value.type != E_aml_Z_value_Z_type_S_number )
                                 bank_value.type = E_aml_Z_value_Z_type_S_uninitialized;
                         }
-                        struct E_aml_Z_op_region *region = E_aml_S_object[ object_i ].data;
-                        for_n( bank_field_i, region->bank_field_n )
-                            if( E_text_Z_sl_T_eq( region->bank_field[ bank_field_i ].name, value[1].p, 4 )
-                            && region->bank_field[ bank_field_i ].value == bank_value.n
-                            )
-                        {   ret = ~1;
+                        Pc bank_name = M(( E_aml_S_object[ object_i ].name.n + 1 ) * 4 );
+                        if( !bank_name )
+                            return ~0;
+                        E_mem_Q_blk_I_copy( bank_name, E_aml_S_object[ object_i ].name.s, E_aml_S_object[ object_i ].name.n * 4 );
+                        E_mem_Q_blk_I_copy( bank_name + E_aml_S_object[ object_i ].name.n * 4, value[1].p, 4 );
+                        N bank_object_i = E_aml_Q_object_R(( struct E_aml_Z_pathname ){ bank_name, E_aml_S_object[ object_i ].name.n + 1 });
+                        if( !~bank_object_i
+                        || E_aml_S_object[ bank_object_i ].type != E_aml_Z_object_Z_type_S_field_unit
+                        )
+                        {   W( bank_name );
+                            ret = ~1;
                             break;
                         }
-                        struct E_aml_Z_bank_field *bank_field;
-                        if( bank_value.type != E_aml_Z_value_Z_type_S_uninitialized )
-                        {   bank_field = E_mem_Q_blk_I_add( &region->bank_field, 1, 0, 0 );
-                            if( !bank_field )
-                                return ~0;
-                            bank_field->field_n = 0;
-                            Mt_( bank_field->field, bank_field->field_n );
-                            if( !bank_field->field )
-                                return ~0;
-                            bank_field->value = bank_value.n;
-                            bank_field->access = (N8)*E_aml_S_parse_data & 3;
-                            bank_field->lock = (N8)*E_aml_S_parse_data & 8;
-                            bank_field->update_rule = (N8)*E_aml_S_parse_data >> 5;
-                        }
+                        struct E_aml_Z_field_unit field_default;
+                        field_default.access = (N8)*E_aml_S_parse_data & 3;
+                        field_default.lock = (N8)*E_aml_S_parse_data & 8;
+                        field_default.update_rule = (N8)*E_aml_S_parse_data >> 5;
                         E_aml_S_parse_data++;
                         N i = 0;
                         while( !ret
@@ -4135,25 +4082,13 @@ Loop:
                         )
                             switch( *E_aml_S_parse_data++ )
                             { case 0: // reserved field
-                                {   if( E_aml_S_parse_data == E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
-                                    {   ret = ~1;
-                                        break;
-                                    }
-                                    N n = E_aml_R_pkg_length();
+                                {   N n = E_aml_R_pkg_length();
                                     if( !~n )
                                     {   ret = ~1;
                                         break;
                                     }
                                     E_font_I_print( ",reserved field" );
-                                    if( bank_value.type != E_aml_Z_value_Z_type_S_uninitialized )
-                                    {   struct E_aml_Z_field *field = E_mem_Q_blk_I_add( &bank_field->field, 1, 0, 0 );
-                                        if( !field )
-                                            return ~0;
-                                        field->i = i;
-                                        field->type = E_aml_Z_field_Z_type_S_reserved;
-                                        bank_field->field_n++;
-                                        i += n;
-                                    }
+                                    i += n;
                                     break;
                                 }
                               case 1: // access field
@@ -4161,37 +4096,17 @@ Loop:
                                     {   ret = ~1;
                                         break;
                                     }
-                                    struct E_aml_Z_field *field;
-                                    if( bank_value.type != E_aml_Z_value_Z_type_S_uninitialized )
-                                    {   field = E_mem_Q_blk_I_add( &bank_field->field, 1, 0, 0 );
-                                        if( !field )
-                                            return ~0;
-                                        field->i = i;
-                                    }
                                     //TODO Dodać ‘access type’ do drzewa zinterpretowanej przestrzeni ACPI.
                                     E_aml_S_parse_data++;
                                     //TODO Dodać ‘access attrib’ do drzewa zinterpretowanej przestrzeni ACPI.
                                     E_aml_S_parse_data++;
-                                    if( bank_value.type != E_aml_Z_value_Z_type_S_uninitialized )
-                                    {   field->type = E_aml_Z_field_Z_type_S_access;
-                                        bank_field->field_n++;
-                                        //i += n;
-                                    }
+                                    //i += n;
                                     break;
                                 }
                               case 2: // connect field
                                 {   E_font_I_print( ",connect field" );
+                                    W( bank_name );
                                     return ~0; //NDFN
-                                    if( bank_value.type != E_aml_Z_value_Z_type_S_uninitialized )
-                                    {   struct E_aml_Z_field *field = E_mem_Q_blk_I_add( &bank_field->field, 1, 0, 0 );
-                                        if( !field )
-                                            return ~0;
-                                        field->i = i;
-                                        //field->name =
-                                        field->type = E_aml_Z_field_Z_type_S_connect;
-                                        bank_field->field_n++;
-                                        //i += n;
-                                    }
                                     break;
                                 }
                               case 3: // extended access field
@@ -4200,68 +4115,83 @@ Loop:
                                         break;
                                     }
                                     E_font_I_print( ",ext access field" );
-                                    struct E_aml_Z_field *field;
-                                    if( bank_value.type != E_aml_Z_value_Z_type_S_uninitialized )
-                                    {   field = E_mem_Q_blk_I_add( &bank_field->field, 1, 0, 0 );
-                                        if( !field )
-                                            return ~0;
-                                        field->i = i;
-                                    }
                                     //TODO Dodać ‘access type’ do drzewa zinterpretowanej przestrzeni ACPI.
                                     E_aml_S_parse_data++;
                                     //TODO Dodać ‘extended access attrib’ do drzewa zinterpretowanej przestrzeni ACPI.
                                     E_aml_S_parse_data++;
                                     //TODO Dodać ‘access length’ do drzewa zinterpretowanej przestrzeni ACPI.
                                     E_aml_S_parse_data++; //NDFN Jaki rozmiar.
-                                    if( bank_value.type != E_aml_Z_value_Z_type_S_uninitialized )
-                                    {   field->type = E_aml_Z_field_Z_type_S_ex_access;
-                                        bank_field->field_n++;
-                                        //i += n;
-                                    }
+                                    //i += n;
                                     break;
                                 }
                               default: // named field
                                 {   E_aml_S_parse_data--;
                                     if( E_aml_S_parse_data + 4 > E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
+                                        return ~1;
+                                    Pc name_ = E_aml_Q_path_R_segment();
+                                    if( !~(N)name_
+                                    || (N)name_ == ~1
+                                    )
+                                    {   W( bank_name );
+                                        return (N)name_;
+                                    }
+                                    Pc name__ = M( 4 + 1 );
+                                    E_text_Z_s_P_copy_sl_0( name__, name_, 4 );
+                                    E_font_I_print( ",name=" ); E_font_I_print( name__ );
+                                    W( name__ );
+                                    Pc field_name = M(( E_aml_S_object[ object_i ].name.n + 1 ) * 4 );
+                                    if( !field_name )
+                                    {   W( name_ );
+                                        W( bank_name );
+                                        return ~0;
+                                    }
+                                    E_mem_Q_blk_I_copy( field_name, E_aml_S_object[ object_i ].name.s, E_aml_S_object[ object_i ].name.n * 4 );
+                                    E_mem_Q_blk_I_copy( field_name + E_aml_S_object[ object_i ].name.n * 4, name_, 4 );
+                                    W( name_ );
+                                    N field_object_i = E_aml_Q_object_I_add( E_aml_Z_object_Z_type_S_field_unit, ( struct E_aml_Z_pathname ){ field_name, E_aml_S_object[ object_i ].name.n + 1 });
+                                    if( !~field_object_i
+                                    || field_object_i == ~1
+                                    )
+                                    {   W( field_name );
+                                        W( bank_name );
+                                        return field_object_i;
+                                    }
+                                    name_ = E_text_Z_sl_M_duplicate( bank_name, ( E_aml_S_object[ object_i ].name.n + 1 ) * 4 );
+                                    if( !name_ )
+                                    {   E_aml_S_object[ field_object_i ].type = E_aml_Z_object_Z_type_S_uninitialized;
+                                        W( bank_name );
+                                        return ~0;
+                                    }
+                                    struct E_aml_Z_field_unit *M_(field);
+                                    if( !field )
+                                    {   E_aml_S_object[ field_object_i ].type = E_aml_Z_object_Z_type_S_uninitialized;
+                                        W( bank_name );
+                                        return ~0;
+                                    }
+                                    E_aml_S_object[ field_object_i ].data = field;
+                                    field->region = E_aml_S_object[ object_i ].name;
+                                    field->bank_field = ( struct E_aml_Z_pathname ){ name_, E_aml_S_object[ object_i ].name.n + 1 };
+                                    field->type = E_aml_Z_field_Z_type_S_bank;
+                                    N n = E_aml_R_pkg_length();
+                                    if( !~n )
                                     {   ret = ~1;
                                         break;
                                     }
-                                    Pc name_ = M( 4 + 1 );
-                                    E_text_Z_s_P_copy_sl_0( name_, E_aml_S_parse_data, 4 );
-                                    E_font_I_print( ",field=" ); E_font_I_print( name_ );
-                                    W( name_ );
-                                    struct E_aml_Z_field *field;
-                                    if( bank_value.type != E_aml_Z_value_Z_type_S_uninitialized )
-                                    {   field = E_mem_Q_blk_I_add( &bank_field->field, 1, 0, 0 );
-                                        if( !field )
-                                            return ~0;
-                                        field->name = E_aml_Q_path_R_segment();
-                                        if( !~(N)field->name
-                                        || (N)field->name == ~1
-                                        )
-                                        {   ret = ~1;
-                                            break;
-                                        }
-                                    }
-                                    N n = E_aml_R_pkg_length();
-                                    if( !~n )
-                                    {   W( field->name );
-                                        ret = ~1;
-                                        break;
-                                    }
-                                    if( bank_value.type != E_aml_Z_value_Z_type_S_uninitialized )
-                                    {   field->i = i;
-                                        field->n = n;
-                                        field->type = E_aml_Z_field_Z_type_S_named;
-                                        bank_field->field_n++;
-                                        i += n;
-                                    }
+                                    field->bank_value = bank_value.n;
+                                    field->i = i;
+                                    field->n = n;
+                                    field->access = field_default.access;
+                                    field->lock = field_default.lock;
+                                    field->update_rule = field_default.update_rule;
+                                    i += n;
                                     break;
                                 }
                             }
+                        W( bank_name );
                     }
                     if( bank_value.type == E_aml_Z_value_Z_type_S_uninitialized )
-                    {   E_aml_Q_object_W_data( object_i );
+                    {   if( !~E_aml_Q_object_W_data( object_i ))
+                            return ~0;
                         E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_uninitialized;
                     }
                 }
@@ -4615,7 +4545,8 @@ Loop:
                     {   E_aml_Q_value_W( &value[0] );
                         value[0].type = E_aml_Z_value_Z_type_S_uninitialized;
                         value[0].copy = no;
-                        E_aml_Q_object_W_data( object_i );
+                        if( !~E_aml_Q_object_W_data( object_i ))
+                            return ~0;
                         E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_uninitialized;
                     }
                 }
@@ -4649,7 +4580,8 @@ Loop:
                         {   struct E_aml_Z_op_region *region = E_aml_S_object[ object_i ].data;
                             region->l = l.n;
                         }else
-                        {   E_aml_Q_object_W_data( object_i );
+                        {   if( !~E_aml_Q_object_W_data( object_i ))
+                                return ~0;
                             E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_uninitialized;
                         }
                     }
@@ -5063,6 +4995,8 @@ Loop:
                         { case E_aml_Z_value_Z_type_S_string:
                             {   N object_i = E_aml_M_clear_object();
                                 if( !~object_i )
+                                    return ~0;
+                                if( object_i == ~1 )
                                 {   ret = ~1;
                                     break;
                                 }
@@ -5076,6 +5010,8 @@ Loop:
                           case E_aml_Z_value_Z_type_S_buffer:
                             {   N object_i = E_aml_M_clear_object();
                                 if( !~object_i )
+                                    return ~0;
+                                if( object_i == ~1 )
                                 {   ret = ~1;
                                     break;
                                 }
@@ -5093,6 +5029,8 @@ Loop:
                           default:
                             {   N object_i = E_aml_M_clear_object();
                                 if( !~object_i )
+                                    return ~0;
+                                if( object_i == ~1 )
                                 {   ret = ~1;
                                     break;
                                 }
@@ -5167,6 +5105,8 @@ Loop:
                                 break;
                             N dest_object_i = E_aml_M_clear_object();
                             if( !~dest_object_i )
+                                return ~0;
+                            if( dest_object_i == ~1 )
                             {   ret = ~1;
                                 break;
                             }
@@ -5185,6 +5125,8 @@ Loop:
                         }
                         N object_i = E_aml_M_clear_object();
                         if( !~object_i )
+                            return ~0;
+                        if( object_i == ~1 )
                         {   ret = ~1;
                             break;
                         }
@@ -5297,6 +5239,8 @@ Loop:
                     { case E_aml_Z_value_Z_type_S_number:
                         {   N object_i = E_aml_M_clear_object();
                             if( !~object_i )
+                                return ~0;
+                            if( object_i == ~1 )
                             {   ret = ~1;
                                 break;
                             }
@@ -5307,6 +5251,8 @@ Loop:
                       case E_aml_Z_value_Z_type_S_string:
                         {   N object_i = E_aml_M_clear_object();
                             if( !~object_i )
+                                return ~0;
+                            if( object_i == ~1 )
                             {   ret = ~1;
                                 break;
                             }
@@ -5327,6 +5273,8 @@ Loop:
                       case E_aml_Z_value_Z_type_S_buffer:
                         {   N object_i = E_aml_M_clear_object();
                             if( !~object_i )
+                                return ~0;
+                            if( object_i == ~1 )
                             {   ret = ~1;
                                 break;
                             }
@@ -5352,6 +5300,8 @@ Loop:
                       case E_aml_Z_value_Z_type_S_package:
                         {   N object_i = E_aml_M_clear_object();
                             if( !~object_i )
+                                return ~0;
+                            if( object_i == ~1 )
                             {   ret = ~1;
                                 break;
                             }
@@ -5372,6 +5322,8 @@ Loop:
                       default:
                         {   N object_i = E_aml_M_clear_object();
                             if( !~object_i )
+                                return ~0;
+                            if( object_i == ~1 )
                             {   ret = ~1;
                                 break;
                             }
@@ -5532,6 +5484,8 @@ Loop:
                     if( !ret )
                     {   N object_i = E_aml_M_clear_object();
                         if( !~object_i )
+                            return ~0;
+                        if( object_i == ~1 )
                         {   ret = ~1;
                             break;
                         }
@@ -5873,6 +5827,8 @@ Loop:
                         { case E_aml_Z_value_Z_type_S_string:
                             {   N object_i = E_aml_M_clear_object();
                                 if( !~object_i )
+                                    return ~0;
+                                if( object_i == ~1 )
                                 {   ret = ~1;
                                     break;
                                 }
@@ -5893,6 +5849,8 @@ Loop:
                           case E_aml_Z_value_Z_type_S_buffer:
                             {   N object_i = E_aml_M_clear_object();
                                 if( !~object_i )
+                                    return ~0;
+                                if( object_i == ~1 )
                                 {   ret = ~1;
                                     break;
                                 }
@@ -5920,6 +5878,8 @@ Loop:
                           case E_aml_Z_value_Z_type_S_package:
                             {   N object_i = E_aml_M_clear_object();
                                 if( !~object_i )
+                                    return ~0;
+                                if( object_i == ~1 )
                                 {   ret = ~1;
                                     break;
                                 }
@@ -5940,6 +5900,8 @@ Loop:
                           default:
                             {   N object_i = E_aml_M_clear_object();
                                 if( !~object_i )
+                                    return ~0;
+                                if( object_i == ~1 )
                                 {   ret = ~1;
                                     break;
                                 }
@@ -6632,6 +6594,8 @@ Loop:
                         { case E_aml_Z_value_Z_type_S_string:
                             {   N object_i = E_aml_M_clear_object();
                                 if( !~object_i )
+                                    return ~0;
+                                if( object_i == ~1 )
                                 {   ret = ~1;
                                     break;
                                 }
@@ -6645,6 +6609,8 @@ Loop:
                           default:
                             {   N object_i = E_aml_M_clear_object();
                                 if( !~object_i )
+                                    return ~0;
+                                if( object_i == ~1 )
                                 {   ret = ~1;
                                     break;
                                 }
@@ -7394,13 +7360,15 @@ Loop:
                                                     break;
                                                 }
                                               default:
-                                                    E_aml_Q_object_W_data( object_i );
+                                                    if( !~E_aml_Q_object_W_data( object_i ))
+                                                        return ~0;
                                                     E_aml_S_object[ object_i ].n = v.n;
                                                     E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_number;
                                                     break;
                                             }
                                         else
-                                        {   E_aml_Q_object_W_data( object_i );
+                                        {   if( !~E_aml_Q_object_W_data( object_i ))
+                                                return ~0;
                                             E_aml_S_object[ object_i ].n = v.n;
                                             E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_number;
                                         }
@@ -7469,7 +7437,8 @@ Loop:
                                                         if( !s )
                                                             return ~0;
                                                     }
-                                                    E_aml_Q_object_W_data( object_i );
+                                                    if( !~E_aml_Q_object_W_data( object_i ))
+                                                        return ~0;
                                                     E_aml_S_object[ object_i ].data = s;
                                                     E_aml_S_object[ object_i ].n = ~0;
                                                     E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_string;
@@ -7486,7 +7455,8 @@ Loop:
                                                 if( !s )
                                                     return ~0;
                                             }
-                                            E_aml_Q_object_W_data( object_i );
+                                            if( !~E_aml_Q_object_W_data( object_i ))
+                                                return ~0;
                                             E_aml_S_object[ object_i ].data = s;
                                             E_aml_S_object[ object_i ].n = ~0;
                                             E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_string;
@@ -7559,7 +7529,8 @@ Loop:
                                                             return ~0;
                                                     }
                                                     buffer->n = v.buffer.n;
-                                                    E_aml_Q_object_W_data( object_i );
+                                                    if( !~E_aml_Q_object_W_data( object_i ))
+                                                        return ~0;
                                                     E_aml_S_object[ object_i ].data = buffer;
                                                     E_aml_S_object[ object_i ].n = ~0;
                                                     E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_buffer;
@@ -7579,7 +7550,8 @@ Loop:
                                                     return ~0;
                                             }
                                             buffer->n = v.buffer.n;
-                                            E_aml_Q_object_W_data( object_i );
+                                            if( !~E_aml_Q_object_W_data( object_i ))
+                                                return ~0;
                                             E_aml_S_object[ object_i ].data = buffer;
                                             E_aml_S_object[ object_i ].n = ~0;
                                             E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_buffer;
@@ -7633,7 +7605,8 @@ Loop:
                                                         if( !package )
                                                             return ~0;
                                                     }
-                                                    E_aml_Q_object_W_data( object_i );
+                                                    if( !~E_aml_Q_object_W_data( object_i ))
+                                                        return ~0;
                                                     E_aml_S_object[ object_i ].data = package;
                                                     E_aml_S_object[ object_i ].n = ~0;
                                                     E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_package;
@@ -7650,7 +7623,8 @@ Loop:
                                                 if( !package )
                                                     return ~0;
                                             }
-                                            E_aml_Q_object_W_data( object_i );
+                                            if( !~E_aml_Q_object_W_data( object_i ))
+                                                return ~0;
                                             E_aml_S_object[ object_i ].data = package;
                                             E_aml_S_object[ object_i ].n = ~0;
                                             E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_package;
@@ -7725,7 +7699,8 @@ Loop:
                                                         return ~0;
                                                     s_[0] = s[i];
                                                     s_[1] = '\0';
-                                                    E_aml_Q_object_W_data( object_i );
+                                                    if( !~E_aml_Q_object_W_data( object_i ))
+                                                        return ~0;
                                                     E_aml_S_object[ object_i ].data = s_;
                                                     E_aml_S_object[ object_i ].n = ~0;
                                                     E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_string;
@@ -7739,7 +7714,8 @@ Loop:
                                                 return ~0;
                                             s_[0] = s[i];
                                             s_[1] = '\0';
-                                            E_aml_Q_object_W_data( object_i );
+                                            if( !~E_aml_Q_object_W_data( object_i ))
+                                                return ~0;
                                             E_aml_S_object[ object_i ].data = s_;
                                             E_aml_S_object[ object_i ].n = ~0;
                                             E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_string;
@@ -7809,7 +7785,8 @@ Loop:
                                                     }
                                                     buffer->n = 1;
                                                     buffer->p[0] = v.buffer.p[i];
-                                                    E_aml_Q_object_W_data( object_i );
+                                                    if( !~E_aml_Q_object_W_data( object_i ))
+                                                        return ~0;
                                                     E_aml_S_object[ object_i ].data = buffer;
                                                     E_aml_S_object[ object_i ].n = ~0;
                                                     E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_buffer;
@@ -7827,7 +7804,8 @@ Loop:
                                             }
                                             buffer->n = 1;
                                             buffer->p[0] = v.buffer.p[i];
-                                            E_aml_Q_object_W_data( object_i );
+                                            if( !~E_aml_Q_object_W_data( object_i ))
+                                                return ~0;
                                             E_aml_S_object[ object_i ].data = buffer;
                                             E_aml_S_object[ object_i ].n = ~0;
                                             E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_buffer;
@@ -7839,9 +7817,28 @@ Loop:
                                         break;
                                 }
                         }else
-                        {   N object_i = E_aml_M_clear_or_add_object();
+                        {  N object_i = E_aml_M_clear_object();
                             if( !~object_i )
                                 return ~0;
+                            if( object_i == ~1 )
+                            {   Pc s;
+                                if( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy )
+                                {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
+                                    s = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname.s;
+                                }else
+                                {   s = E_text_Z_sl_M_duplicate( E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname.s
+                                    , E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname.n * 4
+                                    );
+                                    if( !s )
+                                        return ~0;
+                                }
+                                object_i = E_aml_Q_object_I_add( E_aml_Z_object_Z_type_S_uninitialized, ( struct E_aml_Z_pathname ){ s, E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.pathname.n });
+                                if( !~object_i )
+                                {   if( !E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy )
+                                        W(s);
+                                    return ~0;
+                                }
+                            }
                             E_aml_S_object[ object_i ].type = E_aml_Z_object_Z_type_S_uninitialized;
                         }
                     }
@@ -7999,6 +7996,8 @@ Loop:
                     if( !ret )
                     {   N object_i = E_aml_M_clear_object();
                         if( !~object_i )
+                            return ~0;
+                        if( object_i == ~1 )
                         {   ret = ~1;
                             break;
                         }
@@ -8132,6 +8131,8 @@ Loop:
                     if( !ret )
                     {   N object_i = E_aml_M_clear_object();
                         if( !~object_i )
+                            return ~0;
+                        if( object_i == ~1 )
                         {   ret = ~1;
                             break;
                         }
@@ -8262,6 +8263,8 @@ Loop:
                     if( !ret )
                     {   N object_i = E_aml_M_clear_object();
                         if( !~object_i )
+                            return ~0;
+                        if( object_i == ~1 )
                         {   ret = ~1;
                             break;
                         }
@@ -8457,6 +8460,8 @@ Loop:
                     if( !ret )
                     {   N object_i = E_aml_M_clear_object();
                         if( !~object_i )
+                            return ~0;
+                        if( object_i == ~1 )
                         {   ret = ~1;
                             break;
                         }
