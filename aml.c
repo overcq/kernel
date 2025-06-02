@@ -9,7 +9,6 @@
 //DFN W tym interpretatorze AML wartości albo są liczbowe, albo są referencjami do obiektów. Natomiast wartość może być kopią, jeśli powstała z algorytmu przetwarzania. Dopiero podczas przypisywania do obiektu wartości są kopiowane, jeśli nie były kopiami. Tzn. operator ASL “DerefOf” działa z opóźnieniem, a “RefOf” przenosi wartość.
 //TODO Czy da się nie obliczać drugiego argumentu dla instrukcji “LOr”, jeśli nie potrzeba?
 //NDFN Co robić z aliasami do aliasów?
-#include "main.h"
 //==============================================================================
 struct E_aml_Z_pathname
 { Pc s;
@@ -685,6 +684,12 @@ E_aml_Q_object_W_data( N object_i
           case E_aml_Z_object_Z_type_S_package:
                 E_aml_Q_object_W_package( E_aml_S_object[ object_i ].data );
                 break;
+          case E_aml_Z_object_Z_type_S_field_unit:
+            {   struct E_aml_Z_field_unit *field = E_aml_S_object[ object_i ].data;
+                if( field->type == E_aml_Z_field_Z_type_S_bank )
+                    W( field->bank_field.s );
+                break;
+            }
           case E_aml_Z_object_Z_type_S_op_region:
             {   N i;
                 for( i = object_i + 1; i != E_aml_S_object_n; i++ )
@@ -2288,15 +2293,17 @@ E_aml_I_object( void
                                     E_font_I_print( ",name=" ); E_font_I_print( name__ );
                                     W( name__ );
                                     W( name_ );
-                                    Pc field_name = M(( E_aml_S_object[ object_i ].name.n + 1 ) * 4 );
+                                    N depth = E_aml_S_current_path_n ? E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].n : 0;
+                                    Pc field_name = M(( depth + 1 ) * 4 );
                                     if( !field_name )
                                     {   W( name_ );
                                         return ~0;
                                     }
-                                    E_mem_Q_blk_I_copy( field_name, E_aml_S_object[ object_i ].name.s, E_aml_S_object[ object_i ].name.n * 4 );
-                                    E_mem_Q_blk_I_copy( field_name + E_aml_S_object[ object_i ].name.n * 4, name_, 4 );
+                                    if( E_aml_S_current_path_n )
+                                        E_mem_Q_blk_I_copy( field_name, E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].s, depth * 4 );
+                                    E_mem_Q_blk_I_copy( field_name + depth * 4, name_, 4 );
                                     W( name_ );
-                                    N field_object_i = E_aml_Q_object_I_add( E_aml_Z_object_Z_type_S_field_unit, ( struct E_aml_Z_pathname ){ field_name, E_aml_S_object[ object_i ].name.n + 1 });
+                                    N field_object_i = E_aml_Q_object_I_add( E_aml_Z_object_Z_type_S_field_unit, ( struct E_aml_Z_pathname ){ field_name, depth + 1 });
                                     if( !~field_object_i
                                     || field_object_i == ~1
                                     )
@@ -2419,15 +2426,17 @@ E_aml_I_object( void
                                     E_text_Z_s_P_copy_sl_0( name__, name_, 4 );
                                     E_font_I_print( ",name=" ); E_font_I_print( name__ );
                                     W( name__ );
-                                    Pc field_name = M(( E_aml_S_object[ object_i ].name.n + 1 ) * 4 );
+                                    N depth = E_aml_S_current_path_n ? E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].n : 0;
+                                    Pc field_name = M(( depth + 1 ) * 4 );
                                     if( !field_name )
                                     {   W( name_ );
                                         return ~0;
                                     }
-                                    E_mem_Q_blk_I_copy( field_name, E_aml_S_object[ object_i ].name.s, E_aml_S_object[ object_i ].name.n * 4 );
-                                    E_mem_Q_blk_I_copy( field_name + E_aml_S_object[ object_i ].name.n * 4, name_, 4 );
+                                    if( E_aml_S_current_path_n )
+                                        E_mem_Q_blk_I_copy( field_name, E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].s, depth * 4 );
+                                    E_mem_Q_blk_I_copy( field_name + depth * 4, name_, 4 );
                                     W( name_ );
-                                    N field_object_i = E_aml_Q_object_I_add( E_aml_Z_object_Z_type_S_field_unit, ( struct E_aml_Z_pathname ){ field_name, E_aml_S_object[ object_i ].name.n + 1 });
+                                    N field_object_i = E_aml_Q_object_I_add( E_aml_Z_object_Z_type_S_field_unit, ( struct E_aml_Z_pathname ){ field_name, depth + 1 });
                                     if( !~field_object_i
                                     || field_object_i == ~1
                                     )
@@ -4058,11 +4067,13 @@ Loop:
                             if( bank_value.type != E_aml_Z_value_Z_type_S_number )
                                 bank_value.type = E_aml_Z_value_Z_type_S_uninitialized;
                         }
-                        Pc bank_name = M(( E_aml_S_object[ object_i ].name.n + 1 ) * 4 );
+                        N depth = E_aml_S_current_path_n ? E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].n : 0;
+                        Pc bank_name = M(( depth + 1 ) * 4 );
                         if( !bank_name )
                             return ~0;
-                        E_mem_Q_blk_I_copy( bank_name, E_aml_S_object[ object_i ].name.s, E_aml_S_object[ object_i ].name.n * 4 );
-                        E_mem_Q_blk_I_copy( bank_name + E_aml_S_object[ object_i ].name.n * 4, value[1].p, 4 );
+                        if( E_aml_S_current_path_n )
+                            E_mem_Q_blk_I_copy( bank_name, E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].s, depth * 4 );
+                        E_mem_Q_blk_I_copy( bank_name + depth * 4, value[1].p, 4 );
                         N bank_object_i = E_aml_Q_object_R(( struct E_aml_Z_pathname ){ bank_name, E_aml_S_object[ object_i ].name.n + 1 });
                         if( !~bank_object_i
                         || E_aml_S_object[ bank_object_i ].type != E_aml_Z_object_Z_type_S_field_unit
@@ -4139,16 +4150,17 @@ Loop:
                                     E_text_Z_s_P_copy_sl_0( name__, name_, 4 );
                                     E_font_I_print( ",name=" ); E_font_I_print( name__ );
                                     W( name__ );
-                                    Pc field_name = M(( E_aml_S_object[ object_i ].name.n + 1 ) * 4 );
+                                    Pc field_name = M(( depth + 1 ) * 4 );
                                     if( !field_name )
                                     {   W( name_ );
                                         W( bank_name );
                                         return ~0;
                                     }
-                                    E_mem_Q_blk_I_copy( field_name, E_aml_S_object[ object_i ].name.s, E_aml_S_object[ object_i ].name.n * 4 );
-                                    E_mem_Q_blk_I_copy( field_name + E_aml_S_object[ object_i ].name.n * 4, name_, 4 );
+                                    if( E_aml_S_current_path_n )
+                                        E_mem_Q_blk_I_copy( field_name, E_aml_S_current_path[ E_aml_S_current_path_n - 1 ].s, depth * 4 );
+                                    E_mem_Q_blk_I_copy( field_name + depth * 4, name_, 4 );
                                     W( name_ );
-                                    N field_object_i = E_aml_Q_object_I_add( E_aml_Z_object_Z_type_S_field_unit, ( struct E_aml_Z_pathname ){ field_name, E_aml_S_object[ object_i ].name.n + 1 });
+                                    N field_object_i = E_aml_Q_object_I_add( E_aml_Z_object_Z_type_S_field_unit, ( struct E_aml_Z_pathname ){ field_name, depth + 1 });
                                     if( !~field_object_i
                                     || field_object_i == ~1
                                     )

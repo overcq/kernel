@@ -6,9 +6,16 @@
 *         VGA driver
 * ©overcq                on ‟Gentoo Linux 17.1” “x86_64”             2021‒5‒16 K
 *******************************************************************************/
-#include "main.h"
-//==============================================================================
-extern struct E_main_Z_kernel E_main_S_kernel;
+enum E_vga_Z_aa_pixel
+{ E_vga_Z_aa_pixel_S_e = 1 << 0,
+  E_vga_Z_aa_pixel_S_se = 1 << 1,
+  E_vga_Z_aa_pixel_S_s = 1 << 2,
+  E_vga_Z_aa_pixel_S_sw = 1 << 3,
+  E_vga_Z_aa_pixel_S_w = 1 << 4,
+  E_vga_Z_aa_pixel_S_nw = 1 << 5,
+  E_vga_Z_aa_pixel_S_n = 1 << 6,
+  E_vga_Z_aa_pixel_S_ne = 1 << 7
+};
 //==============================================================================
 _private
 N

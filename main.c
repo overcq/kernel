@@ -6,8 +6,6 @@
 *         main
 * ©overcq                on ‟Gentoo Linux 23.0” “x86_64”              2025‒5‒1 a
 *******************************************************************************/
-#include "main.h"
-//==============================================================================
 #define E_cpu_Z_page_entry_S_present    ( 1ULL << 0 )
 #define E_cpu_Z_page_entry_S_write      ( 1ULL << 1 )
 #define E_cpu_Z_gdt_Z_data_S_write      ( 1ULL << ( 32 + 9 ))
@@ -18,6 +16,78 @@
 #define E_cpu_Z_gdt_S_granularity       ( 1ULL << ( 32 + 23 ))
 #define E_cpu_Z_gdt_Z_type_S_ldt        ( 1ULL << ( 32 + 9 ))
 //==============================================================================
+struct E_mem_Z_memory_map
+{ N64 physical_start;
+  N64 virtual_start;
+  N64 pages;
+};
+struct E_main_Z_pixel_shifts
+{ N8 red;
+  N8 green;
+  N8 blue;
+};
+enum E_uefi_Z_pixel_format
+{ H_uefi_Z_pixel_format_S_rgb8
+, H_uefi_Z_pixel_format_S_bgr8
+, H_uefi_Z_pixel_format_S_bitmask
+};
+struct E_main_Z_framebuffer
+{ volatile N32 *p;
+  N32 width, height;
+  N32 pixels_per_scan_line;
+  enum E_uefi_Z_pixel_format pixel_format;
+  struct E_main_Z_pixel_shifts pixel_shifts;
+};
+struct E_main_Z_uefi_runtime_services
+{ S ( H_uefi_Z_api __attribute__ (( __warn_unused_result__ )) *R_time )( struct H_uefi_Z_time *time, struct H_uefi_Z_time_capabilities *capabilities );
+  S ( H_uefi_Z_api __attribute__ (( __warn_unused_result__ )) *P_time )( struct H_uefi_Z_time *time );
+  S ( H_uefi_Z_api __attribute__ (( __warn_unused_result__ )) *R_wakeup_time )( B *enabled, B *pending, struct H_uefi_Z_time *time );
+  S ( H_uefi_Z_api __attribute__ (( __warn_unused_result__ )) *P_wakeup_time )( B enable, struct H_uefi_Z_time *time );
+  S ( H_uefi_Z_api __attribute__ (( __warn_unused_result__ )) *R_variable )( Pc16 name, struct H_uefi_Z_guid *vendor_guid, N32 attrbutes, N *data_l, P *data );
+  S ( H_uefi_Z_api __attribute__ (( __warn_unused_result__ )) *R_next_variable_name )( N *name_l, Pc16 name, struct H_uefi_Z_guid *vendor_guid );
+  S ( H_uefi_Z_api __attribute__ (( __warn_unused_result__ )) *P_variable )( Pc16 name, struct H_uefi_Z_guid *guid, N32 attributes, N data_l, P data );
+  S ( H_uefi_Z_api __attribute__ (( __warn_unused_result__ )) *R_next_high_monotonic_count )( N32 *count );
+  S ( H_uefi_Z_api __attribute__ (( __warn_unused_result__ )) *reset_system )( enum H_uefi_Z_reset type, N status, N data_l, Pc16 data );
+  S ( H_uefi_Z_api __attribute__ (( __warn_unused_result__ )) *update_capsule )( struct H_uefi_Z_capsule_header **capsule_headers, N capsule_headers_n, N64 scatter_gather_list );
+  S ( H_uefi_Z_api __attribute__ (( __warn_unused_result__ )) *R_capsule_capabilities )( struct H_uefi_Z_capsule_header **capsule_headers, N capsule_headers_n, N64 *maximum_capsule_size, enum H_uefi_Z_reset *reset_type );
+  S ( H_uefi_Z_api __attribute__ (( __warn_unused_result__ )) *R_variable_info )( N32 attributes, N64 *maximum_variable_storage_size, N64 *remaining_variable_storage_size, N64 *maximum_variable_size );
+};
+struct E_main_Z_kernel_Z_acpi
+{ P apic_content;
+  N apic_content_l;
+  P dmar_content;
+  N dmar_content_l;
+  P dsdt_content;
+  N dsdt_content_l;
+  P facs;
+  struct H_oux_Z_hpet hpet;
+  struct H_acpi_Z_mcfg_entry *mcfg_content;
+  N mcfg_content_n;
+  struct
+  { P address;
+    N l;
+  }ssdt_contents[2];
+  N ssdt_contents_n;
+  unsigned virt_guest_rtc_good                :1;
+  unsigned virt_guest_pm_good                 :1;
+  unsigned smm_validate_fixed_comm_buffers    :1;
+  unsigned smm_validate_nested_ptr            :1;
+  unsigned smm_system_resource_protection     :1;
+};
+_private
+struct E_main_Z_kernel
+{ struct E_mem_blk_Z mem_blk;
+  struct E_mem_Z_memory_map *memory_map;
+  N memory_map_n;
+  N gdt[5], ldt[2], idt[ 22 * 2 ];
+  P kernel;
+  P page_table;
+  P *stack;
+  struct E_main_Z_framebuffer framebuffer;
+  struct E_main_Z_uefi_runtime_services uefi_runtime_services;
+  struct E_main_Z_kernel_Z_acpi acpi;
+}E_main_S_kernel;
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 struct E_main_Z_kernel_args
 { struct E_mem_blk_Z mem_blk;
   struct E_mem_Z_memory_map *memory_map;
@@ -26,12 +96,10 @@ struct E_main_Z_kernel_args
   P kernel;
   P page_table;
   P kernel_stack;
-  struct H_main_Z_framebuffer framebuffer;
-  struct H_main_Z_uefi_runtime_services uefi_runtime_services;
-  struct H_main_Z_kernel_Z_acpi acpi;
+  struct E_main_Z_framebuffer framebuffer;
+  struct E_main_Z_uefi_runtime_services uefi_runtime_services;
+  struct E_main_Z_kernel_Z_acpi acpi;
 };
-//==============================================================================
-_private struct E_main_Z_kernel E_main_S_kernel;
 //==============================================================================
 _private
 __attribute__ (( __noreturn__ ))
@@ -56,7 +124,7 @@ main( struct E_main_Z_kernel_args *kernel_args
     E_vga_I_fill_rect( E_main_S_kernel.framebuffer.width / 2 - 50, E_main_S_kernel.framebuffer.height / 2 + 4 + 13, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
     E_vga_I_fill_rect( E_main_S_kernel.framebuffer.width / 2, E_main_S_kernel.framebuffer.height / 2 - 10 - 13, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
     E_vga_I_fill_rect( E_main_S_kernel.framebuffer.width / 2, E_main_S_kernel.framebuffer.height / 2 - 10, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
-    E_font_I_print( "OUX/C+ OS. ©overcq <overcq@int.pl>. https://github.com/overcq\n" );
+    E_font_I_print( "OUX/C+ OS. ©overcq <overcq@int.pl>. https:/""/github.com/overcq\n" );
     Mt_( E_main_S_kernel.stack, 1 );
     if( !E_main_S_kernel.stack )
         goto End;

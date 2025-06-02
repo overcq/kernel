@@ -7,11 +7,28 @@
 * ©overcq                on ‟Gentoo Linux 23.0” “x86_64”              2025‒4‒6 W
 *******************************************************************************/
 #include <stddef.h>
-#include "main.h"
 //==============================================================================
 #define E_mem_Q_blk_S_align_to_all  alignof(max_align_t)
 //==============================================================================
-extern struct E_main_Z_kernel E_main_S_kernel;
+struct E_mem_Q_blk_Z_free
+{ Pc p;
+  N l;
+};
+struct E_mem_Q_blk_Z_allocated
+{ Pc p;
+  N n;
+  N u;
+};
+struct E_mem_blk_Z
+{ struct E_mem_Q_blk_Z_allocated *allocated;
+  N free_id, allocated_id;
+  N *M_from_free_S_allocated_id[2];
+  N M_from_free_S_table_id[2];
+  N M_from_free_S_allocated_id_n;
+  N memory_size;
+  N reserved_size;
+  B reserved_from_end;
+};
 //==============================================================================
 _internal void E_mem_Q_blk_Q_sys_table_f_I_move_empty_entry(N);
 _internal N E_mem_Q_blk_Q_sys_table_R_last( N, N );

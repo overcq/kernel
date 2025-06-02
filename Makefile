@@ -10,19 +10,49 @@ CC := clang
 CFLAGS := -Os
 VMWARE_DIR := /opt/vmware2
 #===============================================================================
+H_make_I_block_root = $(if $(filter 0,$(shell id -u)),$(error root user not allowed. Run make as user first.))
+#===============================================================================
 all: build
 build: kernel
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.PHONY: all build clean distclean install-qemu install-vmware install-usb
+.PHONY: all build mostlyclean clean install-qemu install-vmware install-usb
+.SECONDARY: I_compile_S_0.h \
+$(patsubst %.c,I_compile_S_0_%.h,$(wildcard *.c)) \
+$(patsubst %.c,I_compile_S_0_%.c_,$(wildcard *.c))
 #===============================================================================
 #NDFN Nie wiadomo, dlaczego SSE nie może być włączone.
-kernel: simple.h main.h aml.c font.c main.c mem-blk.c text.c vga.c main.ld Makefile
-	$(CC) $(CFLAGS) -std=gnu23 -mno-sse -fno-zero-initialized-in-bss -ffreestanding -fno-stack-protector -fwrapv -Wall -Wextra -Wno-address-of-packed-member -Wno-dangling-else -Wno-parentheses -Wno-sign-compare -Wno-switch -nostdlib -shared -s -Wl,-T,main.ld -o $@.elf $(filter %.c,$^)
+kernel: I_compile_S_0.h $(patsubst %.c,I_compile_S_0_%.h,$(wildcard *.c)) simple.h $(patsubst %.c,I_compile_S_0_%.c_,$(wildcard *.c)) main.ld Makefile
+	$(CC) $(CFLAGS) -std=gnu23 -mno-sse -fno-zero-initialized-in-bss -ffreestanding -fno-stack-protector -fwrapv -Wall -Wextra -Wno-address-of-packed-member -Wno-dangling-else -Wno-parentheses -Wno-sign-compare -Wno-switch --include I_compile_S_0.h -nostdlib -shared -s -Wl,-T,main.ld -o $@.elf -x c $(filter %.c_,$^)
 	rm -f $@; elf2oux $@.elf
 	rm $@.elf
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-clean:
-	rm -f kernel.elf kernel
+I_compile_S_0.h: \
+I_compile_N_c_to_h.sh \
+$(wildcard *.c)
+	$(H_make_I_block_root)
+	{   echo '#include "I_compile_S_machine.h"' ;\
+        echo '#include "I_compile_S_language.h"' ;\
+        for header in $(patsubst %.c,I_compile_S_0_%.h,$(filter-out main.c,$(filter %.c,$^))); do \
+            echo "#include \"$${header}\"" ;\
+        done ;\
+        echo '#include "I_compile_S_0_main.h"' ;\
+        echo '#include "simple.h"' ;\
+    } > $@
+I_compile_S_0_%.h: %.c \
+I_compile_N_c_to_h.sh
+	$(H_make_I_block_root)
+	{   ./I_compile_N_c_to_h.sh -h1 $< \
+        && ./I_compile_N_c_to_h.sh -h2 $< ;\
+    } > $@
+I_compile_S_0_%.c_: %.c \
+I_compile_N_c_to_h.sh
+	$(H_make_I_block_root)
+	./I_compile_N_c_to_h.sh -c $< > $@
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+mostlyclean: $(wildcard *.c)
+	rm -f I_compile_S_0.h $(patsubst %.c,I_compile_S_0_%.h,$^) $(patsubst %.c,I_compile_S_0_%.c_,$^)
+clean: mostlyclean
+	rm -f kernel
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 install-qemu:
 	ocq_mnt=/mnt/oth; \

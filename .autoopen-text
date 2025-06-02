@@ -1,6 +1,5 @@
 .
 Makefile
 simple.h
-main.h
 main.c
 *.c
