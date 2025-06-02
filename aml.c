@@ -939,7 +939,7 @@ E_aml_Q_object_I_to_value( N object_i
     v.copy = no;
     return v;
 }
-_internal
+_private
 N
 E_aml_Q_object_R_l( N object_i
 ){  N l = 0;
@@ -3216,8 +3216,18 @@ E_aml_I_expression( void
                         }
                     }else
                     {   if( procedure->procedure )
-                            E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = procedure->procedure();
-                        else
+                        {   E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = procedure->procedure();
+                            for_n_rev( j, E_aml_S_object_n )
+                                if( E_aml_S_object[j].procedure_invocation == E_aml_S_procedure_invocation_stack_n )
+                                    if( !~E_aml_Q_object_W(j) )
+                                        return ~0;
+                            for_n( i, J_a_R_n( E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].arg ))
+                                E_aml_Q_value_W( &E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].arg[i] );
+                            for_n_( i, J_a_R_n( E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].local ))
+                                E_aml_Q_value_W( &E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].local[i] );
+                            if( !E_mem_Q_blk_I_remove( &E_aml_S_procedure_invocation_stack, --E_aml_S_procedure_invocation_stack_n, 1 ))
+                                return ~0;
+                        }else
                         {   E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].computing_arg = no;
                             E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].return_ = E_aml_S_parse_data;
                             E_aml_I_delegate( E_aml_Z_parse_stack_Z_entity_S_procedure_invocation_finish_2, E_aml_Z_parse_stack_Z_entity_S_term );
@@ -4138,7 +4148,9 @@ Loop:
                               default: // named field
                                 {   E_aml_S_parse_data--;
                                     if( E_aml_S_parse_data + 4 > E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end )
-                                        return ~1;
+                                    {   ret = ~1;
+                                        break;
+                                    }
                                     Pc name_ = E_aml_Q_path_R_segment();
                                     if( !~(N)name_
                                     || (N)name_ == ~1
@@ -8702,13 +8714,6 @@ E_aml_I_procedure( struct E_aml_Z_pathname name
     {   E_aml_E_current_path_W();
         return ~0;
     }
-    struct E_aml_Z_object_data_Z_procedure *procedure = E_aml_S_object[ object_i ].data;
-    E_aml_S_parse_data = procedure->data;
-    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].entity = E_aml_Z_parse_stack_Z_entity_S_term;
-    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].n = ~0;
-    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.last_op_if = 0;
-    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end = procedure->data_end;
-    E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.continue_ = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.break_ = 0;
     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
     E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.tmp_p = 0;
     E_aml_S_procedure_invocation_stack_n = 1;
@@ -8725,13 +8730,24 @@ E_aml_I_procedure( struct E_aml_Z_pathname name
         E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].local[i].type = E_aml_Z_value_Z_type_S_uninitialized;
     E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].computing_arg = no;
     E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].result.type = E_aml_Z_value_Z_type_S_uninitialized;
-    E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].return_ = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end;
     Pc name_ = M( name.n * 4 + 1 );
     E_text_Z_s_P_copy_sl_0( name_, name.s, name.n * 4 );
     E_font_I_print( "\n,invocation=" ); E_font_I_print( name_ );
     W( name_ );
-    if( !~E_aml_M_parse() )
-        goto Error;
+    struct E_aml_Z_object_data_Z_procedure *procedure = E_aml_S_object[ object_i ].data;
+    if( procedure->procedure )
+        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 2 ].execution_context.result = procedure->procedure();
+    else
+    {   E_aml_S_parse_data = procedure->data;
+        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].entity = E_aml_Z_parse_stack_Z_entity_S_term;
+        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].n = ~0;
+        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.last_op_if = 0;
+        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end = procedure->data_end;
+        E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.continue_ = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].execution_context.break_ = 0;
+        E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].return_ = E_aml_S_parse_stack[ E_aml_S_parse_stack_n - 1 ].data_end;
+        if( !~E_aml_M_parse() )
+            goto Error;
+    }
     E_aml_Q_value_W( &E_aml_S_procedure_invocation_stack[ E_aml_S_procedure_invocation_stack_n - 1 ].result );
     for_n_rev( j, E_aml_S_object_n )
         if( E_aml_S_object[j].procedure_invocation == E_aml_S_procedure_invocation_stack_n )
