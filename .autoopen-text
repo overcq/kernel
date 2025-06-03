@@ -1,5 +1,4 @@
 .
-Makefile
 simple.h
 main.c
 *.c

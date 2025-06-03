@@ -17,9 +17,9 @@
 #define E_cpu_Z_gdt_Z_type_S_ldt        ( 1ULL << ( 32 + 9 ))
 //==============================================================================
 struct E_mem_Z_memory_map
-{ N64 physical_start;
-  N64 virtual_start;
-  N64 pages;
+{ N physical_start;
+  N virtual_start;
+  N pages;
 };
 struct E_main_Z_pixel_shifts
 { N8 red;
@@ -53,6 +53,47 @@ struct E_main_Z_uefi_runtime_services
   S ( H_uefi_Z_api __attribute__ (( __warn_unused_result__ )) *R_variable_info )( N32 attributes, N64 *maximum_variable_storage_size, N64 *remaining_variable_storage_size, N64 *maximum_variable_size );
 };
 struct E_main_Z_kernel_Z_acpi
+{ P dmar_content;
+  N dmar_content_l;
+  P facs;
+  struct H_oux_Z_hpet hpet;
+  struct H_acpi_Z_mcfg_entry *mcfg_content;
+  N mcfg_content_n;
+  struct
+  { P address;
+    N l;
+  }ssdt_contents[2];
+  N ssdt_contents_n;
+  unsigned virt_guest_rtc_good                :1;
+  unsigned virt_guest_pm_good                 :1;
+  unsigned smm_validate_fixed_comm_buffers    :1;
+  unsigned smm_validate_nested_ptr            :1;
+  unsigned smm_system_resource_protection     :1;
+};
+struct E_apic_Z_source_override
+{ N8 source;
+  N8 gsi;
+};
+_private
+struct E_main_Z_kernel
+{ struct E_mem_blk_Z mem_blk;
+  struct E_mem_Z_memory_map *memory_map;
+  N memory_map_n;
+  N gdt[5], ldt[2], idt[ 22 * 2 ];
+  P kernel;
+  P page_table;
+  P *stack;
+  struct E_main_Z_framebuffer framebuffer;
+  struct E_main_Z_uefi_runtime_services uefi_runtime_services;
+  struct E_main_Z_kernel_Z_acpi acpi;
+  P local_apic_address;
+  P io_apic_address;
+  N apic_source_override_n;
+  struct E_apic_Z_source_override *apic_source_override;
+  N8 io_apic_base;
+}E_main_S_kernel;
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+struct E_main_Z_kernel_args_Z_acpi
 { P apic_content;
   N apic_content_l;
   P dmar_content;
@@ -74,20 +115,6 @@ struct E_main_Z_kernel_Z_acpi
   unsigned smm_validate_nested_ptr            :1;
   unsigned smm_system_resource_protection     :1;
 };
-_private
-struct E_main_Z_kernel
-{ struct E_mem_blk_Z mem_blk;
-  struct E_mem_Z_memory_map *memory_map;
-  N memory_map_n;
-  N gdt[5], ldt[2], idt[ 22 * 2 ];
-  P kernel;
-  P page_table;
-  P *stack;
-  struct E_main_Z_framebuffer framebuffer;
-  struct E_main_Z_uefi_runtime_services uefi_runtime_services;
-  struct E_main_Z_kernel_Z_acpi acpi;
-}E_main_S_kernel;
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 struct E_main_Z_kernel_args
 { struct E_mem_blk_Z mem_blk;
   struct E_mem_Z_memory_map *memory_map;
@@ -98,7 +125,8 @@ struct E_main_Z_kernel_args
   P kernel_stack;
   struct E_main_Z_framebuffer framebuffer;
   struct E_main_Z_uefi_runtime_services uefi_runtime_services;
-  struct E_main_Z_kernel_Z_acpi acpi;
+  struct E_main_Z_kernel_args_Z_acpi acpi;
+  P local_apic_address;
 };
 //==============================================================================
 _private
@@ -112,7 +140,8 @@ main( struct E_main_Z_kernel_args *kernel_args
     E_main_S_kernel.page_table = kernel_args->page_table;
     E_main_S_kernel.framebuffer = kernel_args->framebuffer;
     E_main_S_kernel.uefi_runtime_services = kernel_args->uefi_runtime_services;
-    E_main_S_kernel.acpi = kernel_args->acpi;
+    //E_main_S_kernel.acpi = kernel_args->acpi;
+    E_main_S_kernel.local_apic_address = kernel_args->local_apic_address;
     E_font_M();
     E_vga_I_fill_rect( 0, 0, E_main_S_kernel.framebuffer.width, E_main_S_kernel.framebuffer.height, E_vga_R_video_color( E_vga_S_background_color ));
     E_vga_I_fill_rect( E_main_S_kernel.framebuffer.width / 2 - 50, E_main_S_kernel.framebuffer.height / 2 - 10 - 13, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
@@ -170,8 +199,20 @@ main( struct E_main_Z_kernel_args *kernel_args
     : "p" ( &gd.limit ), "p" ( &id.limit )
     : "rax"
     );
+    if( !~E_acpi_aml_M( kernel_args->acpi.dsdt_content, kernel_args->acpi.dsdt_content_l ))
+        goto End;
+    E_main_S_kernel.apic_source_override_n = 0;
+    Mt_( E_main_S_kernel.apic_source_override, E_main_S_kernel.apic_source_override_n );
+    if( !E_main_S_kernel.apic_source_override )
+        goto End;
+    if( !~E_acpi_reader_M_madt( kernel_args->acpi.apic_content, kernel_args->acpi.apic_content_l ))
+        goto End;
+
+    N allocated_i = E_mem_Q_blk_R( kernel_args->bootloader );
+    if( !E_mem_Q_blk_I_remove( &kernel_args->bootloader, E_mem_S_page_size, E_main_S_kernel.mem_blk.allocated[ allocated_i ].n - E_mem_S_page_size )) // Pozostawienie jednej strony pamięci z ‘identity mapping’ na program ‘wakeup’ procesorów.
+        goto End;
+
     W( kernel_args->bootloader );
-    E_aml_M( E_main_S_kernel.acpi.dsdt_content, E_main_S_kernel.acpi.dsdt_content_l );
     //S status = E_main_S_kernel.uefi_runtime_services.reset_system( H_uefi_Z_reset_Z_shutdown, 0, 0, 0 );
 End:__asm__ volatile (
     "\n"    "cli"

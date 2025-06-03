@@ -1136,13 +1136,42 @@ E_mem_Q_blk_W( P p
 }
 //------------------------------------------------------------------------------
 _export
+N
+E_mem_Q_blk_R( P p
+){  struct E_mem_Q_blk_Z_allocated allocated_p;
+    N min = 0;
+    N max = E_mem_Q_blk_Q_sys_table_R_last( E_main_S_kernel.mem_blk.allocated_id, (Pc)&allocated_p.p - (Pc)&allocated_p );
+    N allocated_i = max / 2;
+    O{  if( E_main_S_kernel.mem_blk.allocated[ allocated_i ].p == p )
+            return allocated_i;
+        if( E_main_S_kernel.mem_blk.allocated[ allocated_i ].p > (Pc)p )
+        {   if( allocated_i == min )
+                break;
+            max = allocated_i - 1;
+            allocated_i = max - ( allocated_i - min ) / 2;
+        }else
+        {   if( allocated_i == max )
+                break;
+            min = allocated_i + 1;
+            allocated_i = min + ( max - allocated_i ) / 2;
+        }
+    }
+    return ~0;
+}
+//------------------------------------------------------------------------------
+_export
 P
 E_mem_Q_blk_I_add( P p
 , N n
 , N *n_prepended
 , N *n_appended
 ){  if( !n )
+    {   if( n_prepended )
+            *n_prepended = 0;
+        if( n_appended )
+            *n_appended = 0;
         return *( P * )p;
+    }
     struct E_mem_Q_blk_Z_allocated allocated_p;
     N min = 0;
     N max = E_mem_Q_blk_Q_sys_table_R_last( E_main_S_kernel.mem_blk.allocated_id, (Pc)&allocated_p.p - (Pc)&allocated_p );
@@ -1220,7 +1249,7 @@ E_mem_Q_blk_I_add( P p
                                 *n_prepended = l_1 / E_main_S_kernel.mem_blk.allocated[ allocated_i ].u;
                             if( n_appended )
                                 *n_appended = l / E_main_S_kernel.mem_blk.allocated[ allocated_i ].u;
-                            return E_main_S_kernel.mem_blk.allocated[ allocated_i ].p + l_1 + l_0;
+                            return E_main_S_kernel.mem_blk.allocated[ allocated_i ].p + l_1;
                         }
                         if( free_p[ free_j ].p > p_0 + l_0 )
                         {   if( free_j == min )
@@ -1252,7 +1281,7 @@ E_mem_Q_blk_I_add( P p
                 *n_prepended = 0;
             if( n_appended )
                 *n_appended = n;
-            return (Pc)p_1 + l_0;
+            return p_1;
         }
         if( E_main_S_kernel.mem_blk.allocated[ allocated_i ].p > *( Pc * )p )
         {   if( allocated_i == min )
