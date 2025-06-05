@@ -1,4 +1,5 @@
 a.out
+*.o
 /kernel
 /kernel.elf
 /I_compile_S_0.h

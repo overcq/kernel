@@ -70,33 +70,22 @@ struct E_main_Z_kernel_Z_acpi
   unsigned smm_validate_nested_ptr            :1;
   unsigned smm_system_resource_protection     :1;
 };
-struct E_apic_Z_source_override
-{ N8 source;
-  N8 gsi;
-};
 _private
 struct E_main_Z_kernel
 { struct E_mem_blk_Z mem_blk;
   struct E_mem_Z_memory_map *memory_map;
   N memory_map_n;
-  N gdt[5], ldt[2], idt[ 22 * 2 ];
+  N gdt[5], ldt[2];
   P kernel;
   P page_table;
   P *stack;
   struct E_main_Z_framebuffer framebuffer;
   struct E_main_Z_uefi_runtime_services uefi_runtime_services;
   struct E_main_Z_kernel_Z_acpi acpi;
-  P local_apic_address;
-  P io_apic_address;
-  N apic_source_override_n;
-  struct E_apic_Z_source_override *apic_source_override;
-  N8 io_apic_base;
 }E_main_S_kernel;
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 struct E_main_Z_kernel_args_Z_acpi
-{ P apic_content;
-  N apic_content_l;
-  P dmar_content;
+{ P dmar_content;
   N dmar_content_l;
   P dsdt_content;
   N dsdt_content_l;
@@ -127,8 +116,36 @@ struct E_main_Z_kernel_args
   struct E_main_Z_uefi_runtime_services uefi_runtime_services;
   struct E_main_Z_kernel_args_Z_acpi acpi;
   P local_apic_address;
+  P io_apic_address;
+  struct E_interrupt_Z_gsi *gsi;
+  N8 gsi_n;
 };
 //==============================================================================
+_private
+P
+E_main_Z_p_I_to_virtual( P p
+){  N min = 0;
+    N max = E_main_S_kernel.memory_map_n - 1;
+    N i = max / 2;
+    O{  if( (N)p >= E_main_S_kernel.memory_map[i].physical_start
+        && (N)p < E_main_S_kernel.memory_map[i].physical_start + E_main_S_kernel.memory_map[i].pages * E_mem_S_page_size
+        )
+            return (P)( E_main_S_kernel.memory_map[i].virtual_start + ( (N)p - E_main_S_kernel.memory_map[i].physical_start ));
+        if( E_main_S_kernel.memory_map[i].physical_start > (N)p )
+        {   if( i == min )
+                break;
+            max = i - 1;
+            i = max - ( i - min ) / 2;
+        }else
+        {   if( i == max )
+                break;
+            min = i + 1;
+            i = min + ( max - i ) / 2;
+        }
+    }
+    return 0;
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _private
 __attribute__ (( __noreturn__ ))
 void
@@ -141,8 +158,12 @@ main( struct E_main_Z_kernel_args *kernel_args
     E_main_S_kernel.framebuffer = kernel_args->framebuffer;
     E_main_S_kernel.uefi_runtime_services = kernel_args->uefi_runtime_services;
     //E_main_S_kernel.acpi = kernel_args->acpi;
-    E_main_S_kernel.local_apic_address = kernel_args->local_apic_address;
-    E_font_M();
+    E_interrupt_Q_local_apic_S_address = kernel_args->local_apic_address;
+    E_interrupt_Q_io_apic_S_address = kernel_args->io_apic_address;
+    E_interrupt_S_gsi = kernel_args->gsi;
+    E_interrupt_S_gsi_n = kernel_args->gsi_n;
+    if( !~E_font_M() )
+        goto End;
     E_vga_I_fill_rect( 0, 0, E_main_S_kernel.framebuffer.width, E_main_S_kernel.framebuffer.height, E_vga_R_video_color( E_vga_S_background_color ));
     E_vga_I_fill_rect( E_main_S_kernel.framebuffer.width / 2 - 50, E_main_S_kernel.framebuffer.height / 2 - 10 - 13, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
     E_vga_I_fill_rect( E_main_S_kernel.framebuffer.width / 2 - 50, E_main_S_kernel.framebuffer.height / 2 - 10, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
@@ -167,22 +188,18 @@ main( struct E_main_Z_kernel_args *kernel_args
     E_main_S_kernel.gdt[4] = (N)&E_main_S_kernel.ldt[0] >> 32;
     E_main_S_kernel.ldt[0] = 0;
     E_main_S_kernel.ldt[1] = 0;
-    _0( &E_main_S_kernel.idt[0], sizeof( E_main_S_kernel.idt ));
     struct __attribute__ ((packed))
     { N32 pad_1;
       N16 pad_2;
       N16 limit;
       N base;
-    }gd, id;
+    }gd;
     gd.base = (N)&E_main_S_kernel.gdt[0];
     gd.limit = sizeof( E_main_S_kernel.gdt ) - 1;
-    id.base = (N)&E_main_S_kernel.idt[0];
-    id.limit = sizeof( E_main_S_kernel.idt ) - 1;
     __asm__ volatile (
     "\n"    "lgdt   %0"
     "\n"    "mov    $3 << 3,%%ax"
     "\n"    "lldt   %%ax"
-    "\n"    "lidt   %1"
     "\n"    "mov    $2 << 3,%%ax"
     "\n"    "mov    %%ax,%%ds"
     "\n"    "mov    %%ax,%%es"
@@ -196,16 +213,14 @@ main( struct E_main_Z_kernel_args *kernel_args
     "\n"    "ljmp   *-16(%%rsp)"
     "\n0:"
     :
-    : "p" ( &gd.limit ), "p" ( &id.limit )
+    : "p" ( &gd.limit )
     : "rax"
     );
+    if( !~E_interrupt_M() )
+        goto End;
     if( !~E_acpi_aml_M( kernel_args->acpi.dsdt_content, kernel_args->acpi.dsdt_content_l ))
         goto End;
-    E_main_S_kernel.apic_source_override_n = 0;
-    Mt_( E_main_S_kernel.apic_source_override, E_main_S_kernel.apic_source_override_n );
-    if( !E_main_S_kernel.apic_source_override )
-        goto End;
-    if( !~E_acpi_reader_M_madt( kernel_args->acpi.apic_content, kernel_args->acpi.apic_content_l ))
+    if( !~E_acpi_reader_M() )
         goto End;
 
     N allocated_i = E_mem_Q_blk_R( kernel_args->bootloader );
