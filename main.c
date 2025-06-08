@@ -219,7 +219,9 @@ main( struct E_main_Z_kernel_args *kernel_args
     if( !~E_interrupt_M() )
         goto End;
     if( !~E_acpi_aml_M( kernel_args->acpi.dsdt_content, kernel_args->acpi.dsdt_content_l ))
+    {   E_font_I_print( "\nAML error" );
         goto End;
+    }
     if( !~E_acpi_reader_M() )
         goto End;
 
