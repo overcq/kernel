@@ -35,6 +35,7 @@
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #define _0(pointer_variable,l)              E_mem_Q_blk_P_fill_c( (pointer_variable), l, 0 )
 #define _0_(pointer_variable)               _0( (pointer_variable), sizeof( *(pointer_variable) ))
+#define _0t_(pointer_variable,n)            _0( (pointer_variable), (n) * sizeof( *(pointer_variable) ))
 #define M(l)                                E_mem_Q_blk_M(l)
 #define Mt(u,n)                             E_mem_Q_blk_M_tab((u),(n))
 #define W(pointer_variable)                 E_mem_Q_blk_W( pointer_variable )
@@ -177,4 +178,6 @@ struct __attribute__ (( __packed__ )) H_acpi_Z_mcfg_entry
   N8 end_bus;
   N32 reserved;
 };
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+typedef void ( *E_interrupt_S_external_Z )(void);
 /******************************************************************************/
