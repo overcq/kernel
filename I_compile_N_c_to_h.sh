@@ -30,13 +30,15 @@ case "$1" in
         use warnings;
         my $extern = 0;
         my $inside_braces = 0;
-        my $last_line = '\'\'';
+        my $last_line;
         local $\ = $/;
         while(<>)
         {   chomp;
             s`//.*$``;
-            if( $inside_braces == 0 )
-            {   if( $last_line =~ /^_(?:export|private)$/ )
+            if( $inside_braces == 0
+            and defined $last_line
+            )
+            {   if( $last_line =~ /^(?:_export|_private)$/ )
                 {   $extern = 1;
                 }elsif( $last_line =~ /;/ )
                 {   $extern = 0;
@@ -50,7 +52,6 @@ case "$1" in
                     next;
                 }
                 $inside_braces = 0;
-                $extern = 0;
             }
             if( $inside_braces == 2 )
             {   if( /^}[^=;]*/ )
@@ -83,7 +84,7 @@ case "$1" in
             }
             if( /^\s*#(?:if|(?:elif|else|endif)\b)/ )
             {   print;
-            }elsif( /^_(?:export|private)\s+(?:\w+\s+)*?((?:(?:enum|struct|union)\s+)?.*?\b\(?\**E_[^=;]*)[=;]/ ) # zmienne publiczne
+            }elsif( /^(?:_export|_private)\s+(?:\w+\s+)*?((?:(?:enum|struct|union)\s+)?.*?\b\(?\**E_[^=;]*)[=;]/ ) # zmienne publiczne
             {   print "extern $1;";
             }elsif( /^(?:enum|struct|union)\s+E_\w+/ ) # typy publiczne
             {   $inside_braces = 1;
@@ -106,7 +107,7 @@ case "$1" in
         my $inside_comment = 0;
         my $inside_braces = 0;
         my $inside_enum;
-        my $last_line = '\'\'';
+        my $last_line;
         local $\ = $/;
         sub print1
         {   print $last_line if defined $last_line;
@@ -129,8 +130,10 @@ case "$1" in
                 }
             }
             s`//.*$``;
-            if( $inside_braces == 0 )
-            {   if( $last_line =~ /^_(?:export|private)$/ )
+            if( $inside_braces == 0
+            and defined $last_line
+            )
+            {   if( $last_line =~ /^(?:_export|_private)$/ )
                 {   $extern = 1;
                 }elsif( $last_line =~ /;/ )
                 {   $extern = 0;
@@ -143,7 +146,6 @@ case "$1" in
                     next;
                 }
                 $inside_braces = 0;
-                $extern = 0;
             }
             if( $inside_braces == 2 )
             {   if( /^}/ )
@@ -176,7 +178,7 @@ case "$1" in
                 }
                 next;
             }
-            if( /^_(?:export|private)\s+(?:\w+\s+)*?(?:(?:enum|struct|union)\s+)?.*?\b\**E_.*;/ ) # zmienne publiczne
+            if( /^(?:_export|_private)\s+(?:\w+\s+)*?(?:(?:enum|struct|union)\s+)?.*?\b\**E_.*;/ ) # zmienne publiczne
             {   print1;
             }elsif( /^(?:enum|struct|union)\s+E_\w/ ) # typy publiczne
             {   $inside_enum = /^enum/;

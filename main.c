@@ -59,11 +59,6 @@ struct E_main_Z_kernel_Z_acpi
   struct H_oux_Z_hpet hpet;
   struct H_acpi_Z_mcfg_entry *mcfg_content;
   N mcfg_content_n;
-  struct
-  { P address;
-    N l;
-  }ssdt_contents[2];
-  N ssdt_contents_n;
   unsigned virt_guest_rtc_good                :1;
   unsigned virt_guest_pm_good                 :1;
   unsigned smm_validate_fixed_comm_buffers    :1;
@@ -96,7 +91,7 @@ struct E_main_Z_kernel_args_Z_acpi
   struct
   { P address;
     N l;
-  }ssdt_contents[2];
+  }ssdt_contents[4];
   N ssdt_contents_n;
   unsigned virt_guest_rtc_good                :1;
   unsigned virt_guest_pm_good                 :1;
@@ -218,12 +213,12 @@ main( struct E_main_Z_kernel_args *kernel_args
     );
     if( !~E_interrupt_M() )
         goto End;
-    if( !~E_acpi_aml_M( kernel_args->acpi.dsdt_content, kernel_args->acpi.dsdt_content_l ))
-    {   E_font_I_print( "\nAML error" );
+    goto End;
+    if( !~E_acpi_aml_M( kernel_args->acpi.dsdt_content, kernel_args->acpi.dsdt_content_l, &kernel_args->acpi.ssdt_contents[0], kernel_args->acpi.ssdt_contents_n ))
         goto End;
-    }
     if( !~E_acpi_reader_M() )
         goto End;
+    E_keyboard_M();
 
     N allocated_i = E_mem_Q_blk_R( kernel_args->bootloader );
     if( !E_mem_Q_blk_I_remove( &kernel_args->bootloader, E_mem_S_page_size, E_main_S_kernel.mem_blk.allocated[ allocated_i ].n - E_mem_S_page_size )) // Pozostawienie jednej strony pamięci z ‘identity mapping’ na program ‘wakeup’ procesorów.
@@ -232,8 +227,8 @@ main( struct E_main_Z_kernel_args *kernel_args
     W( kernel_args->bootloader );
     //S status = E_main_S_kernel.uefi_runtime_services.reset_system( H_uefi_Z_reset_Z_shutdown, 0, 0, 0 );
 End:__asm__ volatile (
-    "\n"    "cli"
-    "\n0:"  "hlt"
+    //"\n"    "cli"
+    "\n0:"  //"hlt"
     "\n"    "jmp    0b"
     );
     __builtin_unreachable();

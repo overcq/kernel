@@ -73,7 +73,7 @@ install-vmware:
 	&& install/a.out kernel $${loopdev}p2
 #-------------------------------------------------------------------------------
 install-usb:
-	ocq_usb_dev=/dev/sdc; \
+	ocq_usb_dev=/dev/sdb; \
 	ocq_usb_mnt=/mnt/usb; \
 	loopdev=$$( losetup -Lf --show $${ocq_usb_dev}2 ); \
 	trap 'losetup -d $$loopdev' EXIT \

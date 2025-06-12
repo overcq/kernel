@@ -575,6 +575,9 @@ E_interrupt_I_exeception_gp:
     pop     %rcx
     pop     %rax
     lea     8(%rsp),%rsp
+0:  cli
+    hlt
+    jmp     0b
     iretq
 E_interrupt_I_exeception_pf:
     push    %rax
@@ -751,13 +754,13 @@ E_interrupt_I_external:
     push    %r10
     push    %r11
     mov     9*8(%rsp),%rcx
-    lea     E_interrupt_S_external(%rip),%rax
+    mov     E_interrupt_S_external(%rip),%rax
     mov     (%rax,%rcx,8),%rax
     test    %rax,%rax
     jz      0f
     call    *%rax
 0:  mov     $0xb,%rdi
-    mov     $0,%rsi
+    xor     %esi,%esi
     call    E_interrupt_Q_local_apic_P
     pop     %r11
     pop     %r10

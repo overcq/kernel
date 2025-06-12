@@ -365,7 +365,7 @@ E_acpi_aml_Q_value_W_package( struct E_acpi_aml_Z_package *package
     W( package->value );
     W(package);
 }
-_internal
+_private
 void
 E_acpi_aml_Q_value_W( struct E_acpi_aml_Z_value *value
 ){  if( !value->copy )
@@ -405,7 +405,7 @@ E_acpi_aml_Q_value_R_l_package( struct E_acpi_aml_Z_package *package
     return l;
 }
 _internal
-S
+N
 E_acpi_aml_Q_value_N_convert( enum E_acpi_aml_Z_value_Z_type type
 , struct E_acpi_aml_Z_value *value
 ){  if( value->type == type )
@@ -646,7 +646,7 @@ _internal
 struct E_acpi_aml_Z_value
 E_acpi_aml_I_procedure_I_osi( void
 ){  struct E_acpi_aml_Z_value ret;
-    ret.n = no;
+    ret.n = E_text_Z_s0_T_eq_s0( E_acpi_aml_S_procedure_invocation_stack[ E_acpi_aml_S_procedure_invocation_stack_n - 1 ].arg[0].p, "OUX/C+ OS" );
     ret.type = E_acpi_aml_Z_value_Z_type_S_number;
     return ret;
 }
@@ -919,7 +919,7 @@ E_acpi_aml_Q_object_N( N object_i
     }
     return "";
 }
-_internal
+_private
 struct E_acpi_aml_Z_value
 E_acpi_aml_Q_object_I_to_value( N object_i
 ){  struct E_acpi_aml_Z_value v;
@@ -1088,7 +1088,7 @@ E_acpi_aml_Q_object_I_add( enum E_acpi_aml_S_object_Z_type type
     return middle;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-_internal
+_private
 N
 E_acpi_aml_Q_object_R( struct E_acpi_aml_Z_pathname name
 ){  if( !E_acpi_aml_S_object_n )
@@ -2137,6 +2137,7 @@ E_acpi_aml_I_object( void
                         {   W(name);
                             return object_i;
                         }
+                        E_acpi_aml_S_object[ object_i ].n = 0;
                     }
                     E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].match = yes;
                     break;
@@ -2146,7 +2147,7 @@ E_acpi_aml_I_object( void
                     E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].match = yes;
                     E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_field_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
                     break;
-              case 0x88: // data table region
+              case 0x88: // data dsdt region
                 {   N8 n;
                     Pc name = E_acpi_aml_Q_path_R_root( &n );
                     if( !name )
@@ -2159,7 +2160,7 @@ E_acpi_aml_I_object( void
                     }
                     Pc name_ = M( n * 4 + 1 );
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
-                    E_font_I_print( ",data table region=" ); E_font_I_print( name_ );
+                    E_font_I_print( ",data dsdt region=" ); E_font_I_print( name_ );
                     W( name_ );
                     if( E_acpi_aml_Q_current_path_S_precompilation )
                     {
@@ -2888,8 +2889,8 @@ E_acpi_aml_I_expression( void
                     E_font_I_print( ",from bcd" );
                     E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_from_bcd_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
                     break;
-              case 0x1f: // load table
-                    E_font_I_print( ",load table" );
+              case 0x1f: // load dsdt
+                    E_font_I_print( ",load dsdt" );
                     E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_load_table_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
                     break;
               case 0x33: // timer
@@ -3351,7 +3352,8 @@ E_acpi_aml_I_supername( void
       default: // simple name
         {   E_acpi_aml_S_parse_data--;
             N8 n;
-            Pc name = E_acpi_aml_Q_path_R_root( &n );
+            N object_i;
+            Pc name = E_acpi_aml_Q_path_R_relative( &n, &object_i );
             if( !name )
                 return (S8)n;
             Pc name_ = M( n * 4 + 1 );
@@ -3362,9 +3364,9 @@ E_acpi_aml_I_supername( void
             {
                 W(name);
             }else
-            {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_acpi_aml_Z_value_Z_type_S_pathname;
-                E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.pathname = ( struct E_acpi_aml_Z_pathname ){ name, n };
+            {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.pathname = ( struct E_acpi_aml_Z_pathname ){ name, n };
                 E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.copy = yes;
+                E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_acpi_aml_Z_value_Z_type_S_pathname;
             }
             break;
         }
@@ -3779,11 +3781,13 @@ E_acpi_aml_M_parse( void
     N ret = 0;
 Loop:
     O{  stack_n_last = E_acpi_aml_S_parse_stack_n;
-        //E_font_I_print( "\nentity=" ); E_font_I_print_hex( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].entity );
-        //E_font_I_print( ",data=" ); E_font_I_print_hex( (N)E_acpi_aml_S_parse_data );
-        //E_font_I_print( ",data_end=" ); E_font_I_print_hex( (N)E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end );
-        //E_font_I_print( ",value=" ); E_font_I_print_hex( (( N * )E_acpi_aml_S_parse_data )[0] );
-        //E_font_I_print( "," ); E_font_I_print_hex( (( N * )E_acpi_aml_S_parse_data )[1] );
+        //if( E_acpi_aml_Q_procedure_invocation_stack_S_invokeing )
+        //{   E_font_I_print( "\nentity=" ); E_font_I_print_hex( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].entity );
+            //E_font_I_print( ",data=" ); E_font_I_print_hex( (N)E_acpi_aml_S_parse_data );
+            //E_font_I_print( ",data_end=" ); E_font_I_print_hex( (N)E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end );
+            //E_font_I_print( ",value=" ); E_font_I_print_hex( (( N * )E_acpi_aml_S_parse_data )[0] );
+            //E_font_I_print( "," ); E_font_I_print_hex( (( N * )E_acpi_aml_S_parse_data )[1] );
+        //}
         switch( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].entity )
         { case E_acpi_aml_Z_parse_stack_Z_entity_S_result_to_n:
                 E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].n = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].n;
@@ -4594,7 +4598,7 @@ Loop:
                 E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_data_region_finish_3, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_data_region_finish_3:
-                //TODO Dodać ‘oem table id’ do drzewa zinterpretowanej przestrzeni ACPI.
+                //TODO Dodać ‘oem dsdt id’ do drzewa zinterpretowanej przestrzeni ACPI.
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_op_region_finish_1:
                 if( E_acpi_aml_Q_current_path_S_precompilation )
@@ -4736,7 +4740,40 @@ Loop:
                 //TODO Dodać ‘notify value’ do drzewa zinterpretowanej przestrzeni ACPI.
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_release_finish:
-                //TODO Zwolnić ‘mutex’ w drzewie zinterpretowanej przestrzeni ACPI.
+                if( E_acpi_aml_Q_current_path_S_precompilation )
+                {
+                }else
+                {   struct E_acpi_aml_Z_value o;
+                    if( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_acpi_aml_Z_value_Z_type_S_arg_ref )
+                    {   if( !E_acpi_aml_S_procedure_invocation_stack_n )
+                        {   ret = ~1;
+                            break;
+                        }
+                        N arg_i = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.i;
+                        o = E_acpi_aml_S_procedure_invocation_stack[ E_acpi_aml_S_procedure_invocation_stack_n - 1 ].arg[ arg_i ];
+                    }else if( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_acpi_aml_Z_value_Z_type_S_local_ref )
+                    {   if( !E_acpi_aml_S_procedure_invocation_stack_n )
+                        {   ret = ~1;
+                            break;
+                        }
+                        N local_i = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.i;
+                        o = E_acpi_aml_S_procedure_invocation_stack[ E_acpi_aml_S_procedure_invocation_stack_n - 1 ].local[ local_i ];
+                    }else if( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_acpi_aml_Z_value_Z_type_S_pathname )
+                        o = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result;
+                    else
+                    {   ret = ~1;
+                        break;
+                    }
+                    N object_i = E_acpi_aml_Q_object_R( o.pathname );
+                    if( !~object_i
+                    || E_acpi_aml_S_object[ object_i ].type != E_acpi_aml_Z_object_Z_type_S_mutex
+                    || !E_acpi_aml_S_object[ object_i ].n
+                    )
+                    {   ret = ~1;
+                        break;
+                    }
+                    E_acpi_aml_S_object[ object_i ].n--;
+                }
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_reset_finish:
                 //TODO ‘Zresetować’ ‘event’ w drzewie zinterpretowanej przestrzeni ACPI.
@@ -4803,10 +4840,44 @@ Loop:
                 }
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_acquire_finish:
-                //TODO Dodać ‘mutex’ do drzewa zinterpretowanej przestrzeni ACPI.
                 if( E_acpi_aml_S_parse_data + 2 > E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end )
                 {   ret = ~1;
                     break;
+                }
+                if( E_acpi_aml_Q_current_path_S_precompilation )
+                {
+                }else
+                {   struct E_acpi_aml_Z_value o;
+                    if( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_acpi_aml_Z_value_Z_type_S_arg_ref )
+                    {   if( !E_acpi_aml_S_procedure_invocation_stack_n )
+                        {   ret = ~1;
+                            break;
+                        }
+                        N arg_i = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.i;
+                        o = E_acpi_aml_S_procedure_invocation_stack[ E_acpi_aml_S_procedure_invocation_stack_n - 1 ].arg[ arg_i ];
+                    }else if( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_acpi_aml_Z_value_Z_type_S_local_ref )
+                    {   if( !E_acpi_aml_S_procedure_invocation_stack_n )
+                        {   ret = ~1;
+                            break;
+                        }
+                        N local_i = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.i;
+                        o = E_acpi_aml_S_procedure_invocation_stack[ E_acpi_aml_S_procedure_invocation_stack_n - 1 ].local[ local_i ];
+                    }else if( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_acpi_aml_Z_value_Z_type_S_pathname )
+                        o = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result;
+                    else
+                    {   ret = ~1;
+                        break;
+                    }
+                    N object_i = E_acpi_aml_Q_object_R( o.pathname );
+                    if( !~object_i
+                    || E_acpi_aml_S_object[ object_i ].type != E_acpi_aml_Z_object_Z_type_S_mutex
+                    )
+                    {   ret = ~1;
+                        break;
+                    }
+                    E_acpi_aml_S_object[ object_i ].n++;
+                    E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.n = no;
+                    E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_acpi_aml_Z_value_Z_type_S_number;
                 }
                 E_acpi_aml_S_parse_data += 2;
                 break;
@@ -6744,7 +6815,7 @@ Loop:
                 E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_load_table_finish_6, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_load_table_finish_6:
-                //TODO Umieścić operację ‘load table’ w drzewie zinterpretowanej przestrzeni ACPI.
+                //TODO Umieścić operację ‘load dsdt’ w drzewie zinterpretowanej przestrzeni ACPI.
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_lor_finish_1:
                 if( E_acpi_aml_Q_current_path_S_precompilation )
@@ -8691,31 +8762,19 @@ Loop:
 }
 _private
 N
-E_acpi_aml_I_procedure( struct E_acpi_aml_Z_pathname name
+E_acpi_aml_I_procedure_( N object_i
 , struct E_acpi_aml_Z_value *result
 , N arg_n
 , struct E_acpi_aml_Z_value *arg
-){  N object_i = E_acpi_aml_Q_object_R(name);
-    if( !~object_i )
+){  if( !~E_acpi_aml_E_current_path_M() )
         return ~0;
-    if( !~E_acpi_aml_E_current_path_M() )
-        return ~0;
-    E_acpi_aml_S_parse_stack_n = 1;
-    Mt_( E_acpi_aml_S_parse_stack, E_acpi_aml_S_parse_stack_n );
-    if( !E_acpi_aml_S_parse_stack )
-    {   E_acpi_aml_E_current_path_W();
-        return ~0;
-    }
-    E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
-    E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.tmp_p = 0;
     E_acpi_aml_S_procedure_invocation_stack_n = 1;
     Mt_( E_acpi_aml_S_procedure_invocation_stack, E_acpi_aml_S_procedure_invocation_stack_n );
     if( !E_acpi_aml_S_procedure_invocation_stack )
-    {   W( E_acpi_aml_S_parse_stack );
-        E_acpi_aml_E_current_path_W();
+    {   E_acpi_aml_E_current_path_W();
         return ~0;
     }
-    E_acpi_aml_S_procedure_invocation_stack[ E_acpi_aml_S_procedure_invocation_stack_n - 1 ].name = name;
+    E_acpi_aml_S_procedure_invocation_stack[ E_acpi_aml_S_procedure_invocation_stack_n - 1 ].name = E_acpi_aml_S_object[ object_i ].name;
     for_n( i, arg_n )
         E_acpi_aml_S_procedure_invocation_stack[ E_acpi_aml_S_procedure_invocation_stack_n - 1 ].arg[i] = arg[i];
     for_n_( i, J_a_R_n( E_acpi_aml_S_procedure_invocation_stack[ E_acpi_aml_S_procedure_invocation_stack_n - 1 ].arg ) - arg_n )
@@ -8724,23 +8783,37 @@ E_acpi_aml_I_procedure( struct E_acpi_aml_Z_pathname name
         E_acpi_aml_S_procedure_invocation_stack[ E_acpi_aml_S_procedure_invocation_stack_n - 1 ].local[i].type = E_acpi_aml_Z_value_Z_type_S_uninitialized;
     E_acpi_aml_S_procedure_invocation_stack[ E_acpi_aml_S_procedure_invocation_stack_n - 1 ].computing_arg = no;
     E_acpi_aml_S_procedure_invocation_stack[ E_acpi_aml_S_procedure_invocation_stack_n - 1 ].result.type = E_acpi_aml_Z_value_Z_type_S_uninitialized;
-    Pc name_ = M( name.n * 4 + 1 );
-    E_text_Z_s_P_copy_sl_0( name_, name.s, name.n * 4 );
-    E_font_I_print( "\n,invocation=" ); E_font_I_print( name_ );
-    W( name_ );
+    Pc name = M( E_acpi_aml_S_object[ object_i ].name.n * 4 + 1 );
+    E_text_Z_s_P_copy_sl_0( name, E_acpi_aml_S_procedure_invocation_stack[0].name.s, E_acpi_aml_S_procedure_invocation_stack[0].name.n * 4 );
+    E_font_I_print( "\n,invocation=" ); E_font_I_print(name);
+    W(name);
+    N ret;
     struct E_acpi_aml_Z_object_data_Z_procedure *procedure = E_acpi_aml_S_object[ object_i ].data;
     if( procedure->procedure )
         *result = procedure->procedure();
     else
-    {   E_acpi_aml_S_parse_data = procedure->data;
+    {   E_acpi_aml_S_parse_stack_n = 1;
+        Mt_( E_acpi_aml_S_parse_stack, E_acpi_aml_S_parse_stack_n );
+        if( !E_acpi_aml_S_parse_stack )
+        {   W( E_acpi_aml_S_procedure_invocation_stack );
+            E_acpi_aml_E_current_path_W();
+            return ~0;
+        }
+        E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
+        E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.tmp_p = 0;
+        E_acpi_aml_S_parse_data = procedure->data;
         E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].entity = E_acpi_aml_Z_parse_stack_Z_entity_S_term;
         E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].n = ~0;
         E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.last_op_if = 0;
         E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end = procedure->data_end;
         E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.continue_ = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.break_ = 0;
         E_acpi_aml_S_procedure_invocation_stack[ E_acpi_aml_S_procedure_invocation_stack_n - 1 ].return_ = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end;
-        if( !~E_acpi_aml_M_parse() )
+        ret = E_acpi_aml_M_parse();
+        if( !~ret
+        || ret == ~1
+        )
             goto Error;
+        W( E_acpi_aml_S_parse_stack );
         *result = E_acpi_aml_S_procedure_invocation_stack[ E_acpi_aml_S_procedure_invocation_stack_n - 1 ].result;
     }
     for_n_rev_( i, E_acpi_aml_S_object_n )
@@ -8752,7 +8825,6 @@ E_acpi_aml_I_procedure( struct E_acpi_aml_Z_pathname name
     for_n_( i, J_a_R_n( E_acpi_aml_S_procedure_invocation_stack[ E_acpi_aml_S_procedure_invocation_stack_n - 1 ].local ))
         E_acpi_aml_Q_value_W( &E_acpi_aml_S_procedure_invocation_stack[ E_acpi_aml_S_procedure_invocation_stack_n - 1 ].local[i] );
     W( E_acpi_aml_S_procedure_invocation_stack );
-    W( E_acpi_aml_S_parse_stack );
     E_acpi_aml_E_current_path_W();
     return 0;
 Error:
@@ -8778,30 +8850,45 @@ Error:
     }
     W( E_acpi_aml_S_parse_stack );
     E_acpi_aml_E_current_path_W();
-    return ~0;
+    return ret;
 }
 _private
 N
-E_acpi_aml_M( Pc table
-, N l
+E_acpi_aml_I_procedure( struct E_acpi_aml_Z_pathname name
+, struct E_acpi_aml_Z_value *result
+, N arg_n
+, struct E_acpi_aml_Z_value *arg
+){  N object_i = E_acpi_aml_Q_object_R(name);
+    if( !~object_i
+    || E_acpi_aml_S_object[ object_i ].type != E_acpi_aml_Z_object_Z_type_S_procedure
+    )
+        return ~2;
+    return E_acpi_aml_I_procedure_( object_i, result, arg_n, arg );
+}
+_private
+N
+E_acpi_aml_M( Pc dsdt
+, N dsdt_l
+, P ssdt
+, N ssdt_n
 ){  if( !~E_acpi_aml_E_current_path_M() )
         return ~0;
     E_acpi_aml_S_parse_stack_n = 1;
-    Mt_( E_acpi_aml_S_parse_stack, E_acpi_aml_S_parse_stack_n );
-    if( !E_acpi_aml_S_parse_stack )
+    if( !~E_acpi_aml_E_object_M() )
     {   E_acpi_aml_E_current_path_W();
         return ~0;
     }
-    if( !~E_acpi_aml_E_object_M() )
-    {   W( E_acpi_aml_S_parse_stack );
+    Mt_( E_acpi_aml_S_parse_stack, E_acpi_aml_S_parse_stack_n );
+    if( !E_acpi_aml_S_parse_stack )
+    {   E_acpi_aml_E_object_W();
         E_acpi_aml_E_current_path_W();
         return ~0;
     }
-    E_acpi_aml_S_parse_data = table;
+    E_acpi_aml_S_parse_data = dsdt;
     E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].entity = E_acpi_aml_Z_parse_stack_Z_entity_S_term;
     E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].n = ~0;
     E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.last_op_if = 0;
-    E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end = table + l;
+    E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end = dsdt + dsdt_l;
     E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.continue_ = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.break_ = 0;
     E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
     E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.tmp_p = 0;
@@ -8820,8 +8907,30 @@ E_acpi_aml_M( Pc table
     || ret == ~1
     )
         goto Error;
-    W( E_acpi_aml_S_procedure_invocation_stack );
+    struct
+    { P address;
+      N l;
+    } *ssdt_ = ssdt;
+    for_n( i, ssdt_n )
+    {   E_acpi_aml_S_parse_stack_n = 1;
+        if( !E_mem_Q_blk_I_append( &E_acpi_aml_S_parse_stack, E_acpi_aml_S_parse_stack_n ))
+            goto Error;
+        E_acpi_aml_S_parse_data = ssdt_[i].address;
+        E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].entity = E_acpi_aml_Z_parse_stack_Z_entity_S_term;
+        E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].n = ~0;
+        E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.last_op_if = 0;
+        E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end = ssdt_[i].address + ssdt_[i].l;
+        E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.continue_ = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.break_ = 0;
+        E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
+        E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.tmp_p = 0;
+        N ret = E_acpi_aml_M_parse();
+        if( !~ret
+        || ret == ~1
+        )
+            goto Error;
+    }
     W( E_acpi_aml_S_parse_stack );
+    W( E_acpi_aml_S_procedure_invocation_stack );
     E_acpi_aml_E_current_path_W();
     E_acpi_aml_Q_procedure_invocation_stack_S_invokeing = yes;
     struct E_acpi_aml_Z_value result;
@@ -8830,11 +8939,12 @@ E_acpi_aml_M( Pc table
     || ret == ~1
     )
         return ~0;
-    E_acpi_aml_Q_value_W( &result );
+    if( ret != ~2 )
+        E_acpi_aml_Q_value_W( &result );
     return 0;
 Error:
     E_acpi_aml_E_object_W();
-    for_n( i, E_acpi_aml_S_procedure_invocation_stack_n )
+    for_n_( i, E_acpi_aml_S_procedure_invocation_stack_n )
     {   for_n( j, J_a_R_n( E_acpi_aml_S_procedure_invocation_stack[i].arg ))
             E_acpi_aml_Q_value_W( &E_acpi_aml_S_procedure_invocation_stack[i].arg[j] );
         for_n_( j, J_a_R_n( E_acpi_aml_S_procedure_invocation_stack[i].local ))

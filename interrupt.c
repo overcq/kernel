@@ -262,6 +262,7 @@ struct E_interrupt_Z_gsi
 _private N8 E_interrupt_S_gsi_n;
 _internal N *E_interrupt_S_idt;
 _private E_interrupt_S_external_Z *E_interrupt_S_external;
+_internal N8 E_interrupt_S_timer_gsi;
 //==============================================================================
 _internal
 N32
@@ -304,16 +305,32 @@ E_interrupt_I_ipi( N processor
     E_interrupt_Q_local_apic_P( 0x30, i );
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#define E_interrupt_J_gsi_v( vector, delivery_mode, polarity, trigger_mode, mask, destination ) \
+#define E_interrupt_Q_io_apic_J_gsi_v( vector, delivery_mode, polarity, trigger_mode, mask, destination ) \
     ( (vector) | ( (N)( delivery_mode ) << 8 ) | ( (N)(polarity) << 13 ) | ( (N)( trigger_mode ) << 15 ) | ( (N)(mask) << 16 ) | ( (N)(destination) << 56 ))
-_internal
+_private
 void
-E_interrupt_I_enable( N8 i
+E_interrupt_Q_io_apic_I_enable( N8 i
 ){  N polarity = ( E_interrupt_S_gsi[i].flags & 3 ) == 1 ? 0 : 1;
-    N trigger_mode = (( E_interrupt_S_gsi[i].flags >> 2 ) & 3 ) == 1 ? 0 : 1;
-    E_interrupt_Q_io_apic_P_gsi( i, E_interrupt_J_gsi_v( 32 + i, 0, polarity, trigger_mode, 0, 0 ));
+    N trigger_mode = (( E_interrupt_S_gsi[i].flags >> 2 ) & 3 ) == 3 ? 1 : 0;
+    E_interrupt_Q_io_apic_P_gsi( i, E_interrupt_Q_io_apic_J_gsi_v( 32 + i, 0, polarity, trigger_mode, 0, 0 ));
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_private
+void
+E_interrupt_P( N8 irq
+, E_interrupt_S_external_Z proc
+){  for_n( i, E_interrupt_S_gsi_n )
+        if( E_interrupt_S_gsi[i].source == irq )
+        {   E_interrupt_S_external[i] = proc;
+            break;
+        }
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_internal
+void
+E_scheduler_I_clock_interrupt( void
+){  E_font_I_print( "\nclock interrupt" );
+}
 #define E_interrupt_J_interrupt_descriptor_low( selector, offset ) (( (N)(offset) & (( 1UL << 16 ) - 1 )) | ( (N)(selector) << 16 ) | ( 0xeUL << ( 32 + 8 )) | ( 1UL << ( 32 + 15 )) | ((( (N)(offset) >> 16 ) & (( 1UL << 16 ) - 1 )) << ( 32 + 16 )))
 #define E_interrupt_J_interrupt_descriptor( i, procedure ) \
     {   E_interrupt_S_idt[ i * 2 ] = E_interrupt_J_interrupt_descriptor_low( 1 << 3, (N)&(procedure) ); \
@@ -1042,10 +1059,23 @@ E_interrupt_M( void
     :
     : "p" ( &id.limit )
     );
-    E_interrupt_Q_local_apic_P( 0xf, E_interrupt_Q_local_apic_R( 0xf ) | 0x100 | ( idt_n - 1 ));
     __asm__ volatile (
     "\n"    "sti"
     );
+    for_n( i, E_interrupt_S_gsi_n )
+        if( ~(S8)E_interrupt_S_gsi[i].source )
+            E_interrupt_Q_io_apic_I_enable( E_interrupt_S_gsi[i].source );
+    for_n_( i, E_interrupt_S_gsi_n )
+        if( ~(S8)E_interrupt_S_gsi[i].source )
+            E_interrupt_S_timer_gsi = i;
+    if( i == E_interrupt_S_gsi_n )
+        E_interrupt_S_timer_gsi = 16;
+
+    E_interrupt_Q_local_apic_P( 0xf, ( E_interrupt_Q_local_apic_R( 0xf ) & ~0x1ff ) | 0x100 | ( idt_n - 1 ));
+    E_interrupt_Q_local_apic_P( 0x32, 32 + E_interrupt_S_timer_gsi );
+    E_interrupt_Q_local_apic_P( 0x3e, ( E_interrupt_Q_local_apic_R( 0x3e ) & ~0xf ) | 0xb );
+    E_interrupt_S_external[ E_interrupt_S_timer_gsi ] = &E_scheduler_I_clock_interrupt;
+    //E_interrupt_Q_local_apic_P( 0x38, 1 );
     return 0;
 }
 /******************************************************************************/
