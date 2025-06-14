@@ -15,6 +15,7 @@
 #define E_cpu_Z_gdt_Z_code_S_64bit      ( 1ULL << ( 32 + 21 ))
 #define E_cpu_Z_gdt_S_granularity       ( 1ULL << ( 32 + 23 ))
 #define E_cpu_Z_gdt_Z_type_S_ldt        ( 1ULL << ( 32 + 9 ))
+#define E_cpu_Z_gdt_Z_type_S_tss        ( 9ULL << ( 32 + 8 ))
 //==============================================================================
 struct E_mem_Z_memory_map
 { N physical_start;
@@ -70,14 +71,14 @@ struct E_main_Z_kernel
 { struct E_mem_blk_Z mem_blk;
   struct E_mem_Z_memory_map *memory_map;
   N memory_map_n;
-  N gdt[5], ldt[2];
+  N gdt[7], ldt[2];
   P kernel;
   P page_table;
-  P *stack;
+  N additional_pages;
   struct E_main_Z_framebuffer framebuffer;
   struct E_main_Z_uefi_runtime_services uefi_runtime_services;
   struct E_main_Z_kernel_Z_acpi acpi;
-}E_main_S_kernel;
+}E_main_S_kernel; //TODO Struktura na te zmienne jest niepotrzebna.
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 struct E_main_Z_kernel_args_Z_acpi
 { P dmar_content;
@@ -106,6 +107,7 @@ struct E_main_Z_kernel_args
   P bootloader;
   P kernel;
   P page_table;
+  N additional_pages;
   P kernel_stack;
   struct E_main_Z_framebuffer framebuffer;
   struct E_main_Z_uefi_runtime_services uefi_runtime_services;
@@ -115,7 +117,38 @@ struct E_main_Z_kernel_args
   struct E_interrupt_Z_gsi *gsi;
   N8 gsi_n;
 };
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+struct __attribute__ (( __packed__ )) E_main_I_tss
+{ N32 reserved_0;
+  N rsp[3];
+  N ist[8];
+  N reserved_1;
+  N16 reserved_2;
+  N16 io_map_base_address;
+};
 //==============================================================================
+_private
+N8
+E_main_I_inb( N16 port
+){  N8 v;
+    __asm__ volatile (
+    "\n"    "in     %1,%0"
+    : "=a" (v)
+    : "d" (port)
+    );
+    return v;
+}
+_private
+void
+E_main_I_outb( N16 port
+, N8 v
+){  __asm__ volatile (
+    "\n"    "out    %0,%1"
+    :
+    : "a" (v), "d" (port)
+    );
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _private
 P
 E_main_Z_p_I_to_virtual( P p
@@ -140,6 +173,16 @@ E_main_Z_p_I_to_virtual( P p
     }
     return 0;
 }
+_private
+void
+E_main_I_error_fatal( void
+){  __asm__ volatile (
+    "\n"    "cli"
+    "\n0:"  "hlt"
+    "\n"    "jmp    0b"
+    );
+    __builtin_unreachable();
+}
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _private
 __attribute__ (( __noreturn__ ))
@@ -150,6 +193,7 @@ main( struct E_main_Z_kernel_args *kernel_args
     E_main_S_kernel.memory_map_n = kernel_args->memory_map_n;
     E_main_S_kernel.kernel = kernel_args->kernel;
     E_main_S_kernel.page_table = kernel_args->page_table;
+    E_main_S_kernel.additional_pages = kernel_args->additional_pages;
     E_main_S_kernel.framebuffer = kernel_args->framebuffer;
     E_main_S_kernel.uefi_runtime_services = kernel_args->uefi_runtime_services;
     //E_main_S_kernel.acpi = kernel_args->acpi;
@@ -170,17 +214,24 @@ main( struct E_main_Z_kernel_args *kernel_args
     E_vga_I_fill_rect( E_main_S_kernel.framebuffer.width / 2, E_main_S_kernel.framebuffer.height / 2 - 10 - 13, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
     E_vga_I_fill_rect( E_main_S_kernel.framebuffer.width / 2, E_main_S_kernel.framebuffer.height / 2 - 10, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
     E_font_I_print( "OUX/C+ OS. ©overcq <overcq@int.pl>. https:/""/github.com/overcq\n" );
-    Mt_( E_main_S_kernel.stack, 1 );
-    if( !E_main_S_kernel.stack )
+    struct E_main_I_tss *M_(tss);
+    if( !tss )
         goto End;
-    E_main_S_kernel.stack[0] = kernel_args->kernel_stack;
+    _0_(tss);
+    P exception_stack = E_mem_Q_blk_M_align_tab( E_mem_S_page_size, 1, E_mem_S_page_size );
+    if( !exception_stack )
+        goto End;
+    tss->ist[1] = (N)exception_stack;
 #define E_main_J_code_descriptor( base, limit ) (( (N)(limit) & (( 1 << 16 ) - 1 )) | (( (N)(base) & (( 1 << 24 ) - 1 )) << 16 ) | E_cpu_Z_gdt_Z_type_S_code | E_cpu_Z_gdt_S_code_data | E_cpu_Z_gdt_S_present | E_cpu_Z_gdt_Z_code_S_64bit | E_cpu_Z_gdt_S_granularity | ((( (N)(limit) >> 16 ) & (( 1 << 4 ) - 1 )) << ( 32 + 16 )) | (( (N)(base) >> 24 ) << ( 32 + 24 )))
 #define E_main_J_data_descriptor( base, limit ) (( (N)(limit) & (( 1 << 16 ) - 1 )) | (( (N)(base) & (( 1 << 24 ) - 1 )) << 16 ) | E_cpu_Z_gdt_Z_data_S_write | E_cpu_Z_gdt_S_code_data | E_cpu_Z_gdt_S_present | E_cpu_Z_gdt_S_granularity | ((( (N)(limit) >> 16 ) & (( 1 << 4 ) - 1 )) << ( 32 + 16 )) | (( (N)(base) >> 24 ) << ( 32 + 24 )))
-#define E_main_J_local_descriptor_1( base, limit ) (( (N)(limit) & (( 1 << 16 ) - 1 )) | (( (N)(base) & (( 1 << 24 ) - 1 )) << 16 ) | E_cpu_Z_gdt_Z_type_S_ldt | E_cpu_Z_gdt_S_present | ((( (N)(limit) >> 16 ) & (( 1 << 4 ) - 1 )) << ( 32 + 16 )) | (( (N)(base) >> 24 ) << ( 32 + 24 )))
+#define E_main_J_local_descriptor_low( base, limit ) (( (N)(limit) & (( 1 << 16 ) - 1 )) | (( (N)(base) & (( 1 << 24 ) - 1 )) << 16 ) | E_cpu_Z_gdt_Z_type_S_ldt | E_cpu_Z_gdt_S_present | ((( (N)(limit) >> 16 ) & (( 1 << 4 ) - 1 )) << ( 32 + 16 )) | (( (N)(base) >> 24 ) << ( 32 + 24 )))
+#define E_main_J_task_descriptor_low( segment_selector, offset ) (( (N)(offset) & (( 1 << 16 ) - 1 )) | ( (N)( segment_selector ) << 16 ) | E_cpu_Z_gdt_Z_type_S_tss | E_cpu_Z_gdt_S_present | ((( (N)(offset) >> 16 ) & (( 1 << 16 ) - 1 )) << ( 32 + 16 )))
     E_main_S_kernel.gdt[1] = E_main_J_code_descriptor( 0, ~0ULL );
     E_main_S_kernel.gdt[2] = E_main_J_data_descriptor( 0, ~0ULL );
-    E_main_S_kernel.gdt[3] = E_main_J_local_descriptor_1( (N)&E_main_S_kernel.ldt[0], sizeof( E_main_S_kernel.ldt ) - 1 );
+    E_main_S_kernel.gdt[3] = E_main_J_local_descriptor_low( (N)&E_main_S_kernel.ldt[0], sizeof( E_main_S_kernel.ldt ) - 1 );
     E_main_S_kernel.gdt[4] = (N)&E_main_S_kernel.ldt[0] >> 32;
+    E_main_S_kernel.gdt[5] = E_main_J_task_descriptor_low( 2 << 8, (N)tss );
+    E_main_S_kernel.gdt[6] = (N)tss >> 32;
     E_main_S_kernel.ldt[0] = 0;
     E_main_S_kernel.ldt[1] = 0;
     struct __attribute__ ((packed))
@@ -206,19 +257,28 @@ main( struct E_main_Z_kernel_args *kernel_args
     "\n"    "mov    %%rax,-16(%%rsp)"
     "\n"    ".byte  0x48"
     "\n"    "ljmp   *-16(%%rsp)"
-    "\n0:"
+    "\n0:"  "mov    $5 << 3,%%ax"
+    "\n"    "ltr    %%ax"
     :
     : "p" ( &gd.limit )
     : "rax"
     );
     if( !~E_interrupt_M() )
         goto End;
-    goto End;
-    if( !~E_acpi_aml_M( kernel_args->acpi.dsdt_content, kernel_args->acpi.dsdt_content_l, &kernel_args->acpi.ssdt_contents[0], kernel_args->acpi.ssdt_contents_n ))
-        goto End;
-    if( !~E_acpi_reader_M() )
-        goto End;
+    //if( !~E_acpi_aml_M( kernel_args->acpi.dsdt_content, kernel_args->acpi.dsdt_content_l, &kernel_args->acpi.ssdt_contents[0], kernel_args->acpi.ssdt_contents_n ))
+        //goto End;
+    //if( !~E_acpi_reader_M() )
+        //goto End;
     E_keyboard_M();
+    if( !~E_flow_M( kernel_args->kernel_stack ))
+        goto End;
+    X_M( main, test );
+    D_M( main, test )
+        goto End;
+    O{  X_B( main, test, 0 )
+            break;
+    }
+    X_W( main, test );
 
     N allocated_i = E_mem_Q_blk_R( kernel_args->bootloader );
     if( !E_mem_Q_blk_I_remove( &kernel_args->bootloader, E_mem_S_page_size, E_main_S_kernel.mem_blk.allocated[ allocated_i ].n - E_mem_S_page_size )) // Pozostawienie jednej strony pamięci z ‘identity mapping’ na program ‘wakeup’ procesorów.
@@ -227,10 +287,18 @@ main( struct E_main_Z_kernel_args *kernel_args
     W( kernel_args->bootloader );
     //S status = E_main_S_kernel.uefi_runtime_services.reset_system( H_uefi_Z_reset_Z_shutdown, 0, 0, 0 );
 End:__asm__ volatile (
-    //"\n"    "cli"
-    "\n0:"  //"hlt"
+    "\n"    "cli"
+    "\n0:"  "hlt"
     "\n"    "jmp    0b"
     );
     __builtin_unreachable();
+}
+D( main, test )
+{   I timer = Y_M(1000);
+    O{  Y_B( timer, 0 )
+            break;
+        E_font_I_print( "\ntest" );
+    }
+    Y_W(timer);
 }
 /******************************************************************************/

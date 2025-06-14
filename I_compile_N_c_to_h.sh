@@ -8,7 +8,101 @@
 # ©overcq                on ‟Gentoo Linux 13.0” “x86_64”             2015‒1‒13 #
 ################################################################################
 case "$1" in
--h1) # type forward declarations
+-f)
+    echo enum
+    perl -e '
+        use strict;
+        use warnings;
+        sub enc
+        {   my $file_identifier = shift;
+            $file_identifier =~ s`_`_5f`g;
+            $file_identifier =~ s`[^_0-9A-Za-z]` '\''_'\''. sprintf( '\''%02x'\'', ord( $& )) `eg;
+            return $file_identifier;
+        }
+        local $\ = $/;
+        print '\''{ _F_uid( '\''. enc( shift @ARGV ) .'\'' ) = ( ~0 << ( sizeof(int) * 8 / 2 - 1 )) | 1'\'';
+        while( $_ = shift @ARGV )
+        {   print '\'', _F_uid( '\''. enc( $_ ) .'\'' )'\'';
+        }
+        print '\''};'\'';
+    ' "$@"
+    ;;
+-h1) # ‹report› ‘uid’ declarations
+    trap 'rm "$tmp_file_0" "$tmp_file_1" "$tmp_file_2"' EXIT
+    tmp_file_0=$(mktemp); tmp_file_1=$(mktemp); tmp_file_2=$(mktemp)
+    awk '
+        /\/\*/,/\*\// {
+            print ""
+            next
+        }
+        { print }
+    ' < "$2" \
+    | perl -ne '
+        use strict;
+        use warnings;
+        local $\ = $/;
+        chomp;
+        /\bX_B\(\s*(\w+)\s*,\s*(\w+)\s*,/ and print "$1,X_$2";
+        /\bYi_B\(\s*(\w+)\s*,\s*(\w+)\s*\)/ and print "$1,Yi_$2";
+    ' \
+    | sort -u \
+    > "$tmp_file_1"
+    if [ -s "$tmp_file_1" ]; then
+        if [ -n "$3" ]; then
+            awk '
+                /\/\*/,/\*\// {
+                    print ""
+                    next
+                }
+                { print }
+            ' < "$3" \
+            | perl -ne '
+                use strict;
+                use warnings;
+                local $\ = $/;
+                chomp;
+                /^[,{] _XhYi_uid\((\w+),(\w+)\)/ and print "$1,$2";
+            ' \
+            > "$tmp_file_2"
+            sort "$tmp_file_1" "$tmp_file_2" \
+            | uniq -u \
+            > "$tmp_file_0"
+            sort "$tmp_file_1" "$tmp_file_0" \
+            | uniq -d \
+            > "$tmp_file_2"
+            s="$tmp_file_2"
+            tmp_file_2="$tmp_file_1"
+            tmp_file_1="$s"
+        fi
+        if [ -z "$3" -o -s "$tmp_file_1" ]; then
+            echo 'enum'
+            perl -e '
+                use strict;
+                use warnings;
+                binmode STDIN, ":bytes";
+                my $file_identifier = $ARGV[0];
+                if( $file_identifier =~ m`/module(?:/[^/]+){2}$` )
+                {   $file_identifier =~ s`.*/([^/]+/)`$1`;
+                }else
+                {   $file_identifier =~ s`.*/``;
+                }
+                $file_identifier =~ s`\.c$``;
+                $file_identifier =~ s`_`_5f`g;
+                $file_identifier =~ s`[^_0-9A-Za-z]` '\''_'\''. sprintf( '\''%02x'\'', ord( $& )) `eg;
+                local $\ = $/;
+                $_ = <STDIN>;
+                chomp;
+                print "{ _XhYi_uid($_) = _XhYi_F_uid( ${file_identifier} )";
+                while(<STDIN>)
+                {   chomp;
+                    print ", _XhYi_uid($_)";
+                }
+                print '\''};'\''
+            ' "$2" < "$tmp_file_1"
+        fi
+    fi
+    ;;
+-h2) # type forward declarations
     perl -e '
         use strict;
         use warnings;
@@ -24,7 +118,7 @@ case "$1" in
         }
     ' "$2"
     ;;
--h2) # type definitions, variable and procedure forward declarations
+-h3) # type definitions, variable and procedure forward declarations
     perl -e '
         use strict;
         use warnings;
@@ -93,6 +187,8 @@ case "$1" in
             {   print $last_line;
                 print;
                 $inside_braces = 4;
+            }elsif( /^D(\([^)]*\))/ ) # ‹zadanie›
+            {   print "extern I D_id$1; $&;";
             }else
             {   $last_line = $_;
             }
@@ -191,6 +287,8 @@ case "$1" in
             }elsif( $extern and /^E_\w+\(/ ) # procedura publiczna
             {   print1;
                 $inside_braces = 4;
+            }elsif( /^D(\([^)]*\))/ ) # ‹zadanie›
+            {   print1 "_private I D_id$1 = ~0; $_";
             }elsif( /^\/\*/ ) # komentarz blokowy
             {   if( /\*\// )
                 {   $_ = $'\'';

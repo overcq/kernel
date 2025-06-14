@@ -32,6 +32,7 @@ $(wildcard *.c)
 	$(H_make_I_block_root)
 	{   echo '#include "I_compile_S_machine.h"' ;\
         echo '#include "I_compile_S_language.h"' ;\
+		./I_compile_N_c_to_h.sh -f $(patsubst %.c,%,$(filter %.c,$^)) ;\
         for header in $(patsubst %.c,I_compile_S_0_%.h,$(filter-out main.c,$(filter %.c,$^))); do \
             echo "#include \"$${header}\"" ;\
         done ;\
@@ -42,7 +43,8 @@ I_compile_S_0_%.h: %.c \
 I_compile_N_c_to_h.sh
 	$(H_make_I_block_root)
 	{   ./I_compile_N_c_to_h.sh -h1 $< \
-        && ./I_compile_N_c_to_h.sh -h2 $< ;\
+        && ./I_compile_N_c_to_h.sh -h2 $< \
+        && ./I_compile_N_c_to_h.sh -h3 $< ;\
     } > $@
 I_compile_S_0_%.c_: %.c \
 I_compile_N_c_to_h.sh
@@ -67,6 +69,15 @@ install-vmware:
 	mkdir -p $$ocq_mnt \
 	&& trap '$(VMWARE_DIR)/bin/vmware-mount -d $$ocq_mnt' EXIT \
 	&& $(VMWARE_DIR)/bin/vmware-mount -f ~inc/vmware/boot\ UEFI/boot\ UEFI.vmdk $$ocq_mnt \
+	&& trap '$(VMWARE_DIR)/bin/vmware-mount -d $$ocq_mnt' EXIT \
+	&& loopdev=$$( losetup -LPf --show $$ocq_mnt/flat ) \
+	&& trap 'losetup -d $$loopdev && $(VMWARE_DIR)/bin/vmware-mount -d $$ocq_mnt' EXIT \
+	&& install/a.out kernel $${loopdev}p2
+install-virtualbox:
+	ocq_mnt=/mnt/oth; \
+	mkdir -p $$ocq_mnt \
+	&& trap '$(VMWARE_DIR)/bin/vmware-mount -d $$ocq_mnt' EXIT \
+	&& $(VMWARE_DIR)/bin/vmware-mount -f ~inc/.VirtualBox/Machines/boot\ UEFI/boot\ UEFI.vmdk $$ocq_mnt \
 	&& trap '$(VMWARE_DIR)/bin/vmware-mount -d $$ocq_mnt' EXIT \
 	&& loopdev=$$( losetup -LPf --show $$ocq_mnt/flat ) \
 	&& trap 'losetup -d $$loopdev && $(VMWARE_DIR)/bin/vmware-mount -d $$ocq_mnt' EXIT \

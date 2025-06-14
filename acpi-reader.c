@@ -6,6 +6,8 @@
 *         ACPI reader
 * ©overcq                on ‟Gentoo Linux 23.0” “x86_64”              2025‒6‒3 N
 *******************************************************************************/
+//TODO Konfiguracja z “_PRS” rozpoczęta i nie skończona; brak platformy testowej.
+//==============================================================================
 struct E_acpi_reader_Z_resources
 { N *irq;
   N irq_n;

@@ -26,12 +26,53 @@
 //------------------------------------------------------------------------------
 #define J_autogen_S                         _autogen
 #define J_autogen(a)                        J_a_b( a, J_autogen_S )
+#define J_autogen_line(a)                   J_autogen( J_a_b( a, __LINE__ ))
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#define _F_uid_v(v)                         ( (v) << ( sizeof(int) * 8 / 2 ))
+#define _F_uid(file_identifier)             J_autogen(J_a_b(F,file_identifier))
+#define _K_proc(module,event)               J_a_b(J_a_b(E,module),J_a_b(K,event))
+#define _XhYi_F_uid(file_identifier)        _F_uid_v( _F_uid(file_identifier) )
+#define _XhYi_uid(module,report_impulser)   J_autogen(J_a_b(J_a_b(E,module),report_impulser))
+#define _X_uid(module,report)               J_autogen(J_a_b(J_a_b(E,module),J_a_b(X,report)))
+#define _X_var(module,report)               J_autogen(J_a_b(J_a_b(E,module),J_a_b(J_a_b(X,report),S)))
+#define _Yi_uid(module,impulser)            J_autogen(J_a_b(J_a_b(E,module),J_a_b(Yi,impulser)))
+#define _Yi_var(module,impulser)            J_autogen(J_a_b(J_a_b(E,module),J_a_b(J_a_b(Yi,impulser),S)))
+#define _D_proc(module,task)                J_a_b(J_a_b(E,module),J_a_b(D,task))
+#define D_id(module,task)                   J_autogen(J_a_b(J_a_b(E,module),J_a_b(J_a_b(D,task),S)))
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #define O                                   while(yes)
 #define for_n_(i_var,n)                     for( i_var = 0; i_var != (n); i_var++ )
 #define for_n(i_var,n)                      N i_var; for_n_(i_var,(n))
 #define for_n_rev_(i_var,n)                 i_var = (n); while( i_var-- )
 #define for_n_rev(i_var,n)                  N for_n_rev_(i_var,(n))
+#define for_i_(i_var,n)                     for_n_(i_var,(n))
+#define for_i(i_var,n)                      I i_var; for_i_(i_var,(n))
+#define for_i_rev_(i_var,n)                 for_n_rev_(i_var,(n))
+#define for_i_rev(i_var,n)                  I for_i_rev_(i_var,(n))
+//------------------------------------------------------------------------------
+#define for_each_out_(out,id_var,p,q)       id_var = (out); while( ~( id_var = J_a_b(q,Z_iter_R_next)( (p), id_var, (out) )))
+#define for_each_out(out,id_var,p,q)        I for_each_out_(out,id_var,(p),q)
+#define for_each_(id_var,p,q)               for_each_out_(~0,id_var,(p),q)
+#define for_each(id_var,p,q)                for_each_out(~0,id_var,(p),q)
+//------------------------------------------------------------------------------
+#define for_each_rev_out_(out,id_var,p,q)   id_var = (out); while( ~( id_var = J_a_b(q,Z_iter_R_prev)( (p), id_var, (out) )))
+#define for_each_rev_out(out,id_var,p,q)    I for_each_rev_out_(out,id_var,(p),q)
+#define for_each_rev_(id_var,p,q)           for_each_rev_out_(~0,id_var,(p),q)
+#define for_each_rev(id_var,p,q)            for_each_rev_out(~0,id_var,(p),q)
+//------------------------------------------------------------------------------
+#define for_each_pop_out_(out,id_var,p,q) \
+  for( \
+  ; ~( id_var = J_a_b(q,Z_iter_R_prev)( (p), ~0, (out) )) \
+  ; E_mem_Q_tab_I_remove( (p), id_var ) \
+  )
+#define for_each_pop_out(out,id_var,p,q)    I id_var; for_each_pop_out_((out),id_var,(p),q)
+#define for_each_pop_(id_var,p,q)           for_each_pop_out_(~0,id_var,(p),q)
+#define for_each_pop(id_var,p,q)            I id_var; for_each_pop_(id_var,(p),q)
+//------------------------------------------------------------------------------
+#define for_each_q(id_var,p,iter,q) \
+  I id_var; \
+  I J_autogen_line(id_var) = ~0; \
+  while( ~( id_var = J_a_b(q,Q_iter_R_next)( (p), (iter), ++J_autogen_line(id_var) )))
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #define _0(pointer_variable,l)              E_mem_Q_blk_P_fill_c( (pointer_variable), l, 0 )
 #define _0_(pointer_variable)               _0( (pointer_variable), sizeof( *(pointer_variable) ))
@@ -43,11 +84,73 @@
 #define Mt_(pointer_variable,n)             pointer_variable = Mt( sizeof( *( pointer_variable )), (n) )
 #define W_(pointer_variable)                ( W( pointer_variable ), pointer_variable = 0 )
 #define W_tab_(pointer_variable)            ( E_mem_Q_tab_W( pointer_variable ), pointer_variable = 0 )
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//------------------------------------------------------------------------------
+// Instrukcja blokowa definicji ‹zadania›.
+#define D(module,task)                      _private void _unused _D_proc(module,task)(void)
+    #ifdef C_line_report
+#define D_M(module,task)                    if( ~E_flow_Q_task_M( &D_id(module,task), &_D_proc(module,task), J_s( _D_proc(module,task) ))){} else
+    #else
+#define D_M(module,task)                    if( ~E_flow_Q_task_M( &D_id(module,task), &_D_proc(module,task) )){} else
+    #endif
+#define D_W(module,task)                    E_flow_Q_task_W( &D_id(module,task) )
+//------------------------------------------------------------------------------
+// Znacznik stanu — zwykle stanu pojedynczego obiektu sygnalizującego później kolekcję — umieszczony w strukturze tego ‹obiektu› dostępnej przez wyrażenie.
+#define U_R(start_expr,state_name)          J_a_b(start_expr,J_autogen(J_a_b(U,state_name)))
+// Wzbudzenie stanu.
+#define U_F(start_expr,state_name)          U_R(start_expr,state_name) = yes
+// I liniowe obsłużenie tego stanu.
+#define U_L(start_expr,state_name)          U_R(start_expr,state_name) = no
+// Albo blokowe.
+#define U_E(start_expr,state_name)          ( U_R(start_expr,state_name) && ( U_L(start_expr,state_name), yes ))
+//------------------------------------------------------------------------------
+// Instrukcje “X_M”/“X_A”, “Yi_M”/“Yi_A” muszą występować w jednym z najwyższych bloków struktury programu ‹zadania›, w miejscu zapewniającym taką widoczność (do użycia ‹raportu› w tym ‹zadaniu›) jak deklaracja zmiennej lokalnej.
+// Utworzenie i wyrzucenie ‹raportu›.
+#define X_M_(module,report)                 _X_var(module,report) = E_flow_Q_report_M( _X_uid(module,report) )
+#define X_M(module,report)                  I X_M_(module,report)
+#define X_W(module,report)                  E_flow_Q_report_W( _X_var(module,report) )
+// Deklaracja emisji ‹raportu› przez ‹zadanie›.
+#define X_A(module,report)                  X_M(module,report); _unused B U_L(module,report)
+// Sygnalizacja ‹zadania› obsługującego ‹raport› kolekcji.
+#define X_F(module,report)                  E_flow_Q_report_I_signal( _X_var(module,report) )
+// I warunkowa– gdy jest stan pojedynczego obiektu.
+#define X_U(module,report)                  if( !U_E(module,report) ){} else X_F(module,report)
+// Czekanie na ‹raport› kolekcji.
+#define X_B(module,report,lost_count)       if( !E_flow_Q_report_I_wait( _X_var(module,report), (lost_count) )){} else
+// Czyszczenie licznika raportów.
+#define X_L(module,report)                  E_flow_Q_report_I_clear( _X_var(module,report) )
+//------------------------------------------------------------------------------
+// Utworzenie i wyrzucenie ‹cyklera›.
+#define Y_M(period)                         E_flow_Q_timer_M(period)
+#define Y_W(timer)                          E_flow_Q_timer_W(timer)
+// Czekanie na pełny okres ‹cyklera›.
+#define Y_B(timer,lost_count)               if( !E_flow_Q_timer_I_wait( (timer), (lost_count) )){} else
+//------------------------------------------------------------------------------
+// Utworzenie i wyrzucenie ‹impulsatora›.
+#define Yi_M(module,impulser)               I _Yi_var(module,impulser) = E_flow_Q_impulser_M( _Yi_uid(module,impulser) )
+#define Yi_W(module,impulser)               E_flow_Q_timer_W( _Yi_var(module,impulser) )
+// Deklaracja aktywacji ‹impulsatora› przez ‹zadanie›.
+#define Yi_A(module,impulser)               I _Yi_var(module,impulser) = E_flow_Q_impulser_M_srv( _Yi_uid(module,impulser) )
+// Aktywacja ‹impulsatora›.
+#define Yi_F(module,impulser,time)          E_flow_Q_impulser_I_activate( _Yi_var(module,impulser), (time) )
+// Dezaktywacja ‹impulsatora›.
+#define Yi_L(module,impulser)               E_flow_Q_impulser_I_deactivate( _Yi_var(module,impulser) )
+// Czekanie na wzbudzenie przez ‹impulsator›.
+#define Yi_B(module,impulser)               if( !E_flow_Q_impulser_I_wait( _Yi_var(module,impulser) )){} else
+//------------------------------------------------------------------------------
+// Czekanie na wznowienie w następnym obiegu czasu.
+#define I_B()                               if( !E_flow_Q_task_I_schedule() ){} else
+//------------------------------------------------------------------------------
+// Wyjście z ‹zadania› po procedurze zawierającej instrukcję przełączenia.
+#define I_V()                               if( !E_flow_Q_task_R_exit() ){} else
+//==============================================================================
 #define _inline                             static __attribute__ (( __always_inline__, __unused__ ))
 #define _internal                           static
 #define _private                            __attribute__ (( __visibility__( "hidden" ) ))
 #define _export                             __attribute__ (( __visibility__( "protected" ) ))
+    #ifndef _unreachable
+#define _unreachable                        __builtin_unreachable()
+    #endif
+#define _unused                             __attribute__ (( __unused__ ))
 //==============================================================================
 #define S_eof                               ( ~1UL )
 //==============================================================================
@@ -61,20 +164,6 @@ struct E_datetime_Z
 struct E_flow_Z_args
 { N argc;
   Pc *argv;
-};
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-struct E_mem_Q_tab_Z
-{ Pc *index; // Tablica mapowania indeksów do adresów w “data”.
-  Pc data; // Dane ciągłe.
-  N u; // Rozmiar elementu tablicy.
-  struct E_mem_Q_tab_Z *iterator;
-  I index_n;
-  I data_n;
-};
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-struct E_mem_Q_tab_S_iterator_Z
-{ I *index; // Dowolna sekwencja ‹identyfikatorów› (indeksów) danych, ale bez powtórzeń.
-  I n;
 };
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #define E_vga_S_background_color            0xcacaca

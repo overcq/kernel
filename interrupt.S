@@ -463,7 +463,7 @@ E_interrupt_I_exeception_df:
     push    %r11
     lea     msg_8-.-3(%rip),%rdi
     call    E_font_I_print
-    mov     7*8(%rsp),%rdi
+    mov     9*8(%rsp),%rdi
     call    E_font_I_print_hex
     pop     %r11
     pop     %r10
@@ -488,7 +488,7 @@ E_interrupt_I_exeception_ts:
     push    %r11
     lea     msg_10-.-3(%rip),%rdi
     call    E_font_I_print
-    mov     7*8(%rsp),%rdi
+    mov     9*8(%rsp),%rdi
     call    E_font_I_print_hex
     pop     %r11
     pop     %r10
@@ -513,7 +513,7 @@ E_interrupt_I_exeception_np:
     push    %r11
     lea     msg_11-.-3(%rip),%rdi
     call    E_font_I_print
-    mov     7*8(%rsp),%rdi
+    mov     9*8(%rsp),%rdi
     call    E_font_I_print_hex
     pop     %r11
     pop     %r10
@@ -538,7 +538,7 @@ E_interrupt_I_exeception_ss:
     push    %r11
     lea     msg_12-.-3(%rip),%rdi
     call    E_font_I_print
-    mov     7*8(%rsp),%rdi
+    mov     9*8(%rsp),%rdi
     call    E_font_I_print_hex
     pop     %r11
     pop     %r10
@@ -563,7 +563,7 @@ E_interrupt_I_exeception_gp:
     push    %r11
     lea     msg_13-.-3(%rip),%rdi
     call    E_font_I_print
-    mov     7*8(%rsp),%rdi
+    mov     9*8(%rsp),%rdi
     call    E_font_I_print_hex
     pop     %r11
     pop     %r10
@@ -591,9 +591,14 @@ E_interrupt_I_exeception_pf:
     push    %r11
     lea     msg_14-.-3(%rip),%rdi
     call    E_font_I_print
-    mov     7*8(%rsp),%rdi
+    mov     9*8(%rsp),%rdi
     call    E_font_I_print_hex
-    pop     %r11
+    mov     9*8(%rsp),%rax
+    test    $1,%rax
+    jnz     0f
+    mov     %cr2,%rdi
+    call    E_mem_Q_stack_I_page_fault
+0:  pop     %r11
     pop     %r10
     pop     %r9
     pop     %r8
@@ -638,7 +643,7 @@ E_interrupt_I_exeception_ac:
     push    %r11
     lea     msg_17-.-3(%rip),%rdi
     call    E_font_I_print
-    mov     7*8(%rsp),%rdi
+    mov     9*8(%rsp),%rdi
     call    E_font_I_print_hex
     pop     %r11
     pop     %r10
@@ -729,7 +734,7 @@ E_interrupt_I_exeception_cp:
     push    %r11
     lea     msg_21-.-3(%rip),%rdi
     call    E_font_I_print
-    mov     7*8(%rsp),%rdi
+    mov     9*8(%rsp),%rdi
     call    E_font_I_print_hex
     pop     %r11
     pop     %r10
