@@ -82,6 +82,7 @@ E_flow_M( P main_stack
 ){  E_flow_Q_task_S = E_mem_Q_tab_M( sizeof( struct E_flow_Q_task_Z ), 1 );
     if( !E_flow_Q_task_S )
         return ~0;
+    E_flow_Q_task_I_touch_stack(0);
     E_flow_Q_task_S_current = 0;
     struct E_flow_Q_task_Z *task = E_mem_Q_tab_R( E_flow_Q_task_S, E_flow_Q_task_S_current );
     *task = ( struct E_flow_Q_task_Z )
@@ -524,7 +525,21 @@ E_flow_Q_task_I_schedule( void
                 N acpi_timer_ticks = time / E_interrupt_S_apic_timer_tick_time;
                 if( !acpi_timer_ticks )
                     continue;
+                __asm__ volatile (
+                    #if defined( __x86_64__ )
+                "\n"    "cli"
+                    #else
+#error not implemented
+                    #endif
+                );
                 E_interrupt_Q_local_apic_P( 0x38, acpi_timer_ticks );
+                __asm__ volatile (
+                    #if defined( __x86_64__ )
+                "\n"    "sti"
+                    #else
+#error not implemented
+                    #endif
+                );
             }
             __asm__ volatile (
                 #if defined( __x86_64__ )
@@ -548,8 +563,8 @@ E_flow_Q_task_I_switch( I task_to_id
     __asm__ volatile (
         #if defined( __x86_64__ )
     "\n" "mov       %%rsp,%0"
-    "\n" "cmp       $0,%1"
-    "\n" "cmovne    %1,%%rsp"
+    "\n" "test      %1,%1"
+    "\n" "cmovnz    %1,%%rsp"
     : "=m" ( task_from->exe_stack )
     : "r" ( task_to->exe_stack )
     : "cc", "memory"

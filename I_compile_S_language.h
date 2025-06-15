@@ -86,7 +86,7 @@
 #define W_tab_(pointer_variable)            ( E_mem_Q_tab_W( pointer_variable ), pointer_variable = 0 )
 //------------------------------------------------------------------------------
 // Instrukcja blokowa definicji ‹zadania›.
-#define D(module,task)                      _private void _unused _D_proc(module,task)(void)
+#define D(module,task)                      _private _unused void _D_proc(module,task)(void)
     #ifdef C_line_report
 #define D_M(module,task)                    if( ~E_flow_Q_task_M( &D_id(module,task), &_D_proc(module,task), J_s( _D_proc(module,task) ))){} else
     #else

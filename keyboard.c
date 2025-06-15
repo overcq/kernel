@@ -12,6 +12,7 @@ _internal
 void
 E_keyboard_I_interrupt( void
 ){  E_font_I_print( "\nkeyboard interrupt" );
+    N8 k = E_main_I_inb( 0x60 );
 }
 _private
 void
