@@ -204,7 +204,7 @@ struct E_flow_Z_args
 #define H_uefi_Z_error_S_end_of_file        H_uefi_S_error(31)
 #define H_uefi_Z_error_S_invalid_language   H_uefi_S_error(32)
 #define H_uefi_Z_error_S_compromised_data   H_uefi_S_error(33)
-#define H_uefi_Z_error_S_ip_address_confilct H_uefi_S_error(34)
+#define H_uefi_Z_error_S_ip_address_conflict H_uefi_S_error(34)
 #define H_uefi_Z_error_S_http_error         H_uefi_S_error(35)
 //------------------------------------------------------------------------------
 struct H_uefi_Z_guid

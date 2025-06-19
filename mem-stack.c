@@ -20,8 +20,10 @@ _private
 N
 E_mem_Q_stack_I_patch_page_table_set_guard( N guard_page
 , N additional_i
-){  N allocated_i = E_mem_Q_blk_R( E_main_S_kernel.page_table );
+){  E_flow_I_lock( &E_mem_blk_S_mem_lock );
+    N allocated_i = E_mem_Q_blk_R( E_main_S_kernel.page_table );
     N page_table_size = E_main_S_kernel.mem_blk.allocated[ allocated_i ].n * E_main_S_kernel.mem_blk.allocated[ allocated_i ].u;
+    E_flow_I_unlock( &E_mem_blk_S_mem_lock );
     P address = E_main_S_kernel.mem_blk.reserved_from_end ? (P)( (Pc)E_main_S_kernel.page_table + page_table_size - E_mem_S_page_size ) : E_main_S_kernel.page_table;
     N additional;
     const N table_n = E_mem_S_page_size / sizeof(N);
@@ -53,8 +55,10 @@ _private
 N
 E_mem_Q_stack_I_patch_page_table_remove_guard( N guard_page
 , N additional_i
-){  N allocated_i = E_mem_Q_blk_R( E_main_S_kernel.page_table );
+){  E_flow_I_lock( &E_mem_blk_S_mem_lock );
+    N allocated_i = E_mem_Q_blk_R( E_main_S_kernel.page_table );
     N page_table_size = E_main_S_kernel.mem_blk.allocated[ allocated_i ].n * E_main_S_kernel.mem_blk.allocated[ allocated_i ].u;
+    E_flow_I_unlock( &E_mem_blk_S_mem_lock );
     P address = E_main_S_kernel.mem_blk.reserved_from_end ? (P)( (Pc)E_main_S_kernel.page_table + page_table_size - E_mem_S_page_size ) : E_main_S_kernel.page_table;
     const N table_n = E_mem_S_page_size / sizeof(N);
     for_n( pml4_i, table_n )
@@ -83,8 +87,9 @@ _private
 void
 E_mem_Q_stack_I_page_fault( N address
 ){  address = E_simple_Z_n_I_align_down_to_v2( address, E_mem_S_page_size );
-    for_each( task_id, E_flow_Q_task_S, E_mem_Q_tab )
-    {   struct E_flow_Q_task_Z *task = E_mem_Q_tab_R( E_flow_Q_task_S, task_id );
+    N sched_i = E_flow_I_current_scheduler();
+    for_each( task_id, E_flow_S_scheduler[ sched_i ].task, E_mem_Q_tab )
+    {   struct E_flow_Q_task_Z *task = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, task_id );
         if( (N)task->stack == address )
         {   E_mem_Q_stack_I_patch_page_table_remove_guard( (N)task->stack, task_id );
             if( !E_mem_Q_blk_I_prepend( &task->stack, 1 ))

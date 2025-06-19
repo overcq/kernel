@@ -71,7 +71,7 @@ struct E_main_Z_kernel
 { struct E_mem_blk_Z mem_blk;
   struct E_mem_Z_memory_map *memory_map;
   N memory_map_n;
-  N gdt[7], ldt[2];
+  N *gdt, ldt[2];
   P kernel;
   P page_table;
   N additional_pages;
@@ -115,7 +115,10 @@ struct E_main_Z_kernel_args
   P local_apic_address;
   P io_apic_address;
   struct E_interrupt_Z_gsi *gsi;
+  P *processor_proc;
+  N32 processor_start_page;
   N8 gsi_n;
+  N8 processor_n;
 };
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 struct __attribute__ (( __packed__ )) E_main_I_tss
@@ -126,6 +129,19 @@ struct __attribute__ (( __packed__ )) E_main_I_tss
   N16 reserved_2;
   N16 io_map_base_address;
 };
+struct __attribute__ ((packed)) E_main_Z_gd
+{ N32 pad_1;
+  N16 pad_2;
+  N16 limit;
+  N base;
+};
+_internal struct E_main_Z_gd E_main_S_gd;
+_internal Pc *E_main_S_stack;
+//==============================================================================
+#define E_main_J_code_descriptor( base, limit ) (( (N)(limit) & (( 1 << 16 ) - 1 )) | (( (N)(base) & (( 1 << 24 ) - 1 )) << 16 ) | E_cpu_Z_gdt_Z_type_S_code | E_cpu_Z_gdt_S_code_data | E_cpu_Z_gdt_S_present | E_cpu_Z_gdt_Z_code_S_64bit | E_cpu_Z_gdt_S_granularity | ((( (N)(limit) >> 16 ) & (( 1 << 4 ) - 1 )) << ( 32 + 16 )) | (( (N)(base) >> 24 ) << ( 32 + 24 )))
+#define E_main_J_data_descriptor( base, limit ) (( (N)(limit) & (( 1 << 16 ) - 1 )) | (( (N)(base) & (( 1 << 24 ) - 1 )) << 16 ) | E_cpu_Z_gdt_Z_data_S_write | E_cpu_Z_gdt_S_code_data | E_cpu_Z_gdt_S_present | E_cpu_Z_gdt_S_granularity | ((( (N)(limit) >> 16 ) & (( 1 << 4 ) - 1 )) << ( 32 + 16 )) | (( (N)(base) >> 24 ) << ( 32 + 24 )))
+#define E_main_J_local_descriptor_low( base, limit ) (( (N)(limit) & (( 1 << 16 ) - 1 )) | (( (N)(base) & (( 1 << 24 ) - 1 )) << 16 ) | E_cpu_Z_gdt_Z_type_S_ldt | E_cpu_Z_gdt_S_present | ((( (N)(limit) >> 16 ) & (( 1 << 4 ) - 1 )) << ( 32 + 16 )) | (( (N)(base) >> 24 ) << ( 32 + 24 )))
+#define E_main_J_task_descriptor_low( base, limit ) (( (N)(limit) & (( 1 << 16 ) - 1 )) | (( (N)(base) & (( 1 << 24 ) - 1 )) << 16 ) | E_cpu_Z_gdt_Z_type_S_tss | E_cpu_Z_gdt_S_present | ((( (N)(limit) >> 16 ) & (( 1 << 4 ) - 1 )) << ( 32 + 16 )) | (( (N)(base) >> 24 ) << ( 32 + 24 )))
 //==============================================================================
 _private
 N8
@@ -174,6 +190,7 @@ E_main_Z_p_I_to_virtual( P p
     return 0;
 }
 _private
+__attribute__ (( __noreturn__ ))
 void
 E_main_I_error_fatal( void
 ){  __asm__ volatile (
@@ -183,7 +200,69 @@ E_main_I_error_fatal( void
     );
     __builtin_unreachable();
 }
+_internal
+__attribute__ (( __naked__ ))
+void
+E_main_I_processor_start( void
+){  __asm__ volatile (
+    "\n"    "mov    %0,%%rdi"
+    "\n"    "mov    2*0x10(%%rdi),%%ebx"
+    "\n"    "shr    $24,%%ebx"
+    "\n"    "dec    %%ebx"
+    "\n"    "movzbq %%bl,%%rbx"
+    "\n"    "mov    %1,%%rbp"
+    "\n"    "mov    (%%rbp,%%rbx,8),%%rsp"
+    "\n"    "lea    0x2000(%%rsp),%%rsp"
+    "\n"    "lgdt   %2"
+    "\n"    "mov    $3 << 3,%%ax"
+    "\n"    "lldt   %%ax"
+    "\n"    "mov    $2 << 3,%%ax"
+    "\n"    "mov    %%ax,%%ds"
+    "\n"    "mov    %%ax,%%es"
+    "\n"    "mov    %%ax,%%ss"
+    "\n"    "xor    %%ax,%%ax"
+    "\n"    "mov    %%ax,%%fs"
+    "\n"    "mov    %%ax,%%gs"
+    "\n"    "movw   $1 << 3,-8(%%rsp)"
+    "\n"    "lea    0f(%%rip),%%rax"
+    "\n"    "mov    %%rax,-16(%%rsp)"
+    "\n"    ".byte  0x48"
+    "\n"    "ljmp   *-16(%%rsp)"
+    "\n0:"  "lea    7(%%rbx,%%rbx),%%rax"
+    "\n"    "shl    $3,%%rax"
+    "\n"    "ltr    %%ax"
+    "\n"    "lidt   %3"
+    "\n"    "mov    0xf*0x10(%%rdi),%%eax"
+    "\n"    "or     $0x100,%%eax"
+    "\n"    "mov    %4,%%al"
+    "\n"    "lea    32(%%eax),%%eax"
+    "\n"    "mov    %%eax,0xf*0x10(%%rdi)"
+    "\n"    "mov    %5,%%rax"
+    "\n"    "lea    32(%%rax),%%rax"
+    "\n"    "mov    %%eax,0x32*0x10(%%rdi)"
+    "\n"    "mov    0x3e*0x10(%%rdi),%%eax"
+    "\n"    "and    $~0xf,%%eax"
+    "\n"    "or     $0xb,%%eax"
+    "\n"    "mov    %%eax,0x3e*0x10(%%rdi)"
+    "\n"    "sti"
+    "\n"    "mov    (%%rbp,%%rbx,8),%%rdi"
+    "\n"    "call   E_flow_M"
+    "\n"    "cmp    $~0,%%rax"
+    "\n"    "jne    0f"
+    "\n"    "call   E_main_I_error_fatal"
+    "\n0:"  "mov    %%rax,(%%rbp,%%rbx,8)"
+    "\n"    "jmp    E_flow_I_main_task"
+    :
+    : "m" ( E_interrupt_Q_local_apic_S_address ), "m" ( E_main_S_stack ), "p" ( &E_main_S_gd.limit ), "p" ( &E_interrupt_S_id.limit ), "m" ( E_interrupt_S_gsi_n ), "m" ( E_interrupt_S_gsi_timer )
+    : "rax", "rbx", "rbp", "rdi"
+    );
+}
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_internal
+void
+E_main_I_ipi_test( void
+){  E_font_I_print( "\nipi" );
+}
 _private
 __attribute__ (( __noreturn__ ))
 void
@@ -201,6 +280,7 @@ main( struct E_main_Z_kernel_args *kernel_args
     E_interrupt_Q_io_apic_S_address = kernel_args->io_apic_address;
     E_interrupt_S_gsi = kernel_args->gsi;
     E_interrupt_S_gsi_n = kernel_args->gsi_n;
+    E_mem_blk_S_mem_lock = 0;
     if( !~E_font_M() )
         goto End;
     E_vga_I_fill_rect( 0, 0, E_main_S_kernel.framebuffer.width, E_main_S_kernel.framebuffer.height, E_vga_R_video_color( E_vga_S_background_color ));
@@ -214,34 +294,29 @@ main( struct E_main_Z_kernel_args *kernel_args
     E_vga_I_fill_rect( E_main_S_kernel.framebuffer.width / 2, E_main_S_kernel.framebuffer.height / 2 - 10 - 13, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
     E_vga_I_fill_rect( E_main_S_kernel.framebuffer.width / 2, E_main_S_kernel.framebuffer.height / 2 - 10, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
     E_font_I_print( "OUX/C+ OS. ©overcq <overcq@int.pl>. https:/""/github.com/overcq\n" );
-    struct E_main_I_tss *M_(tss);
-    if( !tss )
+    Mt_( E_main_S_kernel.gdt, 5 + kernel_args->processor_n * 2 );
+    if( !E_main_S_kernel.gdt )
         goto End;
-    _0_(tss);
-    P exception_stack = E_mem_Q_blk_M_align_tab( E_mem_S_page_size, 1, E_mem_S_page_size );
-    if( !exception_stack )
-        goto End;
-    tss->ist[1] = (N)exception_stack;
-#define E_main_J_code_descriptor( base, limit ) (( (N)(limit) & (( 1 << 16 ) - 1 )) | (( (N)(base) & (( 1 << 24 ) - 1 )) << 16 ) | E_cpu_Z_gdt_Z_type_S_code | E_cpu_Z_gdt_S_code_data | E_cpu_Z_gdt_S_present | E_cpu_Z_gdt_Z_code_S_64bit | E_cpu_Z_gdt_S_granularity | ((( (N)(limit) >> 16 ) & (( 1 << 4 ) - 1 )) << ( 32 + 16 )) | (( (N)(base) >> 24 ) << ( 32 + 24 )))
-#define E_main_J_data_descriptor( base, limit ) (( (N)(limit) & (( 1 << 16 ) - 1 )) | (( (N)(base) & (( 1 << 24 ) - 1 )) << 16 ) | E_cpu_Z_gdt_Z_data_S_write | E_cpu_Z_gdt_S_code_data | E_cpu_Z_gdt_S_present | E_cpu_Z_gdt_S_granularity | ((( (N)(limit) >> 16 ) & (( 1 << 4 ) - 1 )) << ( 32 + 16 )) | (( (N)(base) >> 24 ) << ( 32 + 24 )))
-#define E_main_J_local_descriptor_low( base, limit ) (( (N)(limit) & (( 1 << 16 ) - 1 )) | (( (N)(base) & (( 1 << 24 ) - 1 )) << 16 ) | E_cpu_Z_gdt_Z_type_S_ldt | E_cpu_Z_gdt_S_present | ((( (N)(limit) >> 16 ) & (( 1 << 4 ) - 1 )) << ( 32 + 16 )) | (( (N)(base) >> 24 ) << ( 32 + 24 )))
-#define E_main_J_task_descriptor_low( segment_selector, offset ) (( (N)(offset) & (( 1 << 16 ) - 1 )) | ( (N)( segment_selector ) << 16 ) | E_cpu_Z_gdt_Z_type_S_tss | E_cpu_Z_gdt_S_present | ((( (N)(offset) >> 16 ) & (( 1 << 16 ) - 1 )) << ( 32 + 16 )))
     E_main_S_kernel.gdt[1] = E_main_J_code_descriptor( 0, ~0ULL );
     E_main_S_kernel.gdt[2] = E_main_J_data_descriptor( 0, ~0ULL );
     E_main_S_kernel.gdt[3] = E_main_J_local_descriptor_low( (N)&E_main_S_kernel.ldt[0], sizeof( E_main_S_kernel.ldt ) - 1 );
     E_main_S_kernel.gdt[4] = (N)&E_main_S_kernel.ldt[0] >> 32;
-    E_main_S_kernel.gdt[5] = E_main_J_task_descriptor_low( 2 << 8, (N)tss );
-    E_main_S_kernel.gdt[6] = (N)tss >> 32;
+    for_n( i, kernel_args->processor_n )
+    {   struct E_main_I_tss *M_(tss);
+        if( !tss )
+            goto End;
+        _0_(tss);
+        P exception_stack = E_mem_Q_blk_M_align_tab( E_mem_S_page_size, 1, E_mem_S_page_size );
+        if( !exception_stack )
+            goto End;
+        tss->ist[1] = (N)exception_stack + E_mem_S_page_size;
+        E_main_S_kernel.gdt[ 5 + i * 2 ] = E_main_J_task_descriptor_low( (N)tss, sizeof( *tss ));
+        E_main_S_kernel.gdt[ 5 + i * 2 + 1 ] = (N)tss >> 32;
+    }
     E_main_S_kernel.ldt[0] = 0;
     E_main_S_kernel.ldt[1] = 0;
-    struct __attribute__ ((packed))
-    { N32 pad_1;
-      N16 pad_2;
-      N16 limit;
-      N base;
-    }gd;
-    gd.base = (N)&E_main_S_kernel.gdt[0];
-    gd.limit = sizeof( E_main_S_kernel.gdt ) - 1;
+    E_main_S_gd.base = (N)&E_main_S_kernel.gdt[0];
+    E_main_S_gd.limit = ( 5 + kernel_args->processor_n * 2 ) * sizeof( *E_main_S_kernel.gdt ) - 1;
     __asm__ volatile (
     "\n"    "lgdt   %0"
     "\n"    "mov    $3 << 3,%%ax"
@@ -250,6 +325,7 @@ main( struct E_main_Z_kernel_args *kernel_args
     "\n"    "mov    %%ax,%%ds"
     "\n"    "mov    %%ax,%%es"
     "\n"    "mov    %%ax,%%ss"
+    "\n"    "xor    %%ax,%%ax"
     "\n"    "mov    %%ax,%%fs"
     "\n"    "mov    %%ax,%%gs"
     "\n"    "movw   $1 << 3,-8(%%rsp)"
@@ -260,18 +336,62 @@ main( struct E_main_Z_kernel_args *kernel_args
     "\n0:"  "mov    $5 << 3,%%ax"
     "\n"    "ltr    %%ax"
     :
-    : "p" ( &gd.limit )
+    : "p" ( &E_main_S_gd.limit )
     : "rax"
     );
     if( !~E_interrupt_M() )
         goto End;
+    E_interrupt_S_external[ E_interrupt_S_gsi_ipi ] = &E_main_I_ipi_test;
+    O{  for_n( i, kernel_args->processor_n - 1 )
+            if( !~(N)kernel_args->processor_proc[i] )
+                E_interrupt_I_ipi_startup( 1 + i, (P)(N)kernel_args->processor_start_page );
+        E_flow_I_sleep(1000);
+        for_n_( i, kernel_args->processor_n - 1 )
+            if( !~(N)kernel_args->processor_proc[i] )
+                break;
+        if( i == kernel_args->processor_n - 1 )
+            break;
+    }
     //if( !~E_acpi_aml_M( kernel_args->acpi.dsdt_content, kernel_args->acpi.dsdt_content_l, &kernel_args->acpi.ssdt_contents[0], kernel_args->acpi.ssdt_contents_n ))
         //goto End;
     //if( !~E_acpi_reader_M() )
         //goto End;
-    E_keyboard_M();
+    if( !~E_keyboard_M() )
+        goto End;
+    E_flow_S_scheduler_n = kernel_args->processor_n;
+    Mt_( E_flow_S_scheduler, E_flow_S_scheduler_n );
+    if( !E_flow_S_scheduler )
+        goto End;
     if( !~E_flow_M( kernel_args->kernel_stack ))
         goto End;
+    Mt_( E_main_S_stack, kernel_args->processor_n - 1 );
+    if( !E_main_S_stack )
+        goto End;
+    for_n_( i, kernel_args->processor_n - 1 )
+    {   E_main_S_stack[i] = E_mem_Q_blk_M_align_tab( E_mem_S_page_size, 2, E_mem_S_page_size );
+        if( !E_main_S_stack[i] )
+            goto End;
+    }
+    for_n_( i, kernel_args->processor_n - 1 )
+        kernel_args->processor_proc[i] = &E_main_I_processor_start;
+    O{  for_n( i, kernel_args->processor_n - 1 )
+            if( E_main_S_stack[i] )
+                break;
+        if( i == kernel_args->processor_n - 1 )
+            break;
+        __asm__ volatile (
+        "\n"    "pause"
+        );
+    }
+    W( E_main_S_stack );
+    E_flow_I_lock( &E_mem_blk_S_mem_lock );
+    struct E_mem_Q_blk_Z_free free_p_;
+    if( !~E_mem_Q_blk_Q_sys_table_f_P_put( E_main_S_kernel.mem_blk.free_id, (Pc)&free_p_.p - (Pc)&free_p_, (Pc)&free_p_.l - (Pc)&free_p_, (P)(N)kernel_args->processor_start_page, E_mem_S_page_size ))
+        goto End;
+    E_flow_I_unlock( &E_mem_blk_S_mem_lock );
+    W( kernel_args->processor_proc );
+    W( kernel_args->bootloader );
+
     X_M( main, test );
     D_M( main, test )
         goto End;
@@ -280,11 +400,6 @@ main( struct E_main_Z_kernel_args *kernel_args
     }
     X_W( main, test );
 
-    N allocated_i = E_mem_Q_blk_R( kernel_args->bootloader );
-    if( !E_mem_Q_blk_I_remove( &kernel_args->bootloader, E_mem_S_page_size, E_main_S_kernel.mem_blk.allocated[ allocated_i ].n - E_mem_S_page_size )) // Pozostawienie jednej strony pamięci z ‘identity mapping’ na program ‘wakeup’ procesorów.
-        goto End;
-
-    W( kernel_args->bootloader );
     //S status = E_main_S_kernel.uefi_runtime_services.reset_system( H_uefi_Z_reset_Z_shutdown, 0, 0, 0 );
 End:__asm__ volatile (
     "\n"    "cli"
@@ -298,6 +413,7 @@ D( main, test )
     O{  Y_B( timer, 0 )
             break;
         E_font_I_print( "\ntest" );
+        E_interrupt_I_ipi( 1, 32 + E_interrupt_S_gsi_ipi );
     }
     Y_W(timer);
 }
