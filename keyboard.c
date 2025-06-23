@@ -24,11 +24,11 @@ E_keyboard_I_wait_read( void
     O{  N8 v = E_main_I_inb( 0x64 );
         if( v & 1 )
             break;
+        if( E_flow_I_current_time() > time_end )
+            return ~0;
         __asm__ volatile (
         "\n"    "pause"
         );
-        if( E_flow_I_current_time() > time_end )
-            return ~0;
     }
     return 0;
 }
@@ -40,11 +40,11 @@ E_keyboard_I_wait_write( void
     O{  N8 v = E_main_I_inb( 0x64 );
         if( v ^ 2 )
             break;
+        if( E_flow_I_current_time() > time_end )
+            return ~0;
         __asm__ volatile (
         "\n"    "pause"
         );
-        if( E_flow_I_current_time() > time_end )
-            return ~0;
     }
     return 0;
 }
@@ -60,6 +60,8 @@ E_keyboard_M( void
     N8 v = E_main_I_inb( 0x60 );
     v &= ~(( 1 << 6 ) | ( 1 << 4 ) | 1 );
     E_main_I_outb( 0x64, 0x60 );
+    if( !~E_keyboard_I_wait_write() )
+        return ~0;
     E_main_I_outb( 0x60, v );
     E_main_I_outb( 0x64, 0xaa );
     if( !~E_keyboard_I_wait_read() )
@@ -73,6 +75,8 @@ E_keyboard_M( void
     v = E_main_I_inb( 0x60 );
     v &= ~(( 1 << 6 ) | ( 1 << 4 ) | 1 );
     E_main_I_outb( 0x64, 0x60 );
+    if( !~E_keyboard_I_wait_write() )
+        return ~0;
     E_main_I_outb( 0x60, v );
     E_main_I_outb( 0x64, 0xa8 );
     if( !~E_keyboard_I_wait_read() )
@@ -87,6 +91,8 @@ E_keyboard_M( void
         v = E_main_I_inb( 0x60 );
         v &= ~(( 1 << 5 ) | ( 1 << 1 ));
         E_main_I_outb( 0x64, 0x60 );
+        if( !~E_keyboard_I_wait_write() )
+            return ~0;
         E_main_I_outb( 0x60, v );
     }
     E_main_I_outb( 0x64, 0xab );
@@ -114,7 +120,11 @@ E_keyboard_M( void
     if( E_keyboard_S_mouse )
         v |= 1 << 1;
     E_main_I_outb( 0x64, 0x60 );
+    if( !~E_keyboard_I_wait_write() )
+        return ~0;
     E_main_I_outb( 0x60, v );
+    if( !~E_keyboard_I_wait_write() )
+        return ~0;
     E_main_I_outb( 0x60, 0xff );
     if( !~E_keyboard_I_wait_read() )
         return ~0;
@@ -128,6 +138,8 @@ E_keyboard_M( void
         return ~0;
     if( E_keyboard_S_mouse )
     {   E_main_I_outb( 0x64, 0xd4 );
+        if( !~E_keyboard_I_wait_write() )
+            return ~0;
         E_main_I_outb( 0x60, 0xff );
         if( !~E_keyboard_I_wait_read() )
             return ~0;

@@ -2572,17 +2572,17 @@ E_font_I_draw(
 _private
 void
 E_font_I_scroll_fwd( N dy
-){  E_mem_Q_blk_I_copy( (P)E_main_S_kernel.framebuffer.p
-    , (P)( E_main_S_kernel.framebuffer.p + dy * E_main_S_kernel.framebuffer.pixels_per_scan_line )
-    , ( E_main_S_kernel.framebuffer.height - dy ) * E_main_S_kernel.framebuffer.pixels_per_scan_line * sizeof( *E_main_S_kernel.framebuffer.p )
+){  E_mem_Q_blk_I_copy( (P)E_main_S_framebuffer.p
+    , (P)( E_main_S_framebuffer.p + dy * E_main_S_framebuffer.pixels_per_scan_line )
+    , ( E_main_S_framebuffer.height - dy ) * E_main_S_framebuffer.pixels_per_scan_line * sizeof( *E_main_S_framebuffer.p )
     );
-    E_vga_I_fill_rect( 0, E_main_S_kernel.framebuffer.height - dy, E_main_S_kernel.framebuffer.width, dy, E_vga_R_video_color( E_vga_S_background_color ));
+    E_vga_I_fill_rect( 0, E_main_S_framebuffer.height - dy, E_main_S_framebuffer.width, dy, E_vga_R_video_color( E_vga_S_background_color ));
 }
 _private
 void
 E_font_I_print_nl( void
 ){  E_font_S_x = 1;
-    if( E_font_S_y + 2 * ( font.height + 2 ) > E_main_S_kernel.framebuffer.height )
+    if( E_font_S_y + 2 * ( font.height + 2 ) > E_main_S_framebuffer.height )
         E_font_I_scroll_fwd( 2 + font.height );
     else
         E_font_S_y += font.height + 2;
@@ -2605,7 +2605,7 @@ E_font_I_print_u( U u
         dx = font.bitmap[0].width;
     }
     dx *= 2;
-    if( E_font_S_x + dx + 2 > E_main_S_kernel.framebuffer.width )
+    if( E_font_S_x + dx + 2 > E_main_S_framebuffer.width )
         E_font_I_print_nl();
     E_font_I_draw( E_font_S_x, E_font_S_y, E_font_S_color, u );
     E_font_S_x += dx + 2;

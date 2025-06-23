@@ -8,10 +8,12 @@
 *******************************************************************************/
 #define E_cpu_Z_page_entry_S_present    ( 1ULL << 0 )
 //==============================================================================
+_private N E_mem_stack_S_additional_pages;
+//==============================================================================
 _internal
 void
 E_mem_Q_stack_I_patch_page_table_I_next_page( P *address
-){  if( E_main_S_kernel.mem_blk.reserved_from_end )
+){  if( E_mem_blk_S.reserved_from_end )
         *(Pc)address -= E_mem_S_page_size;
     else
         *(Pc)address += E_mem_S_page_size;
@@ -21,10 +23,10 @@ N
 E_mem_Q_stack_I_patch_page_table_set_guard( N guard_page
 , N additional_i
 ){  E_flow_I_lock( &E_mem_blk_S_mem_lock );
-    N allocated_i = E_mem_Q_blk_R( E_main_S_kernel.page_table );
-    N page_table_size = E_main_S_kernel.mem_blk.allocated[ allocated_i ].n * E_main_S_kernel.mem_blk.allocated[ allocated_i ].u;
+    N allocated_i = E_mem_Q_blk_R( E_main_S_page_table );
+    N page_table_size = E_mem_blk_S.allocated[ allocated_i ].n * E_mem_blk_S.allocated[ allocated_i ].u;
     E_flow_I_unlock( &E_mem_blk_S_mem_lock );
-    P address = E_main_S_kernel.mem_blk.reserved_from_end ? (P)( (Pc)E_main_S_kernel.page_table + page_table_size - E_mem_S_page_size ) : E_main_S_kernel.page_table;
+    P address = E_mem_blk_S.reserved_from_end ? (P)( (Pc)E_main_S_page_table + page_table_size - E_mem_S_page_size ) : E_main_S_page_table;
     N additional;
     const N table_n = E_mem_S_page_size / sizeof(N);
     for_n( pml4_i, table_n )
@@ -41,7 +43,7 @@ E_mem_Q_stack_I_patch_page_table_set_guard( N guard_page
                         pt[ pt_i ] &= ~E_cpu_Z_page_entry_S_present;
                     }else if( virtual_address == guard_page + E_mem_S_page_size )
                         pt[ pt_i ] |= E_cpu_Z_page_entry_S_present;
-                    else if( virtual_address == E_main_S_kernel.mem_blk.memory_size + additional_i * E_mem_S_page_size )
+                    else if( virtual_address == E_mem_blk_S.memory_size + additional_i * E_mem_S_page_size )
                     {   pt[ pt_i ] = additional;
                         return 0;
                     }
@@ -56,10 +58,10 @@ N
 E_mem_Q_stack_I_patch_page_table_remove_guard( N guard_page
 , N additional_i
 ){  E_flow_I_lock( &E_mem_blk_S_mem_lock );
-    N allocated_i = E_mem_Q_blk_R( E_main_S_kernel.page_table );
-    N page_table_size = E_main_S_kernel.mem_blk.allocated[ allocated_i ].n * E_main_S_kernel.mem_blk.allocated[ allocated_i ].u;
+    N allocated_i = E_mem_Q_blk_R( E_main_S_page_table );
+    N page_table_size = E_mem_blk_S.allocated[ allocated_i ].n * E_mem_blk_S.allocated[ allocated_i ].u;
     E_flow_I_unlock( &E_mem_blk_S_mem_lock );
-    P address = E_main_S_kernel.mem_blk.reserved_from_end ? (P)( (Pc)E_main_S_kernel.page_table + page_table_size - E_mem_S_page_size ) : E_main_S_kernel.page_table;
+    P address = E_mem_blk_S.reserved_from_end ? (P)( (Pc)E_main_S_page_table + page_table_size - E_mem_S_page_size ) : E_main_S_page_table;
     const N table_n = E_mem_S_page_size / sizeof(N);
     for_n( pml4_i, table_n )
     {   E_mem_Q_stack_I_patch_page_table_I_next_page( &address );
@@ -72,7 +74,7 @@ E_mem_Q_stack_I_patch_page_table_remove_guard( N guard_page
                 {   N virtual_address = ( pml4_i * ( 1ULL << 39 )) | ( pdpt_i * ( 1 << 30 )) | ( pd_i * ( 1 << 21 )) | ( pt_i * E_mem_S_page_size );
                     if( virtual_address == guard_page )
                         pt[ pt_i ] |= E_cpu_Z_page_entry_S_present;
-                    else if( virtual_address == E_main_S_kernel.mem_blk.memory_size + additional_i * E_mem_S_page_size )
+                    else if( virtual_address == E_mem_blk_S.memory_size + additional_i * E_mem_S_page_size )
                     {   pt[ pt_i ] = 0;
                         return 0;
                     }
@@ -92,7 +94,7 @@ E_mem_Q_stack_I_page_fault( N address
     {   struct E_flow_Q_task_Z *task = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, task_id );
         if( (N)task->stack == address )
         {   E_mem_Q_stack_I_patch_page_table_remove_guard( (N)task->stack, task_id );
-            if( !E_mem_Q_blk_I_prepend( &task->stack, 1 ))
+            if( !E_mem_Q_blk_I_prepend_align( &task->stack, 1, yes ))
                 break;
             E_mem_Q_stack_I_patch_page_table_set_guard( (N)task->stack, task_id );
             break;
