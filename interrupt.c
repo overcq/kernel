@@ -363,8 +363,8 @@ E_interrupt_I_rtc_interrupt_1( void
     else if( E_interrupt_S_rtc_ticks == 1 )
         E_interrupt_S_cpu_freq = E_flow_I_current_time() - E_interrupt_S_cpu_freq;
     E_interrupt_S_rtc_ticks++;
-    E_main_I_outb( 0x70, 0xc );
-    E_main_I_inb( 0x71 );
+    E_main_I_out_8( 0x70, 0xc );
+    E_main_I_in_8( 0x71 );
 }
 _internal
 void
@@ -374,14 +374,28 @@ E_interrupt_I_rtc_interrupt_2( void
     else if( E_interrupt_S_rtc_ticks == 1 )
         E_interrupt_S_apic_timer_freq_ = E_interrupt_S_apic_timer_ticks;
     E_interrupt_S_rtc_ticks++;
-    E_main_I_outb( 0x70, 0xc );
-    E_main_I_inb( 0x71 );
+    E_main_I_out_8( 0x70, 0xc );
+    E_main_I_in_8( 0x71 );
 }
 #define E_interrupt_J_interrupt_descriptor_low( selector, offset, stack ) (( (N)(offset) & (( 1UL << 16 ) - 1 )) | ( (N)(selector) << 16 ) | ( (N)(stack) << 32 ) | ( 0xeUL << ( 32 + 8 )) | ( 1UL << ( 32 + 15 )) | ((( (N)(offset) >> 16 ) & (( 1UL << 16 ) - 1 )) << ( 32 + 16 )))
 #define E_interrupt_J_interrupt_descriptor( i, procedure, stack ) \
     {   E_interrupt_S_idt[ (i) * 2 ] = E_interrupt_J_interrupt_descriptor_low( 1 << 3, (N)&(procedure), (stack) ); \
         E_interrupt_S_idt[ (i) * 2 + 1 ] = (N)&(procedure) >> 32; \
     }
+_internal
+N8
+E_interrupt_R_gsi_next( void
+){  if( E_interrupt_S_gsi_next < 16 )
+    {   N8 i;
+        for( i = E_interrupt_S_gsi_next; i != 16; i++ )
+            if( !~(S8)E_interrupt_S_gsi[i].source )
+                break;
+        E_interrupt_S_gsi_next = i;
+    }
+    if( E_interrupt_S_gsi_next == E_interrupt_S_gsi_n )
+        return ~0;
+    return E_interrupt_S_gsi_next++;
+}
 _private
 N
 E_interrupt_M( void
@@ -1103,37 +1117,29 @@ E_interrupt_M( void
     for_n( i, E_interrupt_S_gsi_n )
         if( ~(S8)E_interrupt_S_gsi[i].source )
             E_interrupt_Q_io_apic_I_enable(i);
-    E_interrupt_S_gsi_next = 16;
-    for_n_( i, E_interrupt_S_gsi_n )
-        if( !~(S8)E_interrupt_S_gsi[i].source )
-        {   E_interrupt_S_gsi_timer = i;
-            break;
-        }
-    if( i == E_interrupt_S_gsi_n )
-        E_interrupt_S_gsi_timer = E_interrupt_S_gsi_next++;
-    for( i = E_interrupt_S_gsi_timer + 1; i != E_interrupt_S_gsi_n; i++ )
-        if( !~(S8)E_interrupt_S_gsi[i].source )
-        {   E_interrupt_S_gsi_ipi = i;
-            break;
-        }
-    if( i == E_interrupt_S_gsi_n )
-        E_interrupt_S_gsi_ipi = E_interrupt_S_gsi_next++;
+    E_interrupt_S_gsi_next = 0;
+    E_interrupt_S_gsi_timer = E_interrupt_R_gsi_next();
+    if( !~E_interrupt_S_gsi_timer )
+        return ~0;
+    E_interrupt_S_gsi_ipi = E_interrupt_R_gsi_next();
+    if( !~E_interrupt_S_gsi_ipi )
+        return ~0;
     // Kalibracja zegara APIC na podstawie RTC.
     E_interrupt_S_external[16] = &E_interrupt_I_apic_timer_interrupt;
     E_interrupt_P( 8, &E_interrupt_I_rtc_interrupt_1 );
     E_interrupt_Q_local_apic_P( 0xf, ( E_interrupt_Q_local_apic_R( 0xf ) & ~0xff ) | 0x100 | ( 32 + E_interrupt_S_gsi_n ));
     E_interrupt_Q_local_apic_P( 0x32, ( 32 + 16 ) | ( 1 << 17 ));
     E_interrupt_Q_local_apic_P( 0x3e, ( E_interrupt_Q_local_apic_R( 0x3e ) & ~0xf ) | 0xb );
-    E_main_I_outb( 0x70, 0x8a );
-    N8 v = E_main_I_inb( 0x71 );
-    E_main_I_outb( 0x70, 0x8a );
-    E_main_I_outb( 0x71, ( v & 0xf0 ) | 0xf );
-    E_main_I_outb( 0x70, 0x8b );
-    v = E_main_I_inb( 0x71 );
-    E_main_I_outb( 0x70, 0x8b );
-    E_main_I_outb( 0x71, v | 0x40 );
-    E_main_I_outb( 0x70, 0xc );
-    E_main_I_inb( 0x71 );
+    E_main_I_out_8( 0x70, 0x8a );
+    N8 v = E_main_I_in_8( 0x71 );
+    E_main_I_out_8( 0x70, 0x8a );
+    E_main_I_out_8( 0x71, ( v & 0xf0 ) | 0xf );
+    E_main_I_out_8( 0x70, 0x8b );
+    v = E_main_I_in_8( 0x71 );
+    E_main_I_out_8( 0x70, 0x8b );
+    E_main_I_out_8( 0x71, v | 0x40 );
+    E_main_I_out_8( 0x70, 0xc );
+    E_main_I_in_8( 0x71 );
     E_interrupt_S_apic_timer_ticks = E_interrupt_S_rtc_ticks = 0;
     __asm__ volatile (
     "\n"    "sti"
@@ -1169,12 +1175,12 @@ E_interrupt_M( void
             break;
         E_interrupt_S_apic_timer_div >>= 1;
     }
-    E_main_I_outb( 0x70, 0x8b );
-    v = E_main_I_inb( 0x71 );
-    E_main_I_outb( 0x70, 0x8b );
-    E_main_I_outb( 0x71, v & ~0x40 );
-    E_main_I_outb( 0x70, 0xc );
-    E_main_I_inb( 0x71 );
+    E_main_I_out_8( 0x70, 0x8b );
+    v = E_main_I_in_8( 0x71 );
+    E_main_I_out_8( 0x70, 0x8b );
+    E_main_I_out_8( 0x71, v & ~0x40 );
+    E_main_I_out_8( 0x70, 0xc );
+    E_main_I_in_8( 0x71 );
     E_interrupt_Q_local_apic_P( 0x32, 32 + E_interrupt_S_gsi_timer );
     E_interrupt_P( 8, 0 );
     E_interrupt_S_external[16] = 0;
@@ -1182,7 +1188,7 @@ E_interrupt_M( void
     "\n"    "sti"
     );
     E_interrupt_S_cpu_freq *= 2;
-    E_interrupt_S_apic_timer_freq = E_interrupt_S_apic_timer_freq_ * E_interrupt_S_apic_timer_div * 2;
+    E_interrupt_S_apic_timer_freq *= E_interrupt_S_apic_timer_div * 2;
     E_interrupt_S_apic_timer_tick_time = E_interrupt_S_cpu_freq / E_interrupt_S_apic_timer_freq;
     return 0;
 }

@@ -30,7 +30,8 @@ struct E_flow_Z_scheduler
   struct E_mem_Q_tab_Z *timer;
   N last_time;
   N next_time;
-  B U_R( signal, exit );
+  unsigned U_R( signal, wake )  :1;
+  unsigned U_R( signal, exit )  :1;
 } *E_flow_S_scheduler;
 _private N E_flow_S_scheduler_n;
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -159,6 +160,7 @@ E_flow_M( P main_stack
     }
     E_flow_S_scheduler[ sched_i ].last_time = 0;
     E_flow_S_scheduler[ sched_i ].next_time = ~0;
+    U_L( E_flow_S_scheduler[ sched_i ].signal, wake );
     U_L( E_flow_S_scheduler[ sched_i ].signal, exit );
     return 0;
 }
@@ -461,6 +463,12 @@ E_flow_Q_impulser_I_wait( I id
     return E_flow_Q_task_I_schedule();
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_private
+void
+E_flow_I_apic_timer( void
+){  N sched_i = E_flow_I_current_scheduler();
+    U_F( E_flow_S_scheduler[ sched_i ].signal, wake );
+}
 // Każde ‹zadanie› synchroniczne po wywołaniu “E_flow_Q_task_I_schedule” i po przełączeniu w tej procedurze do innego ‹zadania› (“E_flow_Q_task_I_switch”) czeka przed instrukcją powrotu z tej procedury, by kontynuować w miejscu wywołania i ewentualnie zakończyć własne ‹zadanie› po powrocie.
 _export
 __attribute__ (( __noinline__, __returns_twice__, __hot__ ))
@@ -588,35 +596,29 @@ E_flow_Q_task_I_schedule( void
             time = E_flow_I_current_time();
         if( !U_has_suspend_time
         || time < E_flow_S_scheduler[ sched_i ].next_time
-        ){  if( U_has_suspend_time )
-            {   time = E_flow_S_scheduler[ sched_i ].next_time - time;
-                N acpi_timer_ticks = time / E_interrupt_S_apic_timer_tick_time;
+        )
+            if( U_has_suspend_time )
+            {   N acpi_timer_ticks = ( E_flow_S_scheduler[ sched_i ].next_time - time ) / E_interrupt_S_apic_timer_tick_time;
                 if( !acpi_timer_ticks )
                     continue;
                 __asm__ volatile (
-                    #if defined( __x86_64__ )
                 "\n"    "cli"
-                    #else
-#error not implemented
-                    #endif
                 );
                 E_interrupt_Q_local_apic_P( 0x38, acpi_timer_ticks );
+                do
+                {   __asm__ volatile (
+                    "\n"    "sti"
+                    "\n"    "hlt"
+                    "\n"    "cli"
+                    );
+                }while( !U_E( E_flow_S_scheduler[ sched_i ].signal, wake ));
                 __asm__ volatile (
-                    #if defined( __x86_64__ )
                 "\n"    "sti"
-                    #else
-#error not implemented
-                    #endif
                 );
-            }
-            __asm__ volatile (
-                #if defined( __x86_64__ )
-            "\n"    "hlt"
-                #else
-#error not implemented
-                #endif
-            );
-        }
+            }else
+                __asm__ volatile (
+                "\n"    "hlt"
+                );
     }
 }
 // Przełączenie do ‹zadania› przez przełączenie wskaźnika “stosu” wykonania.

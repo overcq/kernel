@@ -83,8 +83,6 @@ struct E_main_Z_kernel_args_Z_acpi
   N dsdt_content_l;
   P facs;
   struct H_oux_Z_hpet hpet;
-  struct H_acpi_Z_mcfg_entry *mcfg_content;
-  N mcfg_content_n;
   struct
   { P address;
     N l;
@@ -105,6 +103,7 @@ struct E_main_Z_kernel_args
   P page_table;
   N additional_pages;
   P kernel_stack;
+  P pcie_base_address;
   struct E_main_Z_framebuffer framebuffer;
   struct E_main_Z_uefi_runtime_services uefi_runtime_services;
   struct E_main_Z_kernel_args_Z_acpi acpi;
@@ -141,7 +140,7 @@ _internal Pc *E_main_S_stack;
 //==============================================================================
 _private
 N8
-E_main_I_inb( N16 port
+E_main_I_in_8( N16 port
 ){  N8 v;
     __asm__ volatile (
     "\n"    "in     %1,%0"
@@ -152,8 +151,29 @@ E_main_I_inb( N16 port
 }
 _private
 void
-E_main_I_outb( N16 port
+E_main_I_out_8( N16 port
 , N8 v
+){  __asm__ volatile (
+    "\n"    "out    %0,%1"
+    :
+    : "a" (v), "d" (port)
+    );
+}
+_private
+N32
+E_main_I_in_32( N16 port
+){  N32 v;
+    __asm__ volatile (
+    "\n"    "in     %1,%0"
+    : "=a" (v)
+    : "d" (port)
+    );
+    return v;
+}
+_private
+void
+E_main_I_out_32( N16 port
+, N32 v
 ){  __asm__ volatile (
     "\n"    "out    %0,%1"
     :
@@ -245,7 +265,7 @@ E_main_I_processor_start( void
     "\n"    "call   E_flow_M"
     "\n"    "cmp    $~0,%%rax"
     "\n"    "jne    0f"
-    "\n"    "call   E_main_I_error_fatal"
+    "\n"    "jmp    E_main_I_error_fatal"
     "\n0:"  "mov    %%rax,(%%rbp,%%rbx,8)"
     "\n"    "jmp    E_flow_I_main_task"
     :
@@ -361,6 +381,7 @@ main( struct E_main_Z_kernel_args *kernel_args
         goto End;
     if( !~E_flow_M( kernel_args->kernel_stack ))
         goto End;
+    E_interrupt_S_external[ E_interrupt_S_gsi_timer ] = &E_flow_I_apic_timer;
     Mt_( E_main_S_stack, kernel_args->processor_n - 1 );
     if( !E_main_S_stack )
         goto End;
@@ -388,6 +409,16 @@ main( struct E_main_Z_kernel_args *kernel_args
     E_flow_I_unlock( &E_mem_blk_S_mem_lock );
     W( kernel_args->processor_proc );
     W( kernel_args->bootloader );
+
+    for_n( bus_i, 2 )
+    {   for_n( device_i, 32 )
+        {   N32 v = E_pci_I_read( bus_i, device_i, 0, 0 );
+            E_font_I_print_nl();
+            E_font_I_print_hex(v);
+            if( !~v )
+                break;
+        }
+    }
 
     X_M( main, test );
     D_M( main, test )
