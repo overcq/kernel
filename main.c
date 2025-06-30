@@ -359,6 +359,8 @@ main( struct E_main_Z_kernel_args *kernel_args
     if( !~E_interrupt_M() )
         goto End;
     E_interrupt_S_external[ E_interrupt_S_gsi_ipi ] = &E_main_I_ipi_test;
+    if( !~E_keyboard_M() )
+        goto End;
     O{  for_n( i, kernel_args->processor_n - 1 )
             if( !~(N)kernel_args->processor_proc[i] )
                 E_interrupt_I_ipi_startup( 1 + i, (P)(N)kernel_args->processor_start_page );
@@ -369,12 +371,6 @@ main( struct E_main_Z_kernel_args *kernel_args
         if( i == kernel_args->processor_n - 1 )
             break;
     }
-    //if( !~E_acpi_aml_M( kernel_args->acpi.dsdt_content, kernel_args->acpi.dsdt_content_l, &kernel_args->acpi.ssdt_contents[0], kernel_args->acpi.ssdt_contents_n ))
-        //goto End;
-    //if( !~E_acpi_reader_M() )
-        //goto End;
-    if( !~E_keyboard_M() )
-        goto End;
     E_flow_S_scheduler_n = kernel_args->processor_n;
     Mt_( E_flow_S_scheduler, E_flow_S_scheduler_n );
     if( !E_flow_S_scheduler )
@@ -408,6 +404,10 @@ main( struct E_main_Z_kernel_args *kernel_args
         goto End;
     E_flow_I_unlock( &E_mem_blk_S_mem_lock );
     W( kernel_args->processor_proc );
+    if( !~E_acpi_aml_M( kernel_args->acpi.dsdt_content, kernel_args->acpi.dsdt_content_l, &kernel_args->acpi.ssdt_contents[0], kernel_args->acpi.ssdt_contents_n ))
+        goto End;
+    if( !~E_acpi_reader_M() )
+        goto End;
     W( kernel_args->bootloader );
 
     for_n( bus_i, 2 )

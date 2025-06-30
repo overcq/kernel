@@ -91,21 +91,21 @@ E_flow_I_sleep( N microseconds
 //------------------------------------------------------------------------------
 _private
 void
-E_flow_I_lock( N8 *lock
+E_flow_I_lock( volatile N8 *lock
 ){  __asm__ volatile (
     "\n"    "mov    $1,%%cl"
     "\n0:"  "xor    %%al,%%al"
     "\n"    "pause"
     "\n"    "lock cmpxchg %%cl,%0"
     "\n"    "jne    0b"
+    : "+m" ( *lock )
     :
-    : "p" (lock)
-    : "al", "cl"
+    : "cc", "al", "cl"
     );
 }
 _private
 void
-E_flow_I_unlock( N8 *lock
+E_flow_I_unlock( volatile N8 *lock
 ){  *lock = 0;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

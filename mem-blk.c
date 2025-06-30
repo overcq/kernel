@@ -8,7 +8,7 @@
 *******************************************************************************/
 #include <stddef.h>
 //==============================================================================
-#define E_mem_Q_blk_S_align_to_all  alignof(max_align_t)
+#define E_mem_Q_blk_S_align_to_all      alignof(max_align_t)
 #define E_mem_J_single_processor_begin  E_flow_I_lock( &E_mem_blk_S_mem_lock )
 #define E_mem_J_single_processor_end    E_flow_I_unlock( &E_mem_blk_S_mem_lock )
 //==============================================================================
@@ -33,7 +33,7 @@ struct E_mem_blk_Z
   B reserved_from_end;
 }E_mem_blk_S;
 //------------------------------------------------------------------------------
-_private N8 E_mem_blk_S_mem_lock;
+_private volatile N8 E_mem_blk_S_mem_lock;
 //==============================================================================
 _internal void E_mem_Q_blk_Q_sys_table_f_I_move_empty_entry(N);
 _internal N E_mem_Q_blk_Q_sys_table_R_last( N, N );
@@ -1598,7 +1598,7 @@ E_mem_Q_blk_I_append_align( P p
             , p_0
             , l_0
             , 0
-            , ~0
+            , align_to_u ? E_mem_blk_S.allocated[ allocated_i ].u : ~0
             );
             E_mem_J_single_processor_end;
             if( !p_1 )
@@ -1990,6 +1990,7 @@ E_mem_Q_blk_I_remove( P p
                 , p_0
                 , *( Pc * )p + l_0 - p_0
                 );
+                E_mem_blk_S.allocated[ allocated_i ].n -= n;
                 E_mem_Q_blk_Q_table_I_put_before( E_mem_blk_S.free_id );
                 struct E_mem_Q_blk_Z_free free_p_;
                 if( !~E_mem_Q_blk_Q_sys_table_f_P_put( E_mem_blk_S.free_id, (Pc)&free_p_.p - (Pc)&free_p_, (Pc)&free_p_.l - (Pc)&free_p_
@@ -2002,7 +2003,6 @@ E_mem_Q_blk_I_remove( P p
                     return 0;
                 }
                 E_mem_Q_blk_Q_table_I_put_after( E_mem_blk_S.free_id );
-                E_mem_blk_S.allocated[ allocated_i ].n -= n;
             }
             E_mem_Q_blk_Q_table_I_put_end();
             E_mem_J_single_processor_end;
