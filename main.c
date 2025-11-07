@@ -410,15 +410,7 @@ main( struct E_main_Z_kernel_args *kernel_args
         goto End;
     W( kernel_args->bootloader );
 
-    for_n( bus_i, 2 )
-    {   for_n( device_i, 32 )
-        {   N32 v = E_pci_I_read( bus_i, device_i, 0, 0 );
-            E_font_I_print_nl();
-            E_font_I_print_hex(v);
-            if( !~v )
-                break;
-        }
-    }
+    E_pci_I_check_buses();
 
     X_M( main, test );
     D_M( main, test )

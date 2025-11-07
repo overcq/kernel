@@ -3741,7 +3741,6 @@ Loop:
             //E_font_I_print( ",value=" ); E_font_I_print_hex( (( N * )E_acpi_aml_S_parse_data )[0] );
             //E_font_I_print( "," ); E_font_I_print_hex( (( N * )E_acpi_aml_S_parse_data )[1] );
         //}
-        trap_i++;
         switch( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].entity )
         { case E_acpi_aml_Z_parse_stack_Z_entity_S_result_to_n:
                 E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].n = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].n;
