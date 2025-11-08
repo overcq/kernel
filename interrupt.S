@@ -595,8 +595,13 @@ E_interrupt_I_exeception_pf:
     call    E_font_I_print_hex
     mov     9*8(%rsp),%rax
     test    $1,%rax
-    jnz     0f
-    mov     %cr2,%rdi
+    jnz     Halt
+    mov     %cr2,%rbx
+    mov     %rbx,%rdi
+    call    E_font_I_print_hex
+    test    $~0<<12,%rbx
+    jz      Halt
+    mov     %rbx,%rdi
     call    E_mem_Q_stack_I_page_fault
 0:  pop     %r11
     pop     %r10
@@ -1471,4 +1476,9 @@ E_interrupt_I_external_spurious:
     pop     %rcx
     pop     %rax
     iretq
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Halt:
+    cli
+0:  hlt
+    jmp     0b
 /******************************************************************************/

@@ -16,7 +16,8 @@ all: build
 build: kernel
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .PHONY: all build mostlyclean clean install-qemu install-vmware install-usb
-.SECONDARY: I_compile_S_0.h \
+.SECONDARY: $(patsubst %.S,%.o,interrupt.S) \
+I_compile_S_0.h \
 $(patsubst %.c,I_compile_S_0_%.h,$(wildcard *.c)) \
 $(patsubst %.c,I_compile_S_0_%.c_,$(wildcard *.c))
 #===============================================================================

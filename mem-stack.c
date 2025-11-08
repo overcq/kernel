@@ -41,9 +41,7 @@ E_mem_Q_stack_I_patch_page_table_set_guard( N guard_page
                     if( virtual_address == guard_page )
                     {   additional = pt[ pt_i ];
                         pt[ pt_i ] &= ~E_cpu_Z_page_entry_S_present;
-                    }else if( virtual_address == guard_page + E_mem_S_page_size )
-                        pt[ pt_i ] |= E_cpu_Z_page_entry_S_present;
-                    else if( virtual_address == E_mem_blk_S.memory_size + additional_i * E_mem_S_page_size )
+                    }else if( virtual_address == E_mem_blk_S.memory_size + additional_i * E_mem_S_page_size )
                     {   pt[ pt_i ] = additional;
                         return 0;
                     }

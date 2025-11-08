@@ -291,13 +291,13 @@ enum E_pci_Z_header_Z_subclass_signal_processing
 , E_pci_Z_header_Z_subclass_signal_processing_S_other = 0x80
 };
 union __attribute__ (( __packed__ )) E_pci_Z_bar
-{ struct
+{ struct __attribute__ (( __packed__ ))
   { N32 bar_type    :1; // 0
     N32 type        :2;
     N32 prefechable :1;
     N32 base        :28;
   }memory;
-  struct
+  struct __attribute__ (( __packed__ ))
   { N32 bar_type    :1; // 1
     N32 reserved    :1;
     N32 base        :30;
@@ -373,8 +373,10 @@ E_pci_I_check_device( N8 bus_i
     E_font_I_print_hex(ids);
     switch(ids)
     { case 0x07e015ad:
-            E_font_I_print( "\nSATA AHCI" );
+        {   N32 p = E_pci_I_read( bus_i, device_i, function_i, 0x24 );
+            E_sata_I_init( E_main_Z_p_I_to_virtual( (P)(N)p ));
             break;
+        }
     }
 }
 _internal
