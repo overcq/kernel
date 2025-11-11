@@ -61,32 +61,65 @@ _private
 void
 E_sata_I_init( P memory
 ){  E_sata_S_memory = memory;
+    if( E_sata_S_memory->global_host_control ^ ( 1 << 31 )) // AHCI enable
+    {   E_sata_S_memory->global_host_control |= 1 << 31;
+        if( E_sata_S_memory->global_host_control ^ ( 1 << 31 ))
+            return;
+    }
+    E_sata_S_memory->global_host_control |= 1; // reset
+    N time;
+    E_flow_Q_spin_time_M( &time, 1000000 );
+    while( E_sata_S_memory->global_host_control & 1 )
+    {   if( E_flow_Q_spin_time_T( &time ))
+            return;
+        __asm__ volatile (
+        "\n"    "pause"
+        );
+    }
+    if( E_sata_S_memory->global_host_control ^ ( 1 << 31 ))
+    {   E_sata_S_memory->global_host_control |= 1 << 31;
+        if( E_sata_S_memory->global_host_control ^ ( 1 << 31 ))
+            return;
+    }
     N32 port_implemented = E_sata_S_memory->port_implemented;
-    for_n( port, 32 )
+    for_n( port, ( E_sata_S_memory->host_cap & 0x1f ) + 1 )
     {   if( port_implemented & 1 )
         {   E_font_I_print_nl();
             E_font_I_print_hex(port);
             E_font_I_print( ": " );
-            N32 sata_status = E_sata_S_memory->port[port].sata_status;
-            E_font_I_print_hex( sata_status );
-            if(( sata_status & 0xf ) == 3
-            && (( sata_status >> 8 ) & 0xf ) == 1
-            )
-                switch( E_sata_S_memory->port[port].signature )
-                { case 0x101:
-                        E_font_I_print( "\nSATA" );
-                        break;
-                  case 0xeb140101:
-                        E_font_I_print( "\nSATAPI" );
-                        break;
-                  case 0xc33c0101:
-                        E_font_I_print( "\nenclosure management bridge" );
-                        break;
-                  case 0x96690101:
-                        E_font_I_print( "\nport multiplier" );
-                        break;
-                }
+            E_sata_S_memory->port[port].sata_control |= 1;
+            E_flow_I_sleep(1000);
+            E_sata_S_memory->port[port].sata_control &= ~0xf;
+            E_flow_Q_spin_time_M( &time, 1000000 ); //NDFN Nie wiadomo jaki czas oczekiwania.
+            while(( E_sata_S_memory->port[port].sata_status & 0xf ) != 3 )
+            {   if( E_flow_Q_spin_time_T( &time ))
+                    goto Next_port;
+                __asm__ volatile (
+                "\n"    "pause"
+                );
+            }
+            E_sata_S_memory->port[port].sata_error = ~0;
+            E_font_I_print_hex( E_sata_S_memory->port[port].sata_status );
+            switch( E_sata_S_memory->port[port].signature )
+            { case 0x101:
+                    E_font_I_print( "\nSATA" );
+                    break;
+              case 0xeb140101:
+                    E_font_I_print( "\nSATAPI" );
+                    break;
+              case 0xc33c0101:
+                    E_font_I_print( "\nenclosure management bridge" );
+                    break;
+              case 0x96690101:
+                    E_font_I_print( "\nport multiplier" );
+                    break;
+              default:
+                    E_font_I_print( "\nother: " );
+                    E_font_I_print_hex( E_sata_S_memory->port[port].signature );
+                    break;
+            }
         }
+Next_port:
         port_implemented >>= 1;
     }
 }

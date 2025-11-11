@@ -60,6 +60,17 @@ E_flow_I_current_time( void
     return ( (N)high << 32 ) | low;
 }
 _private
+void
+E_flow_Q_spin_time_M( N *time
+, N microseconds
+){  *time = E_flow_I_current_time() + E_interrupt_S_cpu_freq * microseconds / 1000000;
+}
+_private
+B
+E_flow_Q_spin_time_T( N *time
+){  return E_flow_I_current_time() >= *time;
+}
+_private
 N8
 E_flow_I_current_scheduler( void
 ){  return E_interrupt_Q_local_apic_R(2) >> 24;

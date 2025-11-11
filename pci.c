@@ -371,6 +371,12 @@ E_pci_I_check_device( N8 bus_i
     E_font_I_print_hex( device_i );
     E_font_I_print( ": " );
     E_font_I_print_hex(ids);
+    N32 bist_24 = E_pci_I_read( bus_i, device_i, function_i, 0xc );
+    struct E_pci_Z_header_Z_bist *bist = ( struct E_pci_Z_header_Z_bist * )(( N8 * )&bist_24 + 3 );
+    if( bist->capable )
+    {   bist->start = yes;
+        E_pci_I_write( bus_i, device_i, function_i, 0xc, bist_24 );
+    }
     switch(ids)
     { case 0x07e015ad:
         {   N32 p = E_pci_I_read( bus_i, device_i, function_i, 0x24 );
