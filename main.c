@@ -206,6 +206,17 @@ E_main_Z_p_I_to_virtual( P p
     return 0;
 }
 _private
+P
+E_main_Z_p_I_to_physical( P p
+){  for_n( i, E_main_S_memory_map_n )
+    {   if( (N)p >= E_main_S_memory_map[i].virtual_start
+        && (N)p < E_main_S_memory_map[i].virtual_start + E_main_S_memory_map[i].pages * E_mem_S_page_size
+        )
+            return (P)( E_main_S_memory_map[i].physical_start + ( (N)p - E_main_S_memory_map[i].virtual_start ));
+    }
+    return 0;
+}
+_private
 __attribute__ (( __noreturn__ ))
 void
 E_main_I_error_fatal( void
