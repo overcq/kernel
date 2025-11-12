@@ -164,8 +164,28 @@ E_sata_I_init( P memory
         if( E_sata_S_memory->global_host_control ^ ( 1 << 31 ))
             return;
     }
-    E_sata_S_memory->global_host_control |= 1; // reset
     N time;
+    if( E_sata_S_memory->host_cap_2 & 1 ) // BIOS/OS handoff
+    {   E_sata_S_memory->bios_os_handoff_control_status |= 1 << 1; // OS owned semaphore
+        E_flow_Q_spin_time_M( &time, 25000 );
+        while(( E_sata_S_memory->bios_os_handoff_control_status & 1 ) // BIOS owned semaphore
+        && ( E_sata_S_memory->bios_os_handoff_control_status ^ ( 1 << 4 )) // BIOS busy
+        && !E_flow_Q_spin_time_T( &time )
+        )
+            __asm__ volatile (
+            "\n"    "pause"
+            );
+        if( E_sata_S_memory->bios_os_handoff_control_status & ( 1 << 4 )) // BIOS busy
+        {   E_flow_Q_spin_time_M( &time, 2000000 );
+            while(( E_sata_S_memory->bios_os_handoff_control_status & 1 ) // BIOS owned semaphore
+            && !E_flow_Q_spin_time_T( &time )
+            )
+                __asm__ volatile (
+                "\n"    "pause"
+                );
+        }
+    }
+    E_sata_S_memory->global_host_control |= 1; // reset
     E_flow_Q_spin_time_M( &time, 1000000 );
     while( E_sata_S_memory->global_host_control & 1 )
     {   if( E_flow_Q_spin_time_T( &time ))
@@ -200,6 +220,7 @@ E_sata_I_init( P memory
                     break;
               case 0xeb140101:
                     E_font_I_print( "\nSATAPI" );
+                    E_sata_S_memory->port[port].command_status |= 1 << 24; // ATAPI
                     break;
               case 0xc33c0101:
                     E_font_I_print( "\nenclosure management bridge" );
@@ -232,9 +253,9 @@ E_sata_I_init( P memory
                 *( N32 * )&E_sata_S_memory->port[port].command_list_base = (N32)command_list_base_physical;
                 *( N32 * )&E_sata_S_memory->port[port].fis_base = (N32)fis_base_physical;
             }
-            *( N32 * )&E_sata_S_memory->port[port].command_status |= 1 << 4;
+            *( N32 * )&E_sata_S_memory->port[port].command_status |= 1 << 4; // fis receive enable
             //TODO Konfiguracja przerwań.
-            E_sata_S_memory->global_host_control |= 1 << 1;
+            E_sata_S_memory->global_host_control |= 1 << 1; // interrupt enable
         }
 Next_port:
         port_implemented >>= 1;
