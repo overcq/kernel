@@ -338,6 +338,8 @@ struct __attribute__ (( __packed__ )) E_pci_Z_header_Z_bist
   N8 capable            :1;
 };
 //==============================================================================
+_private N8 E_pci_S_lnk[4];
+//==============================================================================
 _internal void E_pci_I_check_bus( N8 );
 //==============================================================================
 _private
@@ -379,7 +381,12 @@ E_pci_I_check_device( N8 bus_i
     }
     switch(ids)
     { case 0x07e015ad:
-        {   N32 p = E_pci_I_read( bus_i, device_i, function_i, 0x24 );
+        {   N32 interrupt = E_pci_I_read( bus_i, device_i, function_i, 0x3c );
+            E_font_I_print( "\ninterrupt: " );
+            E_font_I_print_hex(interrupt);
+            
+            //E_interrupt_P(( interrupt >> 8 ) & 0xff, &E_sata_I_interrupt );
+            N32 p = E_pci_I_read( bus_i, device_i, function_i, 0x24 );
             E_sata_I_init( E_main_Z_p_I_to_virtual( (P)(N)p ));
             break;
         }

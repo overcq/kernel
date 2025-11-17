@@ -9,7 +9,7 @@
 //TODO Konfiguracja z “_PRS” rozpoczęta i nie skończona; brak platformy testowej.
 //==============================================================================
 struct E_acpi_reader_Z_resources
-{ N *irq;
+{ N8 *irq;
   N irq_n;
   B bus_polarity_low;
   B bus_trigger_edge;
@@ -113,7 +113,7 @@ E_acpi_reader_I_child_print( N parent_object_i
 //==============================================================================
 _internal
 N
-E_acpi_reader_M_prs( struct E_acpi_reader_Z_resources *resources
+E_acpi_reader_M_crs( struct E_acpi_reader_Z_resources *resources
 , struct E_acpi_aml_Z_value *prs_value
 , struct E_acpi_aml_Z_value *crs_value
 ){  N prs_conf_n = 0;
@@ -131,6 +131,7 @@ E_acpi_reader_M_prs( struct E_acpi_reader_Z_resources *resources
     N l = prs_value->buffer.n;
     B end_tag = no;
     B inside_dependent = no;
+    B inside_dependent_skip;
     N8 dependent_performance = ~0;
     while(l)
     {   N l_;
@@ -178,23 +179,26 @@ E_acpi_reader_M_prs( struct E_acpi_reader_Z_resources *resources
               case 0x13: // clock input resource
                     break;
               default:
-                    break;
+                    ret = ~1;
+                    goto Error;
             }
         }else
-        {   l_ = 1 + table[0] & 7;
+        {   l_ = 1 + ( table[0] & 7 );
             if( l < l_ )
             {   ret = ~1;
                 goto Error;
             }
             switch(( table[0] >> 3 ) & 0xf )
             { case 4: // IRQ
-                {   if( l_ != 2
-                    && l_ != 3
+                {   if( l_ != 3
+                    && l_ != 4
                     )
                     {   ret = ~1;
                         goto Error;
                     }
                     struct E_acpi_reader_Z_crs_Z_irq *irq = (P)&table[0];
+                    if( !irq->irq_mask )
+                        return ~1;
                     if( !~E_asm_I_bsf( irq->irq_mask ))
                     {   ret = ~1;
                         goto Error;
@@ -213,6 +217,10 @@ E_acpi_reader_M_prs( struct E_acpi_reader_Z_resources *resources
                             goto Error;
                         }
                     }
+                    if( inside_dependent
+                    && inside_dependent_skip
+                    )
+                        break;
                     P **prs_conf_ = inside_dependent ? &prs_dependent_conf : &prs_conf;
                     N *prs_conf_n_ = inside_dependent ? &prs_dependent_conf_n : &prs_conf_n;
                     N prepended;
@@ -221,10 +229,7 @@ E_acpi_reader_M_prs( struct E_acpi_reader_Z_resources *resources
                         goto Error;
                     }
                     ( *prs_conf_n_ )++;
-                    struct E_acpi_reader_Z_crs_Z_irq *irq_ = ( *prs_conf_ )[ prepended ? 0 : *prs_conf_n_ - 1 ];
-                    *irq_ = *irq;
-                    if( l_ == 2 )
-                        irq_->info = 1;
+                    ( *prs_conf_ )[ prepended ? 0 : *prs_conf_n_ - 1 ] = irq;
                     break;
                 }
               case 5: // DMA
@@ -235,18 +240,18 @@ E_acpi_reader_M_prs( struct E_acpi_reader_Z_resources *resources
                         goto Error;
                     }
                     inside_dependent = yes;
-                    if(( l_ != 0
-                      && l_ != 1
+                    if(( l_ != 1
+                      && l_ != 2
                     )
                     || ( table[1] & 0xf0 )
-                    || ( l_ == 1
+                    || ( l_ == 2
                       && (( table[1] & 3 ) == 3
                         || ( table[1] >> 2 ) == 3
                     )))
                     {   ret = ~1;
                         goto Error;
                     }
-                    if( l_ == 1 )
+                    if( l_ == 2 )
                     {   if( dependent_performance > ( table[1] >> 2 ))
                         {   dependent_performance = table[1] >> 2;
                             for_n( i, prs_dependent_conf_n )
@@ -257,7 +262,9 @@ E_acpi_reader_M_prs( struct E_acpi_reader_Z_resources *resources
                                 goto Error;
                             }
                             prs_dependent_conf_n = 0;
-                        }
+                            inside_dependent_skip = no;
+                        }else
+                            inside_dependent_skip = yes;
                     }else if( dependent_performance > 1 )
                     {   dependent_performance = 1;
                         for_n( i, prs_dependent_conf_n )
@@ -268,7 +275,9 @@ E_acpi_reader_M_prs( struct E_acpi_reader_Z_resources *resources
                             goto Error;
                         }
                         prs_dependent_conf_n = 0;
-                    }
+                        inside_dependent_skip = no;
+                    }else
+                        inside_dependent_skip = yes;
                     break;
               case 7: // end dependent functions
                     if( !inside_dependent )
@@ -365,18 +374,19 @@ E_acpi_reader_M_prs( struct E_acpi_reader_Z_resources *resources
               case 0x13: // clock input resource
                     break;
               default:
-                    break;
+                    ret = ~1;
+                    goto Error;
             }
         }else
-        {   l_ = 1 + table[0] & 7;
+        {   l_ = 1 + ( table[0] & 7 );
             if( l < l_ )
             {   ret = ~1;
                 goto Error;
             }
             switch(( table[0] >> 3 ) & 0xf )
             { case 4: // IRQ
-                {   if( l_ != 2
-                    && l_ != 3
+                {   if( l_ != 3
+                    && l_ != 4
                     )
                     {   ret = ~1;
                         goto Error;
@@ -404,13 +414,17 @@ E_acpi_reader_M_prs( struct E_acpi_reader_Z_resources *resources
                             goto Error;
                         }
                     }
-                    N8 irq_i = E_asm_I_bsf( irq->irq_mask );
-                    if( !( irq->info & 0x10 )) // not shared
+                    N8 irq_i = E_asm_I_bsf( irq_->irq_mask );
+                    if(( 1 + ( irq_->type_name_length & 7 )) != 3
+                    || !( irq_->info & 0x10 ) // not shared
+                    )
                     {   for_n( j, resources->irq_n )
                             if( resources->irq[j] == irq_i )
                                 break;
                         if( j != resources->irq_n )
-                            continue;
+                        {   ret = ~1;
+                            goto Error;
+                        }
                     }
                     for_n( j, E_interrupt_S_gsi_n )
                         if( E_interrupt_S_gsi[j].source == irq_i )
@@ -419,26 +433,28 @@ E_acpi_reader_M_prs( struct E_acpi_reader_Z_resources *resources
                     {   ret = ~1;
                         goto Error;
                     }
-                    if( E_interrupt_S_gsi[j].flags & 3 )
-                    {   if( !!( irq->info & 8 ) != (( E_interrupt_S_gsi[j].flags & 3 ) == 3 ))
-                        {   ret = ~1;
-                            goto Error;
-                        }
-                    }else
-                        if( !!( irq->info & 8 ) != resources->bus_polarity_low )
-                        {   ret = ~1;
-                            goto Error;
-                        }
-                    if(( E_interrupt_S_gsi[j].flags >> 2 ) & 3 )
-                    {   if(( irq->info & 1 ) != ((( E_interrupt_S_gsi[j].flags >> 2 ) & 3 ) == 1 ))
-                        {   ret = ~1;
-                            goto Error;
-                        }
-                    }else
-                        if(( irq->info & 1 ) != resources->bus_trigger_edge )
-                        {   ret = ~1;
-                            goto Error;
-                        }
+                    if(( 1 + ( irq_->type_name_length & 7 )) == 3 )
+                    {   if( E_interrupt_S_gsi[j].flags & 3 )
+                        {   if( !!( irq_->info & 8 ) != (( E_interrupt_S_gsi[j].flags & 3 ) == 3 ))
+                            {   ret = ~1;
+                                goto Error;
+                            }
+                        }else
+                            if( !!( irq_->info & 8 ) != resources->bus_polarity_low )
+                            {   ret = ~1;
+                                goto Error;
+                            }
+                        if(( E_interrupt_S_gsi[j].flags >> 2 ) & 3 )
+                        {   if(( irq_->info & 1 ) != ((( E_interrupt_S_gsi[j].flags >> 2 ) & 3 ) == 1 ))
+                            {   ret = ~1;
+                                goto Error;
+                            }
+                        }else
+                            if(( irq_->info & 1 ) != resources->bus_trigger_edge )
+                            {   ret = ~1;
+                                goto Error;
+                            }
+                    }
                     if( !E_mem_Q_blk_I_remove( dependent ? &prs_dependent_conf : &prs_conf, i, 1 ))
                     {   ret = ~0;
                         goto Error;
@@ -447,7 +463,22 @@ E_acpi_reader_M_prs( struct E_acpi_reader_Z_resources *resources
                         prs_dependent_conf_n--;
                     else
                         prs_conf_n--;
-                    irq_->irq_mask = 1 << irq_i;
+                    if(( 1 + ( irq_->type_name_length & 7 )) != 3
+                    || !( irq_->info & 0x10 ) // not shared
+                    )
+                    {   N prepended;
+                        if( !E_mem_Q_blk_I_add( &resources->irq, 1, &prepended, 0 ))
+                        {   ret = ~0;
+                            goto Error;
+                        }
+                        resources->irq_n++;
+                        resources->irq[ prepended ? 0 : resources->irq_n - 1 ] = irq_i;
+                    }
+                    irq->irq_mask = irq_->irq_mask;
+                    if( l_ == 4 )
+                        irq->info = ( 1 + ( irq_->type_name_length & 7 )) == 3
+                        ? irq_->info
+                        : ( resources->bus_polarity_low << 3 ) | resources->bus_trigger_edge;
                     break;
                 }
               case 5: // DMA
@@ -461,21 +492,16 @@ E_acpi_reader_M_prs( struct E_acpi_reader_Z_resources *resources
               case 0xe: // vendor defined
                     break;
               case 0xf: // end tag
-                {   if( inside_dependent
-                    || l != l_
-                    )
+                {   if( l != l_ )
                     {   ret = ~1;
                         goto Error;
                     }
                     struct E_acpi_reader_Z_crs_Z_end *end = (P)&table[0];
                     if( end->checksum )
-                    {   N8 checksum = end->checksum;
-                        for_n( i, prs_value->buffer.n )
-                            checksum += prs_value->buffer.p[i];
-                        if(checksum)
-                        {   ret = ~1;
-                            goto Error;
-                        }
+                    {   N8 checksum = 0;
+                        for_n( i, crs_value->buffer.n )
+                            checksum += crs_value->buffer.p[i];
+                        end->checksum = -checksum;
                     }
                     end_tag = yes;
                     break;
@@ -488,7 +514,8 @@ E_acpi_reader_M_prs( struct E_acpi_reader_Z_resources *resources
         l -= l_;
         table += l_;
     }
-    if( prs_dependent_conf_n
+    if( !end_tag
+    || prs_dependent_conf_n
     || prs_conf_n
     )
     {   ret = ~1;
@@ -505,6 +532,168 @@ Error:
         W( prs_conf[i] );
     W( prs_conf );
     return ret;
+}
+_internal
+N
+E_acpi_reader_I_check_crs( struct E_acpi_reader_Z_resources *resources
+, struct E_acpi_aml_Z_value *crs_value
+){  Pc table = crs_value->buffer.p;
+    N l = crs_value->buffer.n;
+    B end_tag = no;
+    while(l)
+    {   N l_;
+        if( (N8)table[0] & 0x80 )
+        {   l_ = 1 + ( table[1] | ( (N)table[2] << 8 ));
+            if( l < l_ )
+                return ~1;
+            switch( table[0] & 0x7f )
+            { case 1: // 24‐bit memory range
+                    break;
+              case 2: // generic register
+                    break;
+              case 4: // vendor defined
+                    break;
+              case 5: // 32‐bit memory range
+                    break;
+              case 6: // 32‐bit fixed memory range
+                    break;
+              case 7: // address space resource
+                    break;
+              case 8: // word address space
+                    break;
+              case 9: // extended interrupt
+                    break;
+              case 0xa: // qword address space
+                    break;
+              case 0xb: // extended address space
+                    break;
+              case 0xc: // GPIO connection
+                    break;
+              case 0xd: // pin function
+                    break;
+              case 0xe: // GSB connection
+                    break;
+              case 0xf: // pin configuration
+                    break;
+              case 0x10: // pin group
+                    break;
+              case 0x11: // pin group function
+                    break;
+              case 0x12: // pin group configuration
+                    break;
+              case 0x13: // clock input resource
+                    break;
+              default:
+                    return ~1;
+            }
+        }else
+        {   l_ = 1 + ( table[0] & 7 );
+            if( l < l_ )
+                return ~1;
+            switch(( table[0] >> 3 ) & 0xf )
+            { case 4: // IRQ
+                {   if( l_ != 3
+                    && l_ != 4
+                    )
+                        return ~1;
+                    struct E_acpi_reader_Z_crs_Z_irq *irq = (P)&table[0];
+                    if( !irq->irq_mask )
+                        return ~1;
+                    N8 irq_i = E_asm_I_bsf( irq->irq_mask );
+                    if( l_ != 4
+                    || !( irq->info & 0x10 ) // not shared
+                    )
+                    {   for_n( j, resources->irq_n )
+                            if( resources->irq[j] == irq_i )
+                                break;
+                        if( j != resources->irq_n )
+                            return ~1;
+                    }
+                    for_n( j, E_interrupt_S_gsi_n )
+                        if( E_interrupt_S_gsi[j].source == irq_i )
+                            break;
+                    if( j == E_interrupt_S_gsi_n )
+                        return ~1;
+                    if( l_ == 4 )
+                    {   if( E_interrupt_S_gsi[j].flags & 3 )
+                        {   if( !!( irq->info & 8 ) != (( E_interrupt_S_gsi[j].flags & 3 ) == 3 ))
+                                return ~1;
+                        }else
+                            if( !!( irq->info & 8 ) != resources->bus_polarity_low )
+                                return ~1;
+                        if(( E_interrupt_S_gsi[j].flags >> 2 ) & 3 )
+                        {   if(( irq->info & 1 ) != ((( E_interrupt_S_gsi[j].flags >> 2 ) & 3 ) == 1 ))
+                                return ~1;
+                        }else
+                            if(( irq->info & 1 ) != resources->bus_trigger_edge )
+                                return ~1;
+                    }
+                    if( l_ != 4
+                    || !( irq->info & 0x10 ) // not shared
+                    )
+                    {   N prepended;
+                        if( !E_mem_Q_blk_I_add( &resources->irq, 1, &prepended, 0 ))
+                            return ~0;
+                        resources->irq_n++;
+                        resources->irq[ prepended ? 0 : resources->irq_n - 1 ] = irq_i;
+                    }
+                    break;
+                }
+              case 5: // DMA
+                    break;
+              case 8: // I/O port
+                    break;
+              case 9: // fixed location I/O port
+                    break;
+              case 0xa: // fixed DMA
+                    break;
+              case 0xe: // vendor defined
+                    break;
+              case 0xf: // end tag
+                {   if( l != l_ )
+                        return ~1;
+                    struct E_acpi_reader_Z_crs_Z_end *end = (P)&table[0];
+                    if( end->checksum )
+                    {   N8 checksum = end->checksum;
+                        for_n( i, crs_value->buffer.n )
+                            checksum += crs_value->buffer.p[i];
+                        if(checksum)
+                            return ~1;
+                    }
+                    end_tag = yes;
+                    break;
+                }
+              default:
+                    return ~1;
+            }
+        }
+        l -= l_;
+        table += l_;
+    }
+    if( !end_tag )
+        return ~1;
+    return 0;
+}
+_internal
+N8
+E_acpi_reader_R_irq( struct E_acpi_aml_Z_value *crs_value
+){  Pc table = crs_value->buffer.p;
+    N l = crs_value->buffer.n;
+    while(l)
+    {   N l_;
+        if( (N8)table[0] & 0x80 )
+            l_ = 1 + ( table[1] | ( (N)table[2] << 8 ));
+        else
+        {   l_ = 1 + ( table[0] & 7 );
+            if((( table[0] >> 3 ) & 0xf ) == 4 )
+            {   struct E_acpi_reader_Z_crs_Z_irq *irq = (P)&table[0];
+                return E_asm_I_bsf( irq->irq_mask );
+            }
+        }
+        l -= l_;
+        table += l_;
+    }
+    return ~0;
 }
 _private
 N
@@ -565,9 +754,10 @@ E_acpi_reader_M( void
     if( !resources.irq )
         return ~0;
     resources.bus_polarity_low = yes; //NDFN Tymczasowo dla ISA.
-    resources.bus_trigger_edge = yes; //NDFN Tymczasowo dla ISA.
+    resources.bus_trigger_edge = no; //NDFN Tymczasowo dla ISA.
+    E_mem_Q_blk_P_fill_c( &E_pci_S_lnk[0], sizeof( E_pci_S_lnk ), 0 );
     for_n_( i, E_acpi_aml_S_object_n )
-        if( E_acpi_aml_S_object[i].type == E_acpi_aml_Z_object_Z_type_S_device )
+    {   if( E_acpi_aml_S_object[i].type == E_acpi_aml_Z_object_Z_type_S_device )
         {   struct E_acpi_aml_Z_value result;
             struct E_acpi_aml_Z_pathname sta = E_acpi_reader_I_child_build( i, "_STA" );
             N ret = E_acpi_aml_I_procedure( sta, &result, 0, 0 );
@@ -611,31 +801,58 @@ E_acpi_reader_M( void
                 result.type = E_acpi_aml_Z_value_Z_type_S_number;
             }
             struct E_acpi_aml_Z_pathname crs = E_acpi_reader_I_child_build( i, "_CRS" );
-            N object_i = E_acpi_aml_Q_object_R(crs);
-            W( crs.s );
             struct E_acpi_aml_Z_value crs_value;
-            if( ~object_i
-            && E_acpi_aml_S_object[ object_i ].type == E_acpi_aml_Z_object_Z_type_S_buffer
-            )
-                crs_value = E_acpi_aml_Q_object_I_to_value( object_i );
-            else
-                crs_value.type = E_acpi_aml_Z_value_Z_type_S_uninitialized;
-            if( crs_value.type == E_acpi_aml_Z_value_Z_type_S_uninitialized )
-            {   E_acpi_aml_Q_value_W( &crs_value );
-                continue;
+            ret = E_acpi_aml_I_procedure( crs, &crs_value, 0, 0 );
+            W( crs.s );
+            if( !~ret )
+            {   W( resources.irq );
+                return ~0;
             }
-            struct E_acpi_aml_Z_pathname prs = E_acpi_reader_I_child_build( i, "_PRS" );
-            object_i = E_acpi_aml_Q_object_R(prs);
-            W( prs.s );
-            struct E_acpi_aml_Z_value prs_value;
-            if( ~object_i
-            && E_acpi_aml_S_object[ object_i ].type == E_acpi_aml_Z_object_Z_type_S_buffer
+            if( ret == ~1
+            || ret == ~2
             )
-                prs_value = E_acpi_aml_Q_object_I_to_value( object_i );
-            else
+                continue;
+            if( crs_value.type == E_acpi_aml_Z_value_Z_type_S_pathname )
+            {   N object_i = E_acpi_aml_Q_object_R( crs_value.pathname );
+                if( ~object_i
+                && E_acpi_aml_S_object[ object_i ].type == E_acpi_aml_Z_object_Z_type_S_buffer
+                )
+                    crs_value = E_acpi_aml_Q_object_I_to_value( object_i );
+                else
+                    crs_value.type = E_acpi_aml_Z_value_Z_type_S_uninitialized;
+            }else
+            {   E_acpi_aml_Q_value_W( &crs_value );
+                crs_value.type = E_acpi_aml_Z_value_Z_type_S_uninitialized;
+            }
+            if( crs_value.type == E_acpi_aml_Z_value_Z_type_S_uninitialized )
+                continue;
+            struct E_acpi_aml_Z_pathname prs = E_acpi_reader_I_child_build( i, "_PRS" );
+            struct E_acpi_aml_Z_value prs_value;
+            ret = E_acpi_aml_I_procedure( prs, &prs_value, 0, 0 );
+            W( prs.s );
+            if( !~ret )
+            {   E_acpi_aml_Q_value_W( &crs_value );
+                W( resources.irq );
+                return ~0;
+            }
+            if( ret == ~1
+            || ret == ~2
+            )
                 prs_value.type = E_acpi_aml_Z_value_Z_type_S_uninitialized;
+            else if( prs_value.type == E_acpi_aml_Z_value_Z_type_S_pathname )
+            {   N object_i = E_acpi_aml_Q_object_R( prs_value.pathname );
+                if( ~object_i
+                && E_acpi_aml_S_object[ object_i ].type == E_acpi_aml_Z_object_Z_type_S_buffer
+                )
+                    prs_value = E_acpi_aml_Q_object_I_to_value( object_i );
+                else
+                    prs_value.type = E_acpi_aml_Z_value_Z_type_S_uninitialized;
+            }else
+            {   E_acpi_aml_Q_value_W( &prs_value );
+                prs_value.type = E_acpi_aml_Z_value_Z_type_S_uninitialized;
+            }
             if( prs_value.type != E_acpi_aml_Z_value_Z_type_S_uninitialized )
-            {   N ret = E_acpi_reader_M_prs( &resources, &prs_value, &crs_value );
+            {   N ret = E_acpi_reader_M_crs( &resources, &prs_value, &crs_value );
                 E_acpi_aml_Q_value_W( &prs_value );
                 if( !~ret )
                 {   E_acpi_aml_Q_value_W( &crs_value );
@@ -661,6 +878,16 @@ E_acpi_reader_M( void
                     continue;
                 }
             }else
+            {   ret = E_acpi_reader_I_check_crs( &resources, &crs_value );
+                if( !~ret )
+                {   E_acpi_aml_Q_value_W( &crs_value );
+                    W( resources.irq );
+                    return ~0;
+                }
+                if( ret == ~1 )
+                {   E_acpi_aml_Q_value_W( &crs_value );
+                    continue;
+                }
                 if(( result.n & 2 ) == 0 ) // not enabled
                 {   struct E_acpi_aml_Z_pathname srs = E_acpi_reader_I_child_build( i, "_SRS" );
                     N ret = E_acpi_aml_I_procedure( srs, &result, 1, &crs_value );
@@ -677,11 +904,28 @@ E_acpi_reader_M( void
                         continue;
                     }
                 }
+            }
+            if( E_text_Z_s_T_eq_s0( E_acpi_aml_S_object[i].name.s + ( E_acpi_aml_S_object[i].name.n - 1 ) * 4
+            , E_acpi_aml_S_object[i].name.s + E_acpi_aml_S_object[i].name.n * 4 - 1
+            , "LNK"
+            )
+            && ( *( E_acpi_aml_S_object[i].name.s + E_acpi_aml_S_object[i].name.n * 4 - 1 ) == 'A'
+              || *( E_acpi_aml_S_object[i].name.s + E_acpi_aml_S_object[i].name.n * 4 - 1 ) == 'B'
+              || *( E_acpi_aml_S_object[i].name.s + E_acpi_aml_S_object[i].name.n * 4 - 1 ) == 'C'
+              || *( E_acpi_aml_S_object[i].name.s + E_acpi_aml_S_object[i].name.n * 4 - 1 ) == 'D'
+            ))
+                E_pci_S_lnk[ *( E_acpi_aml_S_object[i].name.s + E_acpi_aml_S_object[i].name.n * 4 - 1 ) - 'A' ] = E_acpi_reader_R_irq( &crs_value );
             //TODO Przypisanie zasobów urządzenia.
-            
             E_acpi_aml_Q_value_W( &crs_value );
         }
+    }
     W( resources.irq );
+    for_n_( i, J_a_R_n( E_pci_S_lnk ))
+    {   E_font_I_print( "\nLNK " );
+        E_font_I_print_hex(i);
+        E_font_I_print( " = " );
+        E_font_I_print_hex( E_pci_S_lnk[i] );
+    }
     // Diagnostyczne wypisanie urządzeń.
     for_n_( i, E_acpi_aml_S_object_n )
         if( E_acpi_aml_S_object[i].type == E_acpi_aml_Z_object_Z_type_S_device )

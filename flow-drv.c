@@ -245,6 +245,7 @@ E_flow_Q_task_W( I *uid
     E_mem_Q_tab_I_remove( E_flow_S_scheduler[ sched_i ].task, id );
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//DFN “E_flow_Q_report_I_signal” może wystąpić w procedurze obsługi przerwania.
 _export
 I
 E_flow_Q_report_M( N uid
@@ -255,10 +256,16 @@ E_flow_Q_report_M( N uid
             break;
     }
     if( !~report_id )
-    {   report_id = E_mem_Q_tab_I_add( E_flow_S_scheduler[ sched_i ].report );
+    {   __asm__ volatile (
+        "\n"    "cli"
+        );
+        report_id = E_mem_Q_tab_I_add( E_flow_S_scheduler[ sched_i ].report );
         struct E_flow_Q_report_Z *report = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].report, report_id );
         report->uid = uid;
         report->reported_count = 0;
+        __asm__ volatile (
+        "\n"    "sti"
+        );
     }
     return report_id;
 }
@@ -266,7 +273,13 @@ _export
 void
 E_flow_Q_report_W( I id
 ){  N sched_i = E_flow_I_current_scheduler();
+    __asm__ volatile (
+    "\n"    "cli"
+    );
     E_mem_Q_tab_I_remove( E_flow_S_scheduler[ sched_i ].report, id );
+    __asm__ volatile (
+    "\n"    "sti"
+    );
 }
 //------------------------------------------------------------------------------
 _export
@@ -293,6 +306,9 @@ E_flow_Q_report_I_wait( I id
 ){  B ret;
     N sched_i = E_flow_I_current_scheduler();
     struct E_flow_Q_report_Z *report = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].report, id );
+    __asm__ volatile (
+    "\n"    "cli"
+    );
     if( report->reported_count )
     {   //for_each( task_id, E_flow_S_scheduler[ sched_i ].task, E_mem_Q_tab )
         //{   struct E_flow_Q_task_Z *task = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, task_id );
@@ -301,11 +317,17 @@ E_flow_Q_report_I_wait( I id
             //)
                 //task->run_state = E_flow_Z_run_state_S_ready;
         //}
+        __asm__ volatile (
+        "\n"    "sti"
+        );
         ret = no; // Nie wywołuje “schedule”, ponieważ w przełączanym tylko w oznaczonych punktach przepływie wykonania — bieżące ‹zadanie› mogło umożliwić zaistnienie ‹raportu›, na który czeka, tylko wtedy, jeśli przełącza do innych ‹zadań› ·w innych punktach niż to oczekiwanie na ‹raport›·, więc po co czekać, skoro nie zaburza cyklu przełączania ‹zadań›, a tylko w implementacji własnego ‹zadania› zmienia na złożoną (przesuniętą) sekwencję przełączania.
     }else
     {   struct E_flow_Q_task_Z *task = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, E_flow_S_scheduler[ sched_i ].current_task );
         task->run_state = E_flow_Z_run_state_S_waiting_for_report;
         task->run_state_object = id;
+        __asm__ volatile (
+        "\n"    "sti"
+        );
         ret = E_flow_Q_task_I_schedule();
         report = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].report, id );
     }

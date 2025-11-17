@@ -14,6 +14,7 @@
  * ~1 — wznawialny w nadrzędnym bloku błąd składni
  * ~2 — brak procedury
  */
+//NDFN Jak interpretować “field unit” podane jako “offset” “OperationRegion”?
 //==============================================================================
 struct E_acpi_aml_Z_pathname
 { Pc s;
@@ -21,7 +22,7 @@ struct E_acpi_aml_Z_pathname
 };
 _internal struct E_acpi_aml_Z_pathname *E_acpi_aml_S_current_path;
 _internal N E_acpi_aml_S_current_path_n;
-_internal B E_acpi_aml_Q_current_path_S_precompilation;
+_internal B E_acpi_aml_S_precompilation;
 //------------------------------------------------------------------------------
 struct E_acpi_aml_Z_buffer
 { Pc p;
@@ -70,7 +71,7 @@ struct
 } *E_acpi_aml_S_procedure_invocation_stack;
 _internal
 N E_acpi_aml_S_procedure_invocation_stack_n;
-_internal B E_acpi_aml_Q_procedure_invocation_stack_S_invokeing;
+_internal B E_acpi_aml_Q_procedure_invocation_stack_S_invoking;
 //------------------------------------------------------------------------------
 enum E_acpi_aml_Z_field_access
 { E_acpi_aml_Z_field_access_S_any
@@ -601,17 +602,16 @@ E_acpi_aml_Q_value_T_cmp_lt( struct E_acpi_aml_Z_value *v_1
 //==============================================================================
 _internal
 N
-E_acpi_aml_E_current_path_M( void
+E_acpi_aml_M_current_path( void
 ){  E_acpi_aml_S_current_path_n = 0;
     Mt_( E_acpi_aml_S_current_path, E_acpi_aml_S_current_path_n );
     if( !E_acpi_aml_S_current_path )
         return ~0;
-    E_acpi_aml_Q_current_path_S_precompilation = 0;
     return 0;
 }
 _internal
 void
-E_acpi_aml_E_current_path_W( void
+E_acpi_aml_W_current_path( void
 ){  for_n( i, E_acpi_aml_S_current_path_n )
         W( E_acpi_aml_S_current_path[i].s );
     W( E_acpi_aml_S_current_path );
@@ -724,7 +724,7 @@ E_acpi_aml_Q_object_W( N *object_i
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _internal
 N
-E_acpi_aml_E_object_M( void
+E_acpi_aml_M_object( void
 ){  E_acpi_aml_S_object_n = 7;
     Mt_( E_acpi_aml_S_object, E_acpi_aml_S_object_n );
     if( !E_acpi_aml_S_object )
@@ -857,7 +857,7 @@ E_acpi_aml_E_object_M( void
 }
 _internal
 void
-E_acpi_aml_E_object_W( void
+E_acpi_aml_W_object( void
 ){  for_n( i, E_acpi_aml_S_object_n )
     {   if( E_acpi_aml_S_object[i].type != E_acpi_aml_Z_object_Z_type_S_uninitialized
         && E_acpi_aml_S_object[i].type != E_acpi_aml_Z_object_Z_type_S_number
@@ -1479,7 +1479,7 @@ E_acpi_aml_I_data_object( void
     switch( (N8)*E_acpi_aml_S_parse_data++ )
     { case 0:
             E_font_I_print( ",0" );
-            if( E_acpi_aml_Q_current_path_S_precompilation )
+            if( E_acpi_aml_S_precompilation )
             {
             }else
             {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_acpi_aml_Z_value_Z_type_S_number;
@@ -1489,7 +1489,7 @@ E_acpi_aml_I_data_object( void
             break;
       case 1:
             E_font_I_print( ",1" );
-            if( E_acpi_aml_Q_current_path_S_precompilation )
+            if( E_acpi_aml_S_precompilation )
             {
             }else
             {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_acpi_aml_Z_value_Z_type_S_number;
@@ -1499,7 +1499,7 @@ E_acpi_aml_I_data_object( void
             break;
       case 0xff:
             E_font_I_print( ",~0" );
-            if( E_acpi_aml_Q_current_path_S_precompilation )
+            if( E_acpi_aml_S_precompilation )
             {
             }else
             {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_acpi_aml_Z_value_Z_type_S_number;
@@ -1511,7 +1511,7 @@ E_acpi_aml_I_data_object( void
             if( E_acpi_aml_S_parse_data + 1 > E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end )
                 return ~1;
             E_font_I_print( ",byte" );
-            if( E_acpi_aml_Q_current_path_S_precompilation )
+            if( E_acpi_aml_S_precompilation )
             {
             }else
             {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_acpi_aml_Z_value_Z_type_S_number;
@@ -1524,7 +1524,7 @@ E_acpi_aml_I_data_object( void
             if( E_acpi_aml_S_parse_data + 2 > E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end )
                 return ~1;
             E_font_I_print( ",word" );
-            if( E_acpi_aml_Q_current_path_S_precompilation )
+            if( E_acpi_aml_S_precompilation )
             {
             }else
             {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_acpi_aml_Z_value_Z_type_S_number;
@@ -1537,7 +1537,7 @@ E_acpi_aml_I_data_object( void
             if( E_acpi_aml_S_parse_data + 4 > E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end )
                 return ~1;
             E_font_I_print( ",dword" );
-            if( E_acpi_aml_Q_current_path_S_precompilation )
+            if( E_acpi_aml_S_precompilation )
             {
             }else
             {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_acpi_aml_Z_value_Z_type_S_number;
@@ -1556,7 +1556,7 @@ E_acpi_aml_I_data_object( void
             if( E_acpi_aml_S_parse_data == E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end )
                 return ~1;
             E_acpi_aml_S_parse_data++;
-            if( E_acpi_aml_Q_current_path_S_precompilation )
+            if( E_acpi_aml_S_precompilation )
             {
             }else
             {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_acpi_aml_Z_value_Z_type_S_string;
@@ -1569,7 +1569,7 @@ E_acpi_aml_I_data_object( void
             if( E_acpi_aml_S_parse_data + 8 > E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end )
                 return ~1;
             E_font_I_print( ",qword" );
-            if( E_acpi_aml_Q_current_path_S_precompilation )
+            if( E_acpi_aml_S_precompilation )
             {
             }else
             {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_acpi_aml_Z_value_Z_type_S_number;
@@ -1586,7 +1586,7 @@ E_acpi_aml_I_data_object( void
                     if( E_acpi_aml_S_parse_data == E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end )
                         return ~1;
                     E_font_I_print( ",revision" );
-                    if( E_acpi_aml_Q_current_path_S_precompilation )
+                    if( E_acpi_aml_S_precompilation )
                     {
                     }else
                     {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_acpi_aml_Z_value_Z_type_S_number;
@@ -1626,7 +1626,7 @@ E_acpi_aml_I_data_object( void
             N n = (N8)*E_acpi_aml_S_parse_data;
             E_acpi_aml_S_parse_data++;
             E_font_I_print( ",package," ); E_font_I_print_hex(n);
-            if( E_acpi_aml_Q_current_path_S_precompilation )
+            if( E_acpi_aml_S_precompilation )
             {   E_acpi_aml_S_parse_data = pkg_end;
                 E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].match = yes;
             }else
@@ -1658,7 +1658,7 @@ E_acpi_aml_I_data_object( void
             if( pkg_end > E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end )
                 return ~1;
             E_font_I_print( ",var package" );
-            if( E_acpi_aml_Q_current_path_S_precompilation )
+            if( E_acpi_aml_S_precompilation )
             {
             }else
             {   struct E_acpi_aml_Z_package *M_(package);
@@ -1880,7 +1880,7 @@ E_acpi_aml_I_term( void
                 return ~1;
             E_font_I_print( ",else" );
             if( E_acpi_aml_S_parse_data != pkg_end )
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {   E_acpi_aml_I_delegate_pkg( E_acpi_aml_Z_parse_stack_Z_entity_S_else_op_finish, E_acpi_aml_Z_parse_stack_Z_entity_S_term );
                     E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].n = ~0;
                     E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.last_op_if = 0;
@@ -1957,7 +1957,7 @@ E_acpi_aml_I_object( void
             E_text_Z_s_P_copy_sl_0( name_, alias, alias_n * 4 );
             E_font_I_print( ":" ); E_font_I_print( name_ );
             W( name_ );
-            if( E_acpi_aml_Q_current_path_S_precompilation )
+            if( E_acpi_aml_S_precompilation )
             {   W(alias);
             }else
             {   N object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_alias, ( struct E_acpi_aml_Z_pathname ){ alias, alias_n });
@@ -1993,7 +1993,7 @@ E_acpi_aml_I_object( void
             E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
             E_font_I_print( "\n,object=" ); E_font_I_print( name_ );
             W( name_ );
-            if( E_acpi_aml_Q_current_path_S_precompilation )
+            if( E_acpi_aml_S_precompilation )
             {
             }else
             {   N object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_uninitialized, ( struct E_acpi_aml_Z_pathname ){ name, n });
@@ -2024,18 +2024,16 @@ E_acpi_aml_I_object( void
             Pc pkg_end = E_acpi_aml_S_parse_data + pkg_length - ( E_acpi_aml_S_parse_data - data_start );
             if( pkg_end > E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end )
                 return ~1;
-            E_font_I_print( "\nA" );
             N8 n;
             N object_i;
             Pc name = E_acpi_aml_Q_path_R_relative( &n, &object_i );
             if( !name )
                 return (S8)n;
-            E_font_I_print( "\nB" );
             Pc name_ = M( n * 4 + 1 );
             E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
             E_font_I_print( "\n,scope=" ); E_font_I_print( name_ );
             W( name_ );
-            if( E_acpi_aml_Q_current_path_S_precompilation )
+            if( E_acpi_aml_S_precompilation )
             {
             }else
             {   if( !~object_i
@@ -2097,7 +2095,7 @@ E_acpi_aml_I_object( void
                     E_text_Z_s_P_copy_sl_0( name_, bank_name, n * 4 );
                     E_font_I_print( ",bank=" ); E_font_I_print( name_ );
                     W( name_ );
-                    if( E_acpi_aml_Q_current_path_S_precompilation )
+                    if( E_acpi_aml_S_precompilation )
                     {   W( bank_name );
                     }else
                     {   struct E_acpi_aml_Z_value *Mt_( value, E_acpi_aml_S_parse_stack_S_tmp_p_n );
@@ -2135,7 +2133,7 @@ E_acpi_aml_I_object( void
                     if( E_acpi_aml_S_parse_data == E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end )
                         return ~1;
                     E_acpi_aml_S_parse_data++;
-                    if( E_acpi_aml_Q_current_path_S_precompilation )
+                    if( E_acpi_aml_S_precompilation )
                     {
                     }else
                     {   N object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_mutex, ( struct E_acpi_aml_Z_pathname ){ name, n });
@@ -2170,7 +2168,7 @@ E_acpi_aml_I_object( void
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
                     E_font_I_print( ",data dsdt region=" ); E_font_I_print( name_ );
                     W( name_ );
-                    if( E_acpi_aml_Q_current_path_S_precompilation )
+                    if( E_acpi_aml_S_precompilation )
                     {
                     }else
                     {   N object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_data_table_region, ( struct E_acpi_aml_Z_pathname ){ name, n });
@@ -2202,7 +2200,7 @@ E_acpi_aml_I_object( void
                     W( name_ );
                     if( E_acpi_aml_S_parse_data == E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end )
                         return ~1;
-                    if( E_acpi_aml_Q_current_path_S_precompilation )
+                    if( E_acpi_aml_S_precompilation )
                     {
                     }else
                     {   struct E_acpi_aml_Z_pathname region_pathname = ( struct E_acpi_aml_Z_pathname ){ name, n };
@@ -2259,7 +2257,7 @@ E_acpi_aml_I_object( void
                     E_font_I_print( ",field op=" ); E_font_I_print( name_ );
                     W( name_ );
                     W(name);
-                    if( E_acpi_aml_Q_current_path_S_precompilation )
+                    if( E_acpi_aml_S_precompilation )
                     {   E_acpi_aml_S_parse_data = pkg_end; // Tymczasowo.
                     }else
                     {   if( E_acpi_aml_S_parse_data == pkg_end )
@@ -2386,7 +2384,7 @@ E_acpi_aml_I_object( void
                     E_font_I_print( ",index field=" ); E_font_I_print( name_ );
                     W( name_ );
                     W(name);
-                    if( E_acpi_aml_Q_current_path_S_precompilation )
+                    if( E_acpi_aml_S_precompilation )
                     {   E_acpi_aml_S_parse_data = pkg_end; // Tymczasowo.
                     }else
                     {   name = E_acpi_aml_Q_path_R_root( &n );
@@ -2520,7 +2518,7 @@ E_acpi_aml_I_object( void
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
                     E_font_I_print( ",device=" ); E_font_I_print( name_ );
                     W( name_ );
-                    if( E_acpi_aml_Q_current_path_S_precompilation )
+                    if( E_acpi_aml_S_precompilation )
                     {
                     }else
                     {   N object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_device, ( struct E_acpi_aml_Z_pathname ){ name, n });
@@ -2533,7 +2531,7 @@ E_acpi_aml_I_object( void
                     }
                     E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].match = yes;
                     if( E_acpi_aml_S_parse_data != pkg_end )
-                    {   if( E_acpi_aml_Q_current_path_S_precompilation )
+                    {   if( E_acpi_aml_S_precompilation )
                         {   name_ = name;
                         }else
                         {   name_ = E_text_Z_sl_M_duplicate( name, n * 4 );
@@ -2565,7 +2563,7 @@ E_acpi_aml_I_object( void
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
                     E_font_I_print( ",event=" ); E_font_I_print( name_ );
                     W( name_ );
-                    if( E_acpi_aml_Q_current_path_S_precompilation )
+                    if( E_acpi_aml_S_precompilation )
                     {
                     }else
                     {   N object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_event, ( struct E_acpi_aml_Z_pathname ){ name, n });
@@ -2601,7 +2599,7 @@ E_acpi_aml_I_object( void
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
                     E_font_I_print( ",power res=" ); E_font_I_print( name_ );
                     W( name_ );
-                    if( E_acpi_aml_Q_current_path_S_precompilation )
+                    if( E_acpi_aml_S_precompilation )
                     {
                     }else
                     {   N object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_power_res, ( struct E_acpi_aml_Z_pathname ){ name, n });
@@ -2653,7 +2651,7 @@ E_acpi_aml_I_object( void
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
                     E_font_I_print( ",thermal zone=" ); E_font_I_print( name_ );
                     W( name_ );
-                    if( E_acpi_aml_Q_current_path_S_precompilation )
+                    if( E_acpi_aml_S_precompilation )
                     {
                     }else
                     {   N object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_thermal_zone, ( struct E_acpi_aml_Z_pathname ){ name, n });
@@ -2707,7 +2705,7 @@ E_acpi_aml_I_object( void
                     E_acpi_aml_S_parse_data += 4;
                     if( ++E_acpi_aml_S_parse_data > pkg_end )
                         return ~1;
-                    if( E_acpi_aml_Q_current_path_S_precompilation )
+                    if( E_acpi_aml_S_precompilation )
                     {
                     }else
                     {   N object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_processor, ( struct E_acpi_aml_Z_pathname ){ name, n });
@@ -2812,7 +2810,7 @@ E_acpi_aml_I_object( void
             procedure->procedure = 0;
             E_acpi_aml_S_object[ object_i ].data = procedure;
             E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].match = yes;
-            if( E_acpi_aml_Q_current_path_S_precompilation )
+            if( E_acpi_aml_S_precompilation )
             {   if( E_acpi_aml_S_parse_data != pkg_end )
                 {   name_ = E_text_Z_sl_M_duplicate( name, n * 4 );
                     if( !name_ )
@@ -3053,7 +3051,7 @@ E_acpi_aml_I_expression( void
             N n = (N8)*E_acpi_aml_S_parse_data;
             E_acpi_aml_S_parse_data++;
             E_font_I_print( ",package," ); E_font_I_print_hex(n);
-            if( E_acpi_aml_Q_current_path_S_precompilation )
+            if( E_acpi_aml_S_precompilation )
             {   E_acpi_aml_S_parse_data = pkg_end;
             }else
             {   struct E_acpi_aml_Z_package *M_(package);
@@ -3084,7 +3082,7 @@ E_acpi_aml_I_expression( void
                 return ~1;
             E_font_I_print( ",var package" );
             struct E_acpi_aml_Z_package *package;
-            if( E_acpi_aml_Q_current_path_S_precompilation )
+            if( E_acpi_aml_S_precompilation )
             {
             }else
             {   M_(package);
@@ -3177,7 +3175,7 @@ E_acpi_aml_I_expression( void
       default:
         {   E_acpi_aml_S_parse_data--;
             N8 n;
-            if( E_acpi_aml_Q_current_path_S_precompilation )
+            if( E_acpi_aml_S_precompilation )
             {
             }else
             {   N object_i;
@@ -3322,7 +3320,7 @@ E_acpi_aml_I_supername( void
       case 0x6d:
       case 0x6e:
         {   E_font_I_print( ",arg" );
-            if( E_acpi_aml_Q_current_path_S_precompilation )
+            if( E_acpi_aml_S_precompilation )
             {
             }else
             {   if( !E_acpi_aml_S_procedure_invocation_stack_n )
@@ -3342,7 +3340,7 @@ E_acpi_aml_I_supername( void
       case 0x66:
       case 0x67:
         {   E_font_I_print( ",local" );
-            if( E_acpi_aml_Q_current_path_S_precompilation )
+            if( E_acpi_aml_S_precompilation )
             {
             }else
             {   if( !E_acpi_aml_S_procedure_invocation_stack_n )
@@ -3364,7 +3362,7 @@ E_acpi_aml_I_supername( void
             E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
             E_font_I_print( ",supername=" ); E_font_I_print( name_ );
             W( name_ );
-            if( E_acpi_aml_Q_current_path_S_precompilation )
+            if( E_acpi_aml_S_precompilation )
             {
                 W(name);
             }else
@@ -3494,7 +3492,7 @@ _internal
 N
 E_acpi_aml_M_field_finish_2( N bytes
 ){  struct E_acpi_aml_Z_value o, i;
-    if( E_acpi_aml_Q_current_path_S_precompilation )
+    if( E_acpi_aml_S_precompilation )
     {
     }else
     {   N object_i;
@@ -3541,7 +3539,7 @@ E_acpi_aml_M_field_finish_2( N bytes
     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
     E_font_I_print( ",bytes field=" ); E_font_I_print( name_ );
     W( name_ );
-    if( E_acpi_aml_Q_current_path_S_precompilation )
+    if( E_acpi_aml_S_precompilation )
     {
         W(name);
     }else
@@ -3668,10 +3666,10 @@ E_acpi_aml_M_cmp( N8 op
 _internal
 N
 E_acpi_aml_M_res1( void
-){  if( E_acpi_aml_Q_current_path_S_precompilation )
+){  if( E_acpi_aml_S_precompilation )
     {
     }else
-        if( !E_acpi_aml_Q_procedure_invocation_stack_S_invokeing
+        if( !E_acpi_aml_Q_procedure_invocation_stack_S_invoking
         && E_acpi_aml_S_current_path_n
         ) // Wyjście do nadrzędnego obiektu po błędzie składni.
         {   N current_path_i = E_acpi_aml_S_current_path_n;
@@ -3734,7 +3732,7 @@ E_acpi_aml_M_parse( void
     N ret = 0;
 Loop:
     O{  stack_n_last = E_acpi_aml_S_parse_stack_n;
-        //if( E_acpi_aml_Q_procedure_invocation_stack_S_invokeing )
+        //if( E_acpi_aml_Q_procedure_invocation_stack_S_invoking )
         //{   E_font_I_print( "\nentity=" ); E_font_I_print_hex( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].entity );
             //E_font_I_print( ",data=" ); E_font_I_print_hex( (N)E_acpi_aml_S_parse_data );
             //E_font_I_print( ",data_end=" ); E_font_I_print_hex( (N)E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end );
@@ -3773,7 +3771,7 @@ Loop:
                   case 0x6d:
                   case 0x6e:
                         E_font_I_print( ",arg" );
-                        if( E_acpi_aml_Q_current_path_S_precompilation )
+                        if( E_acpi_aml_S_precompilation )
                         {
                         }else
                         {   if( !E_acpi_aml_S_procedure_invocation_stack_n )
@@ -3805,7 +3803,7 @@ Loop:
                   case 0x66:
                   case 0x67:
                         E_font_I_print( ",local" );
-                        if( E_acpi_aml_Q_current_path_S_precompilation )
+                        if( E_acpi_aml_S_precompilation )
                         {
                         }else
                         {   if( !E_acpi_aml_S_procedure_invocation_stack_n )
@@ -3886,7 +3884,7 @@ Loop:
                 ret = E_acpi_aml_I_supername();
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_buffer_finish:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                     E_acpi_aml_S_parse_data = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end; // Tymczasowo.
                 }else
@@ -3940,7 +3938,7 @@ Loop:
                         E_acpi_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result = value_package;
                         break;
                     }
-                    if( E_acpi_aml_Q_current_path_S_precompilation )
+                    if( E_acpi_aml_S_precompilation )
                     {
                     }else
                     {   struct E_acpi_aml_Z_value *value = E_mem_Q_blk_I_append( &value_package.package->value, 1 );
@@ -3956,7 +3954,7 @@ Loop:
                         E_acpi_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result = value_package;
                     }
                 }else
-                    if( E_acpi_aml_Q_current_path_S_precompilation )
+                    if( E_acpi_aml_S_precompilation )
                     {
                     }else
                     {   if( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].entity == E_acpi_aml_Z_parse_stack_Z_entity_S_buffer_finish )
@@ -4067,7 +4065,7 @@ Loop:
                 {   ret = ~1;
                     break;
                 }
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {   E_acpi_aml_S_parse_data = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end; // Tymczasowo.
                 }else
                 {   struct E_acpi_aml_Z_value *value = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.tmp_p;
@@ -4236,7 +4234,7 @@ Loop:
                 break;
             }
           case E_acpi_aml_Z_parse_stack_Z_entity_S_bit_field_finish_1:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result;
@@ -4246,7 +4244,7 @@ Loop:
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_bit_field_finish_2:
             {   struct E_acpi_aml_Z_value o, i;
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   if( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_acpi_aml_Z_value_Z_type_S_pathname )
@@ -4296,7 +4294,7 @@ Loop:
                 E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
                 E_font_I_print( ",bit field=" ); E_font_I_print( name_ );
                 W( name_ );
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                     W(name);
                 }else
@@ -4345,7 +4343,7 @@ Loop:
                 break;
             }
           case E_acpi_aml_Z_parse_stack_Z_entity_S_byte_field_finish_1:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result;
@@ -4359,7 +4357,7 @@ Loop:
                     return ~0;
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_dword_field_finish_1:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result;
@@ -4373,7 +4371,7 @@ Loop:
                     return ~0;
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_field_finish_1:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   struct E_acpi_aml_Z_value *Mt_( value, E_acpi_aml_S_parse_stack_S_tmp_p_n );
@@ -4388,7 +4386,7 @@ Loop:
                 E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_field_finish_2, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_field_finish_2:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   struct E_acpi_aml_Z_value *value = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.tmp_p;
@@ -4400,7 +4398,7 @@ Loop:
           case E_acpi_aml_Z_parse_stack_Z_entity_S_field_finish_3:
             {   struct E_acpi_aml_Z_value *value;
                 struct E_acpi_aml_Z_value o, i, u;
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   if( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_acpi_aml_Z_value_Z_type_S_pathname )
@@ -4467,7 +4465,7 @@ Loop:
                 E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
                 E_font_I_print( ",bytes field=" ); E_font_I_print( name_ );
                 W( name_ );
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                     W(name);
                 }else
@@ -4515,7 +4513,7 @@ Loop:
                 break;
             }
           case E_acpi_aml_Z_parse_stack_Z_entity_S_qword_field_finish_1:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result;
@@ -4529,7 +4527,7 @@ Loop:
                     return ~0;
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_word_field_finish_1:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result;
@@ -4554,7 +4552,7 @@ Loop:
                 //TODO Dodać ‘oem dsdt id’ do drzewa zinterpretowanej przestrzeni ACPI.
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_op_region_finish_1:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   struct E_acpi_aml_Z_value i;
@@ -4590,7 +4588,7 @@ Loop:
                 E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_op_region_finish_2, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_op_region_finish_2:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   struct E_acpi_aml_Z_value l;
@@ -4645,7 +4643,7 @@ Loop:
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_if_op_finish_1:
                 if( E_acpi_aml_S_parse_data != E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end )
-                    if( E_acpi_aml_Q_current_path_S_precompilation )
+                    if( E_acpi_aml_S_precompilation )
                     {   E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_if_op_finish_2, E_acpi_aml_Z_parse_stack_Z_entity_S_term );
                         E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].n = ~0;
                         E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.last_op_if = 0;
@@ -4693,7 +4691,7 @@ Loop:
                 //TODO Dodać ‘notify value’ do drzewa zinterpretowanej przestrzeni ACPI.
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_release_finish:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   struct E_acpi_aml_Z_value o;
@@ -4752,7 +4750,7 @@ Loop:
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_while_op_finish_1:
                 if( E_acpi_aml_S_parse_data != E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end )
-                    if( E_acpi_aml_Q_current_path_S_precompilation )
+                    if( E_acpi_aml_S_precompilation )
                     {   E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_while_op_finish_2, E_acpi_aml_Z_parse_stack_Z_entity_S_term );
                         E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].n = ~0;
                         E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.last_op_if = 0;
@@ -4785,7 +4783,7 @@ Loop:
                     }
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_while_op_finish_2:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   E_acpi_aml_S_parse_data = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.continue_;
@@ -4797,7 +4795,7 @@ Loop:
                 {   ret = ~1;
                     break;
                 }
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   struct E_acpi_aml_Z_value o;
@@ -4835,7 +4833,7 @@ Loop:
                 E_acpi_aml_S_parse_data += 2;
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_add_op_finish_1:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result;
@@ -4848,7 +4846,7 @@ Loop:
                 {   ret = ~1;
                     break;
                 }
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   N v_1, v_2;
@@ -4861,13 +4859,13 @@ Loop:
                     E_acpi_aml_S_parse_data++;
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_add_op_finish_3:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                     ret = E_acpi_aml_M_number_finish_3();
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_and_op_finish_1:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result;
@@ -4880,7 +4878,7 @@ Loop:
                 {   ret = ~1;
                     break;
                 }
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   N v_1, v_2;
@@ -4893,13 +4891,13 @@ Loop:
                     E_acpi_aml_S_parse_data++;
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_and_op_finish_3:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                     ret = E_acpi_aml_M_number_finish_3();
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_concat_finish_1:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   struct E_acpi_aml_Z_value *Mt_( value, E_acpi_aml_S_parse_stack_S_tmp_p_n );
@@ -4918,7 +4916,7 @@ Loop:
                 {   ret = ~1;
                     break;
                 }
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   struct E_acpi_aml_Z_value *value = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.tmp_p;
@@ -5082,7 +5080,7 @@ Loop:
                     E_acpi_aml_S_parse_data++;
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_concat_finish_3:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   N ret = E_acpi_aml_M_arg_local_debug();
@@ -5161,7 +5159,7 @@ Loop:
                 {   ret = ~1;
                     break;
                 }
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   B ret = yes;
@@ -5187,7 +5185,7 @@ Loop:
                     E_acpi_aml_S_parse_data++;
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_cond_refof_finish_2:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   N ret = E_acpi_aml_M_arg_local_debug();
@@ -5295,7 +5293,7 @@ Loop:
                 {   ret = ~1;
                     break;
                 }
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   if( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_acpi_aml_Z_value_Z_type_S_pathname
@@ -5313,7 +5311,7 @@ Loop:
                     E_acpi_aml_S_parse_data++;
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_copy_object_finish_2:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   N ret = E_acpi_aml_M_arg_local_debug();
@@ -5431,7 +5429,7 @@ Loop:
                 }
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_decrement_finish:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   B b = no;
@@ -5488,7 +5486,7 @@ Loop:
                 }
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_derefof_finish:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   N ret = E_acpi_aml_M_arg_local_debug();
@@ -5538,7 +5536,7 @@ Loop:
                 }
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_divide_finish_1:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result;
@@ -5551,7 +5549,7 @@ Loop:
                 {   ret = ~1;
                     break;
                 }
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   N v_1, v_2;
@@ -5569,7 +5567,7 @@ Loop:
                     E_acpi_aml_S_parse_data++;
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_divide_finish_3:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   N ret = E_acpi_aml_M_arg_local_debug();
@@ -5602,7 +5600,7 @@ Loop:
                     E_acpi_aml_S_parse_data++;
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_divide_finish_4:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                     ret = E_acpi_aml_M_number_finish_3();
@@ -5612,7 +5610,7 @@ Loop:
                 {   ret = ~1;
                     break;
                 }
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   struct E_acpi_aml_Z_value v;
@@ -5644,7 +5642,7 @@ Loop:
                     E_acpi_aml_S_parse_data++;
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_fslb_finish_2:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                     ret = E_acpi_aml_M_number_finish_3();
@@ -5654,7 +5652,7 @@ Loop:
                 {   ret = ~1;
                     break;
                 }
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   struct E_acpi_aml_Z_value v;
@@ -5685,7 +5683,7 @@ Loop:
                     E_acpi_aml_S_parse_data++;
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_fsrb_finish_2:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                     ret = E_acpi_aml_M_number_finish_3();
@@ -5695,7 +5693,7 @@ Loop:
                 {   ret = ~1;
                     break;
                 }
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   struct E_acpi_aml_Z_value v;
@@ -5734,13 +5732,13 @@ Loop:
                     E_acpi_aml_S_parse_data++;
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_from_bcd_finish_2:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                     ret = E_acpi_aml_M_number_finish_3();
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_increment_finish:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   B b = no;
@@ -5796,7 +5794,7 @@ Loop:
                 }
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_index_finish_1:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   struct E_acpi_aml_Z_value *Mt_( value, E_acpi_aml_S_parse_stack_S_tmp_p_n );
@@ -5815,7 +5813,7 @@ Loop:
                 {   ret = ~1;
                     break;
                 }
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   struct E_acpi_aml_Z_value o, i;
@@ -5905,7 +5903,7 @@ Loop:
                     E_acpi_aml_S_parse_data++;
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_index_finish_3:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   N ret = E_acpi_aml_M_arg_local_debug();
@@ -6003,7 +6001,7 @@ Loop:
                 }
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_land_finish_1:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result;
@@ -6012,7 +6010,7 @@ Loop:
                 E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_land_finish_2, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_land_finish_2:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   N v_1, v_2;
@@ -6022,7 +6020,7 @@ Loop:
                 }
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_lequal_finish_1:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result;
@@ -6031,7 +6029,7 @@ Loop:
                 E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_lequal_finish_2, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_lequal_finish_2:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   struct E_acpi_aml_Z_value v_0, v_1;
@@ -6107,7 +6105,7 @@ Loop:
                 }
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_lgreater_finish_1:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result;
@@ -6116,7 +6114,7 @@ Loop:
                 E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_lgreater_finish_2, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_lgreater_finish_2:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   struct E_acpi_aml_Z_value v_0, v_1;
@@ -6192,7 +6190,7 @@ Loop:
                 }
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_lless_finish_1:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result;
@@ -6201,7 +6199,7 @@ Loop:
                 E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_lless_finish_2, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_lless_finish_2:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   struct E_acpi_aml_Z_value v_0, v_1;
@@ -6277,7 +6275,7 @@ Loop:
                 }
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_lnotequal_finish_1:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result;
@@ -6286,7 +6284,7 @@ Loop:
                 E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_lnotequal_finish_2, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_lnotequal_finish_2:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   struct E_acpi_aml_Z_value v_0, v_1;
@@ -6362,7 +6360,7 @@ Loop:
                 }
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_llessequal_finish_1:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result;
@@ -6371,7 +6369,7 @@ Loop:
                 E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_llessequal_finish_2, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_llessequal_finish_2:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   struct E_acpi_aml_Z_value v_0, v_1;
@@ -6447,7 +6445,7 @@ Loop:
                 }
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_lgreaterequal_finish_1:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result;
@@ -6456,7 +6454,7 @@ Loop:
                 E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_lgreaterequal_finish_2, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_lgreaterequal_finish_2:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   struct E_acpi_aml_Z_value v_0, v_1;
@@ -6532,7 +6530,7 @@ Loop:
                 }
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_mid_finish_1:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   struct E_acpi_aml_Z_value *Mt_( value, E_acpi_aml_S_parse_stack_S_tmp_p_n );
@@ -6547,7 +6545,7 @@ Loop:
                 E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_mid_finish_2, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_mid_finish_2:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   struct E_acpi_aml_Z_value *value = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.tmp_p;
@@ -6561,7 +6559,7 @@ Loop:
                 {   ret = ~1;
                     break;
                 }
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   struct E_acpi_aml_Z_value o, i, l;
@@ -6677,7 +6675,7 @@ Loop:
                     E_acpi_aml_S_parse_data++;
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_mid_finish_4:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   N ret = E_acpi_aml_M_arg_local_debug();
@@ -6725,7 +6723,7 @@ Loop:
                 }
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_lnot_finish:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   struct E_acpi_aml_Z_value v;
@@ -6771,7 +6769,7 @@ Loop:
                 //TODO Umieścić operację ‘load dsdt’ w drzewie zinterpretowanej przestrzeni ACPI.
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_lor_finish_1:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result;
@@ -6780,7 +6778,7 @@ Loop:
                 E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_lor_finish_2, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_lor_finish_2:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   N v_1, v_2;
@@ -6794,7 +6792,7 @@ Loop:
                 {   ret = ~1;
                     break;
                 }
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   struct E_acpi_aml_Z_value *Mt_( value, E_acpi_aml_S_parse_stack_S_tmp_p_n );
@@ -6819,7 +6817,7 @@ Loop:
                 {   ret = ~1;
                     break;
                 }
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   struct E_acpi_aml_Z_value *value = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.tmp_p;
@@ -6835,7 +6833,7 @@ Loop:
                 E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_match_finish_3, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_match_finish_3:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   struct E_acpi_aml_Z_value *value = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.tmp_p;
@@ -6845,7 +6843,7 @@ Loop:
                 E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_match_finish_4, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_match_finish_4:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   struct E_acpi_aml_Z_value start, package, match_1, match_2;
@@ -7006,7 +7004,7 @@ Loop:
                 }
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_mod_finish_1:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result;
@@ -7019,7 +7017,7 @@ Loop:
                 {   ret = ~1;
                     break;
                 }
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   N v_1, v_2;
@@ -7032,13 +7030,13 @@ Loop:
                     E_acpi_aml_S_parse_data++;
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_mod_finish_3:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                     ret = E_acpi_aml_M_number_finish_3();
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_multiply_finish_1:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result;
@@ -7051,7 +7049,7 @@ Loop:
                 {   ret = ~1;
                     break;
                 }
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   N v_1, v_2;
@@ -7064,13 +7062,13 @@ Loop:
                     E_acpi_aml_S_parse_data++;
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_multiply_finish_3:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                     ret = E_acpi_aml_M_number_finish_3();
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_nand_finish_1:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result;
@@ -7083,7 +7081,7 @@ Loop:
                 {   ret = ~1;
                     break;
                 }
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   N v_1, v_2;
@@ -7096,13 +7094,13 @@ Loop:
                     E_acpi_aml_S_parse_data++;
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_nand_finish_3:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                     ret = E_acpi_aml_M_number_finish_3();
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_nor_finish_1:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result;
@@ -7115,7 +7113,7 @@ Loop:
                 {   ret = ~1;
                     break;
                 }
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   N v_1, v_2;
@@ -7128,7 +7126,7 @@ Loop:
                     E_acpi_aml_S_parse_data++;
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_nor_finish_3:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                     ret = E_acpi_aml_M_number_finish_3();
@@ -7138,7 +7136,7 @@ Loop:
                 {   ret = ~1;
                     break;
                 }
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   struct E_acpi_aml_Z_value v;
@@ -7169,13 +7167,13 @@ Loop:
                     E_acpi_aml_S_parse_data++;
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_not_finish_2:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                     ret = E_acpi_aml_M_number_finish_3();
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_object_type_finish:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   if( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_acpi_aml_Z_value_Z_type_S_pathname )
@@ -7197,7 +7195,7 @@ Loop:
                 }
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_or_finish_1:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result;
@@ -7210,7 +7208,7 @@ Loop:
                 {   ret = ~1;
                     break;
                 }
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   N v_1, v_2;
@@ -7223,13 +7221,13 @@ Loop:
                     E_acpi_aml_S_parse_data++;
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_or_finish_3:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                     ret = E_acpi_aml_M_number_finish_3();
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_refof_finish:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   if( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.type == E_acpi_aml_Z_value_Z_type_S_pathname )
@@ -7244,7 +7242,7 @@ Loop:
                 }
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_shift_left_finish_1:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result;
@@ -7257,7 +7255,7 @@ Loop:
                 {   ret = ~1;
                     break;
                 }
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   N v_1, v_2;
@@ -7270,13 +7268,13 @@ Loop:
                     E_acpi_aml_S_parse_data++;
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_shift_left_finish_3:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                     ret = E_acpi_aml_M_number_finish_3();
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_shift_right_finish_1:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result;
@@ -7289,7 +7287,7 @@ Loop:
                 {   ret = ~1;
                     break;
                 }
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   N v_1, v_2;
@@ -7302,13 +7300,13 @@ Loop:
                     E_acpi_aml_S_parse_data++;
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_shift_right_finish_3:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                     ret = E_acpi_aml_M_number_finish_3();
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_sizeof_finish:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   B b = no;
@@ -7369,7 +7367,7 @@ Loop:
                 }
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_store_finish_1:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result;
@@ -7378,7 +7376,7 @@ Loop:
                 E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_store_finish_2, E_acpi_aml_Z_parse_stack_Z_entity_S_supername );
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_store_finish_2:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   N ret = E_acpi_aml_M_arg_local_debug();
@@ -7889,7 +7887,7 @@ Loop:
                 }
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_subtract_finish_1:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result;
@@ -7902,7 +7900,7 @@ Loop:
                 {   ret = ~1;
                     break;
                 }
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   N v_1, v_2;
@@ -7915,7 +7913,7 @@ Loop:
                     E_acpi_aml_S_parse_data++;
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_subtract_finish_3:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                     ret = E_acpi_aml_M_number_finish_3();
@@ -7925,7 +7923,7 @@ Loop:
                 {   ret = ~1;
                     break;
                 }
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   struct E_acpi_aml_Z_value v;
@@ -7964,7 +7962,7 @@ Loop:
                     E_acpi_aml_S_parse_data++;
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_to_bcd_finish_2:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                     ret = E_acpi_aml_M_number_finish_3();
@@ -7974,7 +7972,7 @@ Loop:
                 {   ret = ~1;
                     break;
                 }
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   struct E_acpi_aml_Z_value v;
@@ -8026,7 +8024,7 @@ Loop:
                     E_acpi_aml_S_parse_data++;
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_to_buffer_finish_2:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   N ret = E_acpi_aml_M_arg_local_debug();
@@ -8072,7 +8070,7 @@ Loop:
                 {   ret = ~1;
                     break;
                 }
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   struct E_acpi_aml_Z_value v;
@@ -8160,7 +8158,7 @@ Loop:
                     E_acpi_aml_S_parse_data++;
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_to_decimal_string_finish_2:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   N ret = E_acpi_aml_M_arg_local_debug();
@@ -8198,7 +8196,7 @@ Loop:
                 {   ret = ~1;
                     break;
                 }
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   struct E_acpi_aml_Z_value v;
@@ -8291,7 +8289,7 @@ Loop:
                     E_acpi_aml_S_parse_data++;
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_to_hex_string_finish_2:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   N ret = E_acpi_aml_M_arg_local_debug();
@@ -8329,7 +8327,7 @@ Loop:
                 {   ret = ~1;
                     break;
                 }
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   struct E_acpi_aml_Z_value v;
@@ -8381,13 +8379,13 @@ Loop:
                     E_acpi_aml_S_parse_data++;
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_to_integer_finish_2:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                     ret = E_acpi_aml_M_number_finish_3();
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_to_string_finish_1:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result;
@@ -8400,7 +8398,7 @@ Loop:
                 {   ret = ~1;
                     break;
                 }
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   struct E_acpi_aml_Z_value v_1, v_2;
@@ -8486,7 +8484,7 @@ Loop:
                     E_acpi_aml_S_parse_data++;
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_to_string_finish_3:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   N ret = E_acpi_aml_M_arg_local_debug();
@@ -8519,7 +8517,7 @@ Loop:
                 //TODO Umieścić operację ‘wait’ w drzewie zinterpretowanej przestrzeni ACPI.
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_xor_finish_1:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result;
@@ -8532,7 +8530,7 @@ Loop:
                 {   ret = ~1;
                     break;
                 }
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   N v_1, v_2;
@@ -8545,13 +8543,13 @@ Loop:
                     E_acpi_aml_S_parse_data++;
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_xor_finish_3:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                     ret = E_acpi_aml_M_number_finish_3();
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_fatal_finish:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                     return ~0;
@@ -8564,7 +8562,7 @@ Loop:
                     return ~0;
                 break;
           case E_acpi_aml_Z_parse_stack_Z_entity_S_procedure_invocation_finish_1:
-                if( E_acpi_aml_Q_current_path_S_precompilation )
+                if( E_acpi_aml_S_precompilation )
                 {
                 }else
                 {   N parse_stack_i = E_acpi_aml_S_parse_stack_n;
@@ -8719,12 +8717,16 @@ E_acpi_aml_I_procedure_( N object_i
 , struct E_acpi_aml_Z_value *result
 , N arg_n
 , struct E_acpi_aml_Z_value *arg
-){  if( !~E_acpi_aml_E_current_path_M() )
+){  if( !~E_acpi_aml_M_current_path() )
         return ~0;
+    if( !~E_acpi_aml_Q_current_path_I_push( E_acpi_aml_S_object[ object_i ].name ))
+    {   E_acpi_aml_W_current_path();
+        return ~0;
+    }
     E_acpi_aml_S_procedure_invocation_stack_n = 1;
     Mt_( E_acpi_aml_S_procedure_invocation_stack, E_acpi_aml_S_procedure_invocation_stack_n );
     if( !E_acpi_aml_S_procedure_invocation_stack )
-    {   E_acpi_aml_E_current_path_W();
+    {   E_acpi_aml_W_current_path();
         return ~0;
     }
     E_acpi_aml_S_procedure_invocation_stack[ E_acpi_aml_S_procedure_invocation_stack_n - 1 ].name = E_acpi_aml_S_object[ object_i ].name;
@@ -8749,7 +8751,7 @@ E_acpi_aml_I_procedure_( N object_i
         Mt_( E_acpi_aml_S_parse_stack, E_acpi_aml_S_parse_stack_n );
         if( !E_acpi_aml_S_parse_stack )
         {   W( E_acpi_aml_S_procedure_invocation_stack );
-            E_acpi_aml_E_current_path_W();
+            E_acpi_aml_W_current_path();
             return ~0;
         }
         E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
@@ -8778,7 +8780,7 @@ E_acpi_aml_I_procedure_( N object_i
     for_n_( i, J_a_R_n( E_acpi_aml_S_procedure_invocation_stack[ E_acpi_aml_S_procedure_invocation_stack_n - 1 ].local ))
         E_acpi_aml_Q_value_W( &E_acpi_aml_S_procedure_invocation_stack[ E_acpi_aml_S_procedure_invocation_stack_n - 1 ].local[i] );
     W( E_acpi_aml_S_procedure_invocation_stack );
-    E_acpi_aml_E_current_path_W();
+    E_acpi_aml_W_current_path();
     return 0;
 Error:
     for_n_rev_( i, E_acpi_aml_S_object_n )
@@ -8802,7 +8804,7 @@ Error:
         }
     }
     W( E_acpi_aml_S_parse_stack );
-    E_acpi_aml_E_current_path_W();
+    E_acpi_aml_W_current_path();
     return ret;
 }
 _private
@@ -8824,17 +8826,17 @@ E_acpi_aml_M( Pc dsdt
 , N dsdt_l
 , P ssdt
 , N ssdt_n
-){  if( !~E_acpi_aml_E_current_path_M() )
+){  if( !~E_acpi_aml_M_current_path() )
         return ~0;
     E_acpi_aml_S_parse_stack_n = 1;
-    if( !~E_acpi_aml_E_object_M() )
-    {   E_acpi_aml_E_current_path_W();
+    if( !~E_acpi_aml_M_object() )
+    {   E_acpi_aml_W_current_path();
         return ~0;
     }
     Mt_( E_acpi_aml_S_parse_stack, E_acpi_aml_S_parse_stack_n );
     if( !E_acpi_aml_S_parse_stack )
-    {   E_acpi_aml_E_object_W();
-        E_acpi_aml_E_current_path_W();
+    {   E_acpi_aml_W_object();
+        E_acpi_aml_W_current_path();
         return ~0;
     }
     E_acpi_aml_S_parse_data = dsdt;
@@ -8848,13 +8850,13 @@ E_acpi_aml_M( Pc dsdt
     E_acpi_aml_S_procedure_invocation_stack_n = 0;
     Mt_( E_acpi_aml_S_procedure_invocation_stack, E_acpi_aml_S_procedure_invocation_stack_n );
     if( !E_acpi_aml_S_procedure_invocation_stack )
-    {   E_acpi_aml_E_object_W();
+    {   E_acpi_aml_W_object();
         W( E_acpi_aml_S_parse_stack );
-        E_acpi_aml_E_current_path_W();
+        E_acpi_aml_W_current_path();
         return ~0;
     }
-    E_acpi_aml_Q_current_path_S_precompilation = no;
-    E_acpi_aml_Q_procedure_invocation_stack_S_invokeing = no;
+    E_acpi_aml_S_precompilation = no;
+    E_acpi_aml_Q_procedure_invocation_stack_S_invoking = no;
     N ret = E_acpi_aml_M_parse();
     if( !~ret
     || ret == ~1
@@ -8884,8 +8886,8 @@ E_acpi_aml_M( Pc dsdt
     }
     W( E_acpi_aml_S_parse_stack );
     W( E_acpi_aml_S_procedure_invocation_stack );
-    E_acpi_aml_E_current_path_W();
-    E_acpi_aml_Q_procedure_invocation_stack_S_invokeing = yes;
+    E_acpi_aml_W_current_path();
+    E_acpi_aml_Q_procedure_invocation_stack_S_invoking = yes;
     struct E_acpi_aml_Z_value result;
     ret = E_acpi_aml_I_procedure(( struct E_acpi_aml_Z_pathname ){ "_SB__INI", 2 }, &result, 0, 0 );
     if( !~ret
@@ -8896,7 +8898,7 @@ E_acpi_aml_M( Pc dsdt
         E_acpi_aml_Q_value_W( &result );
     return 0;
 Error:
-    E_acpi_aml_E_object_W();
+    E_acpi_aml_W_object();
     for_n_( i, E_acpi_aml_S_procedure_invocation_stack_n )
     {   for_n( j, J_a_R_n( E_acpi_aml_S_procedure_invocation_stack[i].arg ))
             E_acpi_aml_Q_value_W( &E_acpi_aml_S_procedure_invocation_stack[i].arg[j] );
@@ -8914,7 +8916,7 @@ Error:
         }
     }
     W( E_acpi_aml_S_parse_stack );
-    E_acpi_aml_E_current_path_W();
+    E_acpi_aml_W_current_path();
     return ~0;
 }
 /******************************************************************************/

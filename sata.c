@@ -157,6 +157,12 @@ struct __attribute__ (( __packed__ )) E_sata_Z_fis
 //==============================================================================
 _private
 void
+E_sata_I_interrupt( void
+){  E_font_I_print( "\nsata interrupt" );
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_private
+void
 E_sata_I_init( P memory
 ){  E_sata_S_memory = memory;
     if( E_sata_S_memory->global_host_control ^ ( 1 << 31 )) // AHCI enable
@@ -201,7 +207,11 @@ E_sata_I_init( P memory
     }
     N32 port_implemented = E_sata_S_memory->port_implemented;
     for_n( port, ( E_sata_S_memory->host_cap & 0x1f ) + 1 )
-    {   if( port_implemented & 1 )
+    {   if(( port_implemented & 1 )
+        && (( E_sata_S_memory->host_cap ^ ( 1 << 28 )) // mechanical presence switch
+          || ( E_sata_S_memory->port[port].command_status ^ ( 1 << 19 )) // mechanical presence switch attached to port
+          || ( E_sata_S_memory->port[port].command_status ^ ( 1 << 13 )) // mechanical presence switch state
+        ))
         {   E_sata_S_memory->port[port].sata_control |= 1;
             E_flow_I_sleep(1000);
             E_sata_S_memory->port[port].sata_control &= ~0xf;

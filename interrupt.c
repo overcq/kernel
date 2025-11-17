@@ -382,7 +382,7 @@ E_interrupt_I_rtc_interrupt_2( void
     {   E_interrupt_S_idt[ (i) * 2 ] = E_interrupt_J_interrupt_descriptor_low( 1 << 3, (N)&(procedure), (stack) ); \
         E_interrupt_S_idt[ (i) * 2 + 1 ] = (N)&(procedure) >> 32; \
     }
-_internal
+_private
 N8
 E_interrupt_R_gsi_next( void
 ){  if( E_interrupt_S_gsi_next < 16 )
