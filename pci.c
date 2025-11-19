@@ -379,13 +379,19 @@ E_pci_I_check_device( N8 bus_i
     {   bist->start = yes;
         E_pci_I_write( bus_i, device_i, function_i, 0xc, bist_24 );
     }
+    N8 cap_pointer = E_pci_I_read( bus_i, device_i, function_i, 0x34 ) & 0xfc;
+    while( cap_pointer )
+    {   N32 n_0 = E_pci_I_read( bus_i, device_i, function_i, cap_pointer );
+        switch( n_0 & 0xff )
+        { case 5: // MSI
+                E_font_I_print( "\nMSI" );
+                break;
+        }
+        cap_pointer = ( n_0 >> 8 ) & 0xfc;
+    }
     switch(ids)
     { case 0x07e015ad:
-        {   N32 interrupt = E_pci_I_read( bus_i, device_i, function_i, 0x3c );
-            E_font_I_print( "\ninterrupt: " );
-            E_font_I_print_hex(interrupt);
-            
-            //E_interrupt_P(( interrupt >> 8 ) & 0xff, &E_sata_I_interrupt );
+        {   //E_interrupt_P( interrupt, &E_sata_I_interrupt );
             N32 p = E_pci_I_read( bus_i, device_i, function_i, 0x24 );
             E_sata_I_init( E_main_Z_p_I_to_virtual( (P)(N)p ));
             break;

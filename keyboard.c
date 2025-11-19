@@ -38,7 +38,7 @@ E_keyboard_I_wait_write( void
 ){  N time = E_flow_I_current_time();
     N time_end = time + E_interrupt_S_cpu_freq * E_keyboard_S_timeout / 1000;
     O{  N8 v = E_main_I_in_8( 0x64 );
-        if( v ^ 2 )
+        if( !( v & 2 ))
             break;
         if( E_flow_I_current_time() > time_end )
             return ~0;

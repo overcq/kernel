@@ -769,7 +769,7 @@ E_interrupt_I_external:
     test    %rax,%rax
     jz      0f
     call    *%rax
-0:  mov     $0xb,%rdi
+0:  mov     $0x80b,%rdi
     xor     %esi,%esi
     call    E_interrupt_Q_local_apic_P
     pop     %r11

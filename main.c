@@ -107,13 +107,12 @@ struct E_main_Z_kernel_args
   struct E_main_Z_framebuffer framebuffer;
   struct E_main_Z_uefi_runtime_services uefi_runtime_services;
   struct E_main_Z_kernel_args_Z_acpi acpi;
-  P local_apic_address;
   P io_apic_address;
   struct E_interrupt_Z_gsi *gsi;
   P *processor_proc;
   N32 processor_start_page;
+  N32 processor_n;
   N8 gsi_n;
-  N8 processor_n;
 };
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 struct __attribute__ (( __packed__ )) E_main_I_tss
@@ -232,15 +231,14 @@ __attribute__ (( __naked__ ))
 void
 E_main_I_processor_start( void
 ){  __asm__ volatile (
-    "\n"    "mov    %0,%%rdi"
-    "\n"    "mov    2*0x10(%%rdi),%%ebx"
-    "\n"    "shr    $24,%%ebx"
-    "\n"    "dec    %%ebx"
-    "\n"    "movzbq %%bl,%%rbx"
-    "\n"    "mov    %1,%%rbp"
+    "\n"    "mov    $0x802,%%ecx"
+    "\n"    "rdmsr"
+    "\n"    "dec    %%eax"
+    "\n"    "mov    %%eax,%%ebx"
+    "\n"    "mov    %0,%%rbp"
     "\n"    "mov    (%%rbp,%%rbx,8),%%rsp"
     "\n"    "lea    0x2000(%%rsp),%%rsp"
-    "\n"    "lgdt   %2"
+    "\n"    "lgdt   %1"
     "\n"    "mov    $3 << 3,%%ax"
     "\n"    "lldt   %%ax"
     "\n"    "mov    $2 << 3,%%ax"
@@ -258,30 +256,33 @@ E_main_I_processor_start( void
     "\n0:"  "lea    7(%%rbx,%%rbx),%%rax"
     "\n"    "shl    $3,%%rax"
     "\n"    "ltr    %%ax"
-    "\n"    "lidt   %3"
-    "\n"    "mov    0xf*0x10(%%rdi),%%eax"
+    "\n"    "lidt   %2"
+    "\n"    "mov    $0x80f,%%ecx"
+    "\n"    "rdmsr"
     "\n"    "or     $0x100,%%eax"
-    "\n"    "mov    %4,%%al"
+    "\n"    "mov    %3,%%al"
     "\n"    "lea    32(%%eax),%%eax"
-    "\n"    "mov    %%eax,0xf*0x10(%%rdi)"
-    "\n"    "mov    %5,%%rax"
+    "\n"    "wrmsr"
+    "\n"    "mov    %4,%%rax"
     "\n"    "lea    32(%%rax),%%rax"
-    "\n"    "mov    %%eax,0x32*0x10(%%rdi)"
-    "\n"    "mov    0x3e*0x10(%%rdi),%%eax"
+    "\n"    "mov    $0x832,%%ecx"
+    "\n"    "wrmsr"
+    "\n"    "mov    $0x83e,%%ecx"
+    "\n"    "rdmsr"
     "\n"    "and    $~0xf,%%eax"
     "\n"    "or     $0xb,%%eax"
-    "\n"    "mov    %%eax,0x3e*0x10(%%rdi)"
+    "\n"    "wrmsr"
     "\n"    "sti"
     "\n"    "mov    (%%rbp,%%rbx,8),%%rdi"
     "\n"    "call   E_flow_M"
-    "\n"    "cmp    $~0,%%rax"
-    "\n"    "jne    0f"
+    "\n"    "test   %%rax,%%rax"
+    "\n"    "jz     0f"
     "\n"    "jmp    E_main_I_error_fatal"
     "\n0:"  "mov    %%rax,(%%rbp,%%rbx,8)"
     "\n"    "jmp    E_flow_I_main_task"
     :
-    : "m" ( E_interrupt_Q_local_apic_S_address ), "m" ( E_main_S_stack ), "p" ( &E_main_S_gd.limit ), "p" ( &E_interrupt_S_id.limit ), "m" ( E_interrupt_S_gsi_n ), "m" ( E_interrupt_S_gsi_timer )
-    : "rax", "rbx", "rbp", "rdi"
+    : "m" ( E_main_S_stack ), "p" ( &E_main_S_gd.limit ), "p" ( &E_interrupt_S_id.limit ), "m" ( E_interrupt_S_gsi_n ), "m" ( E_interrupt_S_gsi_timer )
+    : "rax", "rcx", "rdx", "rbx", "rbp", "rdi"
     );
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -303,7 +304,6 @@ main( struct E_main_Z_kernel_args *kernel_args
     E_main_S_framebuffer = kernel_args->framebuffer;
     E_main_S_uefi_runtime_services = kernel_args->uefi_runtime_services;
     //E_main_S_acpi = kernel_args->acpi;
-    E_interrupt_Q_local_apic_S_address = kernel_args->local_apic_address;
     E_interrupt_Q_io_apic_S_address = kernel_args->io_apic_address;
     E_interrupt_S_gsi = kernel_args->gsi;
     E_interrupt_S_gsi_n = kernel_args->gsi_n;
@@ -409,6 +409,7 @@ main( struct E_main_Z_kernel_args *kernel_args
         );
     }
     W( E_main_S_stack );
+E_font_I_print( "\nC" );
     E_flow_I_lock( &E_mem_blk_S_mem_lock );
     struct E_mem_Q_blk_Z_free free_p_;
     if( !~E_mem_Q_blk_Q_sys_table_f_P_put( E_mem_blk_S.free_id, (Pc)&free_p_.p - (Pc)&free_p_, (Pc)&free_p_.l - (Pc)&free_p_, (P)(N)kernel_args->processor_start_page, E_mem_S_page_size ))

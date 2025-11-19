@@ -252,7 +252,6 @@ _private void E_interrupt_I_external_253(void);
 _private void E_interrupt_I_external_254(void);
 _private void E_interrupt_I_external_spurious(void);
 //==============================================================================
-_private volatile P E_interrupt_Q_local_apic_S_address;
 _private volatile P E_interrupt_Q_io_apic_S_address;
 _private
 struct E_interrupt_Z_gsi
@@ -303,30 +302,38 @@ E_interrupt_Q_io_apic_P_gsi( N8 i
 }
 //------------------------------------------------------------------------------
 _private
-N32
-E_interrupt_Q_local_apic_R( N i
-){  return *( volatile N32 * )( E_interrupt_Q_local_apic_S_address + i * 0x10 );
+N64
+E_interrupt_Q_local_apic_R( N32 i
+){  N32 ret_high, ret_low;
+    __asm__ volatile (
+    "\n"    "rdmsr"
+    : "=d" ( ret_high ), "=a" ( ret_low )
+    : "c" (i)
+    );
+    return ( (N64)ret_high << 32 ) | ret_low;
 }
 _private
 void
-E_interrupt_Q_local_apic_P( N i
-, N32 v
-){  *( volatile N32 * )( E_interrupt_Q_local_apic_S_address + i * 0x10 ) = v;
+E_interrupt_Q_local_apic_P( N32 i
+, N64 v
+){  __asm__ volatile (
+    "\n"    "wrmsr"
+    :
+    : "c" (i), "d" ( v >> 32 ), "a" ( v & 0xffffffff )
+    );
 }
 //------------------------------------------------------------------------------
 _private
 void
-E_interrupt_I_ipi( N8 processor
+E_interrupt_I_ipi( N32 processor
 , N8 i
-){  E_interrupt_Q_local_apic_P( 0x31, processor << 24 );
-    E_interrupt_Q_local_apic_P( 0x30, i );
+){  E_interrupt_Q_local_apic_P( 0x830, ( (N64)processor << 32 ) | i );
 }
 _private
 void
-E_interrupt_I_ipi_startup( N8 processor
+E_interrupt_I_ipi_startup( N32 processor
 , P proc
-){  E_interrupt_Q_local_apic_P( 0x31, processor << 24 );
-    E_interrupt_Q_local_apic_P( 0x30, ( 6 << 8 ) | ( (N)proc >> 12 ));
+){  E_interrupt_Q_local_apic_P( 0x830, ( (N64)processor << 32 ) | ( 6 << 8 ) | ( (N)proc >> 12 ));
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #define E_interrupt_Q_io_apic_J_gsi_v( vector, delivery_mode, polarity, trigger_mode, mask, destination ) \
@@ -370,7 +377,7 @@ _internal
 void
 E_interrupt_I_rtc_interrupt_2( void
 ){  if( !E_interrupt_S_rtc_ticks )
-        E_interrupt_Q_local_apic_P( 0x38, E_interrupt_S_apic_timer_div );
+        E_interrupt_Q_local_apic_P( 0x838, E_interrupt_S_apic_timer_div );
     else if( E_interrupt_S_rtc_ticks == 1 )
         E_interrupt_S_apic_timer_freq_ = E_interrupt_S_apic_timer_ticks;
     E_interrupt_S_rtc_ticks++;
@@ -1127,9 +1134,9 @@ E_interrupt_M( void
     // Kalibracja zegara APIC na podstawie RTC.
     E_interrupt_S_external[16] = &E_interrupt_I_apic_timer_interrupt;
     E_interrupt_P( 8, &E_interrupt_I_rtc_interrupt_1 );
-    E_interrupt_Q_local_apic_P( 0xf, ( E_interrupt_Q_local_apic_R( 0xf ) & ~0xff ) | 0x100 | ( 32 + E_interrupt_S_gsi_n ));
-    E_interrupt_Q_local_apic_P( 0x32, ( 32 + 16 ) | ( 1 << 17 ));
-    E_interrupt_Q_local_apic_P( 0x3e, ( E_interrupt_Q_local_apic_R( 0x3e ) & ~0xf ) | 0xb );
+    E_interrupt_Q_local_apic_P( 0x80f, ( E_interrupt_Q_local_apic_R( 0x80f ) & ~0xff ) | 0x100 | ( 32 + E_interrupt_S_gsi_n ));
+    E_interrupt_Q_local_apic_P( 0x832, ( 32 + 16 ) | ( 1 << 17 ));
+    E_interrupt_Q_local_apic_P( 0x83e, ( E_interrupt_Q_local_apic_R( 0x83e ) & ~0xf ) | 0xb );
     E_main_I_out_8( 0x70, 0x8a );
     N8 v = E_main_I_in_8( 0x71 );
     E_main_I_out_8( 0x70, 0x8a );
@@ -1165,7 +1172,7 @@ E_interrupt_M( void
         __asm__ volatile (
         "\n"    "cli"
         );
-        E_interrupt_Q_local_apic_P( 0x38, 0 );
+        E_interrupt_Q_local_apic_P( 0x838, 0 );
         if( E_interrupt_S_apic_timer_freq << 1 > E_interrupt_S_apic_timer_freq_ )
         {   E_interrupt_S_apic_timer_div <<= 1;
             break;
@@ -1181,7 +1188,7 @@ E_interrupt_M( void
     E_main_I_out_8( 0x71, v & ~0x40 );
     E_main_I_out_8( 0x70, 0xc );
     E_main_I_in_8( 0x71 );
-    E_interrupt_Q_local_apic_P( 0x32, 32 + E_interrupt_S_gsi_timer );
+    E_interrupt_Q_local_apic_P( 0x832, 32 + E_interrupt_S_gsi_timer );
     E_interrupt_P( 8, 0 );
     E_interrupt_S_external[16] = 0;
     __asm__ volatile (

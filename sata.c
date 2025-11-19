@@ -165,9 +165,9 @@ _private
 void
 E_sata_I_init( P memory
 ){  E_sata_S_memory = memory;
-    if( E_sata_S_memory->global_host_control ^ ( 1 << 31 )) // AHCI enable
+    if( !( E_sata_S_memory->global_host_control & ( 1 << 31 ))) // AHCI enable
     {   E_sata_S_memory->global_host_control |= 1 << 31;
-        if( E_sata_S_memory->global_host_control ^ ( 1 << 31 ))
+        if( !( E_sata_S_memory->global_host_control & ( 1 << 31 )))
             return;
     }
     N time;
@@ -175,7 +175,7 @@ E_sata_I_init( P memory
     {   E_sata_S_memory->bios_os_handoff_control_status |= 1 << 1; // OS owned semaphore
         E_flow_Q_spin_time_M( &time, 25000 );
         while(( E_sata_S_memory->bios_os_handoff_control_status & 1 ) // BIOS owned semaphore
-        && ( E_sata_S_memory->bios_os_handoff_control_status ^ ( 1 << 4 )) // BIOS busy
+        && !( E_sata_S_memory->bios_os_handoff_control_status & ( 1 << 4 )) // BIOS busy
         && !E_flow_Q_spin_time_T( &time )
         )
             __asm__ volatile (
@@ -200,17 +200,17 @@ E_sata_I_init( P memory
         "\n"    "pause"
         );
     }
-    if( E_sata_S_memory->global_host_control ^ ( 1 << 31 ))
+    if( !( E_sata_S_memory->global_host_control & ( 1 << 31 )))
     {   E_sata_S_memory->global_host_control |= 1 << 31;
-        if( E_sata_S_memory->global_host_control ^ ( 1 << 31 ))
+        if( !( E_sata_S_memory->global_host_control & ( 1 << 31 )))
             return;
     }
     N32 port_implemented = E_sata_S_memory->port_implemented;
     for_n( port, ( E_sata_S_memory->host_cap & 0x1f ) + 1 )
     {   if(( port_implemented & 1 )
-        && (( E_sata_S_memory->host_cap ^ ( 1 << 28 )) // mechanical presence switch
-          || ( E_sata_S_memory->port[port].command_status ^ ( 1 << 19 )) // mechanical presence switch attached to port
-          || ( E_sata_S_memory->port[port].command_status ^ ( 1 << 13 )) // mechanical presence switch state
+        && ( !( E_sata_S_memory->host_cap & ( 1 << 28 )) // mechanical presence switch
+          || !( E_sata_S_memory->port[port].command_status & ( 1 << 19 )) // mechanical presence switch attached to port
+          || !( E_sata_S_memory->port[port].command_status & ( 1 << 13 )) // mechanical presence switch state
         ))
         {   E_sata_S_memory->port[port].sata_control |= 1;
             E_flow_I_sleep(1000);

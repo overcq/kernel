@@ -73,7 +73,7 @@ E_flow_Q_spin_time_T( N *time
 _private
 N8
 E_flow_I_current_scheduler( void
-){  return E_interrupt_Q_local_apic_R(2) >> 24;
+){  return E_interrupt_Q_local_apic_R( 0x802 ) >> 24;
 }
 _private
 void
@@ -88,7 +88,7 @@ E_flow_I_sleep( N microseconds
 #error not implemented
             #endif
         );
-        E_interrupt_Q_local_apic_P( 0x38, acpi_timer_ticks );
+        E_interrupt_Q_local_apic_P( 0x838, acpi_timer_ticks );
         __asm__ volatile (
             #if defined( __x86_64__ )
         "\n"    "sti"
@@ -637,7 +637,7 @@ E_flow_Q_task_I_schedule( void
                 __asm__ volatile (
                 "\n"    "cli"
                 );
-                E_interrupt_Q_local_apic_P( 0x38, acpi_timer_ticks );
+                E_interrupt_Q_local_apic_P( 0x838, acpi_timer_ticks );
                 do
                 {   __asm__ volatile (
                     "\n"    "sti"
