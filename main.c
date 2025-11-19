@@ -264,7 +264,7 @@ E_main_I_processor_start( void
     "\n"    "mov    %3,%%al"
     "\n"    "lea    32(%%eax),%%eax"
     "\n"    "wrmsr"
-    "\n"    "mov    %4,%%rax"
+    "\n"    "movzbq %4,%%rax"
     "\n"    "lea    32(%%rax),%%rax"
     "\n"    "mov    $0x832,%%ecx"
     "\n"    "wrmsr"
@@ -411,7 +411,6 @@ main( struct E_main_Z_kernel_args *kernel_args
         );
     }
     W( E_main_S_stack );
-E_font_I_print( "\nC" );
     E_flow_I_lock( &E_mem_blk_S_mem_lock );
     struct E_mem_Q_blk_Z_free free_p_;
     if( !~E_mem_Q_blk_Q_sys_table_f_P_put( E_mem_blk_S.free_id, (Pc)&free_p_.p - (Pc)&free_p_, (Pc)&free_p_.l - (Pc)&free_p_, (P)(N)kernel_args->processor_start_page, E_mem_S_page_size ))

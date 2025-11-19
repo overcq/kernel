@@ -262,7 +262,7 @@ struct E_interrupt_Z_gsi
 _private N8 E_interrupt_S_gsi_n;
 _internal N *E_interrupt_S_idt;
 _private E_interrupt_S_external_Z *E_interrupt_S_external;
-_private N8 E_interrupt_S_gsi_next;
+_internal N8 E_interrupt_S_gsi_next;
 _private N8 E_interrupt_S_gsi_timer;
 _private N8 E_interrupt_S_gsi_ipi;
 struct __attribute__ ((packed)) E_interrupt_Z_id
@@ -1125,7 +1125,6 @@ E_interrupt_M( void
     for_n( i, E_interrupt_S_gsi_n )
         if( ~(S8)E_interrupt_S_gsi[i].source )
             E_interrupt_Q_io_apic_I_enable(i);
-    E_interrupt_S_gsi_next = 0;
     E_interrupt_S_gsi_timer = E_interrupt_R_gsi_next();
     if( !~E_interrupt_S_gsi_timer )
         return ~0;

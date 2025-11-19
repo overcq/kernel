@@ -338,8 +338,6 @@ struct __attribute__ (( __packed__ )) E_pci_Z_header_Z_bist
   N8 capable            :1;
 };
 //==============================================================================
-_private N8 E_pci_S_lnk[4];
-//==============================================================================
 _internal N E_pci_I_check_bus( N8 );
 //==============================================================================
 _private
@@ -397,7 +395,7 @@ E_pci_I_check_device( N8 bus_i
                         {   E_pci_I_write( bus_i, device_i, function_i, cap_pointer + 4, (N)E_interrupt_Q_local_apic_S_address & 0xffffffff );
                             E_pci_I_write( bus_i, device_i, function_i, cap_pointer + 8, interrupt );
                         }
-                        E_interrupt_P( interrupt, &E_sata_I_interrupt );
+                        E_interrupt_S_external[interrupt] = &E_sata_I_interrupt;
                         n_0 |= 1 << 16;
                         E_pci_I_write( bus_i, device_i, function_i, cap_pointer, n_0 );
                         break;

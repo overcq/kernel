@@ -755,7 +755,6 @@ E_acpi_reader_M( void
         return ~0;
     resources.bus_polarity_low = yes; //NDFN Tymczasowo dla ISA.
     resources.bus_trigger_edge = no; //NDFN Tymczasowo dla ISA.
-    E_mem_Q_blk_P_fill_c( &E_pci_S_lnk[0], sizeof( E_pci_S_lnk ), 0 );
     for_n_( i, E_acpi_aml_S_object_n )
     {   if( E_acpi_aml_S_object[i].type == E_acpi_aml_Z_object_Z_type_S_device )
         {   struct E_acpi_aml_Z_value result;
@@ -905,27 +904,11 @@ E_acpi_reader_M( void
                     }
                 }
             }
-            if( E_text_Z_s_T_eq_s0( E_acpi_aml_S_object[i].name.s + ( E_acpi_aml_S_object[i].name.n - 1 ) * 4
-            , E_acpi_aml_S_object[i].name.s + E_acpi_aml_S_object[i].name.n * 4 - 1
-            , "LNK"
-            )
-            && ( *( E_acpi_aml_S_object[i].name.s + E_acpi_aml_S_object[i].name.n * 4 - 1 ) == 'A'
-              || *( E_acpi_aml_S_object[i].name.s + E_acpi_aml_S_object[i].name.n * 4 - 1 ) == 'B'
-              || *( E_acpi_aml_S_object[i].name.s + E_acpi_aml_S_object[i].name.n * 4 - 1 ) == 'C'
-              || *( E_acpi_aml_S_object[i].name.s + E_acpi_aml_S_object[i].name.n * 4 - 1 ) == 'D'
-            ))
-                E_pci_S_lnk[ *( E_acpi_aml_S_object[i].name.s + E_acpi_aml_S_object[i].name.n * 4 - 1 ) - 'A' ] = E_acpi_reader_R_irq( &crs_value );
             //TODO Przypisanie zasobów urządzenia.
             E_acpi_aml_Q_value_W( &crs_value );
         }
     }
     W( resources.irq );
-    for_n_( i, J_a_R_n( E_pci_S_lnk ))
-    {   E_font_I_print( "\nLNK " );
-        E_font_I_print_hex(i);
-        E_font_I_print( " = " );
-        E_font_I_print_hex( E_pci_S_lnk[i] );
-    }
     // Diagnostyczne wypisanie urządzeń.
     for_n_( i, E_acpi_aml_S_object_n )
         if( E_acpi_aml_S_object[i].type == E_acpi_aml_Z_object_Z_type_S_device )
