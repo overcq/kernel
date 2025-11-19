@@ -337,21 +337,6 @@ struct __attribute__ (( __packed__ )) E_pci_Z_header_Z_bist
   N8 start              :1;
   N8 capable            :1;
 };
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-struct __attribute__ (( __packed__ )) E_pci_Z_cap_Z_msi_32
-{ N8 id;
-  N8 next_pointer;
-  N16 message_control;
-  N32 message_address;
-  N32 message_date, message_date_ex;
-};
-struct __attribute__ (( __packed__ )) E_pci_Z_cap_Z_msi_64
-{ N8 id;
-  N8 next_pointer;
-  N16 message_control;
-  N64 message_address;
-  N32 message_date, message_date_ex;
-};
 //==============================================================================
 _private N8 E_pci_S_lnk[4];
 //==============================================================================
@@ -413,7 +398,7 @@ E_pci_I_check_device( N8 bus_i
                             E_pci_I_write( bus_i, device_i, function_i, cap_pointer + 8, interrupt );
                         }
                         E_interrupt_P( interrupt, &E_sata_I_interrupt );
-                        n_0 |= 1;
+                        n_0 |= 1 << 16;
                         E_pci_I_write( bus_i, device_i, function_i, cap_pointer, n_0 );
                         break;
                     }
