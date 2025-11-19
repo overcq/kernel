@@ -107,6 +107,7 @@ struct E_main_Z_kernel_args
   struct E_main_Z_framebuffer framebuffer;
   struct E_main_Z_uefi_runtime_services uefi_runtime_services;
   struct E_main_Z_kernel_args_Z_acpi acpi;
+  P local_apic_address;
   P io_apic_address;
   struct E_interrupt_Z_gsi *gsi;
   P *processor_proc;
@@ -304,6 +305,7 @@ main( struct E_main_Z_kernel_args *kernel_args
     E_main_S_framebuffer = kernel_args->framebuffer;
     E_main_S_uefi_runtime_services = kernel_args->uefi_runtime_services;
     //E_main_S_acpi = kernel_args->acpi;
+    E_interrupt_Q_local_apic_S_address = kernel_args->local_apic_address;
     E_interrupt_Q_io_apic_S_address = kernel_args->io_apic_address;
     E_interrupt_S_gsi = kernel_args->gsi;
     E_interrupt_S_gsi_n = kernel_args->gsi_n;
@@ -422,7 +424,8 @@ E_font_I_print( "\nC" );
         goto End;
     W( kernel_args->bootloader );
 
-    E_pci_I_check_buses();
+    if( !~E_pci_I_check_buses() )
+        goto End;
 
     X_M( main, test );
     D_M( main, test )

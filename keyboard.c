@@ -35,12 +35,12 @@ E_keyboard_I_wait_read( void
 _internal
 N
 E_keyboard_I_wait_write( void
-){  N time = E_flow_I_current_time();
-    N time_end = time + E_interrupt_S_cpu_freq * E_keyboard_S_timeout / 1000;
+){  N time;
+    E_flow_Q_spin_time_M( &time, 1000 );
     O{  N8 v = E_main_I_in_8( 0x64 );
         if( !( v & 2 ))
             break;
-        if( E_flow_I_current_time() > time_end )
+        if( E_flow_Q_spin_time_T( &time ))
             return ~0;
         __asm__ volatile (
         "\n"    "pause"

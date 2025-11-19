@@ -415,7 +415,7 @@ E_acpi_reader_M_crs( struct E_acpi_reader_Z_resources *resources
                         }
                     }
                     N8 irq_i = E_asm_I_bsf( irq_->irq_mask );
-                    if(( 1 + ( irq_->type_name_length & 7 )) != 3
+                    if(( 1 + ( irq_->type_name_length & 7 )) != 4
                     || !( irq_->info & 0x10 ) // not shared
                     )
                     {   for_n( j, resources->irq_n )
@@ -433,7 +433,7 @@ E_acpi_reader_M_crs( struct E_acpi_reader_Z_resources *resources
                     {   ret = ~1;
                         goto Error;
                     }
-                    if(( 1 + ( irq_->type_name_length & 7 )) == 3 )
+                    if(( 1 + ( irq_->type_name_length & 7 )) == 4 )
                     {   if( E_interrupt_S_gsi[j].flags & 3 )
                         {   if( !!( irq_->info & 8 ) != (( E_interrupt_S_gsi[j].flags & 3 ) == 3 ))
                             {   ret = ~1;
@@ -463,7 +463,7 @@ E_acpi_reader_M_crs( struct E_acpi_reader_Z_resources *resources
                         prs_dependent_conf_n--;
                     else
                         prs_conf_n--;
-                    if(( 1 + ( irq_->type_name_length & 7 )) != 3
+                    if(( 1 + ( irq_->type_name_length & 7 )) != 4
                     || !( irq_->info & 0x10 ) // not shared
                     )
                     {   N prepended;
@@ -476,7 +476,7 @@ E_acpi_reader_M_crs( struct E_acpi_reader_Z_resources *resources
                     }
                     irq->irq_mask = irq_->irq_mask;
                     if( l_ == 4 )
-                        irq->info = ( 1 + ( irq_->type_name_length & 7 )) == 3
+                        irq->info = ( 1 + ( irq_->type_name_length & 7 )) == 4
                         ? irq_->info
                         : ( resources->bus_polarity_low << 3 ) | resources->bus_trigger_edge;
                     break;

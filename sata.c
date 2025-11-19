@@ -256,15 +256,15 @@ E_sata_I_init( P memory
             {   E_sata_S_memory->port[port].command_list_base = command_list_base_physical;
                 E_sata_S_memory->port[port].fis_base = fis_base_physical;
             }else
-            {   if(( command_list_base_physical & 0xffff0000 )
-                || ( fis_base_physical & 0xffff0000 )
+            {   if(( command_list_base_physical & 0xffffffff00000000 )
+                || ( fis_base_physical & 0xffffffff00000000 )
                 )
                     E_main_I_error_fatal();
                 *( N32 * )&E_sata_S_memory->port[port].command_list_base = (N32)command_list_base_physical;
                 *( N32 * )&E_sata_S_memory->port[port].fis_base = (N32)fis_base_physical;
             }
             *( N32 * )&E_sata_S_memory->port[port].command_status |= 1 << 4; // fis receive enable
-            //TODO Konfiguracja przerwań.
+            E_sata_S_memory->port[port].interrupt_enable = 0x7d0000df;
             E_sata_S_memory->global_host_control |= 1 << 1; // interrupt enable
         }
 Next_port:

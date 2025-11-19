@@ -252,6 +252,7 @@ _private void E_interrupt_I_external_253(void);
 _private void E_interrupt_I_external_254(void);
 _private void E_interrupt_I_external_spurious(void);
 //==============================================================================
+_private volatile P E_interrupt_Q_local_apic_S_address;
 _private volatile P E_interrupt_Q_io_apic_S_address;
 _private
 struct E_interrupt_Z_gsi
