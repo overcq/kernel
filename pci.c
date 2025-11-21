@@ -404,14 +404,16 @@ E_pci_I_check_device( N8 bus_i
                 cap_pointer = ( n_0 >> 8 ) & 0xfc;
             }
             N32 p = E_pci_I_read( bus_i, device_i, function_i, 0x24 );
-            E_sata_I_init( E_main_Z_p_I_to_virtual( (P)(N)p ));
+            N ret = E_sata_I_init( E_main_Z_p_I_to_virtual( (P)(N)p ));
+            if(ret)
+                return ret;
             break;
         }
     }
     return 0;
 }
 _internal
-void
+N
 E_pci_I_check_function( N8 bus_i
 , N8 device_i
 , N8 function_i
@@ -423,8 +425,11 @@ E_pci_I_check_function( N8 bus_i
     )
     {   N32 buses_latency = E_pci_I_read( bus_i, device_i, function_i, 0x18 );
         N8 secondary_bus = ( buses_latency >> 8 ) & 0xff;
-        E_pci_I_check_bus( secondary_bus );
+        N ret = E_pci_I_check_bus( secondary_bus );
+        if(ret)
+            return ret;
     }
+    return 0;
 }
 _internal
 N
@@ -436,7 +441,9 @@ E_pci_I_check_bus( N8 bus_i
         N ret = E_pci_I_check_device( bus_i, device_i, 0, ids );
         if(ret)
             return ret;
-        E_pci_I_check_function( bus_i, device_i, 0 );
+        ret = E_pci_I_check_function( bus_i, device_i, 0 );
+        if(ret)
+            return ret;
         N8 header_type = E_pci_I_read( 0, 0, 0, 0xe );
         if( header_type & 0x80 )
         {   for_n( function_i, 7 )
@@ -445,7 +452,9 @@ E_pci_I_check_bus( N8 bus_i
                 {   ret = E_pci_I_check_device( bus_i, device_i, 1 + function_i, ids );
                     if(ret)
                         return ret;
-                    E_pci_I_check_function( bus_i, device_i, 1 + function_i );
+                    ret = E_pci_I_check_function( bus_i, device_i, 1 + function_i );
+                    if(ret)
+                        return ret;
                 }
             }
         }

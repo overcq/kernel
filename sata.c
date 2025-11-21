@@ -6,58 +6,6 @@
 *         SATA AHCI driver
 * ©overcq                on ‟Gentoo Linux 23.0” “x86_64”             2025‒11‒7 d
 *******************************************************************************/
-struct __attribute__ (( __packed__ )) E_sata_Z_port
-{ N64 command_list_base;
-  N64 fis_base;
-  N32 interrupt_status, interrupt_enable;
-  N32 command_status;
-  N32 reserved_1;
-  N32 task_file_data;
-  N32 signature;
-  N32 sata_status;
-  N32 sata_control;
-  N32 sata_error;
-  N32 sata_active;
-  N32 command_issue;
-  N32 sata_notification;
-  N32 fis_based_switch_control;
-  N32 reserved_2[11];
-  N32 vendor[4];
-};
-_internal
-volatile struct __attribute__ (( __packed__ )) E_sata_Z_memory
-{ N32 host_cap;
-  N32 global_host_control;
-  N32 interrupt_status;
-  N32 port_implemented;
-  N32 version;
-  N32 command_completion_control;
-  N32 command_completion_ports;
-  N32 enclosure_management_location;
-  N32 enclosure_management_control;
-  N32 host_cap_2;
-  N32 bios_os_handoff_control_status;
-  N8 reserved[ 0xa0 - 0x2c ];
-  N8 vendor[ 0x100 - 0xa0 ];
-  struct E_sata_Z_port port[];
-} *E_sata_S_memory;
-//------------------------------------------------------------------------------
-struct __attribute__ (( __packed__ )) E_sata_Z_command_header
-{ N8 length         :5;
-  N8 atapi          :1;
-  N8 write          :1;
-  N8 prefechable    :1;
-  N8 reset          :1;
-  N8 bist           :1;
-  N8 clear_busy     :1;
-  N8 reserved_1     :1;
-  N8 multiplier_port:4;
-  N16 prdt_length;
-  volatile N32 prdt_transferred;
-  N64 ctd_base;
-  N32 reserved_2[4];
-};
-//------------------------------------------------------------------------------
 enum E_sata_Z_fis_type
 { E_sata_Z_fis_type_S_register_h2d = 0x27
 , E_sata_Z_fis_type_S_register_d2h = 0x34
@@ -154,6 +102,72 @@ struct __attribute__ (( __packed__ )) E_sata_Z_fis
   N8 unknown_fis[64];
   N8 reserved[ 0x100 - 0xa0 ];
 };
+//------------------------------------------------------------------------------
+struct __attribute__ (( __packed__ )) E_sata_Z_port
+{ N64 command_list_base;
+  N64 fis_base;
+  N32 interrupt_status, interrupt_enable;
+  N32 command_status;
+  N32 reserved_1;
+  N32 task_file_data;
+  N32 signature;
+  N32 sata_status;
+  N32 sata_control;
+  N32 sata_error;
+  N32 sata_active;
+  N32 command_issue;
+  N32 sata_notification;
+  N32 fis_based_switch_control;
+  N32 reserved_2[11];
+  N32 vendor[4];
+};
+_internal
+volatile struct __attribute__ (( __packed__ )) E_sata_Z_memory
+{ N32 host_cap;
+  N32 global_host_control;
+  N32 interrupt_status;
+  N32 port_implemented;
+  N32 version;
+  N32 command_completion_control;
+  N32 command_completion_ports;
+  N32 enclosure_management_location;
+  N32 enclosure_management_control;
+  N32 host_cap_2;
+  N32 bios_os_handoff_control_status;
+  N8 reserved[ 0xa0 - 0x2c ];
+  N8 vendor[ 0x100 - 0xa0 ];
+  struct E_sata_Z_port port[];
+} *E_sata_S_memory;
+//------------------------------------------------------------------------------
+struct __attribute__ (( __packed__ )) E_sata_Z_command_header
+{ N8 length         :5;
+  N8 atapi          :1;
+  N8 write          :1;
+  N8 prefechable    :1;
+  N8 reset          :1;
+  N8 bist           :1;
+  N8 clear_busy     :1;
+  N8 reserved_1     :1;
+  N8 multiplier_port:4;
+  N16 region_table_length;
+  volatile N32 region_table_transferred;
+  N64 command_table_base;
+  N32 reserved_2[4];
+};
+struct __attribute__ (( __packed__ )) E_sata_Z_region_table
+{ N64 data_base_address;
+  N32 reserved_1;
+  N32 data_count                :22;
+  N32 reserved_2                :9;
+  N32 interrupt_on_completion   :1;
+};
+struct __attribute__ (( __packed__ )) E_sata_Z_command_table
+{ struct E_sata_Z_fis_register_h2d command_fis;
+  N8 reserved_1[ 0x40 - sizeof( struct E_sata_Z_fis_register_h2d ) ];
+  N8 atapi_command[ 0x50 - 0x40 ];
+  N8 reserved_2[ 0x80 - 0x50 ];
+  struct E_sata_Z_region_table region_table;
+};
 //==============================================================================
 _private
 void
@@ -162,16 +176,15 @@ E_sata_I_interrupt( void
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _private
-void
+N
 E_sata_I_init( P memory
 ){  E_sata_S_memory = memory;
+    N time;
     if( !( E_sata_S_memory->global_host_control & ( 1 << 31 ))) // AHCI enable
     {   E_sata_S_memory->global_host_control |= 1 << 31;
         if( !( E_sata_S_memory->global_host_control & ( 1 << 31 )))
-            return;
-    }
-    N time;
-    if( E_sata_S_memory->host_cap_2 & 1 ) // BIOS/OS handoff
+            return ~0;
+    }else if( E_sata_S_memory->host_cap_2 & 1 ) // BIOS/OS handoff
     {   E_sata_S_memory->bios_os_handoff_control_status |= 1 << 1; // OS owned semaphore
         E_flow_Q_spin_time_M( &time, 25000 );
         while(( E_sata_S_memory->bios_os_handoff_control_status & 1 ) // BIOS owned semaphore
@@ -195,7 +208,7 @@ E_sata_I_init( P memory
     E_flow_Q_spin_time_M( &time, 1000000 );
     while( E_sata_S_memory->global_host_control & 1 )
     {   if( E_flow_Q_spin_time_T( &time ))
-            return;
+            return ~0;
         __asm__ volatile (
         "\n"    "pause"
         );
@@ -203,7 +216,7 @@ E_sata_I_init( P memory
     if( !( E_sata_S_memory->global_host_control & ( 1 << 31 )))
     {   E_sata_S_memory->global_host_control |= 1 << 31;
         if( !( E_sata_S_memory->global_host_control & ( 1 << 31 )))
-            return;
+            return ~0;
     }
     N32 port_implemented = E_sata_S_memory->port_implemented;
     for_n( port, ( E_sata_S_memory->host_cap & 0x1f ) + 1 )
@@ -222,6 +235,12 @@ E_sata_I_init( P memory
                 __asm__ volatile (
                 "\n"    "pause"
                 );
+            }
+            if(( E_sata_S_memory->port[port].sata_status & 0xf ) != 3 )
+            {   E_sata_S_memory->port[port].sata_control |= 4;
+                E_flow_I_sleep(1000); //NDFN Nie wiadomo, czy to i następny wiersz potrzebne.
+                E_sata_S_memory->port[port].sata_control &= ~0xf;
+                continue;
             }
             E_sata_S_memory->port[port].sata_error = ~0;
             switch( E_sata_S_memory->port[port].signature )
@@ -246,10 +265,30 @@ E_sata_I_init( P memory
             N command_list_n = ( E_sata_S_memory->host_cap >> 8 ) & 0x1f;
             P command_list_base = E_mem_Q_blk_M_align( command_list_n * sizeof( struct E_sata_Z_command_header ), 1024 );
             if( !command_list_base )
-                E_main_I_error_fatal();
+                return ~1;
+            struct E_sata_Z_command_header *command_list = command_list_base;
+            for_n( i, command_list_n )
+            {   command_list[i].length = sizeof( struct E_sata_Z_fis_register_h2d ) / sizeof( N32 );
+                command_list[i].atapi = no;
+                command_list[i].prefechable = no;
+                command_list[i].reset = no;
+                command_list[i].bist = no;
+                command_list[i].clear_busy = yes;
+                command_list[i].multiplier_port = 0;
+                command_list[i].region_table_length = 1;
+                P command_table = E_mem_Q_blk_M_align( sizeof( struct E_sata_Z_command_table ), 128 );
+                N command_table_physical = (N)E_main_Z_p_I_to_physical( command_table );
+                if( E_sata_S_memory->host_cap & ( 1 << 31 ))
+                    command_list[i].command_table_base = command_table_physical;
+                else
+                {   if( command_table_physical & 0xffffffff00000000 )
+                        return ~1;
+                    *( N32 *)&command_list[i].command_table_base = command_table_physical;
+                }
+            }
             P fis_base = E_mem_Q_blk_M_align( sizeof( struct E_sata_Z_fis ), 256 );
             if( !fis_base )
-                E_main_I_error_fatal();
+                return ~1;
             N command_list_base_physical = (N)E_main_Z_p_I_to_physical( command_list_base );
             N fis_base_physical = (N)E_main_Z_p_I_to_physical( fis_base );
             if( E_sata_S_memory->host_cap & ( 1 << 31 ))
@@ -259,16 +298,18 @@ E_sata_I_init( P memory
             {   if(( command_list_base_physical & 0xffffffff00000000 )
                 || ( fis_base_physical & 0xffffffff00000000 )
                 )
-                    E_main_I_error_fatal();
-                *( N32 * )&E_sata_S_memory->port[port].command_list_base = (N32)command_list_base_physical;
-                *( N32 * )&E_sata_S_memory->port[port].fis_base = (N32)fis_base_physical;
+                    return ~1;
+                *( N32 * )&E_sata_S_memory->port[port].command_list_base = command_list_base_physical;
+                *( N32 * )&E_sata_S_memory->port[port].fis_base = fis_base_physical;
             }
             *( N32 * )&E_sata_S_memory->port[port].command_status |= 1 << 4; // fis receive enable
             E_sata_S_memory->port[port].interrupt_enable = 0x7d0000df;
             E_sata_S_memory->global_host_control |= 1 << 1; // interrupt enable
+            *( N32 * )&E_sata_S_memory->port[port].command_status |= 1; // start
         }
 Next_port:
         port_implemented >>= 1;
     }
+    return 0;
 }
 /******************************************************************************/

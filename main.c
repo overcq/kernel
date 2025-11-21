@@ -369,11 +369,9 @@ main( struct E_main_Z_kernel_args *kernel_args
     : "p" ( &E_main_S_gd.limit )
     : "rax"
     );
-    if( !~E_interrupt_M() )
+    if( E_interrupt_M() )
         goto End;
     E_interrupt_S_external[ E_interrupt_S_gsi_ipi ] = &E_main_I_ipi_test;
-    if( !~E_keyboard_M() )
-        goto End;
     O{  for_n( i, kernel_args->processor_n - 1 )
             if( !~(N)kernel_args->processor_proc[i] )
                 E_interrupt_I_ipi_startup( 1 + i, (P)(N)kernel_args->processor_start_page );
@@ -388,7 +386,7 @@ main( struct E_main_Z_kernel_args *kernel_args
     Mt_( E_flow_S_scheduler, E_flow_S_scheduler_n );
     if( !E_flow_S_scheduler )
         goto End;
-    if( !~E_flow_M( kernel_args->kernel_stack ))
+    if( E_flow_M( kernel_args->kernel_stack ))
         goto End;
     E_interrupt_S_external[ E_interrupt_S_gsi_timer ] = &E_flow_I_apic_timer;
     Mt_( E_main_S_stack, kernel_args->processor_n - 1 );
@@ -417,13 +415,14 @@ main( struct E_main_Z_kernel_args *kernel_args
         goto End;
     E_flow_I_unlock( &E_mem_blk_S_mem_lock );
     W( kernel_args->processor_proc );
-    if( !~E_acpi_aml_M( kernel_args->acpi.dsdt_content, kernel_args->acpi.dsdt_content_l, &kernel_args->acpi.ssdt_contents[0], kernel_args->acpi.ssdt_contents_n ))
+    if( E_acpi_aml_M( kernel_args->acpi.dsdt_content, kernel_args->acpi.dsdt_content_l, &kernel_args->acpi.ssdt_contents[0], kernel_args->acpi.ssdt_contents_n ))
         goto End;
-    if( !~E_acpi_reader_M() )
+    if( E_acpi_reader_M() )
         goto End;
     W( kernel_args->bootloader );
-
-    if( !~E_pci_I_check_buses() )
+    if( E_keyboard_M() )
+        goto End;
+    if( E_pci_I_check_buses() )
         goto End;
 
     X_M( main, test );
@@ -435,7 +434,8 @@ main( struct E_main_Z_kernel_args *kernel_args
     X_W( main, test );
 
     //S status = E_main_S_uefi_runtime_services.reset_system( H_uefi_Z_reset_Z_shutdown, 0, 0, 0 );
-End:__asm__ volatile (
+End:E_font_I_print( "\nend loop" );
+    __asm__ volatile (
     "\n"    "cli"
     "\n0:"  "hlt"
     "\n"    "jmp    0b"
