@@ -8,7 +8,6 @@
 #*******************************************************************************
 CC := clang
 CFLAGS := -Os
-VMWARE_DIR := /opt/vmware2
 #===============================================================================
 H_make_I_block_root = $(if $(filter 0,$(shell id -u)),$(error root user not allowed. Run make as user first.))
 #===============================================================================
@@ -68,11 +67,11 @@ install-qemu:
 install-vmware:
 	ocq_mnt=/mnt/oth; \
 	mkdir -p $$ocq_mnt \
-	&& trap '$(VMWARE_DIR)/bin/vmware-mount -d $$ocq_mnt' EXIT \
-	&& $(VMWARE_DIR)/bin/vmware-mount -f ~inc/vmware/boot\ UEFI/boot\ UEFI.vmdk $$ocq_mnt \
-	&& trap '$(VMWARE_DIR)/bin/vmware-mount -d $$ocq_mnt' EXIT \
+	&& trap 'vmware-mount -d $$ocq_mnt' EXIT \
+	&& vmware-mount -f /mnt/hgfs/kernel\ UEFI/kernel\ UEFI.vmdk $$ocq_mnt \
+	&& trap 'vmware-mount -d $$ocq_mnt' EXIT \
 	&& loopdev=$$( losetup -LPf --show $$ocq_mnt/flat ) \
-	&& trap 'losetup -d $$loopdev && $(VMWARE_DIR)/bin/vmware-mount -d $$ocq_mnt' EXIT \
+	&& trap 'losetup -d $$loopdev && vmware-mount -d $$ocq_mnt' EXIT \
 	&& install/a.out kernel $${loopdev}p2
 install-virtualbox:
 	ocq_mnt=/mnt/oth; \
