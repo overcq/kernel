@@ -1,5 +1,5 @@
-a.out
 *.o
+/install/a.out
 /kernel
 /kernel.elf
 /I_compile_S_0.h
