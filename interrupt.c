@@ -276,7 +276,7 @@ _private struct E_interrupt_Z_id E_interrupt_S_id;
 _internal N E_interrupt_S_apic_timer_ticks;
 _private N E_interrupt_S_cpu_freq;
 _private N E_interrupt_S_apic_timer_tick_time;
-_internal N E_interrupt_S_apic_timer_freq;
+_private N E_interrupt_S_apic_timer_freq;
 _internal N E_interrupt_S_apic_timer_freq_;
 _internal N E_interrupt_S_apic_timer_div;
 _internal volatile N E_interrupt_S_rtc_ticks;
@@ -1173,7 +1173,7 @@ E_interrupt_M( void
         "\n"    "cli"
         );
         E_interrupt_Q_local_apic_P( 0x838, 0 );
-        if( E_interrupt_S_apic_timer_freq << 1 > E_interrupt_S_apic_timer_freq_ )
+        if(( E_interrupt_S_apic_timer_freq << 1 ) > E_interrupt_S_apic_timer_freq_ ) // Czy nie nadąża obsługiwać przerwań zliczających.
         {   E_interrupt_S_apic_timer_div <<= 1;
             break;
         }

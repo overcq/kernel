@@ -419,6 +419,7 @@ E_interrupt_I_exeception_ud:
     push    %r11
     lea     msg_6-.-3(%rip),%rdi
     call    E_font_I_print
+    jmp     Halt
     pop     %r11
     pop     %r10
     pop     %r9

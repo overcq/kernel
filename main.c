@@ -6,8 +6,34 @@
 *         main
 * ©overcq                on ‟Gentoo Linux 23.0” “x86_64”              2025‒5‒1 a
 *******************************************************************************/
-#define E_cpu_Z_page_entry_S_present    ( 1ULL << 0 )
-#define E_cpu_Z_page_entry_S_write      ( 1ULL << 1 )
+#define E_cpu_Z_cr0_S_mp                ( 1ULL << 1 )
+#define E_cpu_Z_cr0_S_em                ( 1ULL << 2 )
+#define E_cpu_Z_cr0_S_ts                ( 1ULL << 3 )
+#define E_cpu_Z_cr0_S_ne                ( 1ULL << 5 )
+#define E_cpu_Z_cr0_S_wp                ( 1ULL << 16 )
+#define E_cpu_Z_cr0_S_nw                ( 1ULL << 29 )
+#define E_cpu_Z_cr0_S_cd                ( 1ULL << 30 )
+#define E_cpu_Z_cr3_S_pwt               ( 1ULL << 3 )
+#define E_cpu_Z_cr3_S_pcd               ( 1ULL << 4 )
+#define E_cpu_Z_cr4_S_vme               ( 1ULL << 0 )
+#define E_cpu_Z_cr4_S_pvi               ( 1ULL << 1 )
+#define E_cpu_Z_cr4_S_tsd               ( 1ULL << 2 )
+#define E_cpu_Z_cr4_S_de                ( 1ULL << 3 )
+#define E_cpu_Z_cr4_S_mce               ( 1ULL << 6 )
+#define E_cpu_Z_cr4_S_pge               ( 1ULL << 7 )
+#define E_cpu_Z_cr4_S_pce               ( 1ULL << 8 )
+#define E_cpu_Z_cr4_S_osfxsr            ( 1ULL << 9 )
+#define E_cpu_Z_cr4_S_osxmmexcpt        ( 1ULL << 10 )
+#define E_cpu_Z_cr4_S_umip              ( 1ULL << 11 )
+#define E_cpu_Z_cr4_S_fsgsbase          ( 1ULL << 16 )
+#define E_cpu_Z_cr4_S_pcide             ( 1ULL << 17 )
+#define E_cpu_Z_cr4_S_osxsave           ( 1ULL << 18 )
+#define E_cpu_Z_cr4_S_smep              ( 1ULL << 20 )
+#define E_cpu_Z_cr4_S_smap              ( 1ULL << 21 )
+#define E_cpu_Z_cr4_S_pke               ( 1ULL << 22 )
+#define E_cpu_Z_cr4_S_pks               ( 1ULL << 24 )
+#define E_cpu_Z_cr4_S_uintr             ( 1ULL << 25 )
+#define E_cpu_Z_cr4_S_lam_sup           ( 1ULL << 28 )
 #define E_cpu_Z_gdt_Z_data_S_write      ( 1ULL << ( 32 + 9 ))
 #define E_cpu_Z_gdt_Z_type_S_code       ( 1ULL << ( 32 + 11 ))
 #define E_cpu_Z_gdt_S_code_data         ( 1ULL << ( 32 + 12 ))
@@ -103,6 +129,7 @@ struct E_main_Z_kernel_args
   P page_table;
   N additional_pages;
   P kernel_stack;
+  N stack_pages;
   P pcie_base_address;
   struct E_main_Z_framebuffer framebuffer;
   struct E_main_Z_uefi_runtime_services uefi_runtime_services;
@@ -131,7 +158,8 @@ struct __attribute__ ((packed)) E_main_Z_gd
   N base;
 };
 _internal struct E_main_Z_gd E_main_S_gd;
-_internal Pc *E_main_S_stack;
+_internal volatile Pc *E_main_S_stack;
+_private N E_main_S_stack_pages;
 //==============================================================================
 #define E_main_J_code_descriptor( base, limit ) (( (N)(limit) & (( 1 << 16 ) - 1 )) | (( (N)(base) & (( 1 << 24 ) - 1 )) << 16 ) | E_cpu_Z_gdt_Z_type_S_code | E_cpu_Z_gdt_S_code_data | E_cpu_Z_gdt_S_present | E_cpu_Z_gdt_Z_code_S_64bit | E_cpu_Z_gdt_S_granularity | ((( (N)(limit) >> 16 ) & (( 1 << 4 ) - 1 )) << ( 32 + 16 )) | (( (N)(base) >> 24 ) << ( 32 + 24 )))
 #define E_main_J_data_descriptor( base, limit ) (( (N)(limit) & (( 1 << 16 ) - 1 )) | (( (N)(base) & (( 1 << 24 ) - 1 )) << 16 ) | E_cpu_Z_gdt_Z_data_S_write | E_cpu_Z_gdt_S_code_data | E_cpu_Z_gdt_S_present | E_cpu_Z_gdt_S_granularity | ((( (N)(limit) >> 16 ) & (( 1 << 4 ) - 1 )) << ( 32 + 16 )) | (( (N)(base) >> 24 ) << ( 32 + 24 )))
@@ -222,9 +250,11 @@ void
 E_main_I_error_fatal( void
 ){  __asm__ volatile (
     "\n"    "cli"
-    "\n0:"  "hlt"
-    "\n"    "jmp    0b"
     );
+    O{  __asm__ volatile (
+        "\n0:"  "hlt"
+        );
+    }
     __builtin_unreachable();
 }
 _internal
@@ -232,14 +262,28 @@ __attribute__ (( __naked__ ))
 void
 E_main_I_processor_start( void
 ){  __asm__ volatile (
+    "\n"    "mov    %%cr0,%%rax"
+    "\n"    "and    %0,%%rax"
+    "\n"    "or     %1,%%rax"
+    "\n"    "mov    %%rax,%%cr0"
+    "\n"    "mov    %%cr3,%%rax"
+    "\n"    "and    %2,%%rax"
+    "\n"    "mov    %%rax,%%cr3"
+    "\n"    "mov    %%cr4,%%rax"
+    "\n"    "and    %3,%%rax"
+    "\n"    "or     %4,%%rax"
+    "\n"    "mov    %%rax,%%cr4"
+    "\n"    "mov    %%cr8,%%rax"
+    "\n"    "and    $~0xf,%%rax"
+    "\n"    "mov    %%rax,%%cr8"
     "\n"    "mov    $0x802,%%ecx"
     "\n"    "rdmsr"
     "\n"    "dec    %%eax"
     "\n"    "mov    %%eax,%%ebx"
-    "\n"    "mov    %0,%%rbp"
-    "\n"    "mov    (%%rbp,%%rbx,8),%%rsp"
-    "\n"    "lea    0x2000(%%rsp),%%rsp"
-    "\n"    "lgdt   %1"
+    "\n"    "mov    %5,%%rbp"
+    "\n"    "mov    (%%rbp,%%rbx,8),%%rdi"
+    "\n"    "lea    (%%rdi,%6),%%rsp"
+    "\n"    "lgdt   %7"
     "\n"    "mov    $3 << 3,%%ax"
     "\n"    "lldt   %%ax"
     "\n"    "mov    $2 << 3,%%ax"
@@ -257,14 +301,14 @@ E_main_I_processor_start( void
     "\n0:"  "lea    7(%%rbx,%%rbx),%%rax"
     "\n"    "shl    $3,%%rax"
     "\n"    "ltr    %%ax"
-    "\n"    "lidt   %2"
+    "\n"    "lidt   %8"
     "\n"    "mov    $0x80f,%%ecx"
     "\n"    "rdmsr"
     "\n"    "or     $0x100,%%eax"
-    "\n"    "mov    %3,%%al"
+    "\n"    "mov    %9,%%al"
     "\n"    "lea    32(%%eax),%%eax"
     "\n"    "wrmsr"
-    "\n"    "movzbq %4,%%rax"
+    "\n"    "movzbq %10,%%rax"
     "\n"    "lea    32(%%rax),%%rax"
     "\n"    "mov    $0x832,%%ecx"
     "\n"    "wrmsr"
@@ -274,7 +318,6 @@ E_main_I_processor_start( void
     "\n"    "or     $0xb,%%eax"
     "\n"    "wrmsr"
     "\n"    "sti"
-    "\n"    "mov    (%%rbp,%%rbx,8),%%rdi"
     "\n"    "call   E_flow_M"
     "\n"    "test   %%rax,%%rax"
     "\n"    "jz     0f"
@@ -282,8 +325,13 @@ E_main_I_processor_start( void
     "\n0:"  "mov    %%rax,(%%rbp,%%rbx,8)"
     "\n"    "jmp    E_flow_I_main_task"
     :
-    : "m" ( E_main_S_stack ), "p" ( &E_main_S_gd.limit ), "p" ( &E_interrupt_S_id.limit ), "m" ( E_interrupt_S_gsi_n ), "m" ( E_interrupt_S_gsi_timer )
-    : "rax", "rcx", "rdx", "rbx", "rbp", "rdi"
+    : "i" ( ~( E_cpu_Z_cr0_S_em | E_cpu_Z_cr0_S_ts | E_cpu_Z_cr0_S_nw | E_cpu_Z_cr0_S_cd ))
+    , "i" ( E_cpu_Z_cr0_S_mp | E_cpu_Z_cr0_S_ne | E_cpu_Z_cr0_S_wp )
+    , "i" ( ~( E_cpu_Z_cr3_S_pwt | E_cpu_Z_cr3_S_pcd ))
+    , "i" ( ~( E_cpu_Z_cr4_S_tsd | E_cpu_Z_cr4_S_pcide | E_cpu_Z_cr4_S_smep | E_cpu_Z_cr4_S_smap | E_cpu_Z_cr4_S_pke | E_cpu_Z_cr4_S_pks | E_cpu_Z_cr4_S_uintr | E_cpu_Z_cr4_S_lam_sup ))
+    , "i" ( E_cpu_Z_cr4_S_vme | E_cpu_Z_cr4_S_pvi | E_cpu_Z_cr4_S_de | E_cpu_Z_cr4_S_mce | E_cpu_Z_cr4_S_pge | E_cpu_Z_cr4_S_pce | E_cpu_Z_cr4_S_osfxsr | E_cpu_Z_cr4_S_osxmmexcpt | E_cpu_Z_cr4_S_umip | E_cpu_Z_cr4_S_fsgsbase | E_cpu_Z_cr4_S_osxsave )
+    , "m" ( E_main_S_stack ), "r" ( E_main_S_stack_pages * E_mem_S_page_size ), "p" ( &E_main_S_gd.limit ), "p" ( &E_interrupt_S_id.limit ), "m" ( E_interrupt_S_gsi_n ), "m" ( E_interrupt_S_gsi_timer )
+    : "cc", "rax", "rbx", "rcx", "rdx", "rdi", "rbp", "rsp", "memory"
     );
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -302,6 +350,7 @@ main( struct E_main_Z_kernel_args *kernel_args
     E_main_S_kernel = kernel_args->kernel;
     E_main_S_page_table = kernel_args->page_table;
     E_mem_stack_S_additional_pages = kernel_args->additional_pages;
+    E_main_S_stack_pages = kernel_args->stack_pages;
     E_main_S_framebuffer = kernel_args->framebuffer;
     E_main_S_uefi_runtime_services = kernel_args->uefi_runtime_services;
     //E_main_S_acpi = kernel_args->acpi;
@@ -310,8 +359,8 @@ main( struct E_main_Z_kernel_args *kernel_args
     E_interrupt_S_gsi = kernel_args->gsi;
     E_interrupt_S_gsi_n = kernel_args->gsi_n;
     E_mem_blk_S_mem_lock = 0;
-    if( !~E_font_M() )
-        goto End;
+    if( E_font_M() )
+        E_main_I_error_fatal();
     E_vga_I_fill_rect( 0, 0, E_main_S_framebuffer.width, E_main_S_framebuffer.height, E_vga_R_video_color( E_vga_S_background_color ));
     E_vga_I_fill_rect( E_main_S_framebuffer.width / 2 - 50, E_main_S_framebuffer.height / 2 - 10 - 13, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
     E_vga_I_fill_rect( E_main_S_framebuffer.width / 2 - 50, E_main_S_framebuffer.height / 2 - 10, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
@@ -388,12 +437,11 @@ main( struct E_main_Z_kernel_args *kernel_args
         goto End;
     if( E_flow_M( kernel_args->kernel_stack ))
         goto End;
-    E_interrupt_S_external[ E_interrupt_S_gsi_timer ] = &E_flow_I_apic_timer;
     Mt_( E_main_S_stack, kernel_args->processor_n - 1 );
     if( !E_main_S_stack )
         goto End;
     for_n_( i, kernel_args->processor_n - 1 )
-    {   E_main_S_stack[i] = E_mem_Q_blk_M_align_tab( E_mem_S_page_size, 2, E_mem_S_page_size );
+    {   E_main_S_stack[i] = E_mem_Q_blk_M_align_tab( E_mem_S_page_size, E_main_S_stack_pages, E_mem_S_page_size );
         if( !E_main_S_stack[i] )
             goto End;
     }
@@ -426,7 +474,7 @@ main( struct E_main_Z_kernel_args *kernel_args
         goto End;
 
     X_M( main, test );
-    D_M( main, test )
+    D_M( main, 0, test )
         goto End;
     O{  X_B( main, test, 0 )
             break;
@@ -435,12 +483,7 @@ main( struct E_main_Z_kernel_args *kernel_args
 
     //S status = E_main_S_uefi_runtime_services.reset_system( H_uefi_Z_reset_Z_shutdown, 0, 0, 0 );
 End:E_font_I_print( "\nend loop" );
-    __asm__ volatile (
-    "\n"    "cli"
-    "\n0:"  "hlt"
-    "\n"    "jmp    0b"
-    );
-    __builtin_unreachable();
+    E_main_I_error_fatal();
 }
 D( main, test )
 {   I timer = Y_M(1000);

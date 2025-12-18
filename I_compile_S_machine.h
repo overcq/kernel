@@ -27,10 +27,8 @@ typedef C16                 *Pc16;
 typedef N                   *Pn;
 typedef N32                 I;
 typedef unsigned            In;
-    #ifdef __SSE__
 typedef unsigned __int128   N128;
 typedef __int128            S128;
-    #endif
 //==============================================================================
 #define E_mem_S_page_size   0x1000
 /******************************************************************************/

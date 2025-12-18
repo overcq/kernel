@@ -404,9 +404,9 @@ E_pci_I_check_device( N8 bus_i
                 cap_pointer = ( n_0 >> 8 ) & 0xfc;
             }
             N32 p = E_pci_I_read( bus_i, device_i, function_i, 0x24 );
-            N ret = E_sata_I_init( E_main_Z_p_I_to_virtual( (P)(N)p ));
-            if(ret)
-                return ret;
+            //N ret = E_sata_I_init( E_main_Z_p_I_to_virtual( (P)(N)p ));
+            //if(ret)
+                //return ret;
             break;
         }
     }

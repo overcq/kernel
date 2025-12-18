@@ -56,9 +56,7 @@ void
 E_mem_Q_blk_I_copy_fwd( P dst
 , P src
 , N l
-){
-        #ifdef __SSE__
-    N128 *dst_x = (P)E_simple_Z_p_I_align_up_to_v2( dst, sizeof(N128) );
+){  N128 *dst_x = (P)E_simple_Z_p_I_align_up_to_v2( dst, sizeof(N128) );
     N128 *src_x = (P)E_simple_Z_p_I_align_up_to_v2( src, sizeof(N128) );
     N l_0 = (Pc)src_x - (Pc)src;
     if( l > l_0
@@ -86,7 +84,6 @@ E_mem_Q_blk_I_copy_fwd( P dst
         src = src_x;
         l = l_2;
     }
-        #endif
     __asm__ volatile (
     "\n"    "rep movsb"
     : "+D" (dst), "+S" (src), "+c" (l)
@@ -99,11 +96,9 @@ void
 E_mem_Q_blk_I_copy_rev( P dst
 , P src
 , N l
-){  
-    __asm__ volatile (
+){  __asm__ volatile (
     "\n"    "std"
     );
-        #ifdef __SSE__
     N128 *dst_x = (P)E_simple_Z_p_I_align_down_to_v2( dst + l, sizeof(N128) );
     N128 *src_x = (P)E_simple_Z_p_I_align_down_to_v2( src + l, sizeof(N128) );
     N l_0 = (Pc)src + l - (Pc)src_x;
@@ -134,7 +129,6 @@ E_mem_Q_blk_I_copy_rev( P dst
         src = (P)( (Pc)src_x - 1 );
         l = l_2;
     }else
-        #endif
     {   dst = (Pc)dst + l - 1;
         src = (Pc)src + l - 1;
     }
@@ -1031,8 +1025,9 @@ E_mem_Q_blk_M_align_tab(
     {   E_mem_J_single_processor_end;
         return 0;
     }
+    P p = E_mem_blk_S.allocated[ allocated_i ].p;
     E_mem_J_single_processor_end;
-    return E_mem_blk_S.allocated[ allocated_i ].p;
+    return p;
 }
 _export
 P
@@ -1280,11 +1275,12 @@ E_mem_Q_blk_I_add_align( P p
                                 *( P * )p = E_mem_blk_S.allocated[ allocated_i ].p -= l_1;
                             }
                             E_mem_blk_S.allocated[ allocated_i ].n += n;
+                            N u = E_mem_blk_S.allocated[ allocated_i ].u;
                             E_mem_J_single_processor_end;
                             if( n_prepended )
-                                *n_prepended = l_1 / E_mem_blk_S.allocated[ allocated_i ].u;
+                                *n_prepended = l_1 / u;
                             if( n_appended )
-                                *n_appended = l / E_mem_blk_S.allocated[ allocated_i ].u;
+                                *n_appended = l / u;
                             return *( Pc * )p + l_1;
                         }
                         if( free_p[ free_j ].p > p_0 + l_0 )
@@ -1417,8 +1413,9 @@ E_mem_Q_blk_I_prepend_append_align( P p
                                             E_mem_Q_blk_Q_sys_table_f_I_move_empty_entry( free_i );
                                         free_p[ free_j ].l -= n_append * E_mem_blk_S.allocated[ allocated_i ].u;
                                         *( P * )p = E_mem_blk_S.allocated[ allocated_i ].p -= n_prepend * E_mem_blk_S.allocated[ allocated_i ].u;
+                                        N u = E_mem_blk_S.allocated[ allocated_i ].u;
                                         E_mem_J_single_processor_end;
-                                        return *( Pc * )p + n_prepend * E_mem_blk_S.allocated[ allocated_i ].u;
+                                        return *( Pc * )p + n_prepend * u;
                                     }
                                     free_p[ free_j ].l -= l;
                                     if( free_p[ free_j ].l )

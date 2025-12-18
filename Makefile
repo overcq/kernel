@@ -20,9 +20,8 @@ I_compile_S_0.h \
 $(patsubst %.c,I_compile_S_0_%.h,$(wildcard *.c)) \
 $(patsubst %.c,I_compile_S_0_%.c_,$(wildcard *.c))
 #===============================================================================
-#NDFN Nie wiadomo, dlaczego SSE nie może być włączone.
 kernel: I_compile_S_0.h $(patsubst %.S,%.o,interrupt.S) $(patsubst %.c,I_compile_S_0_%.h,$(wildcard *.c)) simple.h $(patsubst %.c,I_compile_S_0_%.c_,$(wildcard *.c)) main.ld Makefile
-	$(CC) $(CFLAGS) -std=gnu23 -mno-sse -fno-zero-initialized-in-bss -ffreestanding -fno-stack-protector -fwrapv -Wall -Wextra -Wno-address-of-packed-member -Wno-dangling-else -Wno-parentheses -Wno-sign-compare -Wno-switch -include I_compile_S_0.h -nostdlib -shared -s -Wl,-T,main.ld -o $@.elf $(filter %.o,$^) -x c $(filter %.c_,$^)
+	$(CC) $(CFLAGS) -std=gnu23 -march=native -mno-sse -fno-zero-initialized-in-bss -ffreestanding -fno-stack-protector -fwrapv -Wall -Wextra -Wno-address-of-packed-member -Wno-dangling-else -Wno-parentheses -Wno-sign-compare -Wno-switch -include I_compile_S_0.h -nostdlib -shared -s -Wl,-T,main.ld -o $@.elf $(filter %.o,$^) -x c $(filter %.c_,$^)
 	rm -f $@; elf2oux $@.elf
 	rm $@.elf
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

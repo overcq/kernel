@@ -6,7 +6,7 @@
 *         keyboard driver
 * ©overcq                on ‟Gentoo Linux 23.0” “x86_64”              2025‒6‒5 Q
 *******************************************************************************/
-_internal const N E_keyboard_S_timeout = 100;
+#define E_keyboard_S_rw_timeout    1000
 _internal B E_keyboard_S_mouse;
 //==============================================================================
 _internal
@@ -20,7 +20,7 @@ _internal
 N
 E_keyboard_I_wait_read( void
 ){  N time;
-    E_flow_Q_spin_time_M( &time, 1000 );
+    E_flow_Q_spin_time_M( &time, E_keyboard_S_rw_timeout );
     O{  N8 v = E_main_I_in_8( 0x64 );
         if( v & 1 )
             break;
@@ -36,7 +36,7 @@ _internal
 N
 E_keyboard_I_wait_write( void
 ){  N time;
-    E_flow_Q_spin_time_M( &time, 1000 );
+    E_flow_Q_spin_time_M( &time, E_keyboard_S_rw_timeout );
     O{  N8 v = E_main_I_in_8( 0x64 );
         if( !( v & 2 ))
             break;

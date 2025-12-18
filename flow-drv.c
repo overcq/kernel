@@ -30,8 +30,7 @@ struct E_flow_Z_scheduler
   struct E_mem_Q_tab_Z *timer;
   N last_time;
   N next_time;
-  unsigned U_R( signal, wake )  :1;
-  unsigned U_R( signal, exit )  :1;
+  unsigned U_R( signal, exit )                  :1;
 } *E_flow_S_scheduler;
 _private N E_flow_S_scheduler_n;
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -71,32 +70,37 @@ E_flow_Q_spin_time_T( N *time
 ){  return E_flow_I_current_time() >= *time;
 }
 _private
-N8
+N32
 E_flow_I_current_scheduler( void
-){  return E_interrupt_Q_local_apic_R( 0x802 ) >> 24;
+){  return E_interrupt_Q_local_apic_R( 0x802 );
 }
 _private
 void
 E_flow_I_sleep( N microseconds
-){  N time = E_interrupt_S_cpu_freq * microseconds / 1000000;
-    N acpi_timer_ticks = time / E_interrupt_S_apic_timer_tick_time;
+){  N acpi_timer_ticks = E_interrupt_S_apic_timer_freq * microseconds / 1000000;
     if( acpi_timer_ticks )
     {   __asm__ volatile (
-            #if defined( __x86_64__ )
         "\n"    "cli"
-            #else
-#error not implemented
-            #endif
         );
         E_interrupt_Q_local_apic_P( 0x838, acpi_timer_ticks );
         __asm__ volatile (
-            #if defined( __x86_64__ )
         "\n"    "sti"
         "\n"    "hlt"
-            #else
-#error not implemented
-            #endif
         );
+        O{  __asm__ volatile (
+            "\n"    "cli"
+            );
+            if( !E_interrupt_Q_local_apic_R( 0x839 ))
+            {   __asm__ volatile (
+                "\n"    "sti"
+                );
+                break;
+            }
+            __asm__ volatile (
+            "\n"    "sti"
+            "\n"    "hlt"
+            );
+        }
     }
 }
 //------------------------------------------------------------------------------
@@ -121,24 +125,24 @@ E_flow_I_unlock( volatile N8 *lock
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Wymuszenie ‘prealokacji’ “stosu” ‹zadania›, by nie została wywołana procedura obsługi “sygnału” ‘uniksowego’ “SEGV” w trakcie zmieniania pamięci ‘alokowanej’ dynamicznie, z której korzysta.
-_internal
+_private
+__attribute__ (( __naked__, __noinline__, __hot__ ))
 void
 E_flow_Q_task_I_touch_stack( N page_count
-){  N pages = page_count ? page_count : 1; //CONF
-    volatile Pc sp;
-    __asm__ volatile (
-    #if defined( __x86_64__ )
-    "\n" "mov   %%rsp,%0"
-    #else
-#error not implemented
-    #endif
-    : "=r" (sp)
+){  __asm__ volatile (
+    "\n"    "xor    %%rax,%%rax"
+    "\n"    "test   %%rdi,%%rdi"
+    "\n"    "jnz    0f"
+    "\n"    "inc    %%rdi"
+    "\n0:"  "subq   %0,%%rax"
+    "\n"    "movq   $0,8(%%rsp,%%rax)"
+    "\n"    "dec    %%rdi"
+    "\n"    "jnz    0b"
+    "\n"    "ret"
+    :
+    : "i" ( E_mem_S_page_size )
+    : "cc", "rax", "memory"
     );
-    // Dlatego kolejno “strony” pamięci, ponieważ jest tylko jedna zabezpieczająca na dole “stosu” ‹zadania›.
-    while( pages-- )
-    {   sp -= E_mem_S_page_size;
-        *sp = 0;
-    }
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _private
@@ -157,7 +161,7 @@ E_flow_M( P main_stack
     , .proc_name = "main"
         #endif
     };
-    E_mem_Q_stack_I_patch_page_table_set_guard( (N)main_stack, E_flow_S_scheduler[ sched_i ].current_task );
+    E_mem_Q_stack_I_patch_page_table_add_guard( (N)main_stack, E_flow_S_scheduler[ sched_i ].current_task );
     E_flow_S_scheduler[ sched_i ].report = E_mem_Q_tab_M( sizeof( struct E_flow_Q_report_Z ), 0 );
     if( !E_flow_S_scheduler[ sched_i ].report )
     {   W( E_flow_S_scheduler[ sched_i ].task );
@@ -171,7 +175,6 @@ E_flow_M( P main_stack
     }
     E_flow_S_scheduler[ sched_i ].last_time = 0;
     E_flow_S_scheduler[ sched_i ].next_time = ~0;
-    U_L( E_flow_S_scheduler[ sched_i ].signal, wake );
     U_L( E_flow_S_scheduler[ sched_i ].signal, exit );
     return 0;
 }
@@ -189,18 +192,19 @@ E_flow_Q_task_I_stop( void
 _export
 I
 E_flow_Q_task_M( I *uid
+, N stack_pages
 , void (*task_proc)(void)
     #ifdef C_line_report
 , Pc task_proc_name
     #endif
-){  Pc stack = Mt( E_mem_S_page_size, 2 );
+){  stack_pages += 2;
+    Pc stack = Mt( E_mem_S_page_size, stack_pages );
     if( !stack )
         return ~0;
-    Pc exe_stack = stack + 2 * E_mem_S_page_size;
+    Pc exe_stack = stack + stack_pages * E_mem_S_page_size;
     N sched_i = E_flow_I_current_scheduler();
-    E_flow_Q_task_I_touch_stack(0);
     I task_id = E_mem_Q_tab_I_add( E_flow_S_scheduler[ sched_i ].task );
-    E_mem_Q_stack_I_patch_page_table_set_guard( (N)stack, task_id );
+    E_mem_Q_stack_I_patch_page_table_add_guard( (N)stack, task_id );
     struct E_flow_Q_task_Z *task = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, task_id );
     task->stack = stack;
         #ifdef C_line_report
@@ -214,14 +218,10 @@ E_flow_Q_task_M( I *uid
     E_flow_Q_task_I_switch( task_id );
     if( !task->exe_stack ) // W bloku – nowe ‹zadanie›: nic nie zmieniać na stosie należącym do przełączanego.
     {   __asm__ volatile (
-            #if defined( __x86_64__ )
         "\n" "mov   %0,%%rsp"
         "\n" "jmp   *%1"
         :
         : "r" (p), "r" ( task_proc )
-            #else
-#error not implemented
-            #endif
         );
         _unreachable;
     }
@@ -239,7 +239,6 @@ E_flow_Q_task_W( I *uid
     task->run_state_object = E_flow_S_scheduler[ sched_i ].current_task;
     E_flow_Q_task_I_switch(id); // Przełącz tylko po to, by ‹zadanie› zwalniane zwolniło zasoby; również stosowo, hierarchicznie z powrotem przełączając przy zwalnianiu ‹zadań› przez siebie uruchomionych.
     task = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, id );
-    E_flow_Q_task_I_touch_stack(0);
     E_mem_Q_stack_I_patch_page_table_remove_guard( (N)task->stack, id );
     W( task->stack );
     E_mem_Q_tab_I_remove( E_flow_S_scheduler[ sched_i ].task, id );
@@ -496,12 +495,6 @@ E_flow_Q_impulser_I_wait( I id
     return E_flow_Q_task_I_schedule();
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-_private
-void
-E_flow_I_apic_timer( void
-){  N sched_i = E_flow_I_current_scheduler();
-    U_F( E_flow_S_scheduler[ sched_i ].signal, wake );
-}
 // Każde ‹zadanie› synchroniczne po wywołaniu “E_flow_Q_task_I_schedule” i po przełączeniu w tej procedurze do innego ‹zadania› (“E_flow_Q_task_I_switch”) czeka przed instrukcją powrotu z tej procedury, by kontynuować w miejscu wywołania i ewentualnie zakończyć własne ‹zadanie› po powrocie.
 _export
 __attribute__ (( __noinline__, __returns_twice__, __hot__ ))
@@ -583,10 +576,7 @@ E_flow_Q_task_I_schedule( void
                 time = time_2;
             }
         }
-        I task_iter = E_mem_Q_tab_Q_iter_M( E_flow_S_scheduler[ sched_i ].task, E_flow_S_scheduler[ sched_i ].current_task );
-        if( !~task_iter )
-            E_main_I_error_fatal();
-        for_each_q( task_id, E_flow_S_scheduler[ sched_i ].task, task_iter, E_mem_Q_tab )
+        for_each_out( E_flow_S_scheduler[ sched_i ].current_task, task_id, E_flow_S_scheduler[ sched_i ].task, E_mem_Q_tab )
         {   B task_skip = no;
             for_each( task_id_, E_flow_S_scheduler[ sched_i ].task, E_mem_Q_tab )
             {   struct E_flow_Q_task_Z *task = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, task_id_ );
@@ -600,8 +590,7 @@ E_flow_Q_task_I_schedule( void
             if( !task_skip )
             {   struct E_flow_Q_task_Z *task = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, task_id );
                 if( task->run_state == E_flow_Z_run_state_S_ready )
-                {   E_mem_Q_tab_Q_iter_W( E_flow_S_scheduler[ sched_i ].task, task_iter );
-                    E_flow_Q_task_I_switch( task_id );
+                {   E_flow_Q_task_I_switch( task_id );
                     task = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, E_flow_S_scheduler[ sched_i ].current_task );
                     return task->run_state == E_flow_Z_run_state_S_stopping_by_task;
                 }
@@ -632,22 +621,30 @@ E_flow_Q_task_I_schedule( void
         )
             if( U_has_suspend_time )
             {   N acpi_timer_ticks = ( E_flow_S_scheduler[ sched_i ].next_time - time ) / E_interrupt_S_apic_timer_tick_time;
-                if( !acpi_timer_ticks )
-                    continue;
-                __asm__ volatile (
-                "\n"    "cli"
-                );
-                E_interrupt_Q_local_apic_P( 0x838, acpi_timer_ticks );
-                do
+                if( acpi_timer_ticks )
                 {   __asm__ volatile (
-                    "\n"    "sti"
-                    "\n"    "hlt"
                     "\n"    "cli"
                     );
-                }while( !U_E( E_flow_S_scheduler[ sched_i ].signal, wake ));
-                __asm__ volatile (
-                "\n"    "sti"
-                );
+                    E_interrupt_Q_local_apic_P( 0x838, acpi_timer_ticks );
+                    __asm__ volatile (
+                    "\n"    "sti"
+                    "\n"    "hlt"
+                    );
+                    O{  __asm__ volatile (
+                        "\n"    "cli"
+                        );
+                        if( !E_interrupt_Q_local_apic_R( 0x839 ))
+                        {   __asm__ volatile (
+                            "\n"    "sti"
+                            );
+                            break;
+                        }
+                        __asm__ volatile (
+                        "\n"    "sti"
+                        "\n"    "hlt"
+                        );
+                    }
+                }
             }else
                 __asm__ volatile (
                 "\n"    "hlt"
@@ -659,42 +656,20 @@ _internal
 __attribute__ (( __noinline__, __returns_twice__, __hot__ ))
 void
 E_flow_Q_task_I_switch( I task_to_id
-){  //feclearexcept( FE_ALL_EXCEPT );
-    N sched_i = E_flow_I_current_scheduler();
+){  N sched_i = E_flow_I_current_scheduler();
     struct E_flow_Q_task_Z *task_from = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, E_flow_S_scheduler[ sched_i ].current_task );
     struct E_flow_Q_task_Z *task_to = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, task_to_id );
     E_flow_S_scheduler[ sched_i ].current_task = task_to_id;
     __asm__ volatile (
-        #if defined( __x86_64__ )
     "\n" "mov       %%rsp,%0"
     "\n" "test      %1,%1"
     "\n" "cmovnz    %1,%%rsp"
     : "=m" ( task_from->exe_stack )
     : "r" ( task_to->exe_stack )
     : "cc", "memory"
-//CONF Jest FPU?
     , "st", "st(1)", "st(2)", "st(3)", "st(4)", "st(5)", "st(6)", "st(7)"
-            #ifdef __MMX__
     , "mm0", "mm1", "mm2", "mm3", "mm4", "mm5", "mm6", "mm7"
-                #ifdef __SSE__
     , "xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5", "xmm6", "xmm7"
-                #endif
-            #endif
-            #if defined( __i386__ )
-    , "ebx", "ecx", "esi", "edi"
-            #else
-    , "rbx", "rcx", "rsi", "rdi"
-    , "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"
-                #ifdef __SSE3__
-    , "xmm8", "xmm9", "xmm10", "xmm11", "xmm12", "xmm13", "xmm14", "xmm15"
-                    #ifdef __AVX__
-    , "ymm0", "ymm1", "ymm2", "ymm3", "ymm4", "ymm5", "ymm6", "ymm7", "ymm8", "ymm9", "ymm10", "ymm11", "ymm12", "ymm13", "ymm14", "ymm15"
-                    #endif
-                #endif
-            #endif
-        #else
-#error not implemented
-        #endif
     );
 }
 _private
