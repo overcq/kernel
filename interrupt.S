@@ -252,27 +252,29 @@
 .global E_interrupt_I_external_spurious
 //==============================================================================
 .data
-msg_0:    .asciz "\nexception de"
-msg_1:    .asciz "\nexception db"
-msg_2:    .asciz "\nexception nmi"
-msg_3:    .asciz "\nexception bp"
-msg_4:    .asciz "\nexception of"
-msg_5:    .asciz "\nexception br"
-msg_6:    .asciz "\nexception ud"
-msg_7:    .asciz "\nexception nm"
-msg_8:    .asciz "\nexception df"
-msg_10:   .asciz "\nexception ts"
-msg_11:   .asciz "\nexception np"
-msg_12:   .asciz "\nexception ss"
-msg_13:   .asciz "\nexception gp"
-msg_14:   .asciz "\nexception pf"
-msg_16:   .asciz "\nexception mf"
-msg_17:   .asciz "\nexception ac"
-msg_18:   .asciz "\nexception mc"
-msg_19:   .asciz "\nexception xm"
-msg_20:   .asciz "\nexception ve"
-msg_21:   .asciz "\nexception cp"
-msg_x:    .asciz "\nexception spurious"
+fmt_0:  .asciz ""
+fmt:    .asciz "%x"
+msg_0:  .asciz "\nexception de"
+msg_1:  .asciz "\nexception db"
+msg_2:  .asciz "\nexception nmi"
+msg_3:  .asciz "\nexception bp"
+msg_4:  .asciz "\nexception of"
+msg_5:  .asciz "\nexception br"
+msg_6:  .asciz "\nexception ud"
+msg_7:  .asciz "\nexception nm"
+msg_8:  .asciz "\nexception df"
+msg_10: .asciz "\nexception ts"
+msg_11: .asciz "\nexception np"
+msg_12: .asciz "\nexception ss"
+msg_13: .asciz "\nexception gp"
+msg_14: .asciz "\nexception pf"
+msg_16: .asciz "\nexception mf"
+msg_17: .asciz "\nexception ac"
+msg_18: .asciz "\nexception mc"
+msg_19: .asciz "\nexception xm"
+msg_20: .asciz "\nexception ve"
+msg_21: .asciz "\nexception cp"
+msg_x:  .asciz "\nexception spurious"
 //==============================================================================
 .text
 E_interrupt_I_exeception_de:
@@ -286,7 +288,8 @@ E_interrupt_I_exeception_de:
     push    %r10
     push    %r11
     lea     msg_0-.-3(%rip),%rdi
-    call    E_font_I_print
+    lea     fmt_0-.-3(%rip),%rsi
+    call    E_se_log_I_log
     pop     %r11
     pop     %r10
     pop     %r9
@@ -308,7 +311,8 @@ E_interrupt_I_exeception_db:
     push    %r10
     push    %r11
     lea     msg_1-.-3(%rip),%rdi
-    call    E_font_I_print
+    lea     fmt_0-.-3(%rip),%rsi
+    call    E_se_log_I_log
     pop     %r11
     pop     %r10
     pop     %r9
@@ -330,7 +334,8 @@ E_interrupt_I_exeception_nmi:
     push    %r10
     push    %r11
     lea     msg_2-.-3(%rip),%rdi
-    call    E_font_I_print
+    lea     fmt_0-.-3(%rip),%rsi
+    call    E_se_log_I_log
     pop     %r11
     pop     %r10
     pop     %r9
@@ -352,7 +357,8 @@ E_interrupt_I_exeception_bp:
     push    %r10
     push    %r11
     lea     msg_3-.-3(%rip),%rdi
-    call    E_font_I_print
+    lea     fmt_0-.-3(%rip),%rsi
+    call    E_se_log_I_log
     pop     %r11
     pop     %r10
     pop     %r9
@@ -374,7 +380,8 @@ E_interrupt_I_exeception_of:
     push    %r10
     push    %r11
     lea     msg_4-.-3(%rip),%rdi
-    call    E_font_I_print
+    lea     fmt_0-.-3(%rip),%rsi
+    call    E_se_log_I_log
     pop     %r11
     pop     %r10
     pop     %r9
@@ -396,7 +403,8 @@ E_interrupt_I_exeception_br:
     push    %r10
     push    %r11
     lea     msg_5-.-3(%rip),%rdi
-    call    E_font_I_print
+    lea     fmt_0-.-3(%rip),%rsi
+    call    E_se_log_I_log
     pop     %r11
     pop     %r10
     pop     %r9
@@ -418,7 +426,8 @@ E_interrupt_I_exeception_ud:
     push    %r10
     push    %r11
     lea     msg_6-.-3(%rip),%rdi
-    call    E_font_I_print
+    lea     fmt_0-.-3(%rip),%rsi
+    call    E_se_log_I_log
     jmp     Halt
     pop     %r11
     pop     %r10
@@ -441,7 +450,8 @@ E_interrupt_I_exeception_nm:
     push    %r10
     push    %r11
     lea     msg_7-.-3(%rip),%rdi
-    call    E_font_I_print
+    lea     fmt_0-.-3(%rip),%rsi
+    call    E_se_log_I_log
     pop     %r11
     pop     %r10
     pop     %r9
@@ -463,9 +473,9 @@ E_interrupt_I_exeception_df:
     push    %r10
     push    %r11
     lea     msg_8-.-3(%rip),%rdi
-    call    E_font_I_print
-    mov     9*8(%rsp),%rdi
-    call    E_font_I_print_hex
+    lea     fmt-.-3(%rip),%rsi
+    mov     9*8(%rsp),%rdx
+    call    E_se_log_I_log
     pop     %r11
     pop     %r10
     pop     %r9
@@ -488,9 +498,9 @@ E_interrupt_I_exeception_ts:
     push    %r10
     push    %r11
     lea     msg_10-.-3(%rip),%rdi
-    call    E_font_I_print
-    mov     9*8(%rsp),%rdi
-    call    E_font_I_print_hex
+    lea     fmt-.-3(%rip),%rsi
+    mov     9*8(%rsp),%rdx
+    call    E_se_log_I_log
     pop     %r11
     pop     %r10
     pop     %r9
@@ -513,9 +523,9 @@ E_interrupt_I_exeception_np:
     push    %r10
     push    %r11
     lea     msg_11-.-3(%rip),%rdi
-    call    E_font_I_print
-    mov     9*8(%rsp),%rdi
-    call    E_font_I_print_hex
+    lea     fmt-.-3(%rip),%rsi
+    mov     9*8(%rsp),%rdx
+    call    E_se_log_I_log
     pop     %r11
     pop     %r10
     pop     %r9
@@ -538,9 +548,9 @@ E_interrupt_I_exeception_ss:
     push    %r10
     push    %r11
     lea     msg_12-.-3(%rip),%rdi
-    call    E_font_I_print
-    mov     9*8(%rsp),%rdi
-    call    E_font_I_print_hex
+    lea     fmt-.-3(%rip),%rsi
+    mov     9*8(%rsp),%rdx
+    call    E_se_log_I_log
     pop     %r11
     pop     %r10
     pop     %r9
@@ -563,9 +573,9 @@ E_interrupt_I_exeception_gp:
     push    %r10
     push    %r11
     lea     msg_13-.-3(%rip),%rdi
-    call    E_font_I_print
-    mov     9*8(%rsp),%rdi
-    call    E_font_I_print_hex
+    lea     fmt-.-3(%rip),%rsi
+    mov     9*8(%rsp),%rdx
+    call    E_se_log_I_log
     pop     %r11
     pop     %r10
     pop     %r9
@@ -591,15 +601,16 @@ E_interrupt_I_exeception_pf:
     push    %r10
     push    %r11
     lea     msg_14-.-3(%rip),%rdi
-    call    E_font_I_print
-    mov     9*8(%rsp),%rdi
-    call    E_font_I_print_hex
+    lea     fmt-.-3(%rip),%rsi
+    mov     9*8(%rsp),%rdx
+    call    E_se_log_I_log
     mov     9*8(%rsp),%rax
     test    $1,%rax
     jnz     Halt
     mov     %cr2,%rbx
-    mov     %rbx,%rdi
-    call    E_font_I_print_hex
+    lea     fmt-.-3(%rip),%rsi
+    mov     %rbx,%rdx
+    call    E_se_log_I_log
     test    $~0<<12,%rbx
     jz      Halt
     mov     %rbx,%rdi
@@ -626,7 +637,8 @@ E_interrupt_I_exeception_mf:
     push    %r10
     push    %r11
     lea     msg_16-.-3(%rip),%rdi
-    call    E_font_I_print
+    lea     fmt_0-.-3(%rip),%rsi
+    call    E_se_log_I_log
     pop     %r11
     pop     %r10
     pop     %r9
@@ -648,9 +660,9 @@ E_interrupt_I_exeception_ac:
     push    %r10
     push    %r11
     lea     msg_17-.-3(%rip),%rdi
-    call    E_font_I_print
-    mov     9*8(%rsp),%rdi
-    call    E_font_I_print_hex
+    lea     fmt-.-3(%rip),%rsi
+    mov     9*8(%rsp),%rdx
+    call    E_se_log_I_log
     pop     %r11
     pop     %r10
     pop     %r9
@@ -673,7 +685,8 @@ E_interrupt_I_exeception_mc:
     push    %r10
     push    %r11
     lea     msg_18-.-3(%rip),%rdi
-    call    E_font_I_print
+    lea     fmt_0-.-3(%rip),%rsi
+    call    E_se_log_I_log
     pop     %r11
     pop     %r10
     pop     %r9
@@ -695,7 +708,8 @@ E_interrupt_I_exeception_xm:
     push    %r10
     push    %r11
     lea     msg_19-.-3(%rip),%rdi
-    call    E_font_I_print
+    lea     fmt_0-.-3(%rip),%rsi
+    call    E_se_log_I_log
     pop     %r11
     pop     %r10
     pop     %r9
@@ -717,7 +731,8 @@ E_interrupt_I_exeception_ve:
     push    %r10
     push    %r11
     lea     msg_20-.-3(%rip),%rdi
-    call    E_font_I_print
+    lea     fmt_0-.-3(%rip),%rsi
+    call    E_se_log_I_log
     pop     %r11
     pop     %r10
     pop     %r9
@@ -739,9 +754,9 @@ E_interrupt_I_exeception_cp:
     push    %r10
     push    %r11
     lea     msg_21-.-3(%rip),%rdi
-    call    E_font_I_print
-    mov     9*8(%rsp),%rdi
-    call    E_font_I_print_hex
+    lea     fmt-.-3(%rip),%rsi
+    mov     9*8(%rsp),%rdx
+    call    E_se_log_I_log
     pop     %r11
     pop     %r10
     pop     %r9
@@ -1466,7 +1481,8 @@ E_interrupt_I_external_spurious:
     push    %r10
     push    %r11
     lea     msg_x-.-3(%rip),%rdi
-    call    E_font_I_print
+    lea     fmt_0-.-3(%rip),%rsi
+    call    E_se_log_I_log
     pop     %r11
     pop     %r10
     pop     %r9

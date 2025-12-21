@@ -1,6 +1,6 @@
 /*******************************************************************************
 *   ___   public
-*  ¦OUX¦  C
+*  ¦OUX¦  C+
 *  ¦/C+¦  OUX/C+ OS
 *   ---   kernel
 *         PCI driver
@@ -365,12 +365,7 @@ E_pci_I_check_device( N8 bus_i
 , N8 device_i
 , N8 function_i
 , N32 ids
-){  E_font_I_print( "\nbus: " );
-    E_font_I_print_hex( bus_i );
-    E_font_I_print( ", device: " );
-    E_font_I_print_hex( device_i );
-    E_font_I_print( ": " );
-    E_font_I_print_hex(ids);
+){  G( "bus: %8x, device: %8x: %32x", bus_i, device_i, ids );
     N32 bist_24 = E_pci_I_read( bus_i, device_i, function_i, 0xc );
     struct E_pci_Z_header_Z_bist *bist = ( struct E_pci_Z_header_Z_bist * )(( N8 * )&bist_24 + 3 );
     if( bist->capable )

@@ -1,6 +1,6 @@
 /*******************************************************************************
 *   ___   public
-*  ¦OUX¦  C
+*  ¦OUX¦  C+
 *  ¦/C+¦  OUX/C+ OS
 *   ---   kernel
 *         task stacks
@@ -23,10 +23,10 @@ _private
 void
 E_mem_Q_stack_I_patch_page_table_add_guard( N guard_page
 , N additional_i
-){  E_flow_I_lock( &E_mem_blk_S_mem_lock );
+){  E_flow_I_lock( &E_mem_blk_S_lock );
     N allocated_i = E_mem_Q_blk_R( E_main_S_page_table );
     N page_table_size = E_mem_blk_S.allocated[ allocated_i ].n * E_mem_blk_S.allocated[ allocated_i ].u;
-    E_flow_I_unlock( &E_mem_blk_S_mem_lock );
+    E_flow_I_unlock( &E_mem_blk_S_lock );
     P address = E_mem_blk_S.reserved_from_end ? (P)( (Pc)E_main_S_page_table + page_table_size - E_mem_S_page_size ) : E_main_S_page_table;
     N additional;
     const N table_n = E_mem_S_page_size / sizeof(N);
@@ -56,10 +56,10 @@ _private
 void
 E_mem_Q_stack_I_patch_page_table_remove_guard( N guard_page
 , N additional_i
-){  E_flow_I_lock( &E_mem_blk_S_mem_lock );
+){  E_flow_I_lock( &E_mem_blk_S_lock );
     N allocated_i = E_mem_Q_blk_R( E_main_S_page_table );
     N page_table_size = E_mem_blk_S.allocated[ allocated_i ].n * E_mem_blk_S.allocated[ allocated_i ].u;
-    E_flow_I_unlock( &E_mem_blk_S_mem_lock );
+    E_flow_I_unlock( &E_mem_blk_S_lock );
     P address = E_mem_blk_S.reserved_from_end ? (P)( (Pc)E_main_S_page_table + page_table_size - E_mem_S_page_size ) : E_main_S_page_table;
     N additional;
     const N table_n = E_mem_S_page_size / sizeof(N);
@@ -111,10 +111,9 @@ E_mem_Q_stack_I_page_fault( N address
     for_each( task_id, E_flow_S_scheduler[ sched_i ].task, E_mem_Q_tab )
     {   struct E_flow_Q_task_Z *task = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, task_id );
         if( (N)task->stack == address )
-        {   E_font_I_print( "\nLarger stack required for task: " ); E_font_I_print_hex( task_id );
+        {   G( "Larger stack required for task: %x", task_id );
                 #ifdef C_line_report
-            E_font_I_print( ", " );
-            E_font_I_print( task->proc_name );
+            G_( ", %s", task->proc_name );
                 #endif
             break;
         }

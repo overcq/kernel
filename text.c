@@ -1,6 +1,6 @@
 /*******************************************************************************
 *   ___   public
-*  ¦OUX¦  C
+*  ¦OUX¦  C+
 *  ¦/C+¦  OUX/C+ OS
 *   ---   kernel
 *         text
@@ -1246,6 +1246,16 @@ E_text_Z_sl_M_duplicate( Pc s
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _export
+Pc
+E_text_Z_s_I_append_c( Pc *s
+, C c
+){  Pc p;
+    if( !( p = E_mem_Q_blk_I_append( s, 1 )))
+        return 0;
+    *p = c;
+    return p;
+}
+_export
 N
 E_text_Z_s_I_append_s( Pc *s
 , Pc t
@@ -1877,5 +1887,150 @@ E_text_Z_getter_Z_c_R_u_rev( N (*getter)(void)
     ? v
     : ~0;
     return 1 + i;
+}
+//==============================================================================
+_export
+N
+E_text_I_vsprintf( Pc *output
+, Pc fmt
+, va_list args
+){  *output = M(0);
+    if( !*output )
+        return ~0;
+    N8 inside_arg = 0;
+    N8 size = 0;
+    while( *fmt )
+    {   U u = ~0;
+        Pc s = E_text_Z_su_R_u( fmt, &u );
+        if( s == fmt )
+        {   W( *output );
+            return ~0;
+        }
+        if( !~u )
+            goto Cont;
+        if( inside_arg )
+        {   if( inside_arg == 1
+            && u == '%'
+            )
+                inside_arg = 0;
+            else if( inside_arg == 1
+            && u == '8'
+            )
+                size = 1;
+            else if( inside_arg == 1
+            && ( u == '1'
+              || u == '3'
+            ))
+                size = u;
+            else if( inside_arg == 2
+            && size == '1'
+            && u == '6'
+            )
+                size = sizeof( N16 );
+            else if( inside_arg = 2
+            && size == '3'
+            && u == '2'
+            )
+                size = sizeof( N32 );
+            else
+            {   if( inside_arg > 1
+                && size != 1
+                && size != sizeof( N16 )
+                && size != sizeof( N32 )
+                )
+                {   W( *output );
+                    return ~0;
+                }
+                switch(u)
+                { case 's':
+                    {   if(size)
+                        {   W( *output );
+                            return ~0;
+                        }
+                        Pc s = va_arg( args, Pc );
+                        while( *s )
+                        {   U u = ~0;
+                            Pc s_ = E_text_Z_su_R_u( s, &u );
+                            if( s_ == s )
+                            {   W( *output );
+                                return ~0;
+                            }
+                            if( ~u )
+                            {   N r = E_text_Z_s_I_append_s( output, s, s_ );
+                                if( !r )
+                                {   W( *output );
+                                    return ~0;
+                                }
+                            }
+                            s = s_;
+                        }
+                        inside_arg = 0;
+                        goto Cont;
+                    }
+                  case 'x':
+                    {   N n;
+                        switch(size)
+                        { case 0:
+                                n = va_arg( args, N );
+                                break;
+                          case 1:
+                          case sizeof(N16):
+                                n = va_arg( args, int );
+                                break;
+                          case sizeof(N32):
+                                n = va_arg( args, N32 );
+                                break;
+                        }
+                        N r = E_text_Z_s_I_append_s0( output, "0x" );
+                        if( !r )
+                        {   W( *output );
+                            return ~0;
+                        }
+                        for_n_rev( i, sizeof(N) * 2 )
+                        {   U u = ( n >> ( i * 4 )) & 0xf;
+                            if( u < 10 )
+                                u += '0';
+                            else
+                                u += 'a' - 10;
+                            P r = E_text_Z_s_I_append_c( output, u );
+                            if( !r )
+                            {   W( *output );
+                                return ~0;
+                            }
+                            if( i
+                            && i % 4 == 0
+                            )
+                            {   r = E_text_Z_s_I_append_c( output, '\'' );
+                                if( !r )
+                                {   W( *output );
+                                    return ~0;
+                                }
+                            }
+                        }
+                        inside_arg = 0;
+                        goto Cont;
+                    }
+                  default:
+                        W( *output );
+                        return ~0;
+                }
+            }
+        }else if( u == '%' )
+        {   inside_arg++;
+            goto Cont;
+        }
+        if( inside_arg )
+            inside_arg++;
+        else
+        {   N r = E_text_Z_s_I_append_s( output, fmt, s );
+            if( !r )
+            {   W( *output );
+                return ~0;
+            }
+        }
+Cont:   fmt = s;
+    }
+    P r = E_text_Z_s_I_append_c( output, '\0' );
+    return r ? 0 : ~0;
 }
 /******************************************************************************/

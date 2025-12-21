@@ -1,6 +1,6 @@
 /*******************************************************************************
 *   ___   public
-*  ¦OUX¦  C
+*  ¦OUX¦  C+
 *  ¦/C+¦  OUX/C+ OS
 *   ---   kernel
 *         interrupt handlers
@@ -1132,6 +1132,7 @@ E_interrupt_M( void
     if( !~E_interrupt_S_gsi_ipi )
         return ~0;
     // Kalibracja zegara APIC na podstawie RTC.
+    G( "Timer calibrating…" );
     E_interrupt_S_external[16] = &E_interrupt_I_apic_timer_interrupt;
     E_interrupt_P( 8, &E_interrupt_I_rtc_interrupt_1 );
     E_interrupt_Q_local_apic_P( 0x80f, ( E_interrupt_Q_local_apic_R( 0x80f ) & ~0xff ) | 0x100 | ( 32 + E_interrupt_S_gsi_n ));
@@ -1197,6 +1198,7 @@ E_interrupt_M( void
     E_interrupt_S_cpu_freq *= 2;
     E_interrupt_S_apic_timer_freq *= E_interrupt_S_apic_timer_div * 2;
     E_interrupt_S_apic_timer_tick_time = E_interrupt_S_cpu_freq / E_interrupt_S_apic_timer_freq;
+    G( "Timer calibrated." );
     return 0;
 }
 /******************************************************************************/

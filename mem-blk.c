@@ -1,6 +1,6 @@
 /*******************************************************************************
 *   ___   public
-*  ¦OUX¦  C
+*  ¦OUX¦  C+
 *  ¦/C+¦  OUX/C+ OS
 *   ---   kernel
 *         memory manager
@@ -9,8 +9,8 @@
 #include <stddef.h>
 //==============================================================================
 #define E_mem_Q_blk_S_align_to_all      alignof(max_align_t)
-#define E_mem_J_single_processor_begin  E_flow_I_lock( &E_mem_blk_S_mem_lock )
-#define E_mem_J_single_processor_end    E_flow_I_unlock( &E_mem_blk_S_mem_lock )
+#define E_mem_J_single_processor_begin  E_flow_I_lock( &E_mem_blk_S_lock )
+#define E_mem_J_single_processor_end    E_flow_I_unlock( &E_mem_blk_S_lock )
 //==============================================================================
 struct E_mem_Q_blk_Z_free
 { Pc p;
@@ -33,7 +33,7 @@ struct E_mem_blk_Z
   B reserved_from_end;
 }E_mem_blk_S;
 //------------------------------------------------------------------------------
-_private volatile N8 E_mem_blk_S_mem_lock;
+_private volatile N8 E_mem_blk_S_lock;
 //==============================================================================
 _internal void E_mem_Q_blk_Q_sys_table_f_I_move_empty_entry(N);
 _internal N E_mem_Q_blk_Q_sys_table_R_last( N, N );

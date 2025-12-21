@@ -1,6 +1,6 @@
 /*******************************************************************************
 *   ___   public
-*  ¦OUX¦  C
+*  ¦OUX¦  C+
 *  ¦/C+¦  OUX/C+ OS
 *   ---   kernel
 *         SATA AHCI driver
@@ -172,7 +172,7 @@ struct __attribute__ (( __packed__ )) E_sata_Z_command_table
 _private
 void
 E_sata_I_interrupt( void
-){  E_font_I_print( "\nsata interrupt" );
+){  G( "sata interrupt" );
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _private
@@ -245,21 +245,20 @@ E_sata_I_init( P memory
             E_sata_S_memory->port[port].sata_error = ~0;
             switch( E_sata_S_memory->port[port].signature )
             { case 0x101:
-                    E_font_I_print( "\nSATA" );
+                    G( "SATA" );
                     break;
               case 0xeb140101:
-                    E_font_I_print( "\nSATAPI" );
+                    G( "SATAPI" );
                     E_sata_S_memory->port[port].command_status |= 1 << 24; // ATAPI
                     break;
               case 0xc33c0101:
-                    E_font_I_print( "\nenclosure management bridge" );
+                    G( "enclosure management bridge" );
                     break;
               case 0x96690101:
-                    E_font_I_print( "\nport multiplier" );
+                    G( "port multiplier" );
                     break;
               default:
-                    E_font_I_print( "\nother: " );
-                    E_font_I_print_hex( E_sata_S_memory->port[port].signature );
+                    G( "other: %32x", E_sata_S_memory->port[port].signature );
                     break;
             }
             N command_list_n = ( E_sata_S_memory->host_cap >> 8 ) & 0x1f;

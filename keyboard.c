@@ -1,26 +1,23 @@
 /*******************************************************************************
 *   ___   public
-*  ¦OUX¦  C
+*  ¦OUX¦  C+
 *  ¦/C+¦  OUX/C+ OS
 *   ---   kernel
 *         keyboard driver
 * ©overcq                on ‟Gentoo Linux 23.0” “x86_64”              2025‒6‒5 Q
 *******************************************************************************/
-#define E_keyboard_S_rw_timeout    1000
-_internal B E_keyboard_S_mouse;
+#define E_keyboard_Z_led_S_scroll_lock  ( 1 << 0 )
+#define E_keyboard_Z_led_S_num_lock     ( 1 << 1 )
+#define E_keyboard_Z_led_S_caps_lock    ( 1 << 2 )
+#define E_keyboard_S_rw_timeout         1000
 //==============================================================================
-_internal
-void
-E_keyboard_I_interrupt( void
-){  E_font_I_print( "\nkeyboard interrupt, key=" );
-    N8 v = E_main_I_in_8( 0x60 );
-    E_font_I_print_hex(v);
-}
-_internal
+_internal volatile N8 E_keyboard_S_reply;
+//==============================================================================
+_private
 N
-E_keyboard_I_wait_read( void
+E_keyboard_I_wait_read( N timeout
 ){  N time;
-    E_flow_Q_spin_time_M( &time, E_keyboard_S_rw_timeout );
+    E_flow_Q_spin_time_M( &time, timeout ? timeout : E_keyboard_S_rw_timeout );
     O{  N8 v = E_main_I_in_8( 0x64 );
         if( v & 1 )
             break;
@@ -32,7 +29,7 @@ E_keyboard_I_wait_read( void
     }
     return 0;
 }
-_internal
+_private
 N
 E_keyboard_I_wait_write( void
 ){  N time;
@@ -48,90 +45,153 @@ E_keyboard_I_wait_write( void
     }
     return 0;
 }
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_internal
+N
+E_keyboard_P_led( N8 set
+){  O{  if( E_keyboard_I_wait_write() )
+            return ~0;
+        E_main_I_out_8( 0x60, 0xed );
+        if( E_keyboard_I_wait_write() )
+            return ~0;
+        E_keyboard_S_reply = 0;
+        E_main_I_out_8( 0x60, set );
+        E_flow_I_sleep( E_keyboard_S_rw_timeout );
+        if( E_keyboard_S_reply == 0xfa )
+            break;
+    }
+    return 0;
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_internal
+void
+E_keyboard_I_interrupt( void
+){  N8 v = E_main_I_in_8( 0x60 );
+    if( v == 0xfa
+    || v == 0xfe
+    )
+    {   E_keyboard_S_reply = v;
+        return;
+    }
+    //G( "keyboard interrupt, key=%8h", v );
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _private
 N
 E_keyboard_M( void
-){  E_main_I_out_8( 0x64, 0xad );
-    E_main_I_out_8( 0x64, 0xa7 );
+){  if( E_keyboard_I_wait_write() )
+        return ~0;
+    E_main_I_out_8( 0x64, 0xad ); // Wyłącz port 1.
+    if( E_keyboard_I_wait_write() )
+        return ~0;
+    E_main_I_out_8( 0x64, 0xa7 ); // Wyłącz port 2.
     O{  N8 v = E_main_I_in_8( 0x64 );
         if( !( v & 1 ))
             break;
         E_main_I_in_8( 0x60 );
     }
-    E_main_I_out_8( 0x64, 0x20 );
-    if( E_keyboard_I_wait_read() )
+    if( E_keyboard_I_wait_write() )
+        return ~0;
+    E_main_I_out_8( 0x64, 0x20 ); // Wczytaj konfigurację.
+    if( E_keyboard_I_wait_read(0) )
         return ~0;
     N8 start_conf = E_main_I_in_8( 0x60 );
     N8 v = start_conf;
     v &= ~(( 1 << 6 ) | ( 1 << 4 ) | 1 );
-    E_main_I_out_8( 0x64, 0x60 );
+    if( E_keyboard_I_wait_write() )
+        return ~0;
+    E_main_I_out_8( 0x64, 0x60 ); // Ustaw konfigurację.
     if( E_keyboard_I_wait_write() )
         return ~0;
     E_main_I_out_8( 0x60, v );
-    E_main_I_out_8( 0x64, 0xaa );
-    if( E_keyboard_I_wait_read() )
+    if( E_keyboard_I_wait_write() )
+        return ~0;
+    E_main_I_out_8( 0x64, 0xaa ); // Wykonaj test kontrolera.
+    if( E_keyboard_I_wait_read(0) )
         return ~0;
     v = E_main_I_in_8( 0x60 );
     if( v != 0x55 )
         return ~0;
     v = start_conf;
     v &= ~(( 1 << 6 ) | ( 1 << 4 ) | 1 );
-    E_main_I_out_8( 0x64, 0x60 );
+    if( E_keyboard_I_wait_write() )
+        return ~0;
+    E_main_I_out_8( 0x64, 0x60 ); // Ustaw konfigurację.
     if( E_keyboard_I_wait_write() )
         return ~0;
     E_main_I_out_8( 0x60, v );
-    E_main_I_out_8( 0x64, 0xa8 );
-    if( E_keyboard_I_wait_read() )
+    if( E_keyboard_I_wait_write() )
         return ~0;
+    E_main_I_out_8( 0x64, 0xa8 ); // Włącz port 2.
+    if( E_keyboard_I_wait_write() )
+        return ~0;
+    E_main_I_out_8( 0x64, 0x20 ); // Wczytaj konfigurację.
+    if( E_keyboard_I_wait_read(0) )
+        return ~1;
     v = E_main_I_in_8( 0x60 );
-    E_keyboard_S_mouse = !( v & ( 1 << 5 ));
-    if( E_keyboard_S_mouse )
-    {   E_main_I_out_8( 0x64, 0xa7 );
+    E_mouse_S_initialized = !( v & ( 1 << 5 ));
+    if( E_mouse_S_initialized )
+    {   if( E_keyboard_I_wait_write() )
+            return ~0;
+        E_main_I_out_8( 0x64, 0xa7 ); // Wyłącz port 2.
         v = start_conf;
         v &= ~(( 1 << 6 ) | ( 1 << 4 ) | 1 );
         v &= ~(( 1 << 5 ) | ( 1 << 1 ));
-        E_main_I_out_8( 0x64, 0x60 );
+        if( E_keyboard_I_wait_write() )
+            return ~0;
+        E_main_I_out_8( 0x64, 0x60 ); // Ustaw konfigurację.
         if( E_keyboard_I_wait_write() )
             return ~0;
         E_main_I_out_8( 0x60, v );
     }
-    E_main_I_out_8( 0x64, 0xab );
-    if( E_keyboard_I_wait_read() )
+    if( E_keyboard_I_wait_write() )
+        return ~0;
+    E_main_I_out_8( 0x64, 0xab ); // Wykonaj test portu 1.
+    if( E_keyboard_I_wait_read(0) )
         return ~0;
     v = E_main_I_in_8( 0x60 );
     if(v)
         return ~0;
-    if( E_keyboard_S_mouse )
-    {   E_main_I_out_8( 0x64, 0xa9 );
-        if( E_keyboard_I_wait_read() )
+    if( E_mouse_S_initialized )
+    {   if( E_keyboard_I_wait_write() )
+            return ~0;
+        E_main_I_out_8( 0x64, 0xa9 ); // Wykonaj test portu 2.
+        if( E_keyboard_I_wait_read(0) )
             return ~0;
         v = E_main_I_in_8( 0x60 );
         if(v)
-            E_keyboard_S_mouse = no;
+            E_mouse_S_initialized = no;
     }
-    E_main_I_out_8( 0x64, 0xae );
-    if( E_keyboard_S_mouse )
-        E_main_I_out_8( 0x64, 0xa8 );
+    if( E_keyboard_I_wait_write() )
+        return ~0;
+    E_main_I_out_8( 0x64, 0xae ); // Włącz port 1.
+    if( E_mouse_S_initialized )
+    {   if( E_keyboard_I_wait_write() )
+            return ~0;
+        E_main_I_out_8( 0x64, 0xa8 ); // Włącz port 2.
+    }
     v = start_conf;
     v &= ~( 1 << 4 );
     v |= 1;
-    if( E_keyboard_S_mouse )
+    if( E_mouse_S_initialized )
     {   v &= ~( 1 << 5 );
         v |= 1 << 1;
     }
-    E_main_I_out_8( 0x64, 0x60 );
+    if( E_keyboard_I_wait_write() )
+        return ~0;
+    E_main_I_out_8( 0x64, 0x60 ); // Ustaw konfigurację.
     if( E_keyboard_I_wait_write() )
         return ~0;
     E_main_I_out_8( 0x60, v );
     if( E_keyboard_I_wait_write() )
         return ~0;
-    E_main_I_out_8( 0x60, 0xff );
-    if( E_keyboard_I_wait_read() )
+    E_main_I_out_8( 0x60, 0xff ); // Zresetuj port 1.
+    if( E_keyboard_I_wait_read(0) )
         return ~0;
     v = E_main_I_in_8( 0x60 );
     if( v != 0xfa )
         return ~0;
-    if( E_keyboard_I_wait_read() )
+    if( E_keyboard_I_wait_read(0) )
         return ~0;
     v = E_main_I_in_8( 0x60 );
     if( v != 0xaa )
@@ -141,30 +201,33 @@ E_keyboard_M( void
             break;
         E_main_I_in_8( 0x60 );
     }
-    if( E_keyboard_S_mouse )
-    {   E_main_I_out_8( 0x64, 0xd4 );
+    if( E_mouse_S_initialized )
+    {   if( E_keyboard_I_wait_write() )
+            return ~0;
+        E_main_I_out_8( 0x64, 0xd4 );
         if( E_keyboard_I_wait_write() )
             return ~0;
-        E_main_I_out_8( 0x60, 0xff );
-        if( E_keyboard_I_wait_read() )
+        E_main_I_out_8( 0x60, 0xff ); // Zresetuj port 2.
+        if( E_keyboard_I_wait_read(0) )
             return ~0;
         v = E_main_I_in_8( 0x60 );
         if( v == 0xfa )
-        {   if( E_keyboard_I_wait_read() )
+        {   if( E_keyboard_I_wait_read(0) )
                 return ~0;
             v = E_main_I_in_8( 0x60 );
             if( v == 0xaa )
-                O{  v = E_main_I_in_8( 0x64 );
+            {   O{  v = E_main_I_in_8( 0x64 );
                     if( !( v & 1 ))
                         break;
                     E_main_I_in_8( 0x60 );
                 }
-            else
-                E_keyboard_S_mouse = no;
+            }else
+                E_mouse_S_initialized = no;
         }else
-            E_keyboard_S_mouse = no;
+            E_mouse_S_initialized = no;
     }
     E_interrupt_P( 1, &E_keyboard_I_interrupt );
+    G( "Keyboard initialized." );
     return 0;
 }
 /******************************************************************************/

@@ -1,6 +1,6 @@
 /*******************************************************************************
 *   ___   public
-*  ¦OUX¦  C
+*  ¦OUX¦  C+
 *  ¦/C+¦  OUX/C+ OS
 *   ---   kernel
 *         base definitions
@@ -77,6 +77,7 @@
 #define _0(pointer_variable,l)              E_mem_Q_blk_P_fill_c( (pointer_variable), l, 0 )
 #define _0_(pointer_variable)               _0( (pointer_variable), sizeof( *(pointer_variable) ))
 #define _0t_(pointer_variable,n)            _0( (pointer_variable), (n) * sizeof( *(pointer_variable) ))
+//------------------------------------------------------------------------------
 #define M(l)                                E_mem_Q_blk_M(l)
 #define Mt(u,n)                             E_mem_Q_blk_M_tab((u),(n))
 #define W(pointer_variable)                 E_mem_Q_blk_W( pointer_variable )
@@ -88,9 +89,9 @@
 // Instrukcja blokowa definicji ‹zadania›.
 #define D(module,task)                      _private _unused void _D_proc(module,task)(void)
     #ifdef C_line_report
-#define D_M(module,stack_pages,task)        if( ~E_flow_Q_task_M( &D_id(module,task), ( stack_pages ), &_D_proc(module,task), J_s( _D_proc(module,task) ))){} else
+#define D_M(module,additional_stack_pages,task) if( ~E_flow_Q_task_M( &D_id(module,task), ( additional_stack_pages ), &_D_proc(module,task), J_s( _D_proc(module,task) ))){} else
     #else
-#define D_M(module,stack_pages,task)        if( ~E_flow_Q_task_M( &D_id(module,task), ( stack_pages ), &_D_proc(module,task) )){} else
+#define D_M(module,additional_stack_pages,task) if( ~E_flow_Q_task_M( &D_id(module,task), ( additional_stack_pages ), &_D_proc(module,task) )){} else
     #endif
 #define D_W(module,task)                    E_flow_Q_task_W( &D_id(module,task) )
 //------------------------------------------------------------------------------
@@ -142,6 +143,9 @@
 //------------------------------------------------------------------------------
 // Wyjście z ‹zadania› po procedurze zawierającej instrukcję przełączenia.
 #define I_V()                               if( !E_flow_Q_task_R_exit() ){} else
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#define G(...)                              E_se_log_I_log( &__func__[0], __VA_ARGS__ )
+#define G_(...)                             E_se_log_I_log_( __VA_ARGS__ )
 //==============================================================================
 #define _inline                             static __attribute__ (( __always_inline__, __unused__ ))
 #define _internal                           static
@@ -166,7 +170,7 @@ struct E_flow_Z_args
   Pc *argv;
 };
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#define E_vga_S_background_color            0xcacaca
+#define E_vga_S_background_color            0xdbdbdb
 #define E_vga_S_text_color                  0
 //==============================================================================
 #define H_uefi_Z_api __attribute__(( __ms_abi__ ))

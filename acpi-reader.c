@@ -1,6 +1,6 @@
 /*******************************************************************************
 *   ___   public
-*  ¦OUX¦  C
+*  ¦OUX¦  C+
 *  ¦/C+¦  OUX/C+ OS
 *   ---   kernel
 *         ACPI reader
@@ -105,7 +105,7 @@ E_acpi_reader_I_child_print( N parent_object_i
         if( E_acpi_aml_S_object[ object_i ].name.n == E_acpi_aml_S_object[ parent_object_i ].name.n + 1 )
         {   Pc name = M( 4 + 1 );
             E_text_Z_s_P_copy_sl_0( name, E_acpi_aml_S_object[ object_i ].name.s + ( E_acpi_aml_S_object[ object_i ].name.n - 1 ) * 4, 4 );
-            E_font_I_print( "," ); E_font_I_print(name);
+            G_( ",%s", name );
             W(name);
         }
     }
@@ -916,48 +916,48 @@ E_acpi_reader_M( void
             if( ~hid_i )
             {   Pc name_ = M( E_acpi_aml_S_object[i].name.n * 4 + 1 );
                 E_text_Z_s_P_copy_sl_0( name_, E_acpi_aml_S_object[i].name.s, E_acpi_aml_S_object[i].name.n * 4 );
-                E_font_I_print( "\n,device=" ); E_font_I_print( name_ );
+                G( ",device=%s", name_ );
                 W( name_ );
-                E_font_I_print( ",_HID=" );
+                G_( ",_HID=" );
                 switch( E_acpi_aml_S_object[ hid_i ].type )
                 { case E_acpi_aml_Z_object_Z_type_S_number:
-                        E_font_I_print_hex( E_acpi_aml_S_object[ hid_i ].n );
+                        G_( "%x", E_acpi_aml_S_object[ hid_i ].n );
                         break;
                   case E_acpi_aml_Z_object_Z_type_S_string:
-                        E_font_I_print( E_acpi_aml_S_object[ hid_i ].data );
+                        G_( "%s", E_acpi_aml_S_object[ hid_i ].data );
                         break;
                   default:
-                        E_font_I_print( ",type=" ); E_font_I_print_hex( E_acpi_aml_S_object[ hid_i ].type );
+                        G_( ",type=%x", (N)E_acpi_aml_S_object[ hid_i ].type );
                         break;
                 }
                 N cid_i = E_acpi_reader_R_child( i, ( struct E_acpi_aml_Z_pathname ){ "_CID", 1 });
                 if( ~cid_i )
-                {   E_font_I_print( ",_CID=" );
+                {   G_( ",_CID=" );
                     switch( E_acpi_aml_S_object[ cid_i ].type )
                     { case E_acpi_aml_Z_object_Z_type_S_number:
-                            E_font_I_print_hex( E_acpi_aml_S_object[ cid_i ].n );
+                            G_( "%x", E_acpi_aml_S_object[ cid_i ].n );
                             break;
                       case E_acpi_aml_Z_object_Z_type_S_string:
-                            E_font_I_print( E_acpi_aml_S_object[ cid_i ].data );
+                            G_( "%s", E_acpi_aml_S_object[ cid_i ].data );
                             break;
                       case E_acpi_aml_Z_object_Z_type_S_package:
                         {   struct E_acpi_aml_Z_package *package = E_acpi_aml_S_object[ cid_i ].data;
                             for_n( j, package->n )
                                 switch( package->value[j].type )
                                 { case E_acpi_aml_Z_value_Z_type_S_number:
-                                        E_font_I_print_hex( package->value[j].n );
+                                        G_( "%x", package->value[j].n );
                                         break;
                                   case E_acpi_aml_Z_value_Z_type_S_string:
-                                        E_font_I_print( package->value[j].p );
+                                        G_( "%s", package->value[j].p );
                                         break;
                                   default:
-                                        E_font_I_print( ",type=" ); E_font_I_print_hex( package->value[j].type );
+                                        G_( ",type=%x", (N)package->value[j].type );
                                         break;
                                 }
                             break;
                         }
                       default:
-                            E_font_I_print( ",type=" ); E_font_I_print_hex( E_acpi_aml_S_object[ cid_i ].type );
+                            G_( ",type=%x", (N)E_acpi_aml_S_object[ cid_i ].type );
                             break;
                     }
                 }

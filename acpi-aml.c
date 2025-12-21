@@ -1,6 +1,6 @@
 /*******************************************************************************
 *   ___   public
-*  ¦OUX¦  C
+*  ¦OUX¦  C+
 *  ¦/C+¦  OUX/C+ OS
 *   ---   kernel
 *         AML interpreter
@@ -626,7 +626,7 @@ E_acpi_aml_Q_current_path_I_push( struct E_acpi_aml_Z_pathname pathname
     E_acpi_aml_S_current_path_n++;
     //Pc name_ = M( pathname.n * 4 + 1 );
     //E_text_Z_s_P_copy_sl_0( name_, pathname.s, pathname.n * 4 );
-    //E_font_I_print( "\n,push=" ); E_font_I_print( name_ );
+    //G( "push=%s", name_ );
     //W( name_ );
     return 0;
 }
@@ -636,14 +636,13 @@ E_acpi_aml_Q_current_path_I_pop( void
 ){  W( E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n - 1 ].s );
     if( !E_mem_Q_blk_I_remove( &E_acpi_aml_S_current_path, --E_acpi_aml_S_current_path_n, 1 ))
         return ~0;
-    //E_font_I_print( "\n,pop=" );
     //if( E_acpi_aml_S_current_path_n )
     //{   Pc name_ = M( E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n - 1 ].n * 4 + 1 );
         //E_text_Z_s_P_copy_sl_0( name_, E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n - 1 ].s, E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n - 1 ].n * 4 );
-        //E_font_I_print( name_ );
+        //G( ",pop=%s", name_ );
         //W( name_ );
     //}else
-        //E_font_I_print( "\\" );
+        //G( "\\" );
     return 0;
 }
 //==============================================================================
@@ -1415,7 +1414,7 @@ E_acpi_aml_R_pkg_length_( Pc pkg_end
         return ~0;
     N n = (N8)*E_acpi_aml_S_parse_data >> 6;
     if( !n )
-    {   //E_font_I_print( "\npkg_length=" ); E_font_I_print_hex( *E_acpi_aml_S_parse_data & 0x3f );
+    {   //G( "pkg_length=%x", *E_acpi_aml_S_parse_data & 0x3f );
         return *E_acpi_aml_S_parse_data++ & 0x3f;
     }
     if( *E_acpi_aml_S_parse_data & 0x30 )
@@ -1427,7 +1426,7 @@ E_acpi_aml_R_pkg_length_( Pc pkg_end
             return ~0;
         l |= (N)(N8)*E_acpi_aml_S_parse_data++ << ( 4 + i * 8 );
     }while( ++i != n );
-    //E_font_I_print( "\npkg_length=" ); E_font_I_print_hex(l);
+    //G( "pkg_length=%x", l );
     return l;
 }
 _internal
@@ -1478,7 +1477,7 @@ E_acpi_aml_I_data_object( void
         return ~1;
     switch( (N8)*E_acpi_aml_S_parse_data++ )
     { case 0:
-            E_font_I_print( ",0" );
+            G_( ",0" );
             if( E_acpi_aml_S_precompilation )
             {
             }else
@@ -1488,7 +1487,7 @@ E_acpi_aml_I_data_object( void
             E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].match = yes;
             break;
       case 1:
-            E_font_I_print( ",1" );
+            G_( ",1" );
             if( E_acpi_aml_S_precompilation )
             {
             }else
@@ -1498,7 +1497,7 @@ E_acpi_aml_I_data_object( void
             E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].match = yes;
             break;
       case 0xff:
-            E_font_I_print( ",~0" );
+            G_( ",~0" );
             if( E_acpi_aml_S_precompilation )
             {
             }else
@@ -1510,7 +1509,7 @@ E_acpi_aml_I_data_object( void
       case 0xa: // byte const
             if( E_acpi_aml_S_parse_data + 1 > E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end )
                 return ~1;
-            E_font_I_print( ",byte" );
+            G_( ",byte" );
             if( E_acpi_aml_S_precompilation )
             {
             }else
@@ -1523,7 +1522,7 @@ E_acpi_aml_I_data_object( void
       case 0xb: // word const
             if( E_acpi_aml_S_parse_data + 2 > E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end )
                 return ~1;
-            E_font_I_print( ",word" );
+            G_( ",word" );
             if( E_acpi_aml_S_precompilation )
             {
             }else
@@ -1536,7 +1535,7 @@ E_acpi_aml_I_data_object( void
       case 0xc: // dword const
             if( E_acpi_aml_S_parse_data + 4 > E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end )
                 return ~1;
-            E_font_I_print( ",dword" );
+            G_( ",dword" );
             if( E_acpi_aml_S_precompilation )
             {
             }else
@@ -1547,7 +1546,7 @@ E_acpi_aml_I_data_object( void
             E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].match = yes;
             break;
       case 0xd: // string const
-            E_font_I_print( ",string=" );
+            G_( ",string=" );
             Pc s = E_acpi_aml_S_parse_data;
             while( E_acpi_aml_S_parse_data != E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end
             && *E_acpi_aml_S_parse_data
@@ -1562,13 +1561,13 @@ E_acpi_aml_I_data_object( void
             {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_acpi_aml_Z_value_Z_type_S_string;
                 E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.p = s;
             }
-            E_font_I_print(s);
+            G_(s);
             E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].match = yes;
             break;
       case 0xe: // qword const
             if( E_acpi_aml_S_parse_data + 8 > E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end )
                 return ~1;
-            E_font_I_print( ",qword" );
+            G_( ",qword" );
             if( E_acpi_aml_S_precompilation )
             {
             }else
@@ -1585,7 +1584,7 @@ E_acpi_aml_I_data_object( void
             { case 0x30: // revision
                     if( E_acpi_aml_S_parse_data == E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end )
                         return ~1;
-                    E_font_I_print( ",revision" );
+                    G_( ",revision" );
                     if( E_acpi_aml_S_precompilation )
                     {
                     }else
@@ -1608,7 +1607,7 @@ E_acpi_aml_I_data_object( void
             Pc pkg_end = E_acpi_aml_S_parse_data + pkg_length - ( E_acpi_aml_S_parse_data - data_start );
             if( pkg_end > E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end )
                 return ~1;
-            E_font_I_print( ",buffer" );
+            G_( ",buffer" );
             E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].match = yes;
             E_acpi_aml_I_delegate_pkg( E_acpi_aml_Z_parse_stack_Z_entity_S_buffer_finish, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
@@ -1625,7 +1624,7 @@ E_acpi_aml_I_data_object( void
                 return ~1;
             N n = (N8)*E_acpi_aml_S_parse_data;
             E_acpi_aml_S_parse_data++;
-            E_font_I_print( ",package," ); E_font_I_print_hex(n);
+            G_( ",package,%x", n );
             if( E_acpi_aml_S_precompilation )
             {   E_acpi_aml_S_parse_data = pkg_end;
                 E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].match = yes;
@@ -1657,7 +1656,7 @@ E_acpi_aml_I_data_object( void
             Pc pkg_end = E_acpi_aml_S_parse_data + pkg_length - ( E_acpi_aml_S_parse_data - data_start );
             if( pkg_end > E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end )
                 return ~1;
-            E_font_I_print( ",var package" );
+            G_( ",var package" );
             if( E_acpi_aml_S_precompilation )
             {
             }else
@@ -1761,7 +1760,7 @@ E_acpi_aml_I_term( void
                 return ~1;
             switch( (N8)*E_acpi_aml_S_parse_data++ )
             { case 0x32: // fatal
-                    E_font_I_print( ",fatal" );
+                    G_( ",fatal" );
                     if( ++E_acpi_aml_S_parse_data > E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end )
                         return ~1;
                     if( E_acpi_aml_S_parse_data + 4 == E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end )
@@ -1770,37 +1769,37 @@ E_acpi_aml_I_term( void
                     E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_fatal_finish, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
                     break;
               case 0x27: // release
-                    E_font_I_print( ",release" );
+                    G_( ",release" );
                     E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.last_op_if = 0;
                     E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_release_finish, E_acpi_aml_Z_parse_stack_Z_entity_S_supername );
                     break;
               case 0x26: // reset
-                    E_font_I_print( ",reset" );
+                    G_( ",reset" );
                     E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.last_op_if = 0;
                     E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_reset_finish, E_acpi_aml_Z_parse_stack_Z_entity_S_supername );
                     break;
               case 0x24: // signal
-                    E_font_I_print( ",signal" );
+                    G_( ",signal" );
                     E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.last_op_if = 0;
                     E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_signal_finish, E_acpi_aml_Z_parse_stack_Z_entity_S_supername );
                     break;
               case 0x22: // sleep
-                    E_font_I_print( ",sleep" );
+                    G_( ",sleep" );
                     E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.last_op_if = 0;
                     E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_sleep_finish, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
                     break;
               case 0x21: // stall
-                    E_font_I_print( ",stall" );
+                    G_( ",stall" );
                     E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.last_op_if = 0;
                     E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_stall_finish, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
                     break;
               case 0x20: // load
-                    E_font_I_print( ",load" );
+                    G_( ",load" );
                     E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.last_op_if = 0;
                     E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_load_finish, E_acpi_aml_Z_parse_stack_Z_entity_S_supername );
                     break;
               case 0x2a: // unload
-                    E_font_I_print( ",unload" );
+                    G_( ",unload" );
                     E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.last_op_if = 0;
                     E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_load_finish, E_acpi_aml_Z_parse_stack_Z_entity_S_supername );
                     break;
@@ -1819,7 +1818,7 @@ E_acpi_aml_I_term( void
             W(name);
             Pc name_ = M( n * 4 + 1 );
             E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
-            E_font_I_print( ",external=" ); E_font_I_print( name_ );
+            G_( ",external=%s", name_ );
             W( name_ );
             if( E_acpi_aml_S_parse_data + 2 > E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end )
                 return ~1;
@@ -1828,7 +1827,7 @@ E_acpi_aml_I_term( void
             break;
         }
       case 0xa5: // break
-        {   E_font_I_print( ",break" );
+        {   G_( ",break" );
             for_n_rev( i, E_acpi_aml_S_parse_stack_n )
                 if( E_acpi_aml_S_parse_stack[i].execution_context.break_ )
                 {   E_acpi_aml_S_parse_data = E_acpi_aml_S_parse_stack[i].execution_context.break_;
@@ -1839,12 +1838,12 @@ E_acpi_aml_I_term( void
             break;
         }
       case 0xcc: // breakpoint
-        {   E_font_I_print( ",breakpoint" );
+        {   G_( ",breakpoint" );
             E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.last_op_if = 0;
             break;
         }
       case 0x9f: // continue
-        {   E_font_I_print( ",continue" );
+        {   G_( ",continue" );
             for_n_rev( i, E_acpi_aml_S_parse_stack_n )
                 if( E_acpi_aml_S_parse_stack[i].execution_context.continue_ )
                 {   E_acpi_aml_S_parse_data = E_acpi_aml_S_parse_stack[i].execution_context.continue_;
@@ -1862,7 +1861,7 @@ E_acpi_aml_I_term( void
             Pc pkg_end = E_acpi_aml_S_parse_data + pkg_length - ( E_acpi_aml_S_parse_data - data_start );
             if( pkg_end > E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end )
                 return ~1;
-            E_font_I_print( ",if" );
+            G_( ",if" );
             E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.last_op_if++;
             E_acpi_aml_I_delegate_pkg( E_acpi_aml_Z_parse_stack_Z_entity_S_if_op_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
@@ -1878,7 +1877,7 @@ E_acpi_aml_I_term( void
             Pc pkg_end = E_acpi_aml_S_parse_data + pkg_length - ( E_acpi_aml_S_parse_data - data_start );
             if( pkg_end > E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end )
                 return ~1;
-            E_font_I_print( ",else" );
+            G_( ",else" );
             if( E_acpi_aml_S_parse_data != pkg_end )
                 if( E_acpi_aml_S_precompilation )
                 {   E_acpi_aml_I_delegate_pkg( E_acpi_aml_Z_parse_stack_Z_entity_S_else_op_finish, E_acpi_aml_Z_parse_stack_Z_entity_S_term );
@@ -1897,12 +1896,12 @@ E_acpi_aml_I_term( void
             E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.last_op_if = 0;
             break;
       case 0x86: // notify
-            E_font_I_print( ",notify" );
+            G_( ",notify" );
             E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.last_op_if = 0;
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_notify_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_supername );
             break;
       case 0xa4: // return
-            E_font_I_print( ",return" );
+            G_( ",return" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_return_finish, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       case 0xa2: // while
@@ -1913,7 +1912,7 @@ E_acpi_aml_I_term( void
             Pc pkg_end = E_acpi_aml_S_parse_data + pkg_length - ( E_acpi_aml_S_parse_data - data_start );
             if( pkg_end > E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end )
                 return ~1;
-            E_font_I_print( ",while" );
+            G_( ",while" );
             if( E_acpi_aml_S_parse_data != pkg_end )
             {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.continue_ = E_acpi_aml_S_parse_data;
                 E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.last_op_if = 0;
@@ -1946,7 +1945,7 @@ E_acpi_aml_I_object( void
             }
             Pc name_ = M( name_n * 4 + 1 );
             E_text_Z_s_P_copy_sl_0( name_, name, name_n * 4 );
-            E_font_I_print( ",alias=" ); E_font_I_print( name_ );
+            G_( ",alias=%s", name_ );
             W( name_ );
             W(name);
             N8 alias_n;
@@ -1955,7 +1954,7 @@ E_acpi_aml_I_object( void
                 return (S8)alias_n;
             name_ = M( alias_n * 4 + 1 );
             E_text_Z_s_P_copy_sl_0( name_, alias, alias_n * 4 );
-            E_font_I_print( ":" ); E_font_I_print( name_ );
+            G_( ":%s", name_ );
             W( name_ );
             if( E_acpi_aml_S_precompilation )
             {   W(alias);
@@ -1991,7 +1990,7 @@ E_acpi_aml_I_object( void
             }
             Pc name_ = M( n * 4 + 1 );
             E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
-            E_font_I_print( "\n,object=" ); E_font_I_print( name_ );
+            G( ",object=%s", name_ );
             W( name_ );
             if( E_acpi_aml_S_precompilation )
             {
@@ -2031,7 +2030,7 @@ E_acpi_aml_I_object( void
                 return (S8)n;
             Pc name_ = M( n * 4 + 1 );
             E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
-            E_font_I_print( "\n,scope=" ); E_font_I_print( name_ );
+            G( ",scope=%s", name_ );
             W( name_ );
             if( E_acpi_aml_S_precompilation )
             {
@@ -2077,7 +2076,7 @@ E_acpi_aml_I_object( void
                         return (S8)n;
                     Pc name_ = M( n * 4 + 1 );
                     E_text_Z_s_P_copy_sl_0( name_, region_name, n * 4 );
-                    E_font_I_print( ",region=" ); E_font_I_print( name_ );
+                    G_( ",region=%s", name_ );
                     W( name_ );
                     if( !~object_i
                     || E_acpi_aml_S_object[ object_i ].type != E_acpi_aml_Z_object_Z_type_S_op_region
@@ -2093,7 +2092,7 @@ E_acpi_aml_I_object( void
                         return (N)bank_name;
                     name_ = M( n * 4 + 1 );
                     E_text_Z_s_P_copy_sl_0( name_, bank_name, n * 4 );
-                    E_font_I_print( ",bank=" ); E_font_I_print( name_ );
+                    G_( ",bank=%s", name_ );
                     W( name_ );
                     if( E_acpi_aml_S_precompilation )
                     {   W( bank_name );
@@ -2128,7 +2127,7 @@ E_acpi_aml_I_object( void
                     }
                     Pc name_ = M( n * 4 + 1 );
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
-                    E_font_I_print( ",mutex=" ); E_font_I_print( name_ );
+                    G_( ",mutex=%s", name_ );
                     W( name_ );
                     if( E_acpi_aml_S_parse_data == E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end )
                         return ~1;
@@ -2149,7 +2148,7 @@ E_acpi_aml_I_object( void
                     break;
                 }
               case 0x13: // field
-                    E_font_I_print( ",field" );
+                    G_( ",field" );
                     E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].match = yes;
                     E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_field_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
                     break;
@@ -2166,7 +2165,7 @@ E_acpi_aml_I_object( void
                     }
                     Pc name_ = M( n * 4 + 1 );
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
-                    E_font_I_print( ",data dsdt region=" ); E_font_I_print( name_ );
+                    G_( ",data dsdt region=%s", name_ );
                     W( name_ );
                     if( E_acpi_aml_S_precompilation )
                     {
@@ -2196,7 +2195,7 @@ E_acpi_aml_I_object( void
                     }
                     Pc name_ = M( n * 4 + 1 );
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
-                    E_font_I_print( ",op region=" ); E_font_I_print( name_ );
+                    G_( ",op region=%s", name_ );
                     W( name_ );
                     if( E_acpi_aml_S_parse_data == E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end )
                         return ~1;
@@ -2254,7 +2253,7 @@ E_acpi_aml_I_object( void
                         return (S8)n;
                     Pc name_ = M( n * 4 + 1 );
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
-                    E_font_I_print( ",field op=" ); E_font_I_print( name_ );
+                    G_( ",field op=%s", name_ );
                     W( name_ );
                     W(name);
                     if( E_acpi_aml_S_precompilation )
@@ -2278,7 +2277,7 @@ E_acpi_aml_I_object( void
                                 {   N n = E_acpi_aml_R_pkg_length_( pkg_end );
                                     if( !~n )
                                         return ~1;
-                                    E_font_I_print( ",reserved field" );
+                                    G_( ",reserved field" );
                                     i += n;
                                     break;
                                 }
@@ -2295,13 +2294,13 @@ E_acpi_aml_I_object( void
                                     break;
                                 }
                               case 2: // connect field
-                                    E_font_I_print( ",connect field" );
+                                    G_( ",connect field" );
                                     return ~0; //NDFN
                                     break;
                               case 3: // extended access field
                                     if( E_acpi_aml_S_parse_data + 3 > pkg_end )
                                         return ~1;
-                                    E_font_I_print( ",ext access field" );
+                                    G_( ",ext access field" );
                                     //field->i = i;
                                     //TODO Dodać ‘access type’ do drzewa zinterpretowanej przestrzeni ACPI.
                                     E_acpi_aml_S_parse_data++;
@@ -2323,7 +2322,7 @@ E_acpi_aml_I_object( void
                                         return (N)name_;
                                     Pc name__ = M( 4 + 1 );
                                     E_text_Z_s_P_copy_sl_0( name__, name_, 4 );
-                                    E_font_I_print( ",name=" ); E_font_I_print( name__ );
+                                    G_( ",name=%s", name__ );
                                     W( name__ );
                                     N depth = E_acpi_aml_S_current_path_n ? E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n - 1 ].n : 0;
                                     Pc field_name = M(( depth + 1 ) * 4 );
@@ -2381,7 +2380,7 @@ E_acpi_aml_I_object( void
                         return (S8)n;
                     Pc name_ = M( n * 4 + 1 );
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
-                    E_font_I_print( ",index field=" ); E_font_I_print( name_ );
+                    G_( ",index field=%s", name_ );
                     W( name_ );
                     W(name);
                     if( E_acpi_aml_S_precompilation )
@@ -2392,7 +2391,7 @@ E_acpi_aml_I_object( void
                             return (S8)n;
                         name_ = M( n * 4 + 1 );
                         E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
-                        E_font_I_print( ",=" ); E_font_I_print( name_ );
+                        G_( ",=%s", name_ );
                         W( name_ );
                         W(name);
                         if( E_acpi_aml_S_parse_data == pkg_end )
@@ -2410,7 +2409,7 @@ E_acpi_aml_I_object( void
                         while( E_acpi_aml_S_parse_data != pkg_end )
                             switch( *E_acpi_aml_S_parse_data++ )
                             { case 0: // reserved field
-                                {   E_font_I_print( ",reserved field" );
+                                {   G_( ",reserved field" );
                                     N n = E_acpi_aml_R_pkg_length_( pkg_end );
                                     if( !~n )
                                         return ~1;
@@ -2418,7 +2417,7 @@ E_acpi_aml_I_object( void
                                     break;
                                 }
                               case 1: // access field
-                                    E_font_I_print( ",access field" );
+                                    G_( ",access field" );
                                     if( E_acpi_aml_S_parse_data + 2 > pkg_end )
                                         return ~1;
                                     //TODO Dodać ‘access type’ do drzewa zinterpretowanej przestrzeni ACPI.
@@ -2427,11 +2426,11 @@ E_acpi_aml_I_object( void
                                     E_acpi_aml_S_parse_data++;
                                     break;
                               case 2: // connect field
-                                    E_font_I_print( ",connect field" );
+                                    G_( ",connect field" );
                                     return ~0; //NDFN
                                     break;
                               case 3: // extended access field
-                                    E_font_I_print( ",ext access field" );
+                                    G_( ",ext access field" );
                                     if( E_acpi_aml_S_parse_data + 3 > pkg_end )
                                         return ~1;
                                     //TODO Dodać ‘access type’ do drzewa zinterpretowanej przestrzeni ACPI.
@@ -2452,7 +2451,7 @@ E_acpi_aml_I_object( void
                                         return (N)name_;
                                     Pc name__ = M( 4 + 1 );
                                     E_text_Z_s_P_copy_sl_0( name__, name_, 4 );
-                                    E_font_I_print( ",name=" ); E_font_I_print( name__ );
+                                    G_( ",name=%s", name__ );
                                     W( name__ );
                                     N depth = E_acpi_aml_S_current_path_n ? E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n - 1 ].n : 0;
                                     Pc field_name = M(( depth + 1 ) * 4 );
@@ -2516,7 +2515,7 @@ E_acpi_aml_I_object( void
                     }
                     Pc name_ = M( n * 4 + 1 );
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
-                    E_font_I_print( ",device=" ); E_font_I_print( name_ );
+                    G_( ",device=%s", name_ );
                     W( name_ );
                     if( E_acpi_aml_S_precompilation )
                     {
@@ -2561,7 +2560,7 @@ E_acpi_aml_I_object( void
                     }
                     Pc name_ = M( n * 4 + 1 );
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
-                    E_font_I_print( ",event=" ); E_font_I_print( name_ );
+                    G_( ",event=%s", name_ );
                     W( name_ );
                     if( E_acpi_aml_S_precompilation )
                     {
@@ -2597,7 +2596,7 @@ E_acpi_aml_I_object( void
                     }
                     Pc name_ = M( n * 4 + 1 );
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
-                    E_font_I_print( ",power res=" ); E_font_I_print( name_ );
+                    G_( ",power res=%s", name_ );
                     W( name_ );
                     if( E_acpi_aml_S_precompilation )
                     {
@@ -2649,7 +2648,7 @@ E_acpi_aml_I_object( void
                     }
                     Pc name_ = M( n * 4 + 1 );
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
-                    E_font_I_print( ",thermal zone=" ); E_font_I_print( name_ );
+                    G_( ",thermal zone=%s", name_ );
                     W( name_ );
                     if( E_acpi_aml_S_precompilation )
                     {
@@ -2696,7 +2695,7 @@ E_acpi_aml_I_object( void
                     }
                     Pc name_ = M( n * 4 + 1 );
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
-                    E_font_I_print( ",processor=" ); E_font_I_print( name_ );
+                    G_( ",processor=%s", name_ );
                     W( name_ );
                     if( ++E_acpi_aml_S_parse_data > pkg_end )
                         return ~1;
@@ -2738,31 +2737,31 @@ E_acpi_aml_I_object( void
             }
             break;
       case 0x8d: // bit field
-            E_font_I_print( ",bit field" );
+            G_( ",bit field" );
             //TODO Dodać ‘bit field’ do drzewa zinterpretowanej przestrzeni ACPI.
             E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].match = yes;
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_bit_field_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       case 0x8c: // byte field
-            E_font_I_print( ",byte field" );
+            G_( ",byte field" );
             //TODO Dodać ‘byte field’ do drzewa zinterpretowanej przestrzeni ACPI.
             E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].match = yes;
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_byte_field_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       case 0x8a: // dword field
-            E_font_I_print( ",dword field" );
+            G_( ",dword field" );
             //TODO Dodać ‘dword field’ do drzewa zinterpretowanej przestrzeni ACPI.
             E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].match = yes;
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_dword_field_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       case 0x8f: // qword field
-            E_font_I_print( ",qword field" );
+            G_( ",qword field" );
             //TODO Dodać ‘qword field’ do drzewa zinterpretowanej przestrzeni ACPI.
             E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].match = yes;
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_qword_field_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       case 0x8b: // word field
-            E_font_I_print( ",word field" );
+            G_( ",word field" );
             //TODO Dodać ‘word field’ do drzewa zinterpretowanej przestrzeni ACPI.
             E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].match = yes;
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_word_field_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
@@ -2781,7 +2780,7 @@ E_acpi_aml_I_object( void
                 return (S8)n;
             Pc name_ = M( n * 4 + 1 );
             E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
-            E_font_I_print( "\n,procedure=" ); E_font_I_print( name_ );
+            G( ",procedure=%s", name_ );
             W( name_ );
             if( n > 1
             && !~E_acpi_aml_Q_object_R(( struct E_acpi_aml_Z_pathname ){ name, n - 1 })
@@ -2796,7 +2795,7 @@ E_acpi_aml_I_object( void
                 return ~0;
             procedure->arg_n = *E_acpi_aml_S_parse_data & 3;
             E_acpi_aml_S_parse_data++;
-            E_font_I_print( "," ); E_font_I_print_hex( procedure->arg_n );
+            G_( ",%8x", procedure->arg_n );
             N object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_procedure, ( struct E_acpi_aml_Z_pathname ){ name, n });
             if( !~object_i
             || object_i == ~1
@@ -2880,30 +2879,30 @@ E_acpi_aml_I_expression( void
                 return ~1;
             switch( (N8)*E_acpi_aml_S_parse_data++ )
             { case 0x23: // acquire
-                    E_font_I_print( ",acquire" );
+                    G_( ",acquire" );
                     E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_acquire_finish, E_acpi_aml_Z_parse_stack_Z_entity_S_supername );
                     break;
               case 0x12: // cond refof
-                    E_font_I_print( ",cond refof" );
+                    G_( ",cond refof" );
                     E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_cond_refof_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_supername );
                     break;
               case 0x28: // from bcd
-                    E_font_I_print( ",from bcd" );
+                    G_( ",from bcd" );
                     E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_from_bcd_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
                     break;
               case 0x1f: // load dsdt
-                    E_font_I_print( ",load dsdt" );
+                    G_( ",load dsdt" );
                     E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_load_table_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
                     break;
               case 0x33: // timer
-                    E_font_I_print( ",timer" );
+                    G_( ",timer" );
                     break;
               case 0x29: // to bcd
-                    E_font_I_print( ",to bcd" );
+                    G_( ",to bcd" );
                     E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_to_bcd_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
                     break;
               case 0x25: // wait
-                    E_font_I_print( ",wait" );
+                    G_( ",wait" );
                     E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_wait_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_supername );
                     break;
               default:
@@ -2912,63 +2911,63 @@ E_acpi_aml_I_expression( void
             }
             break;
       case 0x72: // add
-            E_font_I_print( ",add" );
+            G_( ",add" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_add_op_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       case 0x7b: // and
-            E_font_I_print( ",and" );
+            G_( ",and" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_and_op_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       case 0x73: // concat
-            E_font_I_print( ",concat" );
+            G_( ",concat" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_concat_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       case 0x84: // concat res
-            E_font_I_print( ",concat res" );
+            G_( ",concat res" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_concat_res_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       case 0x9d: // copy object
-            E_font_I_print( ",copy object" );
+            G_( ",copy object" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_copy_object_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       case 0x76: // decrement
-            E_font_I_print( ",decrement" );
+            G_( ",decrement" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_decrement_finish, E_acpi_aml_Z_parse_stack_Z_entity_S_supername );
             break;
       case 0x83: // derefof
-            E_font_I_print( ",derefof" );
+            G_( ",derefof" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_derefof_finish, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       case 0x78: // divide
-            E_font_I_print( ",divide" );
+            G_( ",divide" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_divide_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       case 0x81: // find set left bit
-            E_font_I_print( ",fslb" );
+            G_( ",fslb" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_fslb_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       case 0x82: // find set right bit
-            E_font_I_print( ",fsrb" );
+            G_( ",fsrb" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_fsrb_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       case 0x75: // increment
-            E_font_I_print( ",increment" );
+            G_( ",increment" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_increment_finish, E_acpi_aml_Z_parse_stack_Z_entity_S_supername );
             break;
       case 0x88: // index
-            E_font_I_print( ",index" );
+            G_( ",index" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_index_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       case 0x90: // land
-            E_font_I_print( ",land" );
+            G_( ",land" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_land_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       case 0x93: // lequal
-            E_font_I_print( ",lequal" );
+            G_( ",lequal" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_lequal_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       case 0x94: // lgreater
-            E_font_I_print( ",lgreater" );
+            G_( ",lgreater" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_lgreater_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       case 0x92: // lnot
@@ -2976,66 +2975,66 @@ E_acpi_aml_I_expression( void
                 return ~1;
             switch( (N8)*E_acpi_aml_S_parse_data++ )
             { case 0x93:
-                    E_font_I_print( ",lnotequal" );
+                    G_( ",lnotequal" );
                     E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_lnotequal_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
                     break;
               case 0x94:
-                    E_font_I_print( ",llessequal" );
+                    G_( ",llessequal" );
                     E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_llessequal_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
                     break;
               case 0x95:
-                    E_font_I_print( ",lgreaterequal" );
+                    G_( ",lgreaterequal" );
                     E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_lgreaterequal_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
                     break;
               default:
                     E_acpi_aml_S_parse_data--;
-                    E_font_I_print( ",lnot" );
+                    G_( ",lnot" );
                     E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_lnot_finish, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
                     break;
             }
             break;
       case 0x95: // lless
-            E_font_I_print( ",lless" );
+            G_( ",lless" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_lless_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       case 0x9e: // mid
-            E_font_I_print( ",mid" );
+            G_( ",mid" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_mid_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       case 0x91: // lor
-            E_font_I_print( ",lor" );
+            G_( ",lor" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_lor_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       case 0x89: // match
-            E_font_I_print( ",match" );
+            G_( ",match" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_match_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       case 0x85: // mod
-            E_font_I_print( ",mod" );
+            G_( ",mod" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_mod_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       case 0x77: // multiply
-            E_font_I_print( ",multiply" );
+            G_( ",multiply" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_multiply_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       case 0x7c: // nand
-            E_font_I_print( ",nand" );
+            G_( ",nand" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_nand_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       case 0x7e: // nor
-            E_font_I_print( ",nor" );
+            G_( ",nor" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_nor_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       case 0x80: // not
-            E_font_I_print( ",not" );
+            G_( ",not" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_not_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       case 0x8e: // object type
-            E_font_I_print( ",object type" );
+            G_( ",object type" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_object_type_finish, E_acpi_aml_Z_parse_stack_Z_entity_S_supername );
             break;
       case 0x7d: // or
-            E_font_I_print( ",or" );
+            G_( ",or" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_or_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       case 0x12: // package
@@ -3050,7 +3049,7 @@ E_acpi_aml_I_expression( void
                 return ~1;
             N n = (N8)*E_acpi_aml_S_parse_data;
             E_acpi_aml_S_parse_data++;
-            E_font_I_print( ",package," ); E_font_I_print_hex(n);
+            G_( ",package,%x", n );
             if( E_acpi_aml_S_precompilation )
             {   E_acpi_aml_S_parse_data = pkg_end;
             }else
@@ -3080,7 +3079,7 @@ E_acpi_aml_I_expression( void
             Pc pkg_end = E_acpi_aml_S_parse_data + pkg_length - ( E_acpi_aml_S_parse_data - data_start );
             if( pkg_end > E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end )
                 return ~1;
-            E_font_I_print( ",var package" );
+            G_( ",var package" );
             struct E_acpi_aml_Z_package *package;
             if( E_acpi_aml_S_precompilation )
             {
@@ -3125,51 +3124,51 @@ E_acpi_aml_I_expression( void
             break;
         }
       case 0x71: // refof
-            E_font_I_print( ",refof" );
+            G_( ",refof" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_refof_finish, E_acpi_aml_Z_parse_stack_Z_entity_S_supername );
             break;
       case 0x79: // shift left
-            E_font_I_print( ",shift left" );
+            G_( ",shift left" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_shift_left_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       case 0x7a: // shift right
-            E_font_I_print( ",shift right" );
+            G_( ",shift right" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_shift_right_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       case 0x87: // sizeof
-            E_font_I_print( ",sizeof" );
+            G_( ",sizeof" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_sizeof_finish, E_acpi_aml_Z_parse_stack_Z_entity_S_supername );
             break;
       case 0x70: // store
-            E_font_I_print( ",store" );
+            G_( ",store" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_store_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       case 0x74: // subtract
-            E_font_I_print( ",subtract" );
+            G_( ",subtract" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_subtract_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       case 0x96: // to buffer
-            E_font_I_print( ",to buffer" );
+            G_( ",to buffer" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_to_buffer_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       case 0x97: // to decimal string
-            E_font_I_print( ",to decimal string" );
+            G_( ",to decimal string" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_to_decimal_string_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       case 0x98: // to hex string
-            E_font_I_print( ",to hex string" );
+            G_( ",to hex string" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_to_hex_string_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       case 0x99: // to integer
-            E_font_I_print( ",to integer" );
+            G_( ",to integer" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_to_integer_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       case 0x9c: // to string
-            E_font_I_print( ",to string" );
+            G_( ",to string" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_to_string_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       case 0x7f: // xor
-            E_font_I_print( ",xor" );
+            G_( ",xor" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_xor_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       default:
@@ -3184,7 +3183,7 @@ E_acpi_aml_I_expression( void
                     return (S8)n;
                 Pc name_ = M( n * 4 + 1 );
                 E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
-                E_font_I_print( ",expr string=" ); E_font_I_print( name_ );
+                G_( ",expr string=%s", name_ );
                 W( name_ );
                 if( !~object_i )
                 {   if( n > 1
@@ -3203,7 +3202,7 @@ E_acpi_aml_I_expression( void
                     E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.pathname = ( struct E_acpi_aml_Z_pathname ){ name, n };
                     E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.copy = yes;
                 }else
-                {   E_font_I_print( ",invocation" );
+                {   G_( ",invocation" );
                     if( !E_mem_Q_blk_I_append( &E_acpi_aml_S_procedure_invocation_stack, 1 ))
                         return ~0;
                     E_acpi_aml_S_procedure_invocation_stack[ E_acpi_aml_S_procedure_invocation_stack_n ].name = E_acpi_aml_S_object[ object_i ].name;
@@ -3216,7 +3215,7 @@ E_acpi_aml_I_expression( void
                     E_acpi_aml_S_procedure_invocation_stack_n++;
                     struct E_acpi_aml_Z_object_data_Z_procedure *procedure = E_acpi_aml_S_object[ object_i ].data;
                     if( procedure->arg_n )
-                    {   E_font_I_print( "," ); E_font_I_print_hex( procedure->arg_n );
+                    {   G_( ",%8n", procedure->arg_n );
                         E_acpi_aml_S_procedure_invocation_stack[ E_acpi_aml_S_procedure_invocation_stack_n - 1 ].computing_arg = yes;
                         E_acpi_aml_S_procedure_invocation_stack[ E_acpi_aml_S_procedure_invocation_stack_n - 1 ].return_ = E_acpi_aml_S_parse_data;
                         if( !E_mem_Q_blk_I_append( &E_acpi_aml_S_parse_stack, 2 * procedure->arg_n - 1 ))
@@ -3292,7 +3291,7 @@ E_acpi_aml_I_supername( void
                 return ~1;
             switch( (N8)*E_acpi_aml_S_parse_data++ )
             { case 0x31: // debug
-                    E_font_I_print( ",debug" );
+                    G_( ",debug" );
                     E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_acpi_aml_Z_value_Z_type_S_debug_ref;
                     break;
               default:
@@ -3301,15 +3300,15 @@ E_acpi_aml_I_supername( void
             }
             break;
       case 0x71: // ref
-            E_font_I_print( ",ref" );
+            G_( ",ref" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_refof_finish, E_acpi_aml_Z_parse_stack_Z_entity_S_supername );
             break;
       case 0x83: // deref
-            E_font_I_print( ",deref" );
+            G_( ",deref" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_derefof_finish, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       case 0x88: // index
-            E_font_I_print( ",index" );
+            G_( ",index" );
             E_acpi_aml_I_delegate( E_acpi_aml_Z_parse_stack_Z_entity_S_index_finish_1, E_acpi_aml_Z_parse_stack_Z_entity_S_term_arg );
             break;
       case 0x68: // arg
@@ -3319,7 +3318,7 @@ E_acpi_aml_I_supername( void
       case 0x6c:
       case 0x6d:
       case 0x6e:
-        {   E_font_I_print( ",arg" );
+        {   G_( ",arg" );
             if( E_acpi_aml_S_precompilation )
             {
             }else
@@ -3339,7 +3338,7 @@ E_acpi_aml_I_supername( void
       case 0x65:
       case 0x66:
       case 0x67:
-        {   E_font_I_print( ",local" );
+        {   G_( ",local" );
             if( E_acpi_aml_S_precompilation )
             {
             }else
@@ -3360,7 +3359,7 @@ E_acpi_aml_I_supername( void
                 return (S8)n;
             Pc name_ = M( n * 4 + 1 );
             E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
-            E_font_I_print( ",supername=" ); E_font_I_print( name_ );
+            G_( ",supername=%s", name_ );
             W( name_ );
             if( E_acpi_aml_S_precompilation )
             {
@@ -3537,7 +3536,7 @@ E_acpi_aml_M_field_finish_2( N bytes
         return -(S8)n;
     Pc name_ = M( n * 4 + 1 );
     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
-    E_font_I_print( ",bytes field=" ); E_font_I_print( name_ );
+    G_( ",bytes field=%s", name_ );
     W( name_ );
     if( E_acpi_aml_S_precompilation )
     {
@@ -3695,10 +3694,10 @@ E_acpi_aml_M_res1( void
                         if( E_acpi_aml_S_current_path_n )
                         {   Pc name_ = M( E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n - 1 ].n * 4 + 1 );
                             E_text_Z_s_P_copy_sl_0( name_, E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n - 1 ].s, E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n - 1 ].n * 4 );
-                            E_font_I_print( "\n,go over to=" ); E_font_I_print( name_ );
+                            G( ",go over to=%s", name_ );
                             W( name_ );
                         }else
-                            E_font_I_print( "\n,go over to=\\" );
+                            G( ",go over to=\\" );
                         if( !~E_acpi_aml_S_parse_stack[ i - 1 ].n ) // Dla listy wyliczanej w nieskończoność interpretacja zakończyła się.
                             if( !--i )
                                 break;
@@ -3733,11 +3732,11 @@ E_acpi_aml_M_parse( void
 Loop:
     O{  stack_n_last = E_acpi_aml_S_parse_stack_n;
         //if( E_acpi_aml_Q_procedure_invocation_stack_S_invoking )
-        //{   E_font_I_print( "\nentity=" ); E_font_I_print_hex( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].entity );
-            //E_font_I_print( ",data=" ); E_font_I_print_hex( (N)E_acpi_aml_S_parse_data );
-            //E_font_I_print( ",data_end=" ); E_font_I_print_hex( (N)E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end );
-            //E_font_I_print( ",value=" ); E_font_I_print_hex( (( N * )E_acpi_aml_S_parse_data )[0] );
-            //E_font_I_print( "," ); E_font_I_print_hex( (( N * )E_acpi_aml_S_parse_data )[1] );
+        //{   G( "entity=%x", (N)E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].entity );
+            //G_( ",data=%x", E_acpi_aml_S_parse_data );
+            //G_( ",data_end=%x", E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end );
+            //G_( ",value=%x", (( N * )E_acpi_aml_S_parse_data )[0] );
+            //G_( ",%x", (( N * )E_acpi_aml_S_parse_data )[1] );
         //}
         switch( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].entity )
         { case E_acpi_aml_Z_parse_stack_Z_entity_S_result_to_n:
@@ -3770,7 +3769,7 @@ Loop:
                   case 0x6c:
                   case 0x6d:
                   case 0x6e:
-                        E_font_I_print( ",arg" );
+                        G_( ",arg" );
                         if( E_acpi_aml_S_precompilation )
                         {
                         }else
@@ -3802,7 +3801,7 @@ Loop:
                   case 0x65:
                   case 0x66:
                   case 0x67:
-                        E_font_I_print( ",local" );
+                        G_( ",local" );
                         if( E_acpi_aml_S_precompilation )
                         {
                         }else
@@ -4121,7 +4120,7 @@ Loop:
                                     {   ret = ~1;
                                         break;
                                     }
-                                    E_font_I_print( ",reserved field" );
+                                    G_( ",reserved field" );
                                     i += n;
                                     break;
                                 }
@@ -4138,7 +4137,7 @@ Loop:
                                     break;
                                 }
                               case 2: // connect field
-                                {   E_font_I_print( ",connect field" );
+                                {   G_( ",connect field" );
                                     W( bank_name );
                                     return ~0; //NDFN
                                     break;
@@ -4148,7 +4147,7 @@ Loop:
                                     {   ret = ~1;
                                         break;
                                     }
-                                    E_font_I_print( ",ext access field" );
+                                    G_( ",ext access field" );
                                     //TODO Dodać ‘access type’ do drzewa zinterpretowanej przestrzeni ACPI.
                                     E_acpi_aml_S_parse_data++;
                                     //TODO Dodać ‘extended access attrib’ do drzewa zinterpretowanej przestrzeni ACPI.
@@ -4173,7 +4172,7 @@ Loop:
                                     }
                                     Pc name__ = M( 4 + 1 );
                                     E_text_Z_s_P_copy_sl_0( name__, name_, 4 );
-                                    E_font_I_print( ",name=" ); E_font_I_print( name__ );
+                                    G_( ",name=%s", name__ );
                                     W( name__ );
                                     Pc field_name = M(( depth + 1 ) * 4 );
                                     if( !field_name )
@@ -4292,7 +4291,7 @@ Loop:
                 }
                 Pc name_ = M( n * 4 + 1 );
                 E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
-                E_font_I_print( ",bit field=" ); E_font_I_print( name_ );
+                G_( ",bit field=%s", name_ );
                 W( name_ );
                 if( E_acpi_aml_S_precompilation )
                 {
@@ -4463,7 +4462,7 @@ Loop:
                 }
                 Pc name_ = M( n * 4 + 1 );
                 E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
-                E_font_I_print( ",bytes field=" ); E_font_I_print( name_ );
+                G_( ",bytes field=%s", name_ );
                 W( name_ );
                 if( E_acpi_aml_S_precompilation )
                 {
@@ -8626,13 +8625,13 @@ Loop:
                 goto Loop;
             return ret;
         }
-        //E_font_I_print( "\nstack_n=" ); E_font_I_print_hex( E_acpi_aml_S_parse_stack_n );
-        //E_font_I_print( ",stack_n_last=" ); E_font_I_print_hex( stack_n_last );
+        //G( "stack_n=%x", E_acpi_aml_S_parse_stack_n );
+        //G_( ",stack_n_last=%x", stack_n_last );
         //for_n( j, E_acpi_aml_S_parse_stack_n )
-        //{   E_font_I_print( "\n-entity=" ); E_font_I_print_hex( E_acpi_aml_S_parse_stack[j].entity );
-            //E_font_I_print( ",n=" ); E_font_I_print_hex( E_acpi_aml_S_parse_stack[j].n );
-            //E_font_I_print( ",data_end=" ); E_font_I_print_hex( (N)E_acpi_aml_S_parse_stack[j].data_end );
-            //E_font_I_print( ",package=" ); E_font_I_print_hex( (N)E_acpi_aml_S_parse_stack[j].execution_context.result.package );
+        //{   G( "-entity=%x", (N)E_acpi_aml_S_parse_stack[j].entity );
+            //G_( ",n=%x", E_acpi_aml_S_parse_stack[j].n );
+            //G_( ",data_end=%x", E_acpi_aml_S_parse_stack[j].data_end );
+            //G_( ",package=%x", E_acpi_aml_S_parse_stack[j].execution_context.result.package );
         //}
         // Usunięcie wykonanego “entity” po ‘push’.
         if( stack_n_last != E_acpi_aml_S_parse_stack_n
@@ -8646,9 +8645,9 @@ Loop:
             E_acpi_aml_S_parse_stack_n--;
         }
         //for_n_( j, E_acpi_aml_S_parse_stack_n )
-        //{   E_font_I_print( "\n-entity=" ); E_font_I_print_hex( E_acpi_aml_S_parse_stack[j].entity );
-            //E_font_I_print( ",n=" ); E_font_I_print_hex( E_acpi_aml_S_parse_stack[j].n );
-            //E_font_I_print( ",data_end=" ); E_font_I_print_hex( (N)E_acpi_aml_S_parse_stack[j].data_end );
+        //{   G( "-entity=%x", (N)E_acpi_aml_S_parse_stack[j].entity );
+            //G_( ",n=%x", E_acpi_aml_S_parse_stack[j].n );
+            //G_( ",data_end=%x", E_acpi_aml_S_parse_stack[j].data_end );
         //}
         if( E_acpi_aml_S_parse_stack_n >= 2 )
         {   if( ~E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].n // Czy bieżący element nie jest listą wyliczaną w nieskończoność.
@@ -8695,9 +8694,9 @@ Loop:
             }
         }
         //for_n_( j, E_acpi_aml_S_parse_stack_n )
-        //{   E_font_I_print( "\n-entity=" ); E_font_I_print_hex( E_acpi_aml_S_parse_stack[j].entity );
-            //E_font_I_print( ",n=" ); E_font_I_print_hex( E_acpi_aml_S_parse_stack[j].n );
-            //E_font_I_print( ",data_end=" ); E_font_I_print_hex( (N)E_acpi_aml_S_parse_stack[j].data_end );
+        //{   G( "-entity=%x", (N)E_acpi_aml_S_parse_stack[j].entity );
+            //G_( ",n=%x", E_acpi_aml_S_parse_stack[j].n );
+            //G_( ",data_end=%x", E_acpi_aml_S_parse_stack[j].data_end );
         //}
         if( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].n > 1 )
         {   if( data == E_acpi_aml_S_parse_data ) // Czy kolejne “n” nic nie wykonują.
@@ -8738,9 +8737,12 @@ E_acpi_aml_I_procedure_( N object_i
         E_acpi_aml_S_procedure_invocation_stack[ E_acpi_aml_S_procedure_invocation_stack_n - 1 ].local[i].type = E_acpi_aml_Z_value_Z_type_S_uninitialized;
     E_acpi_aml_S_procedure_invocation_stack[ E_acpi_aml_S_procedure_invocation_stack_n - 1 ].computing_arg = no;
     E_acpi_aml_S_procedure_invocation_stack[ E_acpi_aml_S_procedure_invocation_stack_n - 1 ].result.type = E_acpi_aml_Z_value_Z_type_S_uninitialized;
-    Pc name = M( E_acpi_aml_S_object[ object_i ].name.n * 4 + 1 );
-    E_text_Z_s_P_copy_sl_0( name, E_acpi_aml_S_procedure_invocation_stack[0].name.s, E_acpi_aml_S_procedure_invocation_stack[0].name.n * 4 );
-    E_font_I_print( "\n,invocation=" ); E_font_I_print(name);
+    Pc name = M( E_acpi_aml_S_procedure_invocation_stack[ E_acpi_aml_S_procedure_invocation_stack_n - 1 ].name.n * 4 + 1 );
+    E_text_Z_s_P_copy_sl_0( name
+    , E_acpi_aml_S_procedure_invocation_stack[ E_acpi_aml_S_procedure_invocation_stack_n - 1 ].name.s
+    , E_acpi_aml_S_procedure_invocation_stack[ E_acpi_aml_S_procedure_invocation_stack_n - 1 ].name.n * 4
+    );
+    //G( ",invocation=%s", name ); //NDFN Nie wiadomo, dlaczego tutaj “%s” nie może być wypisane.
     W(name);
     N ret;
     struct E_acpi_aml_Z_object_data_Z_procedure *procedure = E_acpi_aml_S_object[ object_i ].data;

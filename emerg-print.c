@@ -1,0 +1,88 @@
+/*******************************************************************************
+*   ___   public
+*  ¦OUX¦  C+
+*  ¦/C+¦  OUX/C+ OS
+*   ---   kernel
+*         emergency print
+* ©overcq                on ‟Gentoo Linux 17.1” “x86_64”             2021‒5‒16 L
+*******************************************************************************/
+_private B E_emerg_print_S_active;
+_internal N32 E_emerg_print_S_x;
+_internal N32 E_emerg_print_S_y;
+_internal N32 E_emerg_print_S_color;
+_internal N8 E_emerg_print_S_font_size;
+_internal N8 E_emerg_print_S_font_thickness;
+//==============================================================================
+_private
+N
+E_emerg_print_M( void
+){  E_emerg_print_S_active = yes;
+    E_emerg_print_S_font_size = 1;
+    E_emerg_print_S_font_thickness = 1;
+    E_emerg_print_S_x = E_emerg_print_S_font_thickness + 1;
+    E_emerg_print_S_y = E_emerg_print_S_font_size + 1;
+    E_emerg_print_S_color = E_vga_S_text_color;
+    E_vga_I_fill_rect( 0, 0, E_main_S_framebuffer.width, E_main_S_framebuffer.height, E_vga_R_video_color( E_vga_S_background_color ));
+    E_vga_I_fill_rect( E_main_S_framebuffer.width / 2 - 50, E_main_S_framebuffer.height / 2 - 10 - 13, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
+    E_vga_I_fill_rect( E_main_S_framebuffer.width / 2 - 50, E_main_S_framebuffer.height / 2 - 10, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
+    E_vga_I_fill_rect( E_main_S_framebuffer.width / 2, E_main_S_framebuffer.height / 2 + 4, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
+    E_vga_I_fill_rect( E_main_S_framebuffer.width / 2, E_main_S_framebuffer.height / 2 + 4 + 13, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
+    E_vga_I_fill_rect( E_main_S_framebuffer.width / 2 - 38, E_main_S_framebuffer.height / 2 - 37, 38 + 34, 37 + 36, E_vga_R_video_color( 0x43864f ));
+    E_vga_I_fill_rect( E_main_S_framebuffer.width / 2 - 50, E_main_S_framebuffer.height / 2 + 4, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
+    E_vga_I_fill_rect( E_main_S_framebuffer.width / 2 - 50, E_main_S_framebuffer.height / 2 + 4 + 13, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
+    E_vga_I_fill_rect( E_main_S_framebuffer.width / 2, E_main_S_framebuffer.height / 2 - 10 - 13, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
+    E_vga_I_fill_rect( E_main_S_framebuffer.width / 2, E_main_S_framebuffer.height / 2 - 10, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
+    return E_emerg_print_I_print( "OUX/C+ OS. ©overcq <overcq@int.pl>. https:/""/github.com/overcq" );
+}
+_internal
+void
+E_emerg_print_I_scroll_fwd( N dy
+){  E_mem_Q_blk_I_copy( (P)E_main_S_framebuffer.p
+    , (P)( E_main_S_framebuffer.p + dy * E_main_S_framebuffer.pixels_per_scan_line )
+    , ( E_main_S_framebuffer.height - dy ) * E_main_S_framebuffer.pixels_per_scan_line * sizeof( *E_main_S_framebuffer.p )
+    );
+    E_vga_I_fill_rect( 0, E_main_S_framebuffer.height - dy, E_main_S_framebuffer.width, dy, E_vga_R_video_color( E_vga_S_background_color ));
+}
+_internal
+void
+E_emerg_print_I_print_nl( void
+){  E_emerg_print_S_x = E_emerg_print_S_font_thickness + 1;
+    if( E_emerg_print_S_y + ( E_emerg_print_S_font_size + 1 ) * ( E_font_S_font.height + E_emerg_print_S_font_thickness + 1 ) > E_main_S_framebuffer.height )
+        E_emerg_print_I_scroll_fwd( E_emerg_print_S_font_size + 1 + E_font_S_font.height );
+    else
+        E_emerg_print_S_y += ( E_emerg_print_S_font_size + 1 ) * ( E_font_S_font.height + E_emerg_print_S_font_size + 1 );
+}
+_internal
+N
+E_emerg_print_I_print_u( U u
+){  if( u == '\n' )
+    {   E_emerg_print_I_print_nl();
+        return 0;
+    }
+    N32 font_i;
+    if( !E_gui_T_print_u( E_emerg_print_S_x, E_main_S_framebuffer.width, E_emerg_print_S_font_thickness, &u, &font_i ))
+        E_emerg_print_I_print_nl();
+    E_font_I_draw_u( font_i
+    , E_emerg_print_S_x, E_emerg_print_S_y
+    , 0, E_main_S_framebuffer.height
+    , E_emerg_print_S_color
+    , E_emerg_print_S_font_size, E_emerg_print_S_font_thickness
+    );
+    E_emerg_print_S_x += ( E_emerg_print_S_font_thickness + 1 ) * E_font_S_font.bitmap[ font_i ].width + E_emerg_print_S_font_thickness + 1;
+    return 0;
+}
+_private
+N
+E_emerg_print_I_print( Pc s
+){  while( *s )
+    {   U u = ~0;
+        Pc s_ = E_text_Z_su_R_u( s, &u );
+        if( s_ == s )
+            return ~0;
+        s = s_;
+        if( ~u )
+            E_emerg_print_I_print_u(u);
+    }
+    return 0;
+}
+/******************************************************************************/

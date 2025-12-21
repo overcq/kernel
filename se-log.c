@@ -1,0 +1,102 @@
+/*******************************************************************************
+*   ___   public
+*  ¦OUX¦  C+
+*  ¦/C+¦  OUX/C+ OS
+*   ---   kernel
+*         start/exit log
+* (c)overcq              on WSL\Debian (Linux 6.6.87.2)             2025-12-19 f
+*******************************************************************************/
+_private Pc E_se_log_S_buffer;
+_private N E_se_log_S_buffer_l;
+_private volatile N8 E_se_log_S_lock;
+//==============================================================================
+_private
+N
+E_se_log_M( void
+){  E_se_log_S_buffer_l = 0;
+    E_se_log_S_buffer = M( E_se_log_S_buffer_l );
+    if( !E_se_log_S_buffer )
+        return ~0;
+    E_se_log_S_lock = 0;
+    return 0;
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_private
+N
+E_se_log_I_log( Pc scope
+, Pc fmt
+, ...
+){  E_flow_I_lock( &E_se_log_S_lock );
+    N r;
+    Pc s_1 = M(1);
+    if( !s_1 )
+    {   r = ~0;
+        goto End_0;
+    }
+    *s_1 = '\n';
+    r = E_text_Z_s_I_append_s0( &s_1, scope );
+    if( !r )
+        goto End_1;
+    r = E_text_Z_s_I_append_s0_0( &s_1, ": " );
+    if( !r )
+        goto End_1;
+    r = E_text_Z_s_I_append_s0( &E_se_log_S_buffer, s_1 );
+    if( !r )
+        goto End_1;
+    Pc s_2;
+    va_list args;
+    va_start( args, fmt );
+    r = E_text_I_vsprintf( &s_2, fmt, args );
+    va_end(args);
+    if(r)
+        goto End_1;
+    r = E_text_Z_s_I_append_s0( &E_se_log_S_buffer, s_2 );
+    if( !r )
+        goto End_2;
+    E_se_log_S_buffer_l += E_text_Z_s0_R_l( s_1 ) + E_text_Z_s0_R_l( s_2 );
+    if( E_emerg_print_S_active )
+    {   r = E_emerg_print_I_print( s_1 );
+        if(r)
+            goto End_2;
+        r = E_emerg_print_I_print( s_2 );
+    }else if( E_window_log_S_active )
+    {   X_A( gui, draw );
+        X_F( gui, draw );
+    }
+End_2:
+    W( s_2 );
+End_1:
+    W( s_1 );
+End_0:
+    E_flow_I_unlock( &E_se_log_S_lock );
+    return r;
+}
+_private
+N
+E_se_log_I_log_( Pc fmt
+, ...
+){  E_flow_I_lock( &E_se_log_S_lock );
+    Pc s;
+    va_list args;
+    va_start( args, fmt );
+    N r = E_text_I_vsprintf( &s, fmt, args );
+    va_end(args);
+    if(r)
+        goto End_0;
+    r = E_text_Z_s_I_append_s0( &E_se_log_S_buffer, s );
+    if( !r )
+        goto End_1;
+    E_se_log_S_buffer_l += E_text_Z_s0_R_l(s);
+    if( E_emerg_print_S_active )
+        r = E_emerg_print_I_print(s);
+    else if( E_window_log_S_active )
+    {   X_A( gui, draw );
+        X_F( gui, draw );
+    }
+End_1:
+    W(s);
+End_0:
+    E_flow_I_unlock( &E_se_log_S_lock );
+    return r;
+}
+/******************************************************************************/

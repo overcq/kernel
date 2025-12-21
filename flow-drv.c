@@ -1,6 +1,6 @@
 /*******************************************************************************
 *   ___   public
-*  ¦OUX¦  C
+*  ¦OUX¦  C+
 *  ¦/C+¦  OUX/C+ OS
 *   ---   kernel
 *         flow driver
@@ -110,9 +110,11 @@ E_flow_I_lock( volatile N8 *lock
 ){  __asm__ volatile (
     "\n"    "mov    $1,%%cl"
     "\n0:"  "xor    %%al,%%al"
-    "\n"    "pause"
     "\n"    "lock cmpxchg %%cl,%0"
-    "\n"    "jne    0b"
+    "\n"    "je     0f"
+    "\n"    "pause"
+    "\n"    "jmp    0b"
+    "\n0:"
     : "+m" ( *lock )
     :
     : "cc", "al", "cl"
@@ -122,27 +124,6 @@ _private
 void
 E_flow_I_unlock( volatile N8 *lock
 ){  *lock = 0;
-}
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// Wymuszenie ‘prealokacji’ “stosu” ‹zadania›, by nie została wywołana procedura obsługi “sygnału” ‘uniksowego’ “SEGV” w trakcie zmieniania pamięci ‘alokowanej’ dynamicznie, z której korzysta.
-_private
-__attribute__ (( __naked__, __noinline__, __hot__ ))
-void
-E_flow_Q_task_I_touch_stack( N page_count
-){  __asm__ volatile (
-    "\n"    "xor    %%rax,%%rax"
-    "\n"    "test   %%rdi,%%rdi"
-    "\n"    "jnz    0f"
-    "\n"    "inc    %%rdi"
-    "\n0:"  "subq   %0,%%rax"
-    "\n"    "movq   $0,8(%%rsp,%%rax)"
-    "\n"    "dec    %%rdi"
-    "\n"    "jnz    0b"
-    "\n"    "ret"
-    :
-    : "i" ( E_mem_S_page_size )
-    : "cc", "rax", "memory"
-    );
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _private
@@ -667,9 +648,11 @@ E_flow_Q_task_I_switch( I task_to_id
     : "=m" ( task_from->exe_stack )
     : "r" ( task_to->exe_stack )
     : "cc", "memory"
+    , "rbx", "rcx", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"
     , "st", "st(1)", "st(2)", "st(3)", "st(4)", "st(5)", "st(6)", "st(7)"
     , "mm0", "mm1", "mm2", "mm3", "mm4", "mm5", "mm6", "mm7"
-    , "xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5", "xmm6", "xmm7"
+    , "xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5", "xmm6", "xmm7", "xmm8", "xmm9", "xmm10", "xmm11", "xmm12", "xmm13", "xmm14", "xmm15"
+    , "ymm0", "ymm1", "ymm2", "ymm3", "ymm4", "ymm5", "ymm6", "ymm7", "ymm8", "ymm9", "ymm10", "ymm11", "ymm12", "ymm13", "ymm14", "ymm15"
     );
 }
 _private

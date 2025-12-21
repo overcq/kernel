@@ -1,6 +1,6 @@
 /*******************************************************************************
 *   ___   public
-*  ¦OUX¦  C
+*  ¦OUX¦  C+
 *  ¦/C+¦  OUX/C+ OS
 *   ---   kernel
 *         main
@@ -338,7 +338,7 @@ E_main_I_processor_start( void
 _internal
 void
 E_main_I_ipi_test( void
-){  E_font_I_print( "\nipi" );
+){  G( "ipi" );
 }
 _private
 __attribute__ (( __noreturn__ ))
@@ -358,20 +358,13 @@ main( struct E_main_Z_kernel_args *kernel_args
     E_interrupt_Q_io_apic_S_address = kernel_args->io_apic_address;
     E_interrupt_S_gsi = kernel_args->gsi;
     E_interrupt_S_gsi_n = kernel_args->gsi_n;
-    E_mem_blk_S_mem_lock = 0;
+    E_mem_blk_S_lock = 0;
     if( E_font_M() )
         E_main_I_error_fatal();
-    E_vga_I_fill_rect( 0, 0, E_main_S_framebuffer.width, E_main_S_framebuffer.height, E_vga_R_video_color( E_vga_S_background_color ));
-    E_vga_I_fill_rect( E_main_S_framebuffer.width / 2 - 50, E_main_S_framebuffer.height / 2 - 10 - 13, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
-    E_vga_I_fill_rect( E_main_S_framebuffer.width / 2 - 50, E_main_S_framebuffer.height / 2 - 10, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
-    E_vga_I_fill_rect( E_main_S_framebuffer.width / 2, E_main_S_framebuffer.height / 2 + 4, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
-    E_vga_I_fill_rect( E_main_S_framebuffer.width / 2, E_main_S_framebuffer.height / 2 + 4 + 13, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
-    E_vga_I_fill_rect( E_main_S_framebuffer.width / 2 - 38, E_main_S_framebuffer.height / 2 - 37, 38 + 34, 37 + 36, E_vga_R_video_color( 0x43864f ));
-    E_vga_I_fill_rect( E_main_S_framebuffer.width / 2 - 50, E_main_S_framebuffer.height / 2 + 4, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
-    E_vga_I_fill_rect( E_main_S_framebuffer.width / 2 - 50, E_main_S_framebuffer.height / 2 + 4 + 13, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
-    E_vga_I_fill_rect( E_main_S_framebuffer.width / 2, E_main_S_framebuffer.height / 2 - 10 - 13, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
-    E_vga_I_fill_rect( E_main_S_framebuffer.width / 2, E_main_S_framebuffer.height / 2 - 10, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
-    E_font_I_print( "OUX/C+ OS. ©overcq <overcq@int.pl>. https:/""/github.com/overcq\n" );
+    if( E_se_log_M() )
+        E_main_I_error_fatal();
+    if( E_emerg_print_M() )
+        E_main_I_error_fatal();
     Mt_( E_main_S_gdt, 5 + kernel_args->processor_n * 2 );
     if( !E_main_S_gdt )
         goto End;
@@ -456,19 +449,26 @@ main( struct E_main_Z_kernel_args *kernel_args
         "\n"    "pause"
         );
     }
-    W( E_main_S_stack );
-    E_flow_I_lock( &E_mem_blk_S_mem_lock );
+    if( E_gui_M() )
+        goto End;
+    if( W( E_main_S_stack ))
+        goto End;
+    E_flow_I_lock( &E_mem_blk_S_lock );
     struct E_mem_Q_blk_Z_free free_p_;
     if( !~E_mem_Q_blk_Q_sys_table_f_P_put( E_mem_blk_S.free_id, (Pc)&free_p_.p - (Pc)&free_p_, (Pc)&free_p_.l - (Pc)&free_p_, (P)(N)kernel_args->processor_start_page, E_mem_S_page_size ))
         goto End;
-    E_flow_I_unlock( &E_mem_blk_S_mem_lock );
-    W( kernel_args->processor_proc );
+    E_flow_I_unlock( &E_mem_blk_S_lock );
+    if( W( kernel_args->processor_proc ))
+        goto End;
     if( E_acpi_aml_M( kernel_args->acpi.dsdt_content, kernel_args->acpi.dsdt_content_l, &kernel_args->acpi.ssdt_contents[0], kernel_args->acpi.ssdt_contents_n ))
         goto End;
     if( E_acpi_reader_M() )
         goto End;
-    W( kernel_args->bootloader );
+    if( W( kernel_args->bootloader ))
+        goto End;
     if( E_keyboard_M() )
+        goto End;
+    if( E_mouse_M() )
         goto End;
     if( E_pci_I_check_buses() )
         goto End;
@@ -481,15 +481,15 @@ main( struct E_main_Z_kernel_args *kernel_args
     }
     X_W( main, test );
 
-    //S status = E_main_S_uefi_runtime_services.reset_system( H_uefi_Z_reset_Z_shutdown, 0, 0, 0 );
-End:E_font_I_print( "\nend loop" );
+    S status = E_main_S_uefi_runtime_services.reset_system( H_uefi_Z_reset_Z_shutdown, 0, 0, 0 );
+End:G( "end loop" );
     E_main_I_error_fatal();
 }
 D( main, test )
 {   I timer = Y_M(1000);
     O{  Y_B( timer, 0 )
             break;
-        E_font_I_print( "\ntest" );
+        G( "test" );
         E_interrupt_I_ipi( 1, 32 + E_interrupt_S_gsi_ipi );
     }
     Y_W(timer);
