@@ -73,7 +73,10 @@ E_windows_Q_window_M( N8 desktop_i
     E_windows_Q_desktop_S[ desktop_i ].window[ window_i ].x = 0;
     E_windows_Q_desktop_S[ desktop_i ].window[ window_i ].y = 0;
     E_windows_Q_desktop_S[ desktop_i ].window[ window_i ].width = E_main_S_framebuffer.width - 2;
-    N32 taskbar_height = E_gui_Q_taskbar_S_font_size + 1 + 2 * (( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height + E_gui_Q_taskbar_S_font_size + 1 );
+    N32 taskbar_height = E_gui_Q_taskbar_S_font_size + 1
+    + ( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height + E_gui_Q_taskbar_S_font_size + 1
+    + 2 * ( E_gui_Q_taskbar_S_font_size + 1 - 1 ) * E_font_S_font.height + E_gui_Q_taskbar_S_font_size + 1 - 1
+    + E_gui_Q_taskbar_S_font_size + 1;
     E_windows_Q_desktop_S[ desktop_i ].window[ window_i ].height = E_main_S_framebuffer.height - taskbar_height - 2;
     E_windows_Q_desktop_S[ desktop_i ].window[ window_i ].draw = draw_proc;
     E_gui_Q_taskabar_S_redraw = yes;

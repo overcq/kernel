@@ -230,36 +230,30 @@ _export
 I
 E_flow_Q_report_M( N uid
 ){  N sched_i = E_flow_I_current_scheduler();
+    __asm__ volatile (
+    "\n"    "cli"
+    );
     for_each( report_id, E_flow_S_scheduler[ sched_i ].report, E_mem_Q_tab )
     {   struct E_flow_Q_report_Z *report = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].report, report_id );
         if( report->uid == uid )
             break;
     }
     if( !~report_id )
-    {   __asm__ volatile (
-        "\n"    "cli"
-        );
-        report_id = E_mem_Q_tab_I_add( E_flow_S_scheduler[ sched_i ].report );
+    {   report_id = E_mem_Q_tab_I_add( E_flow_S_scheduler[ sched_i ].report );
         struct E_flow_Q_report_Z *report = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].report, report_id );
         report->uid = uid;
         report->reported_count = 0;
-        __asm__ volatile (
-        "\n"    "sti"
-        );
     }
+    __asm__ volatile (
+    "\n"    "sti"
+    );
     return report_id;
 }
 _export
 void
 E_flow_Q_report_W( I id
 ){  N sched_i = E_flow_I_current_scheduler();
-    __asm__ volatile (
-    "\n"    "cli"
-    );
     E_mem_Q_tab_I_remove( E_flow_S_scheduler[ sched_i ].report, id );
-    __asm__ volatile (
-    "\n"    "sti"
-    );
 }
 //------------------------------------------------------------------------------
 _export
@@ -286,9 +280,6 @@ E_flow_Q_report_I_wait( I id
 ){  B ret;
     N sched_i = E_flow_I_current_scheduler();
     struct E_flow_Q_report_Z *report = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].report, id );
-    __asm__ volatile (
-    "\n"    "cli"
-    );
     if( report->reported_count )
     {   //for_each( task_id, E_flow_S_scheduler[ sched_i ].task, E_mem_Q_tab )
         //{   struct E_flow_Q_task_Z *task = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, task_id );
@@ -297,17 +288,11 @@ E_flow_Q_report_I_wait( I id
             //)
                 //task->run_state = E_flow_Z_run_state_S_ready;
         //}
-        __asm__ volatile (
-        "\n"    "sti"
-        );
         ret = no; // Nie wywołuje “schedule”, ponieważ w przełączanym tylko w oznaczonych punktach przepływie wykonania — bieżące ‹zadanie› mogło umożliwić zaistnienie ‹raportu›, na który czeka, tylko wtedy, jeśli przełącza do innych ‹zadań› ·w innych punktach niż to oczekiwanie na ‹raport›·, więc po co czekać, skoro nie zaburza cyklu przełączania ‹zadań›, a tylko w implementacji własnego ‹zadania› zmienia na złożoną (przesuniętą) sekwencję przełączania.
     }else
     {   struct E_flow_Q_task_Z *task = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, E_flow_S_scheduler[ sched_i ].current_task );
         task->run_state = E_flow_Z_run_state_S_waiting_for_report;
         task->run_state_object = id;
-        __asm__ volatile (
-        "\n"    "sti"
-        );
         ret = E_flow_Q_task_I_schedule();
         report = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].report, id );
     }
@@ -385,11 +370,15 @@ E_flow_Q_timer_I_wait( I id
     return ret;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//DFN “E_flow_Q_impulser_I_activate” i “E_flow_Q_impulser_I_deactivate” mogą wystąpić w procedurze obsługi przerwania.
 _export
 I
 E_flow_Q_impulser_M( N uid
 ){  struct E_flow_Q_timer_Z *timer;
     N sched_i = E_flow_I_current_scheduler();
+    __asm__ volatile (
+    "\n"    "cli"
+    );
     for_each( timer_id, E_flow_S_scheduler[ sched_i ].timer, E_mem_Q_tab )
     {   timer = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].timer, timer_id );
         if( timer->uid == uid )
@@ -402,6 +391,9 @@ E_flow_Q_impulser_M( N uid
         timer->uid = uid;
     }
     timer->task_to = E_flow_S_scheduler[ sched_i ].current_task;
+    __asm__ volatile (
+    "\n"    "sti"
+    );
     return timer_id;
 }
 _export
@@ -489,6 +481,9 @@ E_flow_Q_task_I_schedule( void
             task = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, E_flow_S_scheduler[ sched_i ].current_task );
             return task->run_state == E_flow_Z_run_state_S_stopping_by_task;
         }
+        __asm__ volatile (
+        "\n"    "cli"
+        );
         N time = E_flow_I_current_time();
         if( time >= E_flow_S_scheduler[ sched_i ].next_time ) // Czy trzeba uaktualnić kolejne czasy ‹cyklerów›.
         {   N elapsed_time = time - E_flow_S_scheduler[ sched_i ].last_time;
@@ -557,6 +552,9 @@ E_flow_Q_task_I_schedule( void
                 time = time_2;
             }
         }
+        __asm__ volatile (
+        "\n"    "sti"
+        );
         for_each_out( E_flow_S_scheduler[ sched_i ].current_task, task_id, E_flow_S_scheduler[ sched_i ].task, E_mem_Q_tab )
         {   B task_skip = no;
             for_each( task_id_, E_flow_S_scheduler[ sched_i ].task, E_mem_Q_tab )

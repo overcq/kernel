@@ -2780,7 +2780,7 @@ E_acpi_aml_I_object( void
                 return (S8)n;
             Pc name_ = M( n * 4 + 1 );
             E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
-            G( ",procedure=%s", name_ );
+            G( ",procedure=%s", name_ ); //NDFN Nie wiadomo, dlaczego tutaj “%s” nie zawsze może być wypisane.
             W( name_ );
             if( n > 1
             && !~E_acpi_aml_Q_object_R(( struct E_acpi_aml_Z_pathname ){ name, n - 1 })
@@ -3661,7 +3661,6 @@ E_acpi_aml_M_cmp( N8 op
     }
     return ret;
 }
-
 _internal
 N
 E_acpi_aml_M_res1( void
@@ -8742,7 +8741,7 @@ E_acpi_aml_I_procedure_( N object_i
     , E_acpi_aml_S_procedure_invocation_stack[ E_acpi_aml_S_procedure_invocation_stack_n - 1 ].name.s
     , E_acpi_aml_S_procedure_invocation_stack[ E_acpi_aml_S_procedure_invocation_stack_n - 1 ].name.n * 4
     );
-    //G( ",invocation=%s", name ); //NDFN Nie wiadomo, dlaczego tutaj “%s” nie może być wypisane.
+    //G( ",invocation=%s", name ); //NDFN Nie wiadomo, dlaczego tutaj “%s” nie zawsze może być wypisane.
     W(name);
     N ret;
     struct E_acpi_aml_Z_object_data_Z_procedure *procedure = E_acpi_aml_S_object[ object_i ].data;

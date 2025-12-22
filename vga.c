@@ -17,6 +17,8 @@ enum E_vga_Z_aa_pixel
   E_vga_Z_aa_pixel_S_ne = 1 << 7
 };
 //==============================================================================
+_private N32 *E_vga_S_framebuffer;
+//==============================================================================
 _private
 N32
 E_vga_Z_color_M(
@@ -67,8 +69,7 @@ N32
 E_vga_R_pixel(
   N32 x
 , N32 y
-){  volatile N32 *video_address = E_main_S_framebuffer.p + E_main_S_framebuffer.pixels_per_scan_line * y + x;
-    return *video_address;
+){  return *( E_main_S_framebuffer.p + E_main_S_framebuffer.pixels_per_scan_line * y + x );
 }
 _private
 void
@@ -76,8 +77,7 @@ E_vga_P_pixel(
   N32 x
 , N32 y
 , N32 video_color
-){  volatile N32 *video_address = E_main_S_framebuffer.p + E_main_S_framebuffer.pixels_per_scan_line * y + x;
-    *video_address = video_color;
+){  *( E_vga_S_framebuffer + y * E_main_S_framebuffer.width + x ) = video_color;
 }
 _private
 void
@@ -139,11 +139,10 @@ E_vga_I_draw_x_line(
 , N32 y
 , N32 width
 , N32 video_color
-){  volatile N32 *video_address = E_main_S_framebuffer.p + y * E_main_S_framebuffer.pixels_per_scan_line + x;
-    for_n( x_i, width )
+){  for_n( x_i, width )
     {   if( x + x_i == E_main_S_framebuffer.width )
             break;
-        video_address[ x_i ] = video_color;
+        *( E_vga_S_framebuffer + y * E_main_S_framebuffer.width + x + x_i ) = video_color;
     }
 }
 _private
@@ -153,12 +152,10 @@ E_vga_I_draw_y_line(
 , N32 y
 , N32 height
 , N32 video_color
-){  volatile N32 *video_address = E_main_S_framebuffer.p + y * E_main_S_framebuffer.pixels_per_scan_line + x;
-    for_n( y_i, height )
+){  for_n( y_i, height )
     {   if( y + y_i == E_main_S_framebuffer.height )
             break;
-        video_address[0] = video_color;
-        video_address += E_main_S_framebuffer.pixels_per_scan_line;
+        *( E_vga_S_framebuffer + ( y + y_i ) * E_main_S_framebuffer.width + x ) = video_color;
     }
 }
 _private
@@ -169,25 +166,22 @@ E_vga_I_draw_rect(
 , N32 width
 , N32 height
 , N32 video_color
-){  volatile N32 *video_address = E_main_S_framebuffer.p + y * E_main_S_framebuffer.pixels_per_scan_line + x;
-    for_n( x_i, width )
+){  for_n( x_i, width )
     {   if( x + x_i == E_main_S_framebuffer.width )
             break;
-        video_address[ x_i ] = video_color;
+        *( E_vga_S_framebuffer + y * E_main_S_framebuffer.width + x + x_i ) = video_color;
     }
-    video_address += E_main_S_framebuffer.pixels_per_scan_line;
     for_n( y_i, height - 2 )
     {   if( y + y_i == E_main_S_framebuffer.height )
             return;
-        video_address[0] = video_color;
+        *( E_vga_S_framebuffer + ( y + y_i ) * E_main_S_framebuffer.width + x ) = video_color;
         if( x_i == width )
-            video_address[ width - 1 ] = video_color;
-        video_address += E_main_S_framebuffer.pixels_per_scan_line;
+            *( E_vga_S_framebuffer + ( y + y_i ) * E_main_S_framebuffer.width + x + width - 1 ) = video_color;
     }
     for_n_( x_i, width )
     {   if( x + x_i == E_main_S_framebuffer.width )
             break;
-        video_address[ x_i ] = video_color;
+        *( E_vga_S_framebuffer + ( y + height - 1 ) * E_main_S_framebuffer.width + x + x_i ) = video_color;
     }
 }
 _private
@@ -198,23 +192,20 @@ E_vga_I_fill_rect(
 , N32 width
 , N32 height
 , N32 video_color
-){  volatile N32 *video_address = E_main_S_framebuffer.p + y * E_main_S_framebuffer.pixels_per_scan_line + x;
-    for_n( y_i, height )
+){  for_n( y_i, height )
     {   if( y + y_i == E_main_S_framebuffer.height )
             break;
         for_n( x_i, width )
         {   if( x + x_i == E_main_S_framebuffer.width )
                 break;
-            video_address[ x_i ] = video_color;
+            *( E_vga_S_framebuffer + ( y + y_i ) * E_main_S_framebuffer.width + x + x_i ) = video_color;
         }
-        video_address += E_main_S_framebuffer.pixels_per_scan_line;
     }
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _private
 void
-E_vga_R_rect( Pn buffer
-, N32 x
+E_vga_Q_buffer_I_draw( N32 x
 , N32 y
 , N32 width
 , N32 height
@@ -225,26 +216,7 @@ E_vga_R_rect( Pn buffer
         for_n( x_i, width )
         {   if( x + x_i == E_main_S_framebuffer.width )
                 break;
-            *buffer++ = video_address[ x_i ];
-        }
-        video_address += E_main_S_framebuffer.pixels_per_scan_line;
-    }
-}
-_private
-void
-E_vga_P_rect( Pn buffer
-, N32 x
-, N32 y
-, N32 width
-, N32 height
-){  volatile N32 *video_address = E_main_S_framebuffer.p + y * E_main_S_framebuffer.pixels_per_scan_line + x;
-    for_n( y_i, height )
-    {   if( y + y_i == E_main_S_framebuffer.height )
-            break;
-        for_n( x_i, width )
-        {   if( x + x_i == E_main_S_framebuffer.width )
-                break;
-            video_address[ x_i ] = *buffer++;
+            video_address[ x_i ] = *( E_vga_S_framebuffer + ( y + y_i ) * E_main_S_framebuffer.width + x + x_i );
         }
         video_address += E_main_S_framebuffer.pixels_per_scan_line;
     }

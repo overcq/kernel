@@ -2528,7 +2528,7 @@ E_font_I_draw_u( N32 font_i
     thickness++;
     N i = 0;
     C c;
-    N x_, y_ = y;
+    N32 x_, y_ = y;
     for_n( font_y, E_font_S_font.height )
     {   x_ = x;
         for_n( font_x, E_font_S_font.bitmap[ font_i ].width )
@@ -2548,10 +2548,10 @@ E_font_I_draw_u( N32 font_i
                       break;
                 }
                 for_n( j, size )
-                {   if( y_ + j < clip_y )
+                {   if( y_ + j < clip_y
+                    || y_ + j >= clip_y + clip_height
+                    )
                         continue;
-                    if( y_ + j >= clip_y + clip_height )
-                        break;
                     for_n( i, thickness )
                         E_vga_I_set_pixel_aa(
                           x_ + i, y_ + j

@@ -359,6 +359,9 @@ main( struct E_main_Z_kernel_args *kernel_args
     E_interrupt_S_gsi = kernel_args->gsi;
     E_interrupt_S_gsi_n = kernel_args->gsi_n;
     E_mem_blk_S_lock = 0;
+    Mt_( E_vga_S_framebuffer, E_main_S_framebuffer.width * E_main_S_framebuffer.height );
+    if( !E_vga_S_framebuffer )
+        E_main_I_error_fatal();
     if( E_font_M() )
         E_main_I_error_fatal();
     if( E_se_log_M() )

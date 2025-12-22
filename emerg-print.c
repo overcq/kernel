@@ -37,9 +37,9 @@ E_emerg_print_M( void
 _internal
 void
 E_emerg_print_I_scroll_fwd( N dy
-){  E_mem_Q_blk_I_copy( (P)E_main_S_framebuffer.p
-    , (P)( E_main_S_framebuffer.p + dy * E_main_S_framebuffer.pixels_per_scan_line )
-    , ( E_main_S_framebuffer.height - dy ) * E_main_S_framebuffer.pixels_per_scan_line * sizeof( *E_main_S_framebuffer.p )
+){  E_mem_Q_blk_I_copy( E_vga_S_framebuffer
+    , E_vga_S_framebuffer + dy * E_main_S_framebuffer.width
+    , ( E_main_S_framebuffer.height - dy ) * E_main_S_framebuffer.width * sizeof( *E_vga_S_framebuffer )
     );
     E_vga_I_fill_rect( 0, E_main_S_framebuffer.height - dy, E_main_S_framebuffer.width, dy, E_vga_R_video_color( E_vga_S_background_color ));
 }
@@ -83,6 +83,7 @@ E_emerg_print_I_print( Pc s
         if( ~u )
             E_emerg_print_I_print_u(u);
     }
+    E_vga_Q_buffer_I_draw( 0, 0, E_main_S_framebuffer.width, E_main_S_framebuffer.height );
     return 0;
 }
 /******************************************************************************/

@@ -14,8 +14,8 @@ E_window_log_I_draw( N32 x
 , N32 y
 , N32 width
 , N32 height
-){  E_vga_I_fill_rect( x, y, width, height, E_vga_S_background_color );
-    E_flow_I_lock( &E_se_log_S_lock );
+){  E_flow_I_lock( &E_se_log_S_lock );
+    E_vga_I_fill_rect( x, y, width, height, E_vga_S_background_color );
     if( !E_se_log_S_buffer_l )
     {   E_flow_I_unlock( &E_se_log_S_lock );
         return;
