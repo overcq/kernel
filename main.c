@@ -252,7 +252,7 @@ E_main_I_error_fatal( void
     "\n"    "cli"
     );
     O{  __asm__ volatile (
-        "\n0:"  "hlt"
+        "\n"    "hlt"
         );
     }
     __builtin_unreachable();
@@ -338,7 +338,7 @@ E_main_I_processor_start( void
 _internal
 void
 E_main_I_ipi_test( void
-){  G( "ipi" );
+){
 }
 _private
 __attribute__ (( __noreturn__ ))
@@ -489,7 +489,7 @@ End:G( "end loop" );
     E_main_I_error_fatal();
 }
 D( main, test )
-{   I timer = Y_M(1000);
+{   I timer = Y_M(2000);
     O{  Y_B( timer, 0 )
             break;
         G( "test" );

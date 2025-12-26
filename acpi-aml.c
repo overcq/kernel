@@ -8741,7 +8741,7 @@ E_acpi_aml_I_procedure_( N object_i
     , E_acpi_aml_S_procedure_invocation_stack[ E_acpi_aml_S_procedure_invocation_stack_n - 1 ].name.s
     , E_acpi_aml_S_procedure_invocation_stack[ E_acpi_aml_S_procedure_invocation_stack_n - 1 ].name.n * 4
     );
-    //G( ",invocation=%s", name ); //NDFN Nie wiadomo, dlaczego tutaj “%s” nie zawsze może być wypisane.
+    G( ",invocation=%s", name ); //NDFN Nie wiadomo, dlaczego tutaj “%s” nie zawsze może być wypisane.
     W(name);
     N ret;
     struct E_acpi_aml_Z_object_data_Z_procedure *procedure = E_acpi_aml_S_object[ object_i ].data;

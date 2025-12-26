@@ -31,6 +31,7 @@ struct E_flow_Z_scheduler
   N last_time;
   N next_time;
   unsigned U_R( signal, exit )                  :1;
+  unsigned U_R( signal, wake )                  :1;
 } *E_flow_S_scheduler;
 _private N E_flow_S_scheduler_n;
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -230,9 +231,6 @@ _export
 I
 E_flow_Q_report_M( N uid
 ){  N sched_i = E_flow_I_current_scheduler();
-    __asm__ volatile (
-    "\n"    "cli"
-    );
     for_each( report_id, E_flow_S_scheduler[ sched_i ].report, E_mem_Q_tab )
     {   struct E_flow_Q_report_Z *report = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].report, report_id );
         if( report->uid == uid )
@@ -244,9 +242,6 @@ E_flow_Q_report_M( N uid
         report->uid = uid;
         report->reported_count = 0;
     }
-    __asm__ volatile (
-    "\n"    "sti"
-    );
     return report_id;
 }
 _export
@@ -260,6 +255,9 @@ _export
 void
 E_flow_Q_report_I_signal( I id
 ){  N sched_i = E_flow_I_current_scheduler();
+    __asm__ volatile (
+    "\n"    "cli"
+    );
     struct E_flow_Q_report_Z *report = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].report, id );
     if( ~report->reported_count )
         report->reported_count++;
@@ -272,6 +270,10 @@ E_flow_Q_report_I_signal( I id
             break;
         }
     }
+    __asm__ volatile (
+    "\n"    "sti"
+    );
+    U_F( E_flow_S_scheduler[ sched_i ].signal, wake );
 }
 _export
 B
@@ -296,9 +298,16 @@ E_flow_Q_report_I_wait( I id
         ret = E_flow_Q_task_I_schedule();
         report = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].report, id );
     }
+    __asm__ volatile (
+    "\n"    "cli"
+    );
     if( lost_count )
         *lost_count = report->reported_count - 1;
     report->reported_count = 0;
+    U_L( E_flow_S_scheduler[ sched_i ].signal, wake );
+    __asm__ volatile (
+    "\n"    "sti"
+    );
     return ret;
 }
 _export
@@ -376,9 +385,6 @@ I
 E_flow_Q_impulser_M( N uid
 ){  struct E_flow_Q_timer_Z *timer;
     N sched_i = E_flow_I_current_scheduler();
-    __asm__ volatile (
-    "\n"    "cli"
-    );
     for_each( timer_id, E_flow_S_scheduler[ sched_i ].timer, E_mem_Q_tab )
     {   timer = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].timer, timer_id );
         if( timer->uid == uid )
@@ -391,9 +397,6 @@ E_flow_Q_impulser_M( N uid
         timer->uid = uid;
     }
     timer->task_to = E_flow_S_scheduler[ sched_i ].current_task;
-    __asm__ volatile (
-    "\n"    "sti"
-    );
     return timer_id;
 }
 _export
@@ -418,8 +421,11 @@ _export
 void
 E_flow_Q_impulser_I_activate( I id
 , N miliseconds
-){  N time = E_flow_I_current_time();
-    N sched_i = E_flow_I_current_scheduler();
+){  N sched_i = E_flow_I_current_scheduler();
+    __asm__ volatile (
+    "\n"    "cli"
+    );
+    N time = E_flow_I_current_time();
     struct E_flow_Q_timer_Z *timer = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].timer, id );
     timer->left = E_interrupt_S_cpu_freq * miliseconds / 1000;
     if( E_mem_Q_tab_R_n( E_flow_S_scheduler[ sched_i ].timer ) != 1 )
@@ -432,29 +438,38 @@ E_flow_Q_impulser_I_activate( I id
                 if( E_flow_S_scheduler[ sched_i ].next_time > time )
                     E_flow_S_scheduler[ sched_i ].next_time = time;
                 timer->left = time - E_flow_S_scheduler[ sched_i ].last_time;
-                return;
+                goto End;
             }
         }
     }
     E_flow_S_scheduler[ sched_i ].last_time = time;
     E_flow_S_scheduler[ sched_i ].next_time = time + timer->left;
+End:__asm__ volatile (
+    "\n"    "sti"
+    );
 }
 _export
 void
 E_flow_Q_impulser_I_deactivate( I id
 ){  N sched_i = E_flow_I_current_scheduler();
+    __asm__ volatile (
+    "\n"    "cli"
+    );
     struct E_flow_Q_timer_Z *timer = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].timer, id );
     if( !timer->left )
-        return;
+        goto End;
     timer->left = 0;
     for_each_out( id, timer_id_, E_flow_S_scheduler[ sched_i ].timer, E_mem_Q_tab )
     {   struct E_flow_Q_timer_Z *timer_ = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].timer, timer_id_ );
         if( timer_->period
         || timer_->left
         )
-            return;
+            goto End;
     }
     E_flow_S_scheduler[ sched_i ].next_time = ~0;
+End:__asm__ volatile (
+    "\n"    "sti"
+    );
 }
 //------------------------------------------------------------------------------
 //NDFN Dodać “lost_count”?
@@ -592,6 +607,15 @@ E_flow_Q_task_I_schedule( void
         }
         if( U_R( E_flow_S_scheduler[ sched_i ].signal, exit ))
             continue;
+        __asm__ volatile (
+        "\n"    "cli"
+        );
+        if( U_E( E_flow_S_scheduler[ sched_i ].signal, wake ))
+        {   __asm__ volatile (
+            "\n"    "sti"
+            );
+            continue;
+        }
         B U_has_suspend_time = ~E_flow_S_scheduler[ sched_i ].next_time;
         if( U_has_suspend_time )
             time = E_flow_I_current_time();
@@ -601,10 +625,7 @@ E_flow_Q_task_I_schedule( void
             if( U_has_suspend_time )
             {   N acpi_timer_ticks = ( E_flow_S_scheduler[ sched_i ].next_time - time ) / E_interrupt_S_apic_timer_tick_time;
                 if( acpi_timer_ticks )
-                {   __asm__ volatile (
-                    "\n"    "cli"
-                    );
-                    E_interrupt_Q_local_apic_P( 0x838, acpi_timer_ticks );
+                {   E_interrupt_Q_local_apic_P( 0x838, acpi_timer_ticks );
                     __asm__ volatile (
                     "\n"    "sti"
                     "\n"    "hlt"
@@ -612,6 +633,13 @@ E_flow_Q_task_I_schedule( void
                     O{  __asm__ volatile (
                         "\n"    "cli"
                         );
+                        if( U_E( E_flow_S_scheduler[ sched_i ].signal, wake ))
+                        {   E_interrupt_Q_local_apic_P( 0x838, 0 );
+                            __asm__ volatile (
+                            "\n"    "sti"
+                            );
+                            break;
+                        }
                         if( !E_interrupt_Q_local_apic_R( 0x839 ))
                         {   __asm__ volatile (
                             "\n"    "sti"
@@ -623,11 +651,19 @@ E_flow_Q_task_I_schedule( void
                         "\n"    "hlt"
                         );
                     }
-                }
+                }else
+                    __asm__ volatile (
+                    "\n"    "sti"
+                    );
             }else
                 __asm__ volatile (
+                "\n"    "sti"
                 "\n"    "hlt"
                 );
+        else
+            __asm__ volatile (
+            "\n"    "sti"
+            );
     }
 }
 // Przełączenie do ‹zadania› przez przełączenie wskaźnika “stosu” wykonania.

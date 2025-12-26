@@ -75,8 +75,7 @@ E_mouse_I_interrupt( void
             Yi_A( mouse, click );
             if( E_mouse_S_moved )
             {   E_mouse_S_moved = no;
-                if( !E_gui_S_mouse_drawing_hold )
-                    E_gui_Q_pointer_I_move();
+                E_gui_Q_pointer_I_move();
                 if(( E_mouse_Q_button_S_click_state == E_mouse_Q_button_Z_click_state_S_press
                   || E_mouse_Q_button_S_click_state == E_mouse_Q_button_Z_click_state_S_release
                 )
@@ -130,7 +129,7 @@ E_mouse_I_interrupt( void
                                     {   E_mouse_Q_button_S_click_state = E_mouse_Q_button_Z_click_state_S_press;
                                         E_mouse_Q_button_S_click_count++;
                                         E_flow_Q_spin_time_M( &E_mouse_Q_button_S_time, E_mouse_Q_button_S_press_timeout * 1000 );
-                                        Yi_F( mouse, click, E_mouse_Q_button_S_release_timeout );
+                                        Yi_F( mouse, click, E_mouse_Q_button_S_press_timeout );
                                     }else
                                     {   E_mouse_Q_button_S_click_state = E_mouse_Q_button_Z_click_state_S_dirty;
                                         E_flow_Q_spin_time_M( &E_mouse_Q_button_S_time, E_mouse_Q_button_S_dirty_timeout * 1000 );
@@ -187,11 +186,14 @@ D( mouse, click )
         ))
         {   E_mouse_Q_button_S_click_state = E_mouse_Q_button_Z_click_state_S_dirty;
             E_flow_Q_spin_time_M( &E_mouse_Q_button_S_time, E_mouse_Q_button_S_dirty_timeout * 1000 );
+            __asm__ volatile (
+            "\n"    "sti"
+            );
             G( "click: %x×%x", E_mouse_Q_button_S_click_count, E_mouse_Q_button_S_click_button );
-        }
-        __asm__ volatile (
-        "\n"    "sti"
-        );
+        }else
+            __asm__ volatile (
+            "\n"    "sti"
+            );
     }
     Yi_W( mouse, click );
 }

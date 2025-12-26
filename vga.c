@@ -69,7 +69,7 @@ N32
 E_vga_R_pixel(
   N32 x
 , N32 y
-){  return *( E_main_S_framebuffer.p + E_main_S_framebuffer.pixels_per_scan_line * y + x );
+){  return *( E_main_S_framebuffer.p + y * E_main_S_framebuffer.pixels_per_scan_line + x );
 }
 _private
 void
@@ -90,14 +90,14 @@ E_vga_I_set_pixel_aa(
 ){  N background_red, background_green, background_blue;
     N n = 0;
     N p[8];
-    p[0] = ( get_pixel & E_vga_Z_aa_pixel_S_e ) && x + 1 < E_main_S_framebuffer.width ? E_vga_R_color( E_vga_R_pixel( x + 1, y )) : color;
-    p[1] = ( get_pixel & E_vga_Z_aa_pixel_S_se ) && x + 1 < E_main_S_framebuffer.width && y + 1 < E_main_S_framebuffer.height ? E_vga_R_color( E_vga_R_pixel( x + 1, y + 1 )) : color;
-    p[2] = ( get_pixel & E_vga_Z_aa_pixel_S_s ) && y + 1 < E_main_S_framebuffer.height ? E_vga_R_color( E_vga_R_pixel( x, y + 1 )) : color;
-    p[3] = ( get_pixel & E_vga_Z_aa_pixel_S_sw ) && x > 0 && y + 1 < E_main_S_framebuffer.height ? E_vga_R_color( E_vga_R_pixel( x - 1, y + 1 )) : color;
-    p[4] = ( get_pixel & E_vga_Z_aa_pixel_S_w ) && x > 0 ? E_vga_R_color( E_vga_R_pixel( x - 1, y )) : color;
-    p[5] = ( get_pixel & E_vga_Z_aa_pixel_S_nw ) && x > 0 && y > 0 ? E_vga_R_color( E_vga_R_pixel( x - 1, y - 1 )) : color;
-    p[6] = ( get_pixel & E_vga_Z_aa_pixel_S_n ) && y > 0 ? E_vga_R_color( E_vga_R_pixel( x, y - 1 )) : color;
-    p[7] = ( get_pixel & E_vga_Z_aa_pixel_S_ne ) && x + 1 < E_main_S_framebuffer.width && y > 0 ? E_vga_R_color( E_vga_R_pixel( x + 1, y - 1 )) : color;
+    p[0] = ( get_pixel & E_vga_Z_aa_pixel_S_e ) && x + 1 != E_main_S_framebuffer.width ? E_vga_R_color( E_vga_R_pixel( x + 1, y )) : color;
+    p[1] = ( get_pixel & E_vga_Z_aa_pixel_S_se ) && x + 1 != E_main_S_framebuffer.width && y + 1 != E_main_S_framebuffer.height ? E_vga_R_color( E_vga_R_pixel( x + 1, y + 1 )) : color;
+    p[2] = ( get_pixel & E_vga_Z_aa_pixel_S_s ) && y + 1 != E_main_S_framebuffer.height ? E_vga_R_color( E_vga_R_pixel( x, y + 1 )) : color;
+    p[3] = ( get_pixel & E_vga_Z_aa_pixel_S_sw ) && x && y + 1 != E_main_S_framebuffer.height ? E_vga_R_color( E_vga_R_pixel( x - 1, y + 1 )) : color;
+    p[4] = ( get_pixel & E_vga_Z_aa_pixel_S_w ) && x ? E_vga_R_color( E_vga_R_pixel( x - 1, y )) : color;
+    p[5] = ( get_pixel & E_vga_Z_aa_pixel_S_nw ) && x && y ? E_vga_R_color( E_vga_R_pixel( x - 1, y - 1 )) : color;
+    p[6] = ( get_pixel & E_vga_Z_aa_pixel_S_n ) && y ? E_vga_R_color( E_vga_R_pixel( x, y - 1 )) : color;
+    p[7] = ( get_pixel & E_vga_Z_aa_pixel_S_ne ) && x + 1 != E_main_S_framebuffer.width && y ? E_vga_R_color( E_vga_R_pixel( x + 1, y - 1 )) : color;
     background_red = background_green = background_blue = 0;
     for_n( i, 8 )
         if( p[i] != color )
@@ -156,6 +156,88 @@ E_vga_I_draw_y_line(
     {   if( y + y_i == E_main_S_framebuffer.height )
             break;
         *( E_vga_S_framebuffer + ( y + y_i ) * E_main_S_framebuffer.width + x ) = video_color;
+    }
+}
+_private
+void
+E_vga_I_draw_line(
+  N32 x_0
+, N32 y_0
+, N32 x_1
+, N32 y_1
+, N32 video_color
+){  if( x_0 == x_1 )
+        E_vga_I_draw_y_line( x_0, y_0, y_1 - y_0 + 1, video_color );
+    else if( y_0 == y_1 )
+        E_vga_I_draw_x_line( x_0, y_0, x_1 - x_0 + 1, video_color );
+    else
+    {   S32 dx_ = x_1 - x_0, dx = J_abs( dx_ );
+        S32 dy_ = y_1 - y_0, dy = J_abs( dy_ );
+        S32 x = x_0, x_end = x_1, y = y_0, y_end = y_1;
+        S32 di = 1;
+        if( dy > dx )
+        {   if( dy_ < 0 )
+            {   J_swap( S32, y, y_end );
+                J_swap( S32, x, x_end );
+            }
+            if( x < 0
+            || y < 0
+            || x >= E_main_S_framebuffer.width
+            || y >= E_main_S_framebuffer.height
+            )
+                return;
+            E_vga_P_pixel( x, y, video_color );
+            if( x > x_end )
+                di = -di;
+            S32 d = dx - dy / 2;
+            while( y != y_end )
+            {   if( d < 0 )
+                    d += dx;
+                else
+                {   d += dx - dy;
+                    x += di;
+                }
+                if( x < 0
+                || y < 0
+                || x >= E_main_S_framebuffer.width
+                || y >= E_main_S_framebuffer.height
+                )
+                    return;
+                E_vga_P_pixel( x, y, video_color );
+                y++;
+            }
+        }else
+        {   if( dx_ < 0 )
+            {   J_swap( S32, x, x_end );
+                J_swap( S32, y, y_end )
+            }
+            if( x < 0
+            || y < 0
+            || x >= E_main_S_framebuffer.width
+            || y >= E_main_S_framebuffer.height
+            )
+                return;
+            E_vga_P_pixel( x, y, video_color );
+            if( y > y_end )
+                di = -di;
+            S32 d = dy - dx / 2;
+            while( x != x_end )
+            {   if( d < 0 )
+                    d += dy;
+                else
+                {   d += dy - dx;
+                    y += di;
+                }
+                if( x < 0
+                || y < 0
+                || x >= E_main_S_framebuffer.width
+                || y >= E_main_S_framebuffer.height
+                )
+                    return;
+                E_vga_P_pixel( x, y, video_color );
+                x++;
+            }
+        }
     }
 }
 _private
