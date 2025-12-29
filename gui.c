@@ -297,7 +297,7 @@ E_gui_Q_taskbar_I_draw( void
                 {   if(line)
                         break;
                     line++;
-                    x = i * taskbar_button_width_with_border + E_gui_Q_taskbar_S_thickness + 1;
+                    x = x_0;
                     y += ( E_gui_Q_taskbar_S_font_size + 1 - 1 ) * E_font_S_font.height + E_gui_Q_taskbar_S_font_size + 1 - 1;
                 }
                 E_font_I_draw_u( font_i
