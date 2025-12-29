@@ -36,7 +36,7 @@ E_window_log_I_draw( N32 x
             Pc s_ = E_text_Z_su_R_u( s, &u );
             s = s_;
             N32 font_i;
-            if( !E_gui_T_print_u( x_, width - ( x_ - x ), thickness, &u, &font_i ))
+            if( !E_gui_T_print_u( width - x_, thickness, &u, &font_i ))
             {   x_ = thickness + 1;
                 nl++;
             }
@@ -54,7 +54,7 @@ E_window_log_I_draw( N32 x
         {   U u = ~0;
             Pc s = E_text_Z_su_R_u( s_begin, &u );
             N32 font_i;
-            if( !E_gui_T_print_u( x_, width - ( x_ - x ), thickness, &u, &font_i ))
+            if( !E_gui_T_print_u( width - x_, thickness, &u, &font_i ))
             {   x_ = thickness + 1;
                 nl--;
                 if( height >= font_size + 1 + ( nl - 1 ) * (( font_size + 1 ) * E_font_S_font.height + font_size + 1 ) + 1 )
@@ -67,7 +67,6 @@ E_window_log_I_draw( N32 x
     N32 y_ = height > font_size + 1 + nl * (( font_size + 1 ) * E_font_S_font.height + font_size + 1 )
     ? 0
     : height - ( font_size + 1 + nl * (( font_size + 1 ) * E_font_S_font.height + font_size + 1 ));
-    x_ += x;
     y_ += y + font_size + 1;
     while( s_begin != E_se_log_S_buffer + E_se_log_S_buffer_l )
     {   U u = ~0;
@@ -79,11 +78,11 @@ E_window_log_I_draw( N32 x
             continue;
         }
         N32 font_i;
-        if( !E_gui_T_print_u( x_, width - ( x_ - x ), thickness, &u, &font_i ))
+        if( !E_gui_T_print_u( width - x_, thickness, &u, &font_i ))
         {   x_ = thickness + 1;
             y_ += ( font_size + 1 ) * E_font_S_font.height + font_size + 1;
         }
-        E_font_I_draw_u( font_i, x_, y_, y, height, E_vga_S_text_color, font_size, thickness );
+        E_font_I_draw_u( font_i, x + x_, y_, y, height, E_vga_S_text_color, font_size, thickness );
         x_ += ( thickness + 1 ) * E_font_S_font.bitmap[ font_i ].width + thickness + 1;
     }
 }

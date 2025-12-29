@@ -180,62 +180,38 @@ E_vga_I_draw_line(
             {   J_swap( S32, y, y_end );
                 J_swap( S32, x, x_end );
             }
-            if( x < 0
-            || y < 0
-            || x >= E_main_S_framebuffer.width
-            || y >= E_main_S_framebuffer.height
-            )
-                return;
             E_vga_P_pixel( x, y, video_color );
             if( x > x_end )
                 di = -di;
             S32 d = dx - dy / 2;
             while( y != y_end )
-            {   if( d < 0 )
+            {   y++;
+                if( d < 0 )
                     d += dx;
                 else
                 {   d += dx - dy;
                     x += di;
                 }
-                if( x < 0
-                || y < 0
-                || x >= E_main_S_framebuffer.width
-                || y >= E_main_S_framebuffer.height
-                )
-                    return;
                 E_vga_P_pixel( x, y, video_color );
-                y++;
             }
         }else
         {   if( dx_ < 0 )
             {   J_swap( S32, x, x_end );
                 J_swap( S32, y, y_end )
             }
-            if( x < 0
-            || y < 0
-            || x >= E_main_S_framebuffer.width
-            || y >= E_main_S_framebuffer.height
-            )
-                return;
             E_vga_P_pixel( x, y, video_color );
             if( y > y_end )
                 di = -di;
             S32 d = dy - dx / 2;
             while( x != x_end )
-            {   if( d < 0 )
+            {   x++;
+                if( d < 0 )
                     d += dy;
                 else
                 {   d += dy - dx;
                     y += di;
                 }
-                if( x < 0
-                || y < 0
-                || x >= E_main_S_framebuffer.width
-                || y >= E_main_S_framebuffer.height
-                )
-                    return;
                 E_vga_P_pixel( x, y, video_color );
-                x++;
             }
         }
     }
@@ -247,23 +223,22 @@ E_vga_I_draw_rect(
 , N32 y
 , N32 width
 , N32 height
+, N8 thickness
 , N32 video_color
-){  for_n( x_i, width )
-    {   if( x + x_i == E_main_S_framebuffer.width )
-            break;
-        *( E_vga_S_framebuffer + y * E_main_S_framebuffer.width + x + x_i ) = video_color;
+){  thickness++;
+    for_n( x_i, width )
+    {   for_n( i, thickness )
+            *( E_vga_S_framebuffer + ( y + i ) * E_main_S_framebuffer.width + x + x_i ) = video_color;
     }
-    for_n( y_i, height - 2 )
-    {   if( y + y_i == E_main_S_framebuffer.height )
-            return;
-        *( E_vga_S_framebuffer + ( y + y_i ) * E_main_S_framebuffer.width + x ) = video_color;
-        if( x_i == width )
-            *( E_vga_S_framebuffer + ( y + y_i ) * E_main_S_framebuffer.width + x + width - 1 ) = video_color;
+    for_n( y_i, height - 2 * thickness )
+    {   for_n( i, thickness )
+        {   *( E_vga_S_framebuffer + ( y + thickness + y_i ) * E_main_S_framebuffer.width + x + i ) = video_color;
+            *( E_vga_S_framebuffer + ( y + thickness + y_i ) * E_main_S_framebuffer.width + x + width - 1 - i ) = video_color;
+        }
     }
     for_n_( x_i, width )
-    {   if( x + x_i == E_main_S_framebuffer.width )
-            break;
-        *( E_vga_S_framebuffer + ( y + height - 1 ) * E_main_S_framebuffer.width + x + x_i ) = video_color;
+    {   for_n_rev( i, thickness )
+            *( E_vga_S_framebuffer + ( y + height - 1 - i ) * E_main_S_framebuffer.width + x + x_i ) = video_color;
     }
 }
 _private
@@ -275,13 +250,8 @@ E_vga_I_fill_rect(
 , N32 height
 , N32 video_color
 ){  for_n( y_i, height )
-    {   if( y + y_i == E_main_S_framebuffer.height )
-            break;
-        for_n( x_i, width )
-        {   if( x + x_i == E_main_S_framebuffer.width )
-                break;
+    {   for_n( x_i, width )
             *( E_vga_S_framebuffer + ( y + y_i ) * E_main_S_framebuffer.width + x + x_i ) = video_color;
-        }
     }
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -293,13 +263,8 @@ E_vga_Q_buffer_I_draw( N32 x
 , N32 height
 ){  volatile N32 *video_address = E_main_S_framebuffer.p + y * E_main_S_framebuffer.pixels_per_scan_line + x;
     for_n( y_i, height )
-    {   if( y + y_i == E_main_S_framebuffer.height )
-            break;
-        for_n( x_i, width )
-        {   if( x + x_i == E_main_S_framebuffer.width )
-                break;
+    {   for_n( x_i, width )
             video_address[ x_i ] = *( E_vga_S_framebuffer + ( y + y_i ) * E_main_S_framebuffer.width + x + x_i );
-        }
         video_address += E_main_S_framebuffer.pixels_per_scan_line;
     }
 }

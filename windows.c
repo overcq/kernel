@@ -40,7 +40,7 @@ E_windows_M( void
     return 0;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-_export
+_private
 N
 E_windows_Q_window_M( N8 desktop_i
 , Pc title
@@ -71,20 +71,16 @@ E_windows_Q_window_M( N8 desktop_i
     E_windows_Q_desktop_S[ desktop_i ].window_n++;
     E_windows_Q_desktop_S[ desktop_i ].window[ window_i ].sized = no;
     E_windows_Q_desktop_S[ desktop_i ].window[ window_i ].x = 0;
-    E_windows_Q_desktop_S[ desktop_i ].window[ window_i ].y = 0;
-    E_windows_Q_desktop_S[ desktop_i ].window[ window_i ].width = E_main_S_framebuffer.width - 2;
-    N32 taskbar_height = E_gui_Q_taskbar_S_font_size + 1
-    + ( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height + E_gui_Q_taskbar_S_font_size + 1
-    + 2 * ( E_gui_Q_taskbar_S_font_size + 1 - 1 ) * E_font_S_font.height + E_gui_Q_taskbar_S_font_size + 1 - 1
-    + E_gui_Q_taskbar_S_font_size + 1;
-    E_windows_Q_desktop_S[ desktop_i ].window[ window_i ].height = E_main_S_framebuffer.height - taskbar_height - 2;
+    E_windows_Q_desktop_S[ desktop_i ].window[ window_i ].y = E_gui_Q_taskbar_S_height;
+    E_windows_Q_desktop_S[ desktop_i ].window[ window_i ].width = E_main_S_framebuffer.width;
+    E_windows_Q_desktop_S[ desktop_i ].window[ window_i ].height = E_main_S_framebuffer.height - E_gui_Q_taskbar_S_height;
     E_windows_Q_desktop_S[ desktop_i ].window[ window_i ].draw = draw_proc;
     E_gui_Q_taskabar_S_redraw = yes;
     X_A( gui, draw );
     X_F( gui, draw );
     return window_i;
 }
-_export
+_private
 N
 E_windows_Q_window_W( N8 desktop_i
 , N8 window_i
@@ -92,12 +88,39 @@ E_windows_Q_window_W( N8 desktop_i
         return ~2;
     if( W( E_windows_Q_desktop_S[ desktop_i ].window[ window_i ].title ))
         return ~2;
+    E_flow_I_cli();
     if( !E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S[ desktop_i ].window, window_i, 1 ))
+    {   E_flow_I_sti();
         return ~2;
+    }
     E_windows_Q_desktop_S[ desktop_i ].window_n--;
+    E_gui_Q_taskbar_S_mouse_over_panel = 0;
+    E_flow_I_sti();
     E_gui_Q_taskabar_S_redraw = yes;
     X_A( gui, draw );
     X_F( gui, draw );
     return 0;
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_private
+void
+E_windows_Q_window_I_stack_on_top( N8 window_i
+){  for_n( i, E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window_n )
+        if( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[i] == window_i )
+            break;
+    if( ++i != E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window_n )
+    {   for( ; i != E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window_n; i++ )
+            E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ i - 1 ] = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[i];
+        E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ i - 1 ] = window_i;
+        X_A( gui, draw );
+        X_F( gui, draw );
+    }
+}
+_private
+void
+E_windows_Q_window_I_toggle_size( N8 window_i
+){  E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window[ window_i ].sized = !E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window[ window_i ].sized;
+    X_A( gui, draw );
+    X_F( gui, draw );
 }
 /******************************************************************************/

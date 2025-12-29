@@ -11,14 +11,14 @@ _internal N32 E_gui_Q_pointer_S_coordinate[2];
 _private B E_gui_Q_taskabar_S_redraw;
 _private N8 E_gui_Q_taskbar_S_font_size;
 _internal N8 E_gui_Q_taskbar_S_thickness;
-_internal volatile N8 E_gui_Q_taskbar_S_mouse_over_button;
-_internal N32 E_gui_Q_taskbar_S_height, E_gui_Q_taskbar_S_panel_width, E_gui_Q_taskbar_S_panel_height;
+_private volatile N8 E_gui_Q_taskbar_S_mouse_over_panel;
+_private N32 E_gui_Q_taskbar_S_height;
+_internal N32 E_gui_Q_taskbar_S_panel_width, E_gui_Q_taskbar_S_panel_height;
 //==============================================================================
 _private
 N
 E_gui_T_print_u(
-  N32 x
-, N32 width
+  N32 width
 , N8 thickness
 , U *u
 , N32 *font_i
@@ -51,8 +51,9 @@ E_gui_M( void
     + ( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height + E_gui_Q_taskbar_S_font_size + 1
     + 2 * ( E_gui_Q_taskbar_S_font_size + 1 - 1 ) * E_font_S_font.height + E_gui_Q_taskbar_S_font_size + 1 - 1
     + E_gui_Q_taskbar_S_font_size + 1;
-    E_gui_Q_taskbar_S_panel_width = 100; //TODO Obliczyć na podstawie zawartości.
-    E_gui_Q_taskbar_S_panel_height = 50; //TODO Obliczyć na podstawie zawartości.
+    E_gui_Q_taskbar_S_panel_width = E_gui_Q_taskbar_S_font_size + 1
+    + 2 * (( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height + E_gui_Q_taskbar_S_font_size + 1 );
+    E_gui_Q_taskbar_S_panel_height = E_gui_Q_taskbar_S_font_size + 1 + ( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height + E_gui_Q_taskbar_S_font_size + 1;
     E_gui_Q_pointer_S_coordinate[0] = E_mouse_S_coordinate[0] = E_main_S_framebuffer.width / 2;
     E_gui_Q_pointer_S_coordinate[1] = E_mouse_S_coordinate[1] = E_main_S_framebuffer.height / 2;
     if( E_windows_M() )
@@ -88,9 +89,13 @@ E_gui_Q_pointer_I_draw( N32 x
 _internal
 void
 E_gui_Q_pointer_I_move_0( void
-){  E_vga_Q_buffer_I_draw( E_gui_Q_pointer_S_coordinate[0], E_gui_Q_pointer_S_coordinate[1]
-    , E_gui_Q_pointer_S_width, E_gui_Q_pointer_S_height
-    );
+){  N32 width = E_gui_Q_pointer_S_coordinate[0] + E_gui_Q_pointer_S_width > E_main_S_framebuffer.width
+    ? E_main_S_framebuffer.width - E_gui_Q_pointer_S_coordinate[0]
+    : E_gui_Q_pointer_S_width;
+    N32 height = E_gui_Q_pointer_S_coordinate[1] + E_gui_Q_pointer_S_height > E_main_S_framebuffer.height
+    ? E_main_S_framebuffer.height - E_gui_Q_pointer_S_coordinate[1]
+    : E_gui_Q_pointer_S_height;
+    E_vga_Q_buffer_I_draw( E_gui_Q_pointer_S_coordinate[0], E_gui_Q_pointer_S_coordinate[1], width, height );
 }
 _internal
 void
@@ -101,36 +106,42 @@ E_gui_Q_pointer_I_move_1( void
     {   N32 taskbar_button_width_with_border = E_main_S_framebuffer.width / E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window_n;
         if( taskbar_button_width_with_border < E_gui_Q_taskbar_S_thickness + 1 + E_gui_Q_taskbar_S_thickness * 5 + E_gui_Q_taskbar_S_thickness + 1 + 1 )
             taskbar_button_width_with_border = E_gui_Q_taskbar_S_thickness + 1 + E_gui_Q_taskbar_S_thickness * 5 + E_gui_Q_taskbar_S_thickness + 1 + 1;
-        if( E_gui_Q_taskbar_S_mouse_over_button )
-        {   N32 panel_x_0 = ( E_gui_Q_taskbar_S_mouse_over_button - 1 ) * taskbar_button_width_with_border;
+        if( E_gui_Q_taskbar_S_mouse_over_panel )
+        {   N32 panel_x_0 = ( E_gui_Q_taskbar_S_mouse_over_panel - 1 ) * taskbar_button_width_with_border;
             N32 panel_x_1 = panel_x_0 + E_gui_Q_taskbar_S_panel_width;
-            if( panel_x_1 > E_main_S_framebuffer.width )
+            if( panel_x_1 > E_main_S_framebuffer.width ) //DFN Szerokość wyświetlacza co najmniej równa “E_gui_Q_taskbar_S_panel_width”.
             {   panel_x_0 -= panel_x_1 - E_main_S_framebuffer.width;
                 panel_x_1 -= panel_x_1 - E_main_S_framebuffer.width;
             }
-            if(( E_gui_Q_pointer_S_coordinate[0] >= panel_x_0
-              && E_gui_Q_pointer_S_coordinate[0] < panel_x_1
-              && E_gui_Q_pointer_S_coordinate[1] > E_gui_Q_taskbar_S_height + E_gui_Q_taskbar_S_panel_height
+            if( E_gui_Q_pointer_S_coordinate[0] < panel_x_0
+            || E_gui_Q_pointer_S_coordinate[0] >= panel_x_1
             )
-            || (( E_gui_Q_pointer_S_coordinate[0] < panel_x_0
-                || E_gui_Q_pointer_S_coordinate[0] >= panel_x_1
-              )
-              && E_gui_Q_pointer_S_coordinate[1] > E_gui_Q_taskbar_S_height
-            ))
-            {   E_gui_Q_taskbar_S_mouse_over_button = 0;
+            {   if( E_gui_Q_pointer_S_coordinate[1] < E_gui_Q_taskbar_S_height )
+                {   N8 button = E_gui_Q_pointer_S_coordinate[0] / taskbar_button_width_with_border + 1;
+                    if( E_gui_Q_pointer_S_coordinate[0] >= ( button - 1 ) * taskbar_button_width_with_border
+                    && E_gui_Q_pointer_S_coordinate[0] < ( button - 1 ) * taskbar_button_width_with_border + E_gui_Q_taskbar_S_panel_width
+                    )
+                        E_gui_Q_taskbar_S_mouse_over_panel = button;
+                    else
+                        E_gui_Q_taskbar_S_mouse_over_panel = 0;
+                }else
+                    E_gui_Q_taskbar_S_mouse_over_panel = 0;
                 X_A( gui, draw );
                 X_F( gui, draw );
-            }else if( E_gui_Q_pointer_S_coordinate[0] < ( E_gui_Q_taskbar_S_mouse_over_button - 1 ) * taskbar_button_width_with_border
-            || E_gui_Q_pointer_S_coordinate[0] > ( E_gui_Q_taskbar_S_mouse_over_button - 1 + 1 ) * taskbar_button_width_with_border
-            )
-            {   E_gui_Q_taskbar_S_mouse_over_button = E_gui_Q_pointer_S_coordinate[0] / taskbar_button_width_with_border + 1;
+            }else if( E_gui_Q_pointer_S_coordinate[1] >= E_gui_Q_taskbar_S_height + E_gui_Q_taskbar_S_panel_height )
+            {   E_gui_Q_taskbar_S_mouse_over_panel = 0;
                 X_A( gui, draw );
                 X_F( gui, draw );
             }
         }else if( E_gui_Q_pointer_S_coordinate[1] < E_gui_Q_taskbar_S_height )
-        {   E_gui_Q_taskbar_S_mouse_over_button = E_gui_Q_pointer_S_coordinate[0] / taskbar_button_width_with_border + 1;
-            X_A( gui, draw );
-            X_F( gui, draw );
+        {   N8 button = E_gui_Q_pointer_S_coordinate[0] / taskbar_button_width_with_border + 1;
+            if( E_gui_Q_pointer_S_coordinate[0] >= ( button - 1 ) * taskbar_button_width_with_border
+            && E_gui_Q_pointer_S_coordinate[0] < ( button - 1 ) * taskbar_button_width_with_border + E_gui_Q_taskbar_S_panel_width
+            )
+            {   E_gui_Q_taskbar_S_mouse_over_panel = button;
+                X_A( gui, draw );
+                X_F( gui, draw );
+            }
         }
     }
     E_gui_Q_pointer_I_draw( E_gui_Q_pointer_S_coordinate[0], E_gui_Q_pointer_S_coordinate[1] );
@@ -140,6 +151,51 @@ void
 E_gui_Q_pointer_I_move( void
 ){  E_gui_Q_pointer_I_move_0();
     E_gui_Q_pointer_I_move_1();
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_private
+void
+E_gui_Q_pointer_I_click( N8 button
+, N8 click_count
+, N32 x
+, N32 y
+){  N8 visible_buttons = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window_n;
+    N32 taskbar_button_width_with_border = E_main_S_framebuffer.width / visible_buttons;
+    if( taskbar_button_width_with_border < E_gui_Q_taskbar_S_thickness + 1 + E_gui_Q_taskbar_S_thickness * 5 + E_gui_Q_taskbar_S_thickness + 1 + 1 )
+        taskbar_button_width_with_border = E_gui_Q_taskbar_S_thickness + 1 + E_gui_Q_taskbar_S_thickness * 5 + E_gui_Q_taskbar_S_thickness + 1 + 1;
+    if( y < E_gui_Q_taskbar_S_panel_height )
+    {   if( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window_n
+        && button == 1
+        && click_count == 1
+        )
+        {   N8 window_i = x / taskbar_button_width_with_border;
+            E_windows_Q_window_I_stack_on_top( window_i );
+        }else if( button == 2
+        && click_count == 1
+        )
+        {   //TODO Otwórz menu główne.
+        }
+    }else if( E_gui_Q_taskbar_S_mouse_over_panel
+    && button == 1
+    && click_count == 1
+    )
+    {   N32 panel_x_0 = ( E_gui_Q_taskbar_S_mouse_over_panel - 1 ) * taskbar_button_width_with_border;
+        N32 panel_x_1 = panel_x_0 + E_gui_Q_taskbar_S_panel_width - 1;
+        if( panel_x_1 > E_main_S_framebuffer.width )
+            panel_x_0 -= panel_x_1 - E_main_S_framebuffer.width;
+        if( x >= panel_x_0 + E_gui_Q_taskbar_S_font_size + 1
+        && x < panel_x_0 + E_gui_Q_taskbar_S_font_size + 1 + ( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height
+        ) // Kliknięto przycisk ‛zamknij’.
+        {   N8 window_i = x / taskbar_button_width_with_border;
+            if( E_windows_Q_window_W( E_window_Q_desktop_S_current, window_i ))
+                E_main_I_error_fatal();
+        }else if( x >= panel_x_0 + E_gui_Q_taskbar_S_font_size + 1 + (( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height + E_gui_Q_taskbar_S_font_size + 1 )
+        && x < panel_x_0 + E_gui_Q_taskbar_S_font_size + 1 + (( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height + E_gui_Q_taskbar_S_font_size + 1 ) + ( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height
+        )
+        {   N8 window_i = x / taskbar_button_width_with_border;
+            E_windows_Q_window_I_toggle_size( window_i );
+        }
+    }
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _internal
@@ -163,12 +219,15 @@ E_gui_Q_desktop_I_draw( void
         return;
     N32 x, y, width, height;
     if( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window[ E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window_n - 1 ]].sized )
-    {   for_n( window_i, E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window_n )
+    {    //TODO Przerysowywać tylko okna, które zawierają co najmniej jeden obszar widoczny.
+        for_n( window_i, E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window_n )
         {   if( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window[ E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ window_i ]].sized )
-            {   x = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window[ E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ window_i ]].x;
-                y = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window[ E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ window_i ]].y;
-                width = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window[ E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ window_i ]].width;
-                height = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window[ E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ window_i ]].height;
+            {   x = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window[ E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ window_i ]].x + 2;
+                y = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window[ E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ window_i ]].y + 2;
+                width = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window[ E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ window_i ]].width - 4;
+                height = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window[ E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ window_i ]].height - 4;
+                E_vga_I_draw_rect( x - 2, y - 2, width + 4, height + 4, 1, E_vga_R_video_color( 0x908b8b ));
+                //DFN Do przyszłego rozmiarowania: minimalny rozmiar okna to ramka plus minimalna zawartość.
             }else
             {   x = 0;
                 y = E_gui_Q_taskbar_S_height;
@@ -193,28 +252,29 @@ E_gui_Q_taskbar_I_draw( void
     E_vga_I_fill_rect( 0, 0, E_main_S_framebuffer.width, E_gui_Q_taskbar_S_height, E_vga_R_video_color( 0xb3b3b3 ));
     N8 visible_buttons = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window_n;
     if( visible_buttons )
-    {   N32 button_width = E_main_S_framebuffer.width / E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window_n;
-        if( button_width < E_gui_Q_taskbar_S_thickness + 1 + E_gui_Q_taskbar_S_thickness * 5 + E_gui_Q_taskbar_S_thickness + 1 + 1 )
-        {   button_width = E_gui_Q_taskbar_S_thickness + 1 + E_gui_Q_taskbar_S_thickness * 5 + E_gui_Q_taskbar_S_thickness + 1 + 1;
-            visible_buttons = E_main_S_framebuffer.width / button_width;
+    {   N32 taskbar_button_width_with_border = E_main_S_framebuffer.width / E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window_n;
+        if( taskbar_button_width_with_border < E_gui_Q_taskbar_S_thickness + 1 + E_gui_Q_taskbar_S_thickness * 5 + E_gui_Q_taskbar_S_thickness + 1 + 1 )
+        {   taskbar_button_width_with_border = E_gui_Q_taskbar_S_thickness + 1 + E_gui_Q_taskbar_S_thickness * 5 + E_gui_Q_taskbar_S_thickness + 1 + 1;
+            visible_buttons = E_main_S_framebuffer.width / taskbar_button_width_with_border;
         }
         if( visible_buttons > 1 ) // Rysowanie linii rozdzielających.
         {   for_n( i, visible_buttons - 1 )
-            {   if(( i + 1 ) * button_width - 1 >= E_main_S_framebuffer.width )
+            {   if(( i + 1 ) * taskbar_button_width_with_border - 1 >= E_main_S_framebuffer.width )
                     break;
-                E_vga_I_draw_y_line(( i + 1 ) * button_width - 1, 0, E_gui_Q_taskbar_S_height, E_vga_R_video_color( 0x908b8b ));
+                E_vga_I_draw_y_line(( i + 1 ) * taskbar_button_width_with_border - 1, 0, E_gui_Q_taskbar_S_height, E_vga_R_video_color( 0x908b8b ));
             }
         }
         for_n( i, visible_buttons ) // Rysowanie tekstu przycisków.
-        {   N32 x = i * button_width + ( i ? 1 : 0 ) + E_gui_Q_taskbar_S_thickness + 1;
-            N32 button_real_width = ( i != visible_buttons - 1 ? button_width - 1 : E_main_S_framebuffer.width - x ) - 2 * ( E_gui_Q_taskbar_S_thickness + 1 );
+        {   N32 x_0 = i * taskbar_button_width_with_border + ( i ? 1 : 0 ) + E_gui_Q_taskbar_S_thickness + 1;
+            N32 x = x_0;
+            N32 button_real_width = ( i != visible_buttons - 1 ? taskbar_button_width_with_border - 1 : E_main_S_framebuffer.width - x ) - 2 * ( E_gui_Q_taskbar_S_thickness + 1 );
             Pc s = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window[i].title;
             while( *s )
             {   U u = ~0;
                 Pc s_ = E_text_Z_su_R_u( s, &u );
                 s = s_;
                 N32 font_i;
-                if( !E_gui_T_print_u( x, button_real_width, E_gui_Q_taskbar_S_thickness, &u, &font_i ))
+                if( !E_gui_T_print_u( button_real_width - ( x - x_0 ), E_gui_Q_taskbar_S_thickness, &u, &font_i ))
                     break;
                 E_font_I_draw_u( font_i
                 , x, E_gui_Q_taskbar_S_font_size + 1
@@ -225,7 +285,7 @@ E_gui_Q_taskbar_I_draw( void
                 x += ( E_gui_Q_taskbar_S_thickness + 1 ) * E_font_S_font.bitmap[ font_i ].width + E_gui_Q_taskbar_S_thickness + 1;
             }
             N8 line = 0;
-            x = i * button_width + ( i ? 1 : 0 ) + E_gui_Q_taskbar_S_thickness + 1;
+            x = x_0;
             N32 y = E_gui_Q_taskbar_S_font_size + 1 + ( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height + E_gui_Q_taskbar_S_font_size + 1;
             s = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window[i].description;
             while( *s )
@@ -233,11 +293,11 @@ E_gui_Q_taskbar_I_draw( void
                 Pc s_ = E_text_Z_su_R_u( s, &u );
                 s = s_;
                 N32 font_i;
-                if( !E_gui_T_print_u( x, button_real_width, E_gui_Q_taskbar_S_thickness, &u, &font_i ))
+                if( !E_gui_T_print_u( button_real_width - ( x - x_0 ), E_gui_Q_taskbar_S_thickness, &u, &font_i ))
                 {   if(line)
                         break;
                     line++;
-                    x = i * button_width + E_gui_Q_taskbar_S_thickness + 1;
+                    x = i * taskbar_button_width_with_border + E_gui_Q_taskbar_S_thickness + 1;
                     y += ( E_gui_Q_taskbar_S_font_size + 1 - 1 ) * E_font_S_font.height + E_gui_Q_taskbar_S_font_size + 1 - 1;
                 }
                 E_font_I_draw_u( font_i
@@ -254,36 +314,109 @@ E_gui_Q_taskbar_I_draw( void
 _internal
 void
 E_gui_Q_taskbar_I_draw_expander( void
-){  if( !E_gui_Q_taskbar_S_mouse_over_button )
+){  if( !E_gui_Q_taskbar_S_mouse_over_panel )
         return;
     N8 visible_buttons = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window_n;
     N32 taskbar_button_width_with_border = E_main_S_framebuffer.width / visible_buttons;
     if( taskbar_button_width_with_border < E_gui_Q_taskbar_S_thickness + 1 + E_gui_Q_taskbar_S_thickness * 5 + E_gui_Q_taskbar_S_thickness + 1 + 1 )
         taskbar_button_width_with_border = E_gui_Q_taskbar_S_thickness + 1 + E_gui_Q_taskbar_S_thickness * 5 + E_gui_Q_taskbar_S_thickness + 1 + 1;
-    N32 panel_x_0 = ( E_gui_Q_taskbar_S_mouse_over_button - 1 ) * taskbar_button_width_with_border;
+    N32 panel_x_0 = ( E_gui_Q_taskbar_S_mouse_over_panel - 1 ) * taskbar_button_width_with_border;
     N32 panel_x_1 = panel_x_0 + E_gui_Q_taskbar_S_panel_width - 1;
     if( panel_x_1 > E_main_S_framebuffer.width )
         panel_x_0 -= panel_x_1 - E_main_S_framebuffer.width;
     E_vga_I_fill_rect( panel_x_0, E_gui_Q_taskbar_S_height, E_gui_Q_taskbar_S_panel_width, E_gui_Q_taskbar_S_panel_height, E_vga_R_video_color( 0xb3b3b3 ));
-    E_vga_I_draw_line( panel_x_0, E_gui_Q_taskbar_S_height, panel_x_1, E_gui_Q_taskbar_S_height + E_gui_Q_taskbar_S_panel_height - 1, E_vga_R_video_color( 0x908b8b ));
+    // Przycisk ‛zamknij’.
+    E_vga_I_draw_rect( panel_x_0 + E_gui_Q_taskbar_S_font_size + 1
+    , E_gui_Q_taskbar_S_height + E_gui_Q_taskbar_S_font_size + 1
+    , ( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height
+    , ( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height
+    , 0
+    , E_vga_R_video_color( 0x908b8b )
+    );
+    E_vga_I_draw_line( panel_x_0 + E_gui_Q_taskbar_S_font_size + 1 + 1
+      + 1
+    , E_gui_Q_taskbar_S_height + E_gui_Q_taskbar_S_font_size + 1 + 1
+      + 1
+    , panel_x_0 + E_gui_Q_taskbar_S_font_size + 1
+      + ( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height - 1 - 1
+      - 1
+    , E_gui_Q_taskbar_S_height + E_gui_Q_taskbar_S_font_size + 1
+      + ( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height - 1 - 1
+      - 1
+    , 0
+    );
+    E_vga_I_draw_line( panel_x_0 + E_gui_Q_taskbar_S_font_size + 1 + 1
+      + 1
+    , E_gui_Q_taskbar_S_height + E_gui_Q_taskbar_S_font_size + 1
+      + ( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height - 1 - 1
+      - 1
+    , panel_x_0 + E_gui_Q_taskbar_S_font_size + 1
+      + ( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height - 1 - 1
+      - 1
+    , E_gui_Q_taskbar_S_height + E_gui_Q_taskbar_S_font_size + 1 + 1
+      + 1
+    , 0
+    );
+    E_vga_I_draw_rect( panel_x_0 + E_gui_Q_taskbar_S_font_size + 1
+      + (( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height + E_gui_Q_taskbar_S_font_size + 1 )
+    , E_gui_Q_taskbar_S_height + E_gui_Q_taskbar_S_font_size + 1
+    , ( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height
+    , ( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height
+    , 0
+    , E_vga_R_video_color( 0x908b8b )
+    );
+    if( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window[ E_gui_Q_taskbar_S_mouse_over_panel - 1 ].sized )
+        // Przycisk ‛maksymalizuj’.
+        E_vga_I_draw_rect( panel_x_0 + E_gui_Q_taskbar_S_font_size + 1
+          + (( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height + E_gui_Q_taskbar_S_font_size + 1 ) + 1
+          + 1
+        , E_gui_Q_taskbar_S_height + E_gui_Q_taskbar_S_font_size + 1 + 1
+          + 1
+        , ( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height
+          - 2 * ( 1 + 1 )
+        , E_gui_Q_taskbar_S_font_size + 1 + 2
+        , 0
+        , 0
+        );
+    else
+    {   // Przycisk ‛rozmiaruj’.
+        E_vga_I_draw_rect( panel_x_0 + E_gui_Q_taskbar_S_font_size + 1
+          + (( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height + E_gui_Q_taskbar_S_font_size + 1 ) + 1
+          + 1
+        , E_gui_Q_taskbar_S_height + E_gui_Q_taskbar_S_font_size + 1 + 1
+          + 1
+        , (( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height - 2 * ( 1 + 1 )) / 2 + 1 + E_gui_Q_taskbar_S_font_size + 1
+        , (( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height - 2 * ( 1 + 1 )) / 2 + 1 + E_gui_Q_taskbar_S_font_size + 1
+        , 0
+        , 0
+        );
+        E_vga_I_draw_rect( panel_x_0 + E_gui_Q_taskbar_S_font_size + 1
+          + (( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height + E_gui_Q_taskbar_S_font_size + 1 ) + 1
+          + ( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height - 2
+          - ((( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height - 2 ) / 2 + 1 + E_gui_Q_taskbar_S_font_size + 1 )
+        , E_gui_Q_taskbar_S_height + E_gui_Q_taskbar_S_font_size + 1 + 1
+          + ( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height - 2
+          - ((( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height - 2 ) / 2 + 1 + E_gui_Q_taskbar_S_font_size + 1 )
+        , (( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height - 2 * ( 1 + 1 )) / 2 + 1 + E_gui_Q_taskbar_S_font_size + 1
+        , (( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height - 2 * ( 1 + 1 )) / 2 + 1 + E_gui_Q_taskbar_S_font_size + 1
+        , 0
+        , 0
+        );
+    }
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 D( gui, draw )
 {   X_M( gui, draw );
     O{  X_B( gui, draw, 0 )
             break;
-        __asm__ volatile (
-        "\n"    "cli"
-        );
+        E_flow_I_cli();
         E_gui_Q_pointer_I_move_0();
         E_gui_Q_desktop_I_draw();
         E_gui_Q_taskbar_I_draw();
         E_gui_Q_taskbar_I_draw_expander();
         E_vga_Q_buffer_I_draw( 0, 0, E_main_S_framebuffer.width, E_main_S_framebuffer.height ); //TODO Kopiować tylko obszary zmienione?
         E_gui_Q_pointer_I_move_1();
-        __asm__ volatile (
-        "\n"    "sti"
-        );
+        E_flow_I_sti();
     }
 }
 /******************************************************************************/

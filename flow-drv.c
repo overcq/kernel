@@ -30,8 +30,9 @@ struct E_flow_Z_scheduler
   struct E_mem_Q_tab_Z *timer;
   N last_time;
   N next_time;
-  unsigned U_R( signal, exit )                  :1;
-  unsigned U_R( signal, wake )                  :1;
+  N cli_count;
+  unsigned U_R( signal, exit )  :1;
+  unsigned U_R( signal, wake )  :1;
 } *E_flow_S_scheduler;
 _private N E_flow_S_scheduler_n;
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -107,6 +108,25 @@ E_flow_I_sleep( N microseconds
 //------------------------------------------------------------------------------
 _private
 void
+E_flow_I_cli( void
+){  N sched_i = E_flow_I_current_scheduler();
+    E_flow_S_scheduler[ sched_i ].cli_count++;
+    __asm__ volatile (
+    "\n"    "cli"
+    );
+}
+_private
+void
+E_flow_I_sti( void
+){  N sched_i = E_flow_I_current_scheduler();
+    if( !--E_flow_S_scheduler[ sched_i ].cli_count )
+        __asm__ volatile (
+        "\n"    "sti"
+        );
+}
+//------------------------------------------------------------------------------
+_private
+void
 E_flow_I_lock( volatile N8 *lock
 ){  __asm__ volatile (
     "\n"    "mov    $1,%%cl"
@@ -157,6 +177,7 @@ E_flow_M( P main_stack
     }
     E_flow_S_scheduler[ sched_i ].last_time = 0;
     E_flow_S_scheduler[ sched_i ].next_time = ~0;
+    E_flow_S_scheduler[ sched_i ].cli_count = 0;
     U_L( E_flow_S_scheduler[ sched_i ].signal, exit );
     return 0;
 }
@@ -255,9 +276,7 @@ _export
 void
 E_flow_Q_report_I_signal( I id
 ){  N sched_i = E_flow_I_current_scheduler();
-    __asm__ volatile (
-    "\n"    "cli"
-    );
+    E_flow_I_cli();
     struct E_flow_Q_report_Z *report = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].report, id );
     if( ~report->reported_count )
         report->reported_count++;
@@ -270,9 +289,7 @@ E_flow_Q_report_I_signal( I id
             break;
         }
     }
-    __asm__ volatile (
-    "\n"    "sti"
-    );
+    E_flow_I_sti();
     U_F( E_flow_S_scheduler[ sched_i ].signal, wake );
 }
 _export
@@ -422,9 +439,7 @@ void
 E_flow_Q_impulser_I_activate( I id
 , N miliseconds
 ){  N sched_i = E_flow_I_current_scheduler();
-    __asm__ volatile (
-    "\n"    "cli"
-    );
+    E_flow_I_cli();
     N time = E_flow_I_current_time();
     struct E_flow_Q_timer_Z *timer = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].timer, id );
     timer->left = E_interrupt_S_cpu_freq * miliseconds / 1000;
@@ -444,17 +459,14 @@ E_flow_Q_impulser_I_activate( I id
     }
     E_flow_S_scheduler[ sched_i ].last_time = time;
     E_flow_S_scheduler[ sched_i ].next_time = time + timer->left;
-End:__asm__ volatile (
-    "\n"    "sti"
-    );
+End:E_flow_I_sti();
+    U_F( E_flow_S_scheduler[ sched_i ].signal, wake );
 }
 _export
 void
 E_flow_Q_impulser_I_deactivate( I id
 ){  N sched_i = E_flow_I_current_scheduler();
-    __asm__ volatile (
-    "\n"    "cli"
-    );
+    E_flow_I_cli();
     struct E_flow_Q_timer_Z *timer = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].timer, id );
     if( !timer->left )
         goto End;
@@ -467,9 +479,7 @@ E_flow_Q_impulser_I_deactivate( I id
             goto End;
     }
     E_flow_S_scheduler[ sched_i ].next_time = ~0;
-End:__asm__ volatile (
-    "\n"    "sti"
-    );
+End:E_flow_I_sti();
 }
 //------------------------------------------------------------------------------
 //NDFN Dodać “lost_count”?
