@@ -1,0 +1,167 @@
+/*******************************************************************************
+*   ___   public
+*  ¦OUX¦  C_
+*  ¦/C+¦  OUX/C+ OS
+*   ---   kernel
+*         windows
+* (c)overcq              on WSL\Debian (Linux 6.6.87.2)             2025-12-21 J
+*******************************************************************************/
+struct E_window_Q_window_Z
+{ Pc title, description;
+  void ( *draw )( N32 x, N32 y, N32 width, N32 height );
+  N32 x, y, width, height;
+  B sized;
+};
+struct E_window_Q_desktop_Z
+{ struct E_mem_Q_tab_Z *window;
+  I *stack;
+};
+//==============================================================================
+_private struct E_window_Q_desktop_Z *E_windows_Q_desktop_S;
+_private N8 E_windows_Q_desktop_S_n;
+_private N8 E_window_Q_desktop_S_current;
+//==============================================================================
+_private
+N
+E_windows_M( void
+){  E_windows_Q_desktop_S_n = 1;
+    Mt_( E_windows_Q_desktop_S, E_windows_Q_desktop_S_n );
+    if( !E_windows_Q_desktop_S )
+        return ~0;
+    E_window_Q_desktop_S_current = 0;
+    E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window = E_mem_Q_tab_M( sizeof( struct E_window_Q_window_Z ), 0 );
+    if( !E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window )
+        return ~2;
+    Mt_( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack, 0 );
+    if( !E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack )
+        return ~2;
+    return 0;
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_export
+N
+E_windows_Q_window_M( N8 desktop_id
+, Pc title
+, Pc description
+, void ( *draw_proc )( N32, N32, N32, N32 )
+){  E_flow_I_cli();
+    I window_id = E_mem_Q_tab_I_add( E_windows_Q_desktop_S[ desktop_id ].window );
+    if( window_id < 0 )
+    {   E_flow_I_sti();
+        return window_id;
+    }
+    if( !E_mem_Q_blk_I_append( &E_windows_Q_desktop_S[ desktop_id ].stack, 1 ))
+    {   N r = E_mem_Q_tab_I_remove( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
+        E_flow_I_sti();
+        return r ? r : ~0;
+    }
+    E_windows_Q_desktop_S[ desktop_id ].stack[ window_id ] = window_id;
+    struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
+    window->title = E_text_Z_s0_M_duplicate(title);
+    if( !window->title )
+    {   if( !E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S[ desktop_id ].stack, window_id, 1 ))
+        {   E_flow_I_sti();
+            return ~2;
+        }
+        N r = E_mem_Q_tab_I_remove( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
+        E_flow_I_sti();
+        return r ? r : ~0;
+    }
+    window->description = E_text_Z_s0_M_duplicate(description);
+    if( !window->description )
+    {   if( W( window->title ))
+        {   E_flow_I_sti();
+            return ~2;
+        }
+        if( !E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S[ desktop_id ].stack, window_id, 1 ))
+        {   E_flow_I_sti();
+            return ~2;
+        }
+        N r = E_mem_Q_tab_I_remove( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
+        E_flow_I_sti();
+        return r ? r : ~0;
+    }
+    window->sized = no;
+    window->x = 0;
+    window->y = E_gui_Q_taskbar_S_height;
+    window->width = E_main_S_framebuffer.width;
+    window->height = E_main_S_framebuffer.height - E_gui_Q_taskbar_S_height;
+    window->draw = draw_proc;
+    E_gui_Q_desktop_S_window_moving = no;
+    E_gui_Q_desktop_S_window_resizing_state = E_gui_Q_desktop_Z_window_resizing_state_S_none;
+    E_gui_Q_taskbar_S_mouse_over_panel = ~0;
+    E_flow_I_sti();
+    E_gui_Q_taskabar_S_redraw = yes;
+    X_A( gui, draw );
+    X_F( gui, draw );
+    return window_id;
+}
+_export
+N
+E_windows_Q_window_W( N8 desktop_id
+, I window_id
+){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
+    if( W( window->description ))
+        return ~2;
+    if( W( window->title ))
+        return ~2;
+    E_flow_I_cli();
+    for_n( stack_i, E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ desktop_id ].window ))
+        if( E_windows_Q_desktop_S[ desktop_id ].stack[ stack_i ] == window_id )
+            break;
+    if( !E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S[ desktop_id ].stack, stack_i, 1 ))
+    {   E_flow_I_sti();
+        return ~2;
+    }
+    if( stack_i == E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ desktop_id ].window ) - 1 )
+    {   E_gui_Q_desktop_S_window_moving = no;
+        E_gui_Q_desktop_S_window_resizing_state = E_gui_Q_desktop_Z_window_resizing_state_S_none;
+    }
+    N r = E_mem_Q_tab_I_remove( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
+    if(r)
+    {   E_flow_I_sti();
+        return ~2;
+    }
+    E_gui_Q_taskbar_S_mouse_over_panel = ~0; //TODO Nie usuwać, ale przesuwać panel?
+    E_flow_I_sti();
+    E_gui_Q_taskabar_S_redraw = yes;
+    X_A( gui, draw );
+    X_F( gui, draw );
+    return 0;
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_private
+void
+E_windows_Q_window_I_stack_on_top( I window_id
+){  for_n( stack_i, E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window ))
+        if( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ] == window_id )
+            break;
+    if( ++stack_i != E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window ))
+    {   for( ; stack_i != E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window ); stack_i++ )
+            E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i - 1 ] = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ];
+        E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i - 1 ] = window_id;
+        X_A( gui, draw );
+        X_F( gui, draw );
+    }
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//DFN Współrzędne muszą być poza paskiem przycisków okien.
+_private
+I
+E_windows_Q_window_R_on_pixel(
+  N32 x_
+, N32 y_
+){  for_n_rev( stack_i, E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window ))
+    {   I window_id = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ];
+        struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
+        if( !window->sized
+        || ( x_ >= window->x
+          && x_ < window->x + window->width
+          && y_ >= window->y
+          && y_ < window->y + window->height
+        ))
+            return window_id;
+    }
+    return ~0;
+}
+/******************************************************************************/

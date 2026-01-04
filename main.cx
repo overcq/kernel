@@ -208,6 +208,28 @@ E_main_I_out_32( N16 port
     : "a" (v), "d" (port)
     );
 }
+//------------------------------------------------------------------------------
+_private
+N64
+E_main_Q_msr_R( N32 i
+){  N32 h, l;
+    __asm__ volatile (
+    "\n"    "rdmsr"
+    : "=d" (h), "=a" (l)
+    : "c" (i)
+    );
+    return ( (N64)h << 32 ) | l;
+}
+_private
+void
+E_main_Q_msr_P( N32 i
+, N64 v
+){  __asm__ volatile (
+    "\n"    "wrmsr"
+    :
+    : "c" (i), "d" ( v >> 32 ), "a" ( v & 0xffffffff )
+    );
+}
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _private
 P
@@ -463,10 +485,10 @@ main( struct E_main_Z_kernel_args *kernel_args
     E_flow_I_unlock( &E_mem_blk_S_lock );
     if( W( kernel_args->processor_proc ))
         goto End;
-    if( E_acpi_aml_M( kernel_args->acpi.dsdt_content, kernel_args->acpi.dsdt_content_l, &kernel_args->acpi.ssdt_contents[0], kernel_args->acpi.ssdt_contents_n ))
+    /*if( E_acpi_aml_M( kernel_args->acpi.dsdt_content, kernel_args->acpi.dsdt_content_l, &kernel_args->acpi.ssdt_contents[0], kernel_args->acpi.ssdt_contents_n ))
         goto End;
     if( E_acpi_reader_M() )
-        goto End;
+        goto End;*/
     if( W( kernel_args->bootloader ))
         goto End;
     if( E_keyboard_M() )

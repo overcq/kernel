@@ -74,7 +74,7 @@ E_flow_Q_spin_time_T( N *time
 _private
 N32
 E_flow_I_current_scheduler( void
-){  return E_interrupt_Q_local_apic_R( 0x802 );
+){  return E_main_Q_msr_R( 0x802 );
 }
 _private
 void
@@ -84,7 +84,7 @@ E_flow_I_sleep( N microseconds
     {   __asm__ volatile (
         "\n"    "cli"
         );
-        E_interrupt_Q_local_apic_P( 0x838, acpi_timer_ticks );
+        E_main_Q_msr_P( 0x838, acpi_timer_ticks );
         __asm__ volatile (
         "\n"    "sti"
         "\n"    "hlt"
@@ -92,7 +92,7 @@ E_flow_I_sleep( N microseconds
         O{  __asm__ volatile (
             "\n"    "cli"
             );
-            if( !E_interrupt_Q_local_apic_R( 0x839 ))
+            if( !E_main_Q_msr_R( 0x839 ))
             {   __asm__ volatile (
                 "\n"    "sti"
                 );
@@ -443,6 +443,8 @@ E_flow_Q_impulser_I_activate( I id
     N time = E_flow_I_current_time();
     struct E_flow_Q_timer_Z *timer = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].timer, id );
     timer->left = E_interrupt_S_cpu_freq * miliseconds / 1000;
+    if( !timer->left )
+        timer->left = 1;
     if( E_mem_Q_tab_R_n( E_flow_S_scheduler[ sched_i ].timer ) != 1 )
     {   for_each_out( id, timer_id_, E_flow_S_scheduler[ sched_i ].timer, E_mem_Q_tab )
         {   struct E_flow_Q_timer_Z *timer_ = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].timer, timer_id_ );
@@ -635,7 +637,7 @@ E_flow_Q_task_I_schedule( void
             if( U_has_suspend_time )
             {   N acpi_timer_ticks = ( E_flow_S_scheduler[ sched_i ].next_time - time ) / E_interrupt_S_apic_timer_tick_time;
                 if( acpi_timer_ticks )
-                {   E_interrupt_Q_local_apic_P( 0x838, acpi_timer_ticks );
+                {   E_main_Q_msr_P( 0x838, acpi_timer_ticks );
                     __asm__ volatile (
                     "\n"    "sti"
                     "\n"    "hlt"
@@ -644,13 +646,13 @@ E_flow_Q_task_I_schedule( void
                         "\n"    "cli"
                         );
                         if( U_E( E_flow_S_scheduler[ sched_i ].signal, wake ))
-                        {   E_interrupt_Q_local_apic_P( 0x838, 0 );
+                        {   E_main_Q_msr_P( 0x838, 0 );
                             __asm__ volatile (
                             "\n"    "sti"
                             );
                             break;
                         }
-                        if( !E_interrupt_Q_local_apic_R( 0x839 ))
+                        if( !E_main_Q_msr_R( 0x839 ))
                         {   __asm__ volatile (
                             "\n"    "sti"
                             );

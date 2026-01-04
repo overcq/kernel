@@ -17,43 +17,49 @@ build: kernel
 .PHONY: all build mostlyclean clean install-qemu install-vmware install-usb
 .SECONDARY: $(patsubst %.S,%.o,interrupt.S) \
 I_compile_S_0.h \
-$(patsubst %.c,I_compile_S_0_%.h,$(wildcard *.c)) \
-$(patsubst %.c,I_compile_S_0_%.c_,$(wildcard *.c))
+$(patsubst %.cx,I_compile_S_0_%.h,$(wildcard *.cx)) \
+$(patsubst %.cx,I_compile_S_0_%.c,$(wildcard *.cx))
 #===============================================================================
-kernel: I_compile_S_0.h $(patsubst %.S,%.o,interrupt.S) $(patsubst %.c,I_compile_S_0_%.h,$(wildcard *.c)) simple.h $(patsubst %.c,I_compile_S_0_%.c_,$(wildcard *.c)) main.ld Makefile
-	$(CC) $(CFLAGS) -std=gnu23 -march=native -mno-sse -fno-zero-initialized-in-bss -ffreestanding -fno-stack-protector -fwrapv -Wall -Wextra -Wno-address-of-packed-member -Wno-dangling-else -Wno-incompatible-pointer-types-discards-qualifiers -Wno-parentheses -Wno-sign-compare -Wno-switch -include stdarg.h -include I_compile_S_0.h -nostdlib -shared -s -Wl,-T,main.ld -o $@.elf $(filter %.o,$^) -x c $(filter %.c_,$^)
+kernel: I_compile_S_0.h \
+$(patsubst %.S,%.o,interrupt.S) \
+$(patsubst %.cx,I_compile_S_0_%.h,$(wildcard *.cx)) \
+simple.h \
+$(patsubst %.cx,I_compile_S_0_%.c,$(wildcard *.cx)) \
+main.ld \
+Makefile
+	$(CC) $(CFLAGS) -std=gnu23 -march=native -mno-sse -fno-zero-initialized-in-bss -ffreestanding -fno-stack-protector -fwrapv -Wall -Wextra -Wno-address-of-packed-member -Wno-dangling-else -Wno-incompatible-pointer-types-discards-qualifiers -Wno-parentheses -Wno-sign-compare -Wno-switch -include stdarg.h -include I_compile_S_0.h -nostdlib -shared -s -Wl,-T,main.ld -o $@.elf $(filter %.o,$^) $(filter %.c,$^)
 	rm -f $@; elf2oux $@.elf
 	rm $@.elf
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 I_compile_S_0.h: \
 I_compile_N_c_to_h.sh \
-$(wildcard *.c)
+$(wildcard *.cx)
 	$(H_make_I_block_root)
 	{   echo '#include "I_compile_S_machine.h"' ;\
         echo '#include "I_compile_S_language.h"' ;\
-		./I_compile_N_c_to_h.sh -f $(patsubst %.c,%,$(filter %.c,$^)) ;\
-        for header in $(patsubst %.c,I_compile_S_0_%.h,$(filter-out main.c,$(filter %.c,$^))); do \
+		./I_compile_N_c_to_h.sh -f $(patsubst %.cx,%,$(filter %.cx,$^)) ;\
+        for header in $(patsubst %.cx,I_compile_S_0_%.h,$(filter-out main.cx,$(filter %.cx,$^))); do \
             echo "#include \"$${header}\"" ;\
         done ;\
         echo '#include "I_compile_S_0_main.h"' ;\
         echo '#include "simple.h"' ;\
     } > $@
-I_compile_S_0_%.h: %.c \
+I_compile_S_0_%.h: %.cx \
 I_compile_N_c_to_h.sh
 	$(H_make_I_block_root)
 	{   ./I_compile_N_c_to_h.sh -h1 $< \
         && ./I_compile_N_c_to_h.sh -h2 $< \
         && ./I_compile_N_c_to_h.sh -h3 $< ;\
     } > $@
-I_compile_S_0_%.c_: %.c \
+I_compile_S_0_%.c: %.cx \
 I_compile_N_c_to_h.sh
 	$(H_make_I_block_root)
 	./I_compile_N_c_to_h.sh -c $< > $@
 %.o: %.S
 	$(CC) -c -o $@ $<
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-mostlyclean: $(wildcard *.c)
-	rm -f I_compile_S_0.h $(patsubst %.c,I_compile_S_0_%.h,$^) $(patsubst %.c,I_compile_S_0_%.c_,$^) *.o
+mostlyclean: $(wildcard *.cx)
+	rm -f I_compile_S_0.h $(patsubst %.cx,I_compile_S_0_%.h,$^) $(patsubst %.cx,I_compile_S_0_%.c,$^) *.o
 clean: mostlyclean
 	rm -f kernel
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

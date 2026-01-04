@@ -86,7 +86,7 @@ case "$1" in
                 }else
                 {   $file_identifier =~ s`.*/``;
                 }
-                $file_identifier =~ s`\.c$``;
+                $file_identifier =~ s`\.cx$``;
                 $file_identifier =~ s`_`_5f`g;
                 $file_identifier =~ s`[^_0-9A-Za-z]` '\''_'\''. sprintf( '\''%02x'\'', ord( $& )) `eg;
                 local $\ = $/;

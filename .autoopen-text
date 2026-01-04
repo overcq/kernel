@@ -1,4 +1,4 @@
 .
 simple.h
-main.c
-*.c
+main.cx
+*.cx

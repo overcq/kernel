@@ -225,8 +225,7 @@ E_vga_I_draw_rect(
 , N32 height
 , N8 thickness
 , N32 video_color
-){  thickness++;
-    for_n( x_i, width )
+){  for_n( x_i, width )
     {   for_n( i, thickness )
             *( E_vga_S_framebuffer + ( y + i ) * E_main_S_framebuffer.width + x + x_i ) = video_color;
     }
@@ -267,5 +266,8 @@ E_vga_Q_buffer_I_draw( N32 x
             video_address[ x_i ] = *( E_vga_S_framebuffer + ( y + y_i ) * E_main_S_framebuffer.width + x + x_i );
         video_address += E_main_S_framebuffer.pixels_per_scan_line;
     }
+    __asm__ volatile (
+    "\n"    "sfence"
+    );
 }
 /******************************************************************************/
