@@ -1,3 +1,4 @@
+//-*-C-*-
 /*******************************************************************************
 *   ___   public
 *  ¦OUX¦  C+
@@ -266,8 +267,5 @@ E_vga_Q_buffer_I_draw( N32 x
             video_address[ x_i ] = *( E_vga_S_framebuffer + ( y + y_i ) * E_main_S_framebuffer.width + x + x_i );
         video_address += E_main_S_framebuffer.pixels_per_scan_line;
     }
-    __asm__ volatile (
-    "\n"    "sfence"
-    );
 }
 /******************************************************************************/

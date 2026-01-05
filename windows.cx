@@ -1,3 +1,4 @@
+//-*-C-*-
 /*******************************************************************************
 *   ___   public
 *  ¦OUX¦  C_
@@ -140,6 +141,7 @@ E_windows_Q_window_I_stack_on_top( I window_id
     {   for( ; stack_i != E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window ); stack_i++ )
             E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i - 1 ] = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ];
         E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i - 1 ] = window_id;
+        E_gui_Q_taskabar_S_redraw = yes;
         X_A( gui, draw );
         X_F( gui, draw );
     }

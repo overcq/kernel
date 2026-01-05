@@ -1,3 +1,4 @@
+//-*-C-*-
 /*******************************************************************************
 *   ___   public
 *  ¦OUX¦  C+
@@ -84,6 +85,9 @@ E_emerg_print_I_print( Pc s
             E_emerg_print_I_print_u(u);
     }
     E_vga_Q_buffer_I_draw( 0, 0, E_main_S_framebuffer.width, E_main_S_framebuffer.height );
+    __asm__ volatile (
+    "\n"    "sfence"
+    );
     return 0;
 }
 /******************************************************************************/
