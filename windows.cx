@@ -16,6 +16,8 @@ struct E_window_Q_window_Z
 struct E_window_Q_desktop_Z
 { struct E_mem_Q_tab_Z *window;
   I *stack;
+  I visible_button_start, visible_buttons;
+  I button_width;
 };
 //==============================================================================
 _private struct E_window_Q_desktop_Z *E_windows_Q_desktop_S;
@@ -36,6 +38,10 @@ E_windows_M( void
     Mt_( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack, 0 );
     if( !E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack )
         return ~2;
+    E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_button_start = 0;
+    // Na razie nie potrzeba ustawiać, ponieważ za chwilę jest tworzone okno, które to robi.
+    //E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons = 0;
+    //E_windows_Q_desktop_S[ desktop_id ].button_width = E_main_S_framebuffer.width;
     return 0;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -83,18 +89,29 @@ E_windows_Q_window_M( N8 desktop_id
         return r ? r : ~0;
     }
     window->sized = no;
-    window->x = 0;
-    window->y = E_gui_Q_taskbar_S_height;
-    window->width = E_main_S_framebuffer.width;
-    window->height = E_main_S_framebuffer.height - E_gui_Q_taskbar_S_height;
+    window->width = E_main_S_framebuffer.width / 2;
+    window->height = ( E_main_S_framebuffer.height - E_gui_Q_taskbar_S_height ) / 2;
+    window->x = ( E_main_S_framebuffer.width - window->width ) / 2;
+    window->y = E_gui_Q_taskbar_S_height + ( E_main_S_framebuffer.height - E_gui_Q_taskbar_S_height - window->height ) / 2;
     window->draw = draw_proc;
-    E_gui_Q_desktop_S_window_moving = no;
-    E_gui_Q_desktop_S_window_resizing_state = E_gui_Q_desktop_Z_window_resizing_state_S_none;
-    E_gui_Q_taskbar_S_mouse_over_panel = ~0;
-    E_flow_I_sti();
-    E_gui_Q_taskabar_S_redraw = yes;
-    X_A( gui, draw );
-    X_F( gui, draw );
+    I windows = E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ desktop_id ].window );
+    E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width = E_main_S_framebuffer.width / windows;
+    if( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width < E_gui_Q_taskbar_S_button_min_width )
+    {   E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width = E_gui_Q_taskbar_S_button_min_width;
+        E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons = E_main_S_framebuffer.width / E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width;
+        E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_button_start = windows - E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons;
+    }else
+        E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons = windows;
+    if( desktop_id == E_window_Q_desktop_S_current )
+    {   E_gui_Q_desktop_S_window_moving = no;
+        E_gui_Q_desktop_S_window_resizing_state = E_gui_Q_desktop_Z_window_resizing_state_S_none;
+        E_gui_Q_taskbar_S_mouse_over_panel = ~0;
+        E_flow_I_sti();
+        E_gui_Q_taskbar_S_redraw = yes;
+        X_A( gui, draw );
+        X_F( gui, draw );
+    }else
+        E_flow_I_sti();
     return window_id;
 }
 _export
@@ -114,7 +131,9 @@ E_windows_Q_window_W( N8 desktop_id
     {   E_flow_I_sti();
         return ~2;
     }
-    if( stack_i == E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ desktop_id ].window ) - 1 )
+    if( desktop_id == E_window_Q_desktop_S_current
+    && stack_i == E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ desktop_id ].window ) - 1
+    )
     {   E_gui_Q_desktop_S_window_moving = no;
         E_gui_Q_desktop_S_window_resizing_state = E_gui_Q_desktop_Z_window_resizing_state_S_none;
     }
@@ -123,17 +142,31 @@ E_windows_Q_window_W( N8 desktop_id
     {   E_flow_I_sti();
         return ~2;
     }
-    E_gui_Q_taskbar_S_mouse_over_panel = ~0; //TODO Nie usuwać, ale przesuwać panel?
-    E_flow_I_sti();
-    E_gui_Q_taskabar_S_redraw = yes;
-    X_A( gui, draw );
-    X_F( gui, draw );
+    I windows = E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ desktop_id ].window );
+    E_windows_Q_desktop_S[ desktop_id ].button_width = windows ? E_main_S_framebuffer.width / windows : E_main_S_framebuffer.width;
+    if( E_windows_Q_desktop_S[ desktop_id ].button_width < E_gui_Q_taskbar_S_button_min_width )
+    {   E_windows_Q_desktop_S[ desktop_id ].button_width = E_gui_Q_taskbar_S_button_min_width;
+        E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons = E_main_S_framebuffer.width / E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width;
+        if( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_button_start > windows - E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons )
+            E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_button_start = windows - E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons;
+    }else
+    {   E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons = windows;
+        E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_button_start = 0;
+    }
+    if( desktop_id == E_window_Q_desktop_S_current )
+    {   E_gui_Q_taskbar_S_mouse_over_panel = ~0; //TODO Nie usuwać, ale przesuwać panel?
+        E_flow_I_sti();
+        E_gui_Q_taskbar_S_redraw = yes;
+        X_A( gui, draw );
+        X_F( gui, draw );
+    }else
+        E_flow_I_sti();
     return 0;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _private
 void
-E_windows_Q_window_I_stack_on_top( I window_id
+E_windows_Q_window_Q_stack_I_on_top( I window_id
 ){  for_n( stack_i, E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window ))
         if( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ] == window_id )
             break;
@@ -141,7 +174,7 @@ E_windows_Q_window_I_stack_on_top( I window_id
     {   for( ; stack_i != E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window ); stack_i++ )
             E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i - 1 ] = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ];
         E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i - 1 ] = window_id;
-        E_gui_Q_taskabar_S_redraw = yes;
+        E_gui_Q_taskbar_S_redraw = yes;
         X_A( gui, draw );
         X_F( gui, draw );
     }
