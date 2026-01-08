@@ -160,6 +160,8 @@ E_mouse_I_interrupt( void
                                 break;
                           case E_mouse_Q_button_Z_state_S_press_held:
                                 E_mouse_Q_button_S_state = E_mouse_Q_button_Z_state_S_press_held_release;
+                                E_mouse_Q_button_S_coordinate[0] = E_mouse_S_coordinate[0];
+                                E_mouse_Q_button_S_coordinate[1] = E_mouse_S_coordinate[1];
                                 E_mouse_Q_button_S_click_count = 0;
                                 E_flow_Q_spin_time_M( &E_mouse_Q_button_S_time, 0 );
                                 Yi_F( mouse, click, 0 );
@@ -304,7 +306,7 @@ E_mouse_M( void
     E_mouse_Q_button_S_click_dy = 16; //CONF
     E_mouse_Q_button_S_press_timeout = 500; //CONF
     E_mouse_Q_button_S_release_timeout = 300; //CONF
-    E_mouse_Q_button_S_border_timeout = 2000; //CONF
+    E_mouse_Q_button_S_border_timeout = 1000; //CONF
     E_mouse_Q_button_S_dirty_timeout = 100; //CONF
     D_M( mouse, 0, click )
         return ~0;

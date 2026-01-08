@@ -2515,6 +2515,30 @@ E_font_M( void
     }
     return 0;
 }
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_private
+N
+E_font_T_print_u(
+  N32 width
+, N8 thickness
+, U *u
+, N32 *font_i
+){  thickness++;
+    N dx = 0;
+    for_n( i, E_font_S_font.bitmap_n )
+        if( E_font_S_font.bitmap[i].u == *u )
+        {   dx = E_font_S_font.bitmap[i].width;
+            break;
+        }
+    if( !dx )
+    {   i = 0;
+        *u = E_font_S_font.bitmap[i].u;
+        dx = E_font_S_font.bitmap[i].width;
+    }
+    *font_i = i;
+    dx *= thickness;
+    return dx + thickness <= width;
+}
 _private
 void
 E_font_I_draw_u( N32 font_i

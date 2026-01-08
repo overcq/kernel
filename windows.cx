@@ -7,6 +7,8 @@
 *         windows
 * (c)overcq              on WSL\Debian (Linux 6.6.87.2)             2025-12-21 J
 *******************************************************************************/
+// Procedury w tym module wymagają oczyszczenia z użycia specyficznego dla bieżącego pulpitu.
+//==============================================================================
 struct E_window_Q_window_Z
 { Pc title, description;
   void ( *draw )( N32 x, N32 y, N32 width, N32 height );
@@ -45,6 +47,39 @@ E_windows_M( void
     return 0;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_private
+N
+E_windows_Q_desktop_M( B on_end
+){  N8 desktop_id;
+    if( on_end )
+    {   if( !E_mem_Q_blk_I_append( &E_windows_Q_desktop_S, 1 ))
+            return ~0;
+        desktop_id = E_windows_Q_desktop_S_n;
+    }else
+    {   if( !E_mem_Q_blk_I_prepend( &E_windows_Q_desktop_S, 1 ))
+            return ~0;
+        desktop_id = 0;
+    }
+    E_windows_Q_desktop_S_n++;
+    E_windows_Q_desktop_S[ desktop_id ].window = E_mem_Q_tab_M( sizeof( struct E_window_Q_window_Z ), 0 );
+    if( !E_windows_Q_desktop_S[ desktop_id ].window )
+        return ~2;
+    Mt_( E_windows_Q_desktop_S[ desktop_id ].stack, 0 );
+    if( !E_windows_Q_desktop_S[ desktop_id ].stack )
+        return ~2;
+    E_windows_Q_desktop_S[ desktop_id ].visible_button_start = 0;
+    E_windows_Q_desktop_S[ desktop_id ].visible_buttons = 0;
+    return 0;
+}
+_private
+N
+E_windows_Q_desktop_W( N8 desktop_id
+){  if( !E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S, desktop_id, 1 ))
+        return ~0;
+    E_windows_Q_desktop_S_n--;
+    return 0;
+}
+//------------------------------------------------------------------------------
 _export
 N
 E_windows_Q_window_M( N8 desktop_id
@@ -57,13 +92,14 @@ E_windows_Q_window_M( N8 desktop_id
     {   E_flow_I_sti();
         return window_id;
     }
-    if( !E_mem_Q_blk_I_append( &E_windows_Q_desktop_S[ desktop_id ].stack, 1 ))
+    I *stack = E_mem_Q_blk_I_append( &E_windows_Q_desktop_S[ desktop_id ].stack, 1 );
+    if( !stack )
     {   N r = E_mem_Q_tab_I_remove( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
         E_flow_I_sti();
         return r ? r : ~0;
     }
-    E_windows_Q_desktop_S[ desktop_id ].stack[ window_id ] = window_id;
-    struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
+    *stack = window_id;
+    struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
     window->title = E_text_Z_s0_M_duplicate(title);
     if( !window->title )
     {   if( !E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S[ desktop_id ].stack, window_id, 1 ))
@@ -95,13 +131,13 @@ E_windows_Q_window_M( N8 desktop_id
     window->y = E_gui_Q_taskbar_S_height + ( E_main_S_framebuffer.height - E_gui_Q_taskbar_S_height - window->height ) / 2;
     window->draw = draw_proc;
     I windows = E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ desktop_id ].window );
-    E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width = E_main_S_framebuffer.width / windows;
-    if( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width < E_gui_Q_taskbar_S_button_min_width )
-    {   E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width = E_gui_Q_taskbar_S_button_min_width;
-        E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons = E_main_S_framebuffer.width / E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width;
-        E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_button_start = windows - E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons;
+    E_windows_Q_desktop_S[ desktop_id ].button_width = E_main_S_framebuffer.width / windows;
+    if( E_windows_Q_desktop_S[ desktop_id ].button_width < E_gui_Q_taskbar_S_button_min_width )
+    {   E_windows_Q_desktop_S[ desktop_id ].button_width = E_gui_Q_taskbar_S_button_min_width;
+        E_windows_Q_desktop_S[ desktop_id ].visible_buttons = E_main_S_framebuffer.width / E_windows_Q_desktop_S[ desktop_id ].button_width;
+        E_windows_Q_desktop_S[ desktop_id ].visible_button_start = windows - E_windows_Q_desktop_S[ desktop_id ].visible_buttons;
     }else
-        E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons = windows;
+        E_windows_Q_desktop_S[ desktop_id ].visible_buttons = windows;
     if( desktop_id == E_window_Q_desktop_S_current )
     {   E_gui_Q_desktop_S_window_moving = no;
         E_gui_Q_desktop_S_window_resizing_state = E_gui_Q_desktop_Z_window_resizing_state_S_none;
@@ -146,12 +182,12 @@ E_windows_Q_window_W( N8 desktop_id
     E_windows_Q_desktop_S[ desktop_id ].button_width = windows ? E_main_S_framebuffer.width / windows : E_main_S_framebuffer.width;
     if( E_windows_Q_desktop_S[ desktop_id ].button_width < E_gui_Q_taskbar_S_button_min_width )
     {   E_windows_Q_desktop_S[ desktop_id ].button_width = E_gui_Q_taskbar_S_button_min_width;
-        E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons = E_main_S_framebuffer.width / E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width;
-        if( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_button_start > windows - E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons )
-            E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_button_start = windows - E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons;
+        E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons = E_main_S_framebuffer.width / E_windows_Q_desktop_S[ desktop_id ].button_width;
+        if( E_windows_Q_desktop_S[ desktop_id ].visible_button_start > windows - E_windows_Q_desktop_S[ desktop_id ].visible_buttons )
+            E_windows_Q_desktop_S[ desktop_id ].visible_button_start = windows - E_windows_Q_desktop_S[ desktop_id ].visible_buttons;
     }else
-    {   E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons = windows;
-        E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_button_start = 0;
+    {   E_windows_Q_desktop_S[ desktop_id ].visible_buttons = windows;
+        E_windows_Q_desktop_S[ desktop_id ].visible_button_start = 0;
     }
     if( desktop_id == E_window_Q_desktop_S_current )
     {   E_gui_Q_taskbar_S_mouse_over_panel = ~0; //TODO Nie usuwać, ale przesuwać panel?
@@ -164,6 +200,46 @@ E_windows_Q_window_W( N8 desktop_id
     return 0;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_private
+N
+E_windows_Q_desktop_I_move_window( N8 desktop_dst_id
+, N8 desktop_src_id
+, I window_src_id
+){  I window_dst_id = E_mem_Q_tab_I_add( E_windows_Q_desktop_S[ desktop_dst_id ].window );
+    if( window_dst_id < 0 )
+        return window_dst_id;
+    I *stack = E_mem_Q_blk_I_append( &E_windows_Q_desktop_S[ desktop_dst_id ].stack, 1 );
+    if( !stack )
+    {   N r = E_mem_Q_tab_I_remove( E_windows_Q_desktop_S[ desktop_dst_id ].window, window_dst_id );
+        return r ? r : ~0;
+    }
+    *stack = window_dst_id;
+    struct E_window_Q_window_Z *window_dst = E_mem_Q_tab_R( E_windows_Q_desktop_S[ desktop_dst_id ].window, window_dst_id );
+    struct E_window_Q_window_Z *window_src = E_mem_Q_tab_R( E_windows_Q_desktop_S[ desktop_src_id ].window, window_src_id );
+    *window_dst = *window_src;
+    I windows = E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ desktop_dst_id ].window );
+    E_windows_Q_desktop_S[ desktop_dst_id ].button_width = E_main_S_framebuffer.width / windows;
+    if( E_windows_Q_desktop_S[ desktop_dst_id ].button_width < E_gui_Q_taskbar_S_button_min_width )
+    {   E_windows_Q_desktop_S[ desktop_dst_id ].button_width = E_gui_Q_taskbar_S_button_min_width;
+        E_windows_Q_desktop_S[ desktop_dst_id ].visible_buttons = E_main_S_framebuffer.width / E_windows_Q_desktop_S[ desktop_dst_id ].button_width;
+        E_windows_Q_desktop_S[ desktop_dst_id ].visible_button_start = windows - E_windows_Q_desktop_S[ desktop_dst_id ].visible_buttons;
+    }else
+        E_windows_Q_desktop_S[ desktop_dst_id ].visible_buttons = windows;
+    N r = E_mem_Q_tab_I_remove( E_windows_Q_desktop_S[ desktop_src_id ].window, window_src_id );
+    if(r)
+        return ~2;
+    windows = E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ desktop_src_id ].window );
+    E_windows_Q_desktop_S[ desktop_src_id ].button_width = windows ? E_main_S_framebuffer.width / windows : E_main_S_framebuffer.width;
+    if( E_windows_Q_desktop_S[ desktop_src_id ].button_width < E_gui_Q_taskbar_S_button_min_width )
+    {   E_windows_Q_desktop_S[ desktop_src_id ].button_width = E_gui_Q_taskbar_S_button_min_width;
+        E_windows_Q_desktop_S[ desktop_src_id ].visible_buttons = E_main_S_framebuffer.width / E_windows_Q_desktop_S[ desktop_src_id ].button_width;
+        E_windows_Q_desktop_S[ desktop_src_id ].visible_button_start = windows - E_windows_Q_desktop_S[ desktop_src_id ].visible_buttons;
+    }else
+    {   E_windows_Q_desktop_S[ desktop_src_id ].visible_buttons = windows;
+        E_windows_Q_desktop_S[ desktop_src_id ].visible_button_start = 0;
+    }
+    return 0;
+}
 _private
 void
 E_windows_Q_window_Q_stack_I_on_top( I window_id

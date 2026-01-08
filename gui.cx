@@ -7,6 +7,8 @@
 *         GUI
 * (c)overcq              on WSL\Debian (Linux 6.6.87.2)             2025-12-20 I
 *******************************************************************************/
+//TODO Zmienić wywołania “E_main_I_error_fatal” na wyjścia.
+//==============================================================================
 enum E_gui_Q_desktop_Z_window_resizing_state
 { E_gui_Q_desktop_Z_window_resizing_state_S_none
 , E_gui_Q_desktop_Z_window_resizing_state_S_nw
@@ -32,31 +34,8 @@ _private enum E_gui_Q_desktop_Z_window_resizing_state E_gui_Q_desktop_S_window_r
 _internal N32 E_gui_Q_desktop_S_window_moving_resizing_dx, E_gui_Q_desktop_S_window_moving_resizing_dy;
 _internal N8 E_gui_Q_desktop_S_window_border_thickness;
 _private N32 E_gui_Q_taskbar_S_button_min_width;
+_internal B E_gui_Q_pointer_S_over_taskbar;
 //==============================================================================
-_private
-N
-E_gui_T_print_u(
-  N32 width
-, N8 thickness
-, U *u
-, N32 *font_i
-){  thickness++;
-    N dx = 0;
-    for_n( i, E_font_S_font.bitmap_n )
-        if( E_font_S_font.bitmap[i].u == *u )
-        {   dx = E_font_S_font.bitmap[i].width;
-            break;
-        }
-    if( !dx )
-    {   i = 0;
-        *u = E_font_S_font.bitmap[i].u;
-        dx = E_font_S_font.bitmap[i].width;
-    }
-    *font_i = i;
-    dx *= thickness;
-    return dx + thickness <= width;
-}
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _private
 N
 E_gui_M( void
@@ -79,7 +58,7 @@ E_gui_M( void
     E_gui_Q_desktop_S_window_moving = no;
     E_gui_Q_desktop_S_window_resizing_state = E_gui_Q_desktop_Z_window_resizing_state_S_none;
     E_gui_Q_desktop_S_window_border_thickness = 4;
-    E_gui_Q_taskbar_S_button_min_width = E_gui_Q_taskbar_S_thickness + 1 + ( E_gui_Q_taskbar_S_thickness + 1 ) * 5 + E_gui_Q_taskbar_S_thickness + 1 + 1;
+    E_gui_Q_taskbar_S_button_min_width = E_gui_Q_taskbar_S_panel_width;
     if( E_windows_M() )
         return ~0;
     for_n( i, 1000 )
@@ -140,10 +119,6 @@ E_gui_Q_pointer_I_move( void
     {   if( E_gui_Q_desktop_S_window_moving )
         {   I window_id = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window ) - 1 ];
             struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
-            if( E_mouse_S_coordinate[0] < E_gui_Q_desktop_S_window_moving_resizing_dx )
-                E_mouse_S_coordinate[0] = E_gui_Q_desktop_S_window_moving_resizing_dx;
-            else if( E_mouse_S_coordinate[0] > E_main_S_framebuffer.width - window->width + E_gui_Q_desktop_S_window_moving_resizing_dx )
-                E_mouse_S_coordinate[0] = E_main_S_framebuffer.width - window->width + E_gui_Q_desktop_S_window_moving_resizing_dx;
             if( E_mouse_S_coordinate[1] < E_gui_Q_taskbar_S_height + E_gui_Q_desktop_S_window_moving_resizing_dy )
                 E_mouse_S_coordinate[1] = E_gui_Q_taskbar_S_height + E_gui_Q_desktop_S_window_moving_resizing_dy;
             else if( E_mouse_S_coordinate[1] > E_main_S_framebuffer.height - window->height + E_gui_Q_desktop_S_window_moving_resizing_dy )
@@ -245,7 +220,8 @@ E_gui_Q_pointer_I_move( void
                 panel_x_1_ -= panel_x_1 - E_main_S_framebuffer.width;
             }
             if( E_gui_Q_pointer_S_coordinate[1] < E_gui_Q_taskbar_S_height )
-            {   I i = E_gui_Q_pointer_S_coordinate[0] / E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width;
+            {   E_gui_Q_pointer_S_over_taskbar = yes;
+                I i = E_gui_Q_pointer_S_coordinate[0] / E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width;
                 if( i < E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons ) // Nie wyszliśmy poza przyciski na ostatnim, szerszym przycisku.
                 {   if( E_gui_Q_taskbar_S_mouse_over_panel != i )
                     {   E_gui_Q_taskbar_S_mouse_over_panel = i;
@@ -267,7 +243,8 @@ E_gui_Q_pointer_I_move( void
             || E_gui_Q_pointer_S_coordinate[0] < panel_x_0_
             || E_gui_Q_pointer_S_coordinate[0] >= panel_x_1_
             )
-            {   E_gui_Q_taskbar_S_mouse_over_panel = ~0;
+            {   E_gui_Q_pointer_S_over_taskbar = no;
+                E_gui_Q_taskbar_S_mouse_over_panel = ~0;
                 I i = E_mem_Q_tab_R_id_to_i( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window ) - 1 ] );
                 if( i < E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_button_start )
                 {   E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_button_start = i > E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons - 1
@@ -282,7 +259,8 @@ E_gui_Q_pointer_I_move( void
                 X_F( gui, draw );
             }
         }else if( E_gui_Q_pointer_S_coordinate[1] < E_gui_Q_taskbar_S_height )
-        {   I i = E_gui_Q_pointer_S_coordinate[0] / E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width;
+        {   E_gui_Q_pointer_S_over_taskbar = yes;
+            I i = E_gui_Q_pointer_S_coordinate[0] / E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width;
             if( i < E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons )
             {   N32 panel_x_0 = i * E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width;
                 N32 panel_x_1 = panel_x_0 + E_gui_Q_taskbar_S_panel_width;
@@ -295,8 +273,10 @@ E_gui_Q_pointer_I_move( void
                     X_F( gui, draw );
                 }
             }
-        }else
-        {   I i = E_mem_Q_tab_R_id_to_i( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window ) - 1 ] );
+            E_gui_Q_pointer_S_over_taskbar = yes;
+        }else if( E_gui_Q_pointer_S_over_taskbar )
+        {   E_gui_Q_pointer_S_over_taskbar = no;
+            I i = E_mem_Q_tab_R_id_to_i( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window ) - 1 ] );
             if( i < E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_button_start )
             {   E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_button_start = i > E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons - 1
                 ? i - ( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons - 1 )
@@ -325,19 +305,18 @@ E_gui_Q_pointer_I_click( void
         {   if( E_mouse_Q_button_S_coordinate[1] < E_gui_Q_taskbar_S_height )
             {   if( E_mouse_Q_button_S_button == 1
                 && E_mouse_Q_button_S_click_count == 2
-                )
+                ) // Przełączenie okna na wierzch.
                 {   I i = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_button_start + E_mouse_Q_button_S_coordinate[0] / E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width;
                     E_windows_Q_window_Q_stack_I_on_top( E_mem_Q_tab_R_i_to_id( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, i ));
                 }else if( E_mouse_Q_button_S_button == 2
                 && E_mouse_Q_button_S_click_count == 2
-                )
-                {   //TODO Otwórz menu główne.
-                    G( "Menu główne nie jest jeszcze zaimplementowane." );
+                ) //TODO Menu główne.
+                {   G( "Menu główne nie jest jeszcze zaimplementowane." );
                 }else if( !~(S8)E_mouse_Q_button_S_click_count
                 && E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons < E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window )
-                )
+                ) // Przewijanie przycisków.
                 {   I start = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_button_start;
-                    if( !E_gui_Q_pointer_S_coordinate[0] )
+                    if( !E_mouse_Q_button_S_coordinate[0] )
                         if( start > E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons )
                             start -= E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons;
                         else
@@ -357,7 +336,7 @@ E_gui_Q_pointer_I_click( void
             }else if( ~E_gui_Q_taskbar_S_mouse_over_panel )
             {   if( E_mouse_Q_button_S_button == 1
                 && E_mouse_Q_button_S_click_count == 2
-                )
+                ) // Kliknięto przycisk panelu.
                 {   N32 panel_x_0 = E_gui_Q_taskbar_S_mouse_over_panel * E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width;
                     N32 panel_x_1 = panel_x_0 + E_gui_Q_taskbar_S_panel_width - 1;
                     if( panel_x_1 > E_main_S_framebuffer.width )
@@ -386,7 +365,7 @@ E_gui_Q_pointer_I_click( void
                     if( window->sized )
                         if( E_mouse_Q_button_S_click_count == 1
                         && E_mouse_Q_button_S_button == 1
-                        )
+                        ) // Rozpoczęcie przesuwania okna.
                         {   if(( E_mouse_Q_button_S_coordinate[0] >= window->x
                             && E_mouse_Q_button_S_coordinate[0] < window->x + window->width
                             && E_mouse_Q_button_S_coordinate[1] >= window->y
@@ -415,26 +394,26 @@ E_gui_Q_pointer_I_click( void
                             }
                         }else if( E_mouse_Q_button_S_click_count == 4
                         && E_mouse_Q_button_S_button == 1
-                        )
+                        ) // Wyśrodkowanie i zmaksymalizowanie okna.
                         {   if(( E_mouse_Q_button_S_coordinate[0] >= window->x
-                            && E_mouse_Q_button_S_coordinate[0] < window->x + window->width
-                            && E_mouse_Q_button_S_coordinate[1] >= window->y
-                            && E_mouse_Q_button_S_coordinate[1] < window->y + E_gui_Q_desktop_S_window_border_thickness
+                              && E_mouse_Q_button_S_coordinate[0] < window->x + window->width
+                              && E_mouse_Q_button_S_coordinate[1] >= window->y
+                              && E_mouse_Q_button_S_coordinate[1] < window->y + E_gui_Q_desktop_S_window_border_thickness
                             )
                             || ( E_mouse_Q_button_S_coordinate[1] >= window->y
-                            && E_mouse_Q_button_S_coordinate[1] < window->y + window->height
-                            && E_mouse_Q_button_S_coordinate[0] >= window->x + window->width - E_gui_Q_desktop_S_window_border_thickness
-                            && E_mouse_Q_button_S_coordinate[0] < window->x + window->width
+                              && E_mouse_Q_button_S_coordinate[1] < window->y + window->height
+                              && E_mouse_Q_button_S_coordinate[0] >= window->x + window->width - E_gui_Q_desktop_S_window_border_thickness
+                              && E_mouse_Q_button_S_coordinate[0] < window->x + window->width
                             )
                             || ( E_mouse_Q_button_S_coordinate[0] >= window->x
-                            && E_mouse_Q_button_S_coordinate[0] < window->x + window->width
-                            && E_mouse_Q_button_S_coordinate[1] >= window->y + window->height - E_gui_Q_desktop_S_window_border_thickness
-                            && E_mouse_Q_button_S_coordinate[1] < window->y + window->height
+                              && E_mouse_Q_button_S_coordinate[0] < window->x + window->width
+                              && E_mouse_Q_button_S_coordinate[1] >= window->y + window->height - E_gui_Q_desktop_S_window_border_thickness
+                              && E_mouse_Q_button_S_coordinate[1] < window->y + window->height
                             )
                             || ( E_mouse_Q_button_S_coordinate[1] >= window->y
-                            && E_mouse_Q_button_S_coordinate[1] < window->y + window->height
-                            && E_mouse_Q_button_S_coordinate[0] >= window->x
-                            && E_mouse_Q_button_S_coordinate[0] < window->x + E_gui_Q_desktop_S_window_border_thickness
+                              && E_mouse_Q_button_S_coordinate[1] < window->y + window->height
+                              && E_mouse_Q_button_S_coordinate[0] >= window->x
+                              && E_mouse_Q_button_S_coordinate[0] < window->x + E_gui_Q_desktop_S_window_border_thickness
                             ))
                             {   window->width = E_main_S_framebuffer.width / 2;
                                 window->height = ( E_main_S_framebuffer.height - E_gui_Q_taskbar_S_height ) / 2;
@@ -445,7 +424,7 @@ E_gui_Q_pointer_I_click( void
                             }
                         }else if( E_mouse_Q_button_S_click_count == 1
                         && E_mouse_Q_button_S_button == 2
-                        )
+                        ) // Rozpoczęcie zmiany rozmiaru okna.
                         {   N32 add_x = window->width > E_gui_Q_desktop_S_window_border_thickness * 4 ? E_gui_Q_desktop_S_window_border_thickness : 0;
                             N32 add_y = window->height > E_gui_Q_desktop_S_window_border_thickness * 4 ? E_gui_Q_desktop_S_window_border_thickness : 0;
                             if(( E_mouse_Q_button_S_coordinate[0] >= window->x
@@ -535,7 +514,7 @@ E_gui_Q_pointer_I_click( void
                             }
                         }else if( E_mouse_Q_button_S_click_count == 4
                         && E_mouse_Q_button_S_button == 2
-                        )
+                        ) // Zmaksymalizowanie okna do ćwiartki lub połowy pulpitu.
                         {   B hit = no;
                             N32 add_x = window->width > E_gui_Q_desktop_S_window_border_thickness * 4 ? E_gui_Q_desktop_S_window_border_thickness : 0;
                             N32 add_y = window->height > E_gui_Q_desktop_S_window_border_thickness * 4 ? E_gui_Q_desktop_S_window_border_thickness : 0;
@@ -648,73 +627,146 @@ E_gui_Q_pointer_I_click( void
                     E_windows_Q_window_Q_stack_I_on_top( window_id );
                 }else if( E_mouse_Q_button_S_button == 2
                 && E_mouse_Q_button_S_click_count == 2
-                )
-                {   //TODO Otwórz menu główne.
-                    G( "Menu główne nie jest jeszcze zaimplementowane." );
+                ) //TODO Menu główne.
+                {   G( "Menu główne nie jest jeszcze zaimplementowane." );
+                }
+            }else // Przełączanie pulpitów.
+            {   if( !E_mouse_Q_button_S_coordinate[0] )
+                {   if( E_window_Q_desktop_S_current )
+                        E_window_Q_desktop_S_current--;
+                    else
+                        if( E_windows_Q_desktop_M(no) )
+                            E_main_I_error_fatal();
+                }else
+                {   if( E_window_Q_desktop_S_current == E_windows_Q_desktop_S_n - 1 )
+                        if( E_windows_Q_desktop_M(yes) )
+                            E_main_I_error_fatal();
+                    E_window_Q_desktop_S_current++;
+                }
+                E_gui_Q_taskbar_S_redraw = yes;
+                X_A( gui, draw );
+                X_F( gui, draw );
+            }
+        }else if( !~(S8)E_mouse_Q_button_S_click_count ) // Przełączanie pulpitów.
+        {   if( !E_mouse_Q_button_S_coordinate[0] )
+            {   if( E_window_Q_desktop_S_current )
+                {   if( E_window_Q_desktop_S_current == E_windows_Q_desktop_S_n - 1 )
+                        E_windows_Q_desktop_W( E_window_Q_desktop_S_current );
+                    E_window_Q_desktop_S_current--;
+                    E_gui_Q_taskbar_S_redraw = yes;
+                    X_A( gui, draw );
+                    X_F( gui, draw );
                 }
             }else
-            {   //TODO Przełącz do innego pulpitu.
-                G( "Przełączanie pulpitów nie jest jeszcze zaimplementowane." );
-            }
-        }else if( !~(S8)E_mouse_Q_button_S_click_count )
-        {   //TODO Przełącz do innego pulpitu.
-            G( "Przełączanie pulpitów nie jest jeszcze zaimplementowane." );
+                if( E_window_Q_desktop_S_current != E_windows_Q_desktop_S_n - 1 )
+                {   if( E_window_Q_desktop_S_current )
+                        E_window_Q_desktop_S_current++;
+                    else
+                        E_windows_Q_desktop_W( E_window_Q_desktop_S_current );
+                    E_gui_Q_taskbar_S_redraw = yes;
+                    X_A( gui, draw );
+                    X_F( gui, draw );
+                }
+        }else if( E_mouse_Q_button_S_button == 2
+        && E_mouse_Q_button_S_click_count == 2
+        ) //TODO Menu główne.
+        {   G( "Menu główne nie jest jeszcze zaimplementowane." );
         }
     }else
         if( E_gui_Q_desktop_S_window_moving )
-        {   if( !E_mouse_Q_button_S_click_count )
-            {   if( !E_mouse_Q_button_S_press_held_cancel )
-                {   I window_id = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window ) - 1 ];
-                    struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
-                    window->x = E_gui_Q_pointer_S_coordinate[0] - E_gui_Q_desktop_S_window_moving_resizing_dx;
-                    window->y = E_gui_Q_pointer_S_coordinate[1] - E_gui_Q_desktop_S_window_moving_resizing_dy;
+        {   I window_id = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window ) - 1 ];
+            if( !E_mouse_Q_button_S_click_count ) // Zakończenie przesuwania okna.
+            {   if( !E_mouse_Q_button_S_press_held_cancel
+                && E_mouse_Q_button_S_coordinate[0] >= E_gui_Q_desktop_S_window_moving_resizing_dx
+                )
+                {   struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
+                    if( E_mouse_Q_button_S_coordinate[0] - E_gui_Q_desktop_S_window_moving_resizing_dx + window->width <= E_main_S_framebuffer.width )
+                    {   window->x = E_mouse_Q_button_S_coordinate[0] - E_gui_Q_desktop_S_window_moving_resizing_dx;
+                        window->y = E_mouse_Q_button_S_coordinate[1] - E_gui_Q_desktop_S_window_moving_resizing_dy;
+                    }
                 }
                 E_gui_Q_desktop_S_window_moving = no;
-            }else
-            {   //TODO Przenieś okno na inny pulpit.
-                G( "Przenoszenie okna na inny pulpit nie jest jeszcze zaimplementowane." );
+                X_A( gui, draw );
+                X_F( gui, draw );
+            }else // Przełączenie okna do innego pulpitu.
+            {   N8 desktop_id;
+                desktop_id = E_window_Q_desktop_S_current;
+                if( !E_mouse_Q_button_S_coordinate[0] ) // W lewo.
+                {   if( E_window_Q_desktop_S_current )
+                        E_window_Q_desktop_S_current--;
+                    else if( E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window ) != 1 )
+                    {   if( E_windows_Q_desktop_M(no) )
+                            E_main_I_error_fatal();
+                        desktop_id++;
+                    }
+                }else // W prawo.
+                    if( E_window_Q_desktop_S_current != E_windows_Q_desktop_S_n - 1 )
+                        E_window_Q_desktop_S_current++;
+                    else if( E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window ) != 1 )
+                    {   if( E_windows_Q_desktop_M(yes) )
+                            E_main_I_error_fatal();
+                        E_window_Q_desktop_S_current++;
+                    }
+                if( E_window_Q_desktop_S_current != desktop_id )
+                {   if( E_windows_Q_desktop_I_move_window( E_window_Q_desktop_S_current, desktop_id, window_id ))
+                        E_main_I_error_fatal();
+                    if( !E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ desktop_id ].window ))
+                        if( desktop_id == E_windows_Q_desktop_S_n - 1 ) // Po przesunięciu od krańcowego w lewo.
+                        {   if( E_windows_Q_desktop_W( desktop_id ))
+                                E_main_I_error_fatal();
+                        }else if( !desktop_id ) // Po przesunięciu od krańcowego w prawo.
+                        {   if( E_windows_Q_desktop_W( desktop_id ))
+                                E_main_I_error_fatal();
+                            E_window_Q_desktop_S_current--;
+                        }
+                    if( !E_mouse_Q_button_S_coordinate[0] )
+                        E_gui_Q_pointer_S_coordinate[0] = E_mouse_S_coordinate[0] = E_main_S_framebuffer.width - 1;
+                    else
+                        E_gui_Q_pointer_S_coordinate[0] = E_mouse_S_coordinate[0] = 0;
+                    E_gui_Q_taskbar_S_redraw = yes;
+                    X_A( gui, draw );
+                    X_F( gui, draw );
+                }
             }
-            X_A( gui, draw );
-            X_F( gui, draw );
         }else // E_gui_Q_desktop_S_window_resizing_state
-            if( !E_mouse_Q_button_S_click_count )
+            if( !E_mouse_Q_button_S_click_count ) // Zakończenie zmiany rozmiaru okna.
             {   if( !E_mouse_Q_button_S_press_held_cancel )
                 {   I window_id = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window ) - 1 ];
                     struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
                     switch( E_gui_Q_desktop_S_window_resizing_state )
                     { case E_gui_Q_desktop_Z_window_resizing_state_S_nw:
-                            window->width -= E_gui_Q_pointer_S_coordinate[0] - E_gui_Q_desktop_S_window_moving_resizing_dx - window->x;
-                            window->x = E_gui_Q_pointer_S_coordinate[0] - E_gui_Q_desktop_S_window_moving_resizing_dx;
-                            window->height -= E_gui_Q_pointer_S_coordinate[1] - E_gui_Q_desktop_S_window_moving_resizing_dy - window->y;
-                            window->y = E_gui_Q_pointer_S_coordinate[1] - E_gui_Q_desktop_S_window_moving_resizing_dy;
+                            window->width -= E_mouse_Q_button_S_coordinate[0] - E_gui_Q_desktop_S_window_moving_resizing_dx - window->x;
+                            window->x = E_mouse_Q_button_S_coordinate[0] - E_gui_Q_desktop_S_window_moving_resizing_dx;
+                            window->height -= E_mouse_Q_button_S_coordinate[1] - E_gui_Q_desktop_S_window_moving_resizing_dy - window->y;
+                            window->y = E_mouse_Q_button_S_coordinate[1] - E_gui_Q_desktop_S_window_moving_resizing_dy;
                             break;
                     case E_gui_Q_desktop_Z_window_resizing_state_S_n:
-                            window->height -= E_gui_Q_pointer_S_coordinate[1] - E_gui_Q_desktop_S_window_moving_resizing_dy - window->y;
-                            window->y = E_gui_Q_pointer_S_coordinate[1] - E_gui_Q_desktop_S_window_moving_resizing_dy;
+                            window->height -= E_mouse_Q_button_S_coordinate[1] - E_gui_Q_desktop_S_window_moving_resizing_dy - window->y;
+                            window->y = E_mouse_Q_button_S_coordinate[1] - E_gui_Q_desktop_S_window_moving_resizing_dy;
                             break;
                     case E_gui_Q_desktop_Z_window_resizing_state_S_ne:
-                            window->width = E_gui_Q_pointer_S_coordinate[0] + E_gui_Q_desktop_S_window_moving_resizing_dx + 1 - window->x;
-                            window->height -= E_gui_Q_pointer_S_coordinate[1] - E_gui_Q_desktop_S_window_moving_resizing_dy - window->y;
-                            window->y = E_gui_Q_pointer_S_coordinate[1] - E_gui_Q_desktop_S_window_moving_resizing_dy;
+                            window->width = E_mouse_Q_button_S_coordinate[0] + E_gui_Q_desktop_S_window_moving_resizing_dx + 1 - window->x;
+                            window->height -= E_mouse_Q_button_S_coordinate[1] - E_gui_Q_desktop_S_window_moving_resizing_dy - window->y;
+                            window->y = E_mouse_Q_button_S_coordinate[1] - E_gui_Q_desktop_S_window_moving_resizing_dy;
                             break;
                     case E_gui_Q_desktop_Z_window_resizing_state_S_e:
-                            window->width = E_gui_Q_pointer_S_coordinate[0] + E_gui_Q_desktop_S_window_moving_resizing_dx + 1 - window->x;
+                            window->width = E_mouse_Q_button_S_coordinate[0] + E_gui_Q_desktop_S_window_moving_resizing_dx + 1 - window->x;
                             break;
                     case E_gui_Q_desktop_Z_window_resizing_state_S_se:
-                            window->width = E_gui_Q_pointer_S_coordinate[0] + E_gui_Q_desktop_S_window_moving_resizing_dx + 1 - window->x;
-                            window->height = E_gui_Q_pointer_S_coordinate[1] + E_gui_Q_desktop_S_window_moving_resizing_dy + 1 - window->y;
+                            window->width = E_mouse_Q_button_S_coordinate[0] + E_gui_Q_desktop_S_window_moving_resizing_dx + 1 - window->x;
+                            window->height = E_mouse_Q_button_S_coordinate[1] + E_gui_Q_desktop_S_window_moving_resizing_dy + 1 - window->y;
                             break;
                     case E_gui_Q_desktop_Z_window_resizing_state_S_s:
-                            window->height = E_gui_Q_pointer_S_coordinate[1] + E_gui_Q_desktop_S_window_moving_resizing_dy + 1 - window->y;
+                            window->height = E_mouse_Q_button_S_coordinate[1] + E_gui_Q_desktop_S_window_moving_resizing_dy + 1 - window->y;
                             break;
                     case E_gui_Q_desktop_Z_window_resizing_state_S_sw:
-                            window->width -= E_gui_Q_pointer_S_coordinate[0] - E_gui_Q_desktop_S_window_moving_resizing_dx - window->x;
-                            window->x = E_gui_Q_pointer_S_coordinate[0] - E_gui_Q_desktop_S_window_moving_resizing_dx;
-                            window->height = E_gui_Q_pointer_S_coordinate[1] + E_gui_Q_desktop_S_window_moving_resizing_dy + 1 - window->y;
+                            window->width -= E_mouse_Q_button_S_coordinate[0] - E_gui_Q_desktop_S_window_moving_resizing_dx - window->x;
+                            window->x = E_mouse_Q_button_S_coordinate[0] - E_gui_Q_desktop_S_window_moving_resizing_dx;
+                            window->height = E_mouse_Q_button_S_coordinate[1] + E_gui_Q_desktop_S_window_moving_resizing_dy + 1 - window->y;
                             break;
                     default: // E_gui_Q_desktop_Z_window_resizing_state_S_w
-                            window->width -= E_gui_Q_pointer_S_coordinate[0] - E_gui_Q_desktop_S_window_moving_resizing_dx - window->x;
-                            window->x = E_gui_Q_pointer_S_coordinate[0] - E_gui_Q_desktop_S_window_moving_resizing_dx;
+                            window->width -= E_mouse_Q_button_S_coordinate[0] - E_gui_Q_desktop_S_window_moving_resizing_dx - window->x;
+                            window->x = E_mouse_Q_button_S_coordinate[0] - E_gui_Q_desktop_S_window_moving_resizing_dx;
                             break;
                     }
                 }
@@ -752,7 +804,7 @@ E_gui_Q_desktop_I_draw( void
         window->draw( 0, E_gui_Q_taskbar_S_height, E_main_S_framebuffer.width, E_main_S_framebuffer.height - E_gui_Q_taskbar_S_height );
     else
         E_gui_Q_desktop_I_draw_background();
-    if( ++stack_i == windows )
+    if( ++stack_i == windows ) // Jest tylko jedno zmaksymalizowane okno lub nie ma żadnego.
         return;
     //TODO Przerysowywać tylko okna, które zawierają co najmniej jeden obszar widoczny.
     for( ; stack_i != windows - 1; stack_i++ )
@@ -767,12 +819,26 @@ E_gui_Q_desktop_I_draw( void
     }
     window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ] );
     if( E_gui_Q_desktop_S_window_moving )
-    {   N32 x = E_gui_Q_pointer_S_coordinate[0] - E_gui_Q_desktop_S_window_moving_resizing_dx;
+    {   N32 x;
+        N32 width;
+        if( E_gui_Q_pointer_S_coordinate[0] > E_gui_Q_desktop_S_window_moving_resizing_dx )
+        {   x = E_gui_Q_pointer_S_coordinate[0] - E_gui_Q_desktop_S_window_moving_resizing_dx;
+            width = x + window->width < E_main_S_framebuffer.width ? window->width : E_main_S_framebuffer.width - x;
+            if( width < 2 * E_gui_Q_desktop_S_window_border_thickness + 1 )
+            {   width = 2 * E_gui_Q_desktop_S_window_border_thickness + 1;
+                x = E_main_S_framebuffer.width - width;
+            }
+        }else
+        {   x = 0;
+            width = window->width - ( E_gui_Q_desktop_S_window_moving_resizing_dx - E_gui_Q_pointer_S_coordinate[0] );
+            if( width < 2 * E_gui_Q_desktop_S_window_border_thickness + 1 )
+                width = 2 * E_gui_Q_desktop_S_window_border_thickness + 1;
+        }
         N32 y = E_gui_Q_pointer_S_coordinate[1] - E_gui_Q_desktop_S_window_moving_resizing_dy;
-        N32 width = window->width;
         N32 height = window->height;
         if( window->y > E_gui_Q_taskbar_S_height + 1 )
-            E_vga_I_draw_line( E_mem_Q_tab_R_id_to_i( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ] ) * E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width + E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width / 2
+            E_vga_I_draw_line(
+              ( E_mem_Q_tab_R_id_to_i( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ] ) - E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_button_start ) * E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width + E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width / 2
             , E_gui_Q_taskbar_S_height
             , x + width / 2
             , y - 1
@@ -827,7 +893,8 @@ E_gui_Q_desktop_I_draw( void
                 break;
         }
         if( window->y > E_gui_Q_taskbar_S_height + 1 )
-            E_vga_I_draw_line( E_mem_Q_tab_R_id_to_i( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ] ) * E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width + E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width / 2
+            E_vga_I_draw_line(
+              ( E_mem_Q_tab_R_id_to_i( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ] ) - E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_button_start ) * E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width + E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width / 2
             , E_gui_Q_taskbar_S_height
             , x + width / 2
             , y - 1
@@ -842,7 +909,8 @@ E_gui_Q_desktop_I_draw( void
         );
     }else
     {   if( window->y > E_gui_Q_taskbar_S_height + 1 )
-            E_vga_I_draw_line( E_mem_Q_tab_R_id_to_i( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ] ) * E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width + E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width / 2
+            E_vga_I_draw_line(
+              ( E_mem_Q_tab_R_id_to_i( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ] ) - E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_button_start ) * E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width + E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width / 2
             , E_gui_Q_taskbar_S_height
             , window->x + window->width / 2
             , window->y - 1
@@ -869,7 +937,7 @@ E_gui_Q_taskbar_I_draw( void
                 E_vga_I_draw_y_line(( i + 1 ) * E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width - 1, 0, E_gui_Q_taskbar_S_height, E_vga_R_video_color( 0x908b8b ));
         }
         I window_id = E_mem_Q_tab_R_i_to_id( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_button_start );
-        for( I i = 0; i != E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons; i++ ) // Rysowanie tekstu przycisków.
+        for_i( i, E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons ) // Rysowanie tekstu przycisków.
         {   N32 x_0 = i * E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width + E_gui_Q_taskbar_S_thickness + 1;
             N32 x = x_0;
             N32 button_real_width = ( i != E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons - 1 ? E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width - 1 : E_main_S_framebuffer.width - x ) - 2 * ( E_gui_Q_taskbar_S_thickness + 1 );
@@ -880,7 +948,7 @@ E_gui_Q_taskbar_I_draw( void
                 Pc s_ = E_text_Z_su_R_u( s, &u );
                 s = s_;
                 N32 font_i;
-                if( !E_gui_T_print_u( button_real_width - ( x - x_0 ), E_gui_Q_taskbar_S_thickness, &u, &font_i ))
+                if( !E_font_T_print_u( button_real_width - ( x - x_0 ), E_gui_Q_taskbar_S_thickness, &u, &font_i ))
                     break;
                 E_font_I_draw_u( font_i
                 , x, E_gui_Q_taskbar_S_font_size + 1
@@ -899,7 +967,7 @@ E_gui_Q_taskbar_I_draw( void
                 Pc s_ = E_text_Z_su_R_u( s, &u );
                 s = s_;
                 N32 font_i;
-                if( !E_gui_T_print_u( button_real_width - ( x - x_0 ), E_gui_Q_taskbar_S_thickness, &u, &font_i ))
+                if( !E_font_T_print_u( button_real_width - ( x - x_0 ), E_gui_Q_taskbar_S_thickness, &u, &font_i ))
                 {   if(line)
                         break;
                     line++;
@@ -1031,7 +1099,7 @@ E_gui_Q_taskbar_I_draw_expander( void
         Pc s_ = E_text_Z_su_R_u( s, &u );
         s = s_;
         N32 font_i;
-        if( !E_gui_T_print_u( max_width - ( x - x_0 ), E_gui_Q_taskbar_S_thickness, &u, &font_i ))
+        if( !E_font_T_print_u( max_width - ( x - x_0 ), E_gui_Q_taskbar_S_thickness, &u, &font_i ))
             break;
         x += ( E_gui_Q_taskbar_S_thickness + 1 ) * E_font_S_font.bitmap[ font_i ].width + E_gui_Q_taskbar_S_thickness + 1;
     }
@@ -1046,7 +1114,7 @@ E_gui_Q_taskbar_I_draw_expander( void
             Pc s_ = E_text_Z_su_R_u( s, &u );
             s = s_;
             N32 font_i;
-            if( !E_gui_T_print_u( max_width - ( x - x_0 ), E_gui_Q_taskbar_S_thickness, &u, &font_i ))
+            if( !E_font_T_print_u( max_width - ( x - x_0 ), E_gui_Q_taskbar_S_thickness, &u, &font_i ))
             {   if(line)
                     break;
                 line++;
@@ -1078,7 +1146,7 @@ E_gui_Q_taskbar_I_draw_expander( void
         Pc s_ = E_text_Z_su_R_u( s, &u );
         s = s_;
         N32 font_i;
-        if( !E_gui_T_print_u( width - ( x - x_0 ), E_gui_Q_taskbar_S_thickness, &u, &font_i ))
+        if( !E_font_T_print_u( width - ( x - x_0 ), E_gui_Q_taskbar_S_thickness, &u, &font_i ))
             break;
         E_font_I_draw_u( font_i
         , x, E_gui_Q_taskbar_S_height + E_gui_Q_taskbar_S_panel_height + E_gui_Q_taskbar_S_font_size + 1
@@ -1097,7 +1165,7 @@ E_gui_Q_taskbar_I_draw_expander( void
         Pc s_ = E_text_Z_su_R_u( s, &u );
         s = s_;
         N32 font_i;
-        if( !E_gui_T_print_u( width - ( x - x_0 ), E_gui_Q_taskbar_S_thickness, &u, &font_i ))
+        if( !E_font_T_print_u( width - ( x - x_0 ), E_gui_Q_taskbar_S_thickness, &u, &font_i ))
         {   if(line)
                 break;
             line++;

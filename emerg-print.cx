@@ -61,7 +61,7 @@ E_emerg_print_I_print_u( U u
         return 0;
     }
     N32 font_i;
-    if( !E_gui_T_print_u( E_main_S_framebuffer.width - E_emerg_print_S_x, E_emerg_print_S_font_thickness, &u, &font_i ))
+    if( !E_font_T_print_u( E_main_S_framebuffer.width - E_emerg_print_S_x, E_emerg_print_S_font_thickness, &u, &font_i ))
         E_emerg_print_I_print_nl();
     E_font_I_draw_u( font_i
     , E_emerg_print_S_x, E_emerg_print_S_y

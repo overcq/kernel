@@ -42,7 +42,7 @@ E_window_log_I_draw( N32 x
             s = s_;
             N32 font_i;
             if( width <= x_ + thickness + 1
-            || !E_gui_T_print_u( width - x_ - ( thickness + 1 ), thickness, &u, &font_i )
+            || !E_font_T_print_u( width - x_ - ( thickness + 1 ), thickness, &u, &font_i )
             )
             {   x_ = thickness + 1;
                 nl++;
@@ -62,7 +62,7 @@ E_window_log_I_draw( N32 x
             Pc s = E_text_Z_su_R_u( s_begin, &u );
             N32 font_i;
             if( width <= x_ + thickness + 1
-            || !E_gui_T_print_u( width - x_ - ( thickness + 1 ), thickness, &u, &font_i )
+            || !E_font_T_print_u( width - x_ - ( thickness + 1 ), thickness, &u, &font_i )
             )
             {   x_ = thickness + 1;
                 nl--;
@@ -84,7 +84,7 @@ E_window_log_I_draw( N32 x
         N32 font_i;
         if( u == '\n'
         || width <= x_ + thickness + 1
-        || !E_gui_T_print_u( width - x_ - ( thickness + 1 ), thickness, &u, &font_i )
+        || !E_font_T_print_u( width - x_ - ( thickness + 1 ), thickness, &u, &font_i )
         )
         {   x_ = thickness + 1;
             y_ += ( font_size + 1 ) * E_font_S_font.height + font_size + 1;
