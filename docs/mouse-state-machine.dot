@@ -1,0 +1,41 @@
+// Mouse button state machine (click, dirty, border, wheel)
+// Render with: dot -Tpng mouse-state-machine.dot -o mouse-state-machine.png
+
+digraph MouseStateMachine {
+    rankdir=LR;
+    node [shape=box, style=rounded];
+
+    S_clean [label="S_clean\n(no active click)"];
+    S_press [label="S_press\n(pressed)"];
+    S_release [label="S_release"];
+    S_press_held [label="S_press_held\n(held)"];
+    S_press_held_release [label="S_press_held_release"];
+    S_dirty [label="S_dirty\n(temporary block of click/drag)"];
+    BorderPending [label="BorderPending\n(click_count=~0; border_timeout)"];
+
+    // Wheel note (does not change states)
+    WheelNote [shape=note, label="Wheel events:\nstore (S8)v -> E_mouse_Q_pending_wheel;\nschedule handler via Yi_F(mouse, click, 0);\nDO NOT set S_dirty"];
+
+    // Transitions
+    S_clean -> S_press [label="press\nsave coord; set press_timeout; Yi_F(mouse,click,T)", fontsize=10];
+
+    S_press -> S_release [label="release before timeout\n++click_count; set release_timeout; Yi_F(mouse,click,T)", fontsize=10];
+    S_press -> S_dirty [label="move>dx/dy\nset S_dirty; set dirty_timeout; Yi_L(mouse,click)", fontsize=10];
+    S_press -> S_press_held [label="press_timeout expired (handler)", fontsize=10];
+
+    S_release -> S_press [label="handler fired & same button\nincrement click_count; set press_timeout; Yi_F(...)", fontsize=10];
+    S_release -> S_dirty [label="handler fired & different\nset S_dirty; set dirty_timeout; Yi_L(mouse,click)", fontsize=10];
+
+    S_press_held -> S_press_held_release [label="release\nreset click_count; Yi_F(mouse,click,0)", fontsize=10];
+
+    S_dirty -> S_clean [label="dirty_timeout expires", fontsize=10];
+
+    // Border behaviour
+    S_clean -> BorderPending [label="cursor at border\nset click_count=~0; set border_timeout; Yi_F(mouse,click,border_timeout)", fontsize=9];
+    S_press_held -> BorderPending [label="cursor at border while held\nsame as above", fontsize=9];
+    BorderPending -> S_clean [label="border_timeout expires\nhandler executes border action", fontsize=9];
+    BorderPending -> S_clean [label="click occurs before expiry\ncancel (Yi_L(mouse,click))", style=dashed, fontsize=9];
+
+    // Wheel note relation
+    WheelNote -> S_clean [style=dotted, label="schedules handler; handled only if not S_dirty", fontsize=9];
+}

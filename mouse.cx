@@ -19,7 +19,7 @@ enum E_mouse_Q_button_Z_state
 _private B E_mouse_S_initialized;
 _internal N8 E_mouse_S_interrupt_state;
 _internal N8 E_mouse_S_interrupt_data_0;
-_internal S16 E_mouse_S_x_move;
+_internal S16 E_mouse_S_move[2];
 _internal B E_mouse_S_moved;
 _private N32 E_mouse_S_coordinate[2];
 _internal N8 E_mouse_S_state_buttons;
@@ -29,15 +29,15 @@ _internal N8 E_mouse_Q_button_S_click_dx, E_mouse_Q_button_S_click_dy;
 _internal N16 E_mouse_Q_button_S_press_timeout, E_mouse_Q_button_S_release_timeout, E_mouse_Q_button_S_border_timeout, E_mouse_Q_button_S_dirty_timeout;
 _private volatile N32 E_mouse_Q_button_S_coordinate[2];
 _private volatile N8 E_mouse_Q_button_S_button, E_mouse_Q_button_S_click_count;
+_private volatile S8 E_mouse_Q_wheel_S_count;
 _private volatile B E_mouse_Q_button_S_press_held_cancel;
 //==============================================================================
 _internal
 void
-E_mouse_I_interrupt_R_smooth(
-  S16 *y_move
+E_mouse_I_interrupt_I_smooth( void
 ){  F mul = 0.5;
-    N32 x_move_abs = J_abs( E_mouse_S_x_move );
-    N32 y_move_abs = J_abs( *y_move );
+    N32 x_move_abs = J_abs( E_mouse_S_move[0] );
+    N32 y_move_abs = J_abs( E_mouse_S_move[1] );
     if(( x_move_abs >= 4
       || y_move_abs >= 4
     )
@@ -45,8 +45,8 @@ E_mouse_I_interrupt_R_smooth(
     && y_move_abs < 16
     )
         mul = 0.25 + ( mul - 0.25 ) * J_max( x_move_abs, y_move_abs ) / 16;
-    E_mouse_S_x_move *= mul;
-    *y_move *= mul;
+    E_mouse_S_move[0] *= mul;
+    E_mouse_S_move[1] *= mul;
 }
 _internal
 void
@@ -63,40 +63,42 @@ E_mouse_I_interrupt( void
             break;
       case 1:
             if( E_mouse_S_interrupt_data_0 & ( 1 << 4 ))
-                E_mouse_S_x_move = -( E_mouse_S_interrupt_data_0 & ( 1 << 6 ) ? 0x100 : 0x100 - v );
+                E_mouse_S_move[0] = -( E_mouse_S_interrupt_data_0 & ( 1 << 6 ) ? 0x100 : 0x100 - v );
             else
-                E_mouse_S_x_move = E_mouse_S_interrupt_data_0 & ( 1 << 6 ) ? 0x100 : v;
+                E_mouse_S_move[0] = E_mouse_S_interrupt_data_0 & ( 1 << 6 ) ? 0x100 : v;
             E_mouse_S_interrupt_state++;
             break;
       case 2:
-        {   S16 y_move;
             if( E_mouse_S_interrupt_data_0 & ( 1 << 5 ))
-                y_move = E_mouse_S_interrupt_data_0 & ( 1 << 7 ) ? 0x100 : 0x100 - v;
+                E_mouse_S_move[1] = E_mouse_S_interrupt_data_0 & ( 1 << 7 ) ? 0x100 : 0x100 - v;
             else
-                y_move = -( E_mouse_S_interrupt_data_0 & ( 1 << 7 ) ? 0x100 : v );
-            E_mouse_I_interrupt_R_smooth( &y_move );
-            if( E_mouse_S_x_move )
+                E_mouse_S_move[1] = -( E_mouse_S_interrupt_data_0 & ( 1 << 7 ) ? 0x100 : v );
+            E_mouse_S_interrupt_state++;
+            break;
+      case 3:
+        {   E_mouse_I_interrupt_I_smooth();
+            if( E_mouse_S_move[0] )
             {   if( E_mouse_S_interrupt_data_0 & ( 1 << 4 ))
-                    if( E_mouse_S_coordinate[0] > -E_mouse_S_x_move )
-                        E_mouse_S_coordinate[0] += E_mouse_S_x_move;
+                    if( E_mouse_S_coordinate[0] > -E_mouse_S_move[0] )
+                        E_mouse_S_coordinate[0] += E_mouse_S_move[0];
                     else
                         E_mouse_S_coordinate[0] = 0;
                 else
-                    if( E_mouse_S_coordinate[0] + E_mouse_S_x_move < E_main_S_framebuffer.width ) 
-                        E_mouse_S_coordinate[0] += E_mouse_S_x_move;
+                    if( E_mouse_S_coordinate[0] + E_mouse_S_move[0] < E_main_S_framebuffer.width ) 
+                        E_mouse_S_coordinate[0] += E_mouse_S_move[0];
                     else
                         E_mouse_S_coordinate[0] = E_main_S_framebuffer.width - 1;
                 E_mouse_S_moved = yes;
             }
-            if( y_move )
+            if( E_mouse_S_move[1] )
             {   if( E_mouse_S_interrupt_data_0 & ( 1 << 5 ))
-                    if( E_mouse_S_coordinate[1] + y_move < E_main_S_framebuffer.height ) 
-                        E_mouse_S_coordinate[1] += y_move;
+                    if( E_mouse_S_coordinate[1] + E_mouse_S_move[1] < E_main_S_framebuffer.height ) 
+                        E_mouse_S_coordinate[1] += E_mouse_S_move[1];
                     else
                         E_mouse_S_coordinate[1] = E_main_S_framebuffer.height - 1;
                 else
-                    if( E_mouse_S_coordinate[1] > -y_move )
-                        E_mouse_S_coordinate[1] += y_move;
+                    if( E_mouse_S_coordinate[1] > -E_mouse_S_move[1] )
+                        E_mouse_S_coordinate[1] += E_mouse_S_move[1];
                     else
                         E_mouse_S_coordinate[1] = 0;
                 E_mouse_S_moved = yes;
@@ -142,14 +144,14 @@ E_mouse_I_interrupt( void
                                 E_mouse_Q_button_S_coordinate[1] = E_mouse_S_coordinate[1];
                                 E_mouse_Q_button_S_button = buttons;
                                 E_mouse_Q_button_S_click_count = 1;
+                                E_mouse_Q_wheel_S_count = 0;
                                 E_flow_Q_spin_time_M( &E_mouse_Q_button_S_time, E_mouse_Q_button_S_press_timeout * 1000 );
                                 Yi_F( mouse, click, E_mouse_Q_button_S_press_timeout );
                                 break;
                           case E_mouse_Q_button_Z_state_S_press:
                                 if( !E_flow_Q_spin_time_T( &E_mouse_Q_button_S_time ))
                                 {   E_mouse_Q_button_S_state = E_mouse_Q_button_Z_state_S_release;
-                                    if( !~(S8)++E_mouse_Q_button_S_click_count )
-                                        E_mouse_Q_button_S_click_count = 2;
+                                    E_mouse_Q_button_S_click_count++;
                                     E_flow_Q_spin_time_M( &E_mouse_Q_button_S_time, E_mouse_Q_button_S_release_timeout * 1000 );
                                     Yi_F( mouse, click, E_mouse_Q_button_S_release_timeout );
                                 }else
@@ -187,13 +189,19 @@ E_mouse_I_interrupt( void
                         E_mouse_Q_button_S_click_count = 0;
                         E_flow_Q_spin_time_M( &E_mouse_Q_button_S_time, 0 );
                         Yi_F( mouse, click, 0 );
-                    }else if( E_mouse_Q_button_S_state != E_mouse_Q_button_Z_state_S_press_held_release )
+                    }else if( E_mouse_Q_button_S_state != E_mouse_Q_button_Z_state_S_press_held_release ) // Sprawdzenie, czy po ustawieniu “E_mouse_Q_button_Z_state_S_press_held_release” nie wystąpiło ponownie przerwanie przed obsługą przez ‹zadanie›.
                     {   E_mouse_Q_button_S_state = E_mouse_Q_button_Z_state_S_dirty;
                         E_mouse_Q_button_S_click_count = 0;
+                        E_mouse_Q_wheel_S_count = 0;
                         E_flow_Q_spin_time_M( &E_mouse_Q_button_S_time, E_mouse_Q_button_S_dirty_timeout * 1000 );
                         Yi_L( mouse, click );
                     }
                 E_mouse_S_state_buttons = buttons;
+            }else if( E_mouse_Q_button_S_state == E_mouse_Q_button_Z_state_S_clean
+            && v
+            )
+            {   E_mouse_Q_wheel_S_count += (S8)v;
+                Yi_F( mouse, click, 0 );
             }else if( ~(S8)E_mouse_Q_button_S_click_count )
             {   if( E_mouse_Q_button_S_state == E_mouse_Q_button_Z_state_S_dirty
                 && E_flow_Q_spin_time_T( &E_mouse_Q_button_S_time )
@@ -213,12 +221,9 @@ E_mouse_I_interrupt( void
                     Yi_F( mouse, click, E_mouse_Q_button_S_border_timeout );
                 }
             }
-            E_mouse_S_interrupt_state++;
-            break;
-        }
-      case 3:
             E_mouse_S_interrupt_state = 0;
             break;
+        }
     }
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -304,10 +309,12 @@ E_mouse_M( void
     E_mouse_S_interrupt_state = ~0;
     E_mouse_Q_button_S_click_dx = 16; //CONF
     E_mouse_Q_button_S_click_dy = 16; //CONF
-    E_mouse_Q_button_S_press_timeout = 500; //CONF
+    E_mouse_Q_button_S_press_timeout = 600; //CONF
     E_mouse_Q_button_S_release_timeout = 300; //CONF
     E_mouse_Q_button_S_border_timeout = 1000; //CONF
     E_mouse_Q_button_S_dirty_timeout = 100; //CONF
+    E_mouse_Q_button_S_click_count = 0;
+    E_mouse_Q_wheel_S_count = 0;
     D_M( mouse, 0, click )
         return ~0;
     if( E_mouse_P_rate(200)
@@ -329,7 +336,10 @@ D( mouse, click )
     O{  Yi_B( mouse, click )
             break;
         E_flow_I_cli();
-        if( E_flow_Q_spin_time_T( &E_mouse_Q_button_S_time )
+        if( E_mouse_Q_wheel_S_count )
+        {   E_gui_Q_pointer_I_wheel();
+            E_mouse_Q_wheel_S_count = 0;
+        }else if( E_flow_Q_spin_time_T( &E_mouse_Q_button_S_time )
         && E_mouse_Q_button_S_state != E_mouse_Q_button_Z_state_S_dirty
         )
         {   E_gui_Q_pointer_I_click();

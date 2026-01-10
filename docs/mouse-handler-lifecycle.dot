@@ -1,0 +1,29 @@
+// Handler lifecycle diagram (handler scheduling, wheel dispatch, click dispatch)
+// Render with: dot -Tpng mouse-handler-lifecycle.dot -o mouse-handler-lifecycle.png
+
+digraph MouseHandlerLifecycle {
+    rankdir=LR;
+    node [shape=box, style=rounded];
+
+    Interrupt [label="Interrupt (case 3)\nread packet byte v"];
+    Schedule [label="Schedule handler\nYi_F(mouse, click, t)"];
+    PendingWheel [label="E_mouse_Q_pending_wheel != 0\n(pending wheel delta)"];
+    Handler [label="Handler: D(mouse,click)\n- check E_flow_Q_spin_time_T(&time)\n- check state != S_dirty"];
+    WheelDispatch [label="Wheel dispatch\nE_gui_Q_pointer_I_wheel(delta)\n(do NOT change click states)"];
+    ClickDispatch [label="Click dispatch\nE_gui_Q_pointer_I_click()\n(update press_held / maybe set S_dirty)"];
+    Noop [label="Noop / cancel\n(timer not expired or state S_dirty)"];
+
+    // Flow
+    Interrupt -> Schedule [label="if wheel (S8)v != 0: store in E_mouse_Q_pending_wheel; Yi_F(mouse,click,0)", fontsize=9];
+    Schedule -> Handler [label="timer expires or immediate (0)", fontsize=9];
+
+    Handler -> WheelDispatch [label="if E_mouse_Q_pending_wheel != 0", fontsize=10];
+    Handler -> ClickDispatch [label="else if timer expired && state != S_dirty", fontsize=10];
+    Handler -> Noop [label="else (do nothing)", fontsize=10];
+
+    WheelDispatch -> Handler [label="return; no state changes", style=solid, fontsize=9];
+    ClickDispatch -> Handler [label="state transitions handled inside", style=solid, fontsize=9];
+
+    // Cancellation / protection
+    Handler -> Noop [style=dotted, label="if E_mouse_Q_button_S_time changed or S_dirty set; abort", fontsize=9];
+}

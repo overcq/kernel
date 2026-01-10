@@ -33,7 +33,7 @@ E_emerg_print_M( void
     E_vga_I_fill_rect( E_main_S_framebuffer.width / 2 - 50, E_main_S_framebuffer.height / 2 + 4 + 13, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
     E_vga_I_fill_rect( E_main_S_framebuffer.width / 2, E_main_S_framebuffer.height / 2 - 10 - 13, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
     E_vga_I_fill_rect( E_main_S_framebuffer.width / 2, E_main_S_framebuffer.height / 2 - 10, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
-    return E_emerg_print_I_print( "OUX/C+ OS. ©overcq <overcq@int.pl>. https:/""/github.com/overcq" );
+    return E_emerg_print_I_print( "OUX/C+ OS ©overcq <overcq@int.pl> https:/""/github.com/overcq" );
 }
 _internal
 void
