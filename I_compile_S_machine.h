@@ -25,7 +25,7 @@ typedef void                *P;
 typedef C                   *Pc;
 typedef C16                 *Pc16;
 typedef N                   *Pn;
-typedef N32                 I;
+typedef S32                 I;
 typedef unsigned            In;
 typedef unsigned __int128   N128;
 typedef __int128            S128;

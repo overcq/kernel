@@ -197,11 +197,22 @@ E_mouse_I_interrupt( void
                         Yi_L( mouse, click );
                     }
                 E_mouse_S_state_buttons = buttons;
-            }else if( E_mouse_Q_button_S_state == E_mouse_Q_button_Z_state_S_clean
-            && v
-            )
-            {   E_mouse_Q_wheel_S_count += (S8)v;
-                Yi_F( mouse, click, 0 );
+            }else if(v)
+            {   if( E_mouse_Q_button_S_state == E_mouse_Q_button_Z_state_S_dirty
+                && E_flow_Q_spin_time_T( &E_mouse_Q_button_S_time )
+                )
+                    E_mouse_Q_button_S_state = E_mouse_Q_button_Z_state_S_clean;
+                if( E_mouse_Q_button_S_state == E_mouse_Q_button_Z_state_S_clean )
+                {   if( !E_mouse_Q_wheel_S_count )
+                    {   E_mouse_Q_button_S_coordinate[0] = E_mouse_S_coordinate[0];
+                        E_mouse_Q_button_S_coordinate[1] = E_mouse_S_coordinate[1];
+                    }
+                    E_mouse_Q_wheel_S_count += (S8)v;
+                    if( E_mouse_Q_wheel_S_count )
+                        Yi_F( mouse, click, 0 );
+                    else
+                        Yi_L( mouse, click );
+                }
             }else if( ~(S8)E_mouse_Q_button_S_click_count )
             {   if( E_mouse_Q_button_S_state == E_mouse_Q_button_Z_state_S_dirty
                 && E_flow_Q_spin_time_T( &E_mouse_Q_button_S_time )
