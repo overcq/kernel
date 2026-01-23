@@ -42,6 +42,7 @@ E_se_log_I_log( Pc scope
     r = E_text_Z_s_I_append_s0( &E_se_log_S_buffer, s_1 );
     if( !r )
         goto End_0;
+    E_se_log_S_buffer_l += E_text_Z_s0_R_l( s_1 );
     Pc s_2;
     va_list args;
     va_start( args, fmt );
@@ -52,7 +53,7 @@ E_se_log_I_log( Pc scope
     r = E_text_Z_s_I_append_s0( &E_se_log_S_buffer, s_2 );
     if( !r )
         goto End_1;
-    E_se_log_S_buffer_l += E_text_Z_s0_R_l( s_1 ) + E_text_Z_s0_R_l( s_2 );
+    E_se_log_S_buffer_l += E_text_Z_s0_R_l( s_2 );
     if( E_emerg_print_S_active )
     {   r = E_emerg_print_I_print( s_1 );
         if(r)

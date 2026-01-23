@@ -139,6 +139,7 @@ struct E_main_Z_kernel_args
   P io_apic_address;
   struct E_interrupt_Z_gsi *gsi;
   P *processor_proc;
+  N32 sata_ahci_address;
   N32 processor_start_page;
   N32 processor_n;
   N8 gsi_n;
@@ -379,6 +380,7 @@ main( struct E_main_Z_kernel_args *kernel_args
     //E_main_S_acpi = kernel_args->acpi;
     E_interrupt_Q_local_apic_S_address = kernel_args->local_apic_address;
     E_interrupt_Q_io_apic_S_address = kernel_args->io_apic_address;
+    E_sata_S_memory = E_main_Z_p_I_to_virtual( (P)(N)kernel_args->sata_ahci_address );
     E_interrupt_S_gsi = kernel_args->gsi;
     E_interrupt_S_gsi_n = kernel_args->gsi_n;
     E_mem_blk_S_lock = 0;
@@ -492,13 +494,13 @@ main( struct E_main_Z_kernel_args *kernel_args
         goto End;*/
     if( W( kernel_args->bootloader ))
         goto End;
+    if( E_pci_I_check_buses() )
+        goto End;
     if( E_gui_M() )
         goto End;
     if( E_keyboard_M() )
         goto End;
     if( E_mouse_M() )
-        goto End;
-    if( E_pci_I_check_buses() )
         goto End;
 
     X_M( main, test );

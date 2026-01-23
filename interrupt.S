@@ -1429,7 +1429,7 @@ E_interrupt_I_external_spurious:
     je      0f
     call    E_flow_I_current_scheduler
     mov     E_flow_S_scheduler(%rip),%rbx
-    lea     6*8+4(%rbx,%rax,8),%rbx
+    lea     6*8+4(%rbx,%rax,8),%rbx //DFN Statycznie ustawione przesunięcie do “U_R( state, inside_interrupt )”. Jeśli zostanie zmieniony układ “struct E_flow_Z_scheduler” to należy również zmienić przesunięcie.
     bts     $0,(%rbx)
 0:  lea     msg_x-.-3(%rip),%rdi
     lea     fmt_0-.-3(%rip),%rsi

@@ -332,12 +332,6 @@ struct __attribute__ (( __packed__ )) E_pci_Z_header_Z_status
   N16 signaled_system_err   :1;
   N16 detected_parity_err   :1;
 };
-struct __attribute__ (( __packed__ )) E_pci_Z_header_Z_bist
-{ N8 completion_code    :4;
-  N8 reserved           :2;
-  N8 start              :1;
-  N8 capable            :1;
-};
 //==============================================================================
 _internal N E_pci_I_check_bus( N8 );
 //==============================================================================
@@ -367,12 +361,6 @@ E_pci_I_check_device( N8 bus_i
 , N8 function_i
 , N32 ids
 ){  G( "bus: %8x, device: %8x: %32x", bus_i, device_i, ids );
-    N32 bist_24 = E_pci_I_read( bus_i, device_i, function_i, 0xc );
-    struct E_pci_Z_header_Z_bist *bist = ( struct E_pci_Z_header_Z_bist * )(( N8 * )&bist_24 + 3 );
-    if( bist->capable )
-    {   bist->start = yes;
-        E_pci_I_write( bus_i, device_i, function_i, 0xc, bist_24 );
-    }
     switch(ids)
     { case 0x07e015ad:
         {   N8 cap_pointer = E_pci_I_read( bus_i, device_i, function_i, 0x34 ) & 0xfc;
@@ -399,10 +387,9 @@ E_pci_I_check_device( N8 bus_i
                 }
                 cap_pointer = ( n_0 >> 8 ) & 0xfc;
             }
-            N32 p = E_pci_I_read( bus_i, device_i, function_i, 0x24 );
-            //N ret = E_sata_I_init( E_main_Z_p_I_to_virtual( (P)(N)p ));
-            //if(ret)
-                //return ret;
+            N ret = E_sata_I_init();
+            if(ret)
+                return ret;
             break;
         }
     }

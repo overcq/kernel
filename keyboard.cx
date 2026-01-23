@@ -76,7 +76,7 @@ E_keyboard_I_interrupt( void
     }
     N32 sched = E_flow_I_current_scheduler();
     U_F( E_flow_S_scheduler[sched].state, inside_interrupt );
-    G( "keyboard interrupt, key=%8h", v );
+    G( "keyboard interrupt, key=%8x", v );
     U_L( E_flow_S_scheduler[sched].state, inside_interrupt );
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
