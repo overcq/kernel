@@ -382,7 +382,7 @@ main( struct E_main_Z_kernel_args *kernel_args
     E_interrupt_S_gsi = kernel_args->gsi;
     E_interrupt_S_gsi_n = kernel_args->gsi_n;
     E_mem_blk_S_lock = 0;
-    Mt_( E_vga_S_framebuffer, E_main_S_framebuffer.width * E_main_S_framebuffer.height );
+    Mt_( E_vga_S_framebuffer, E_main_S_framebuffer.height * E_main_S_framebuffer.width );
     if( !E_vga_S_framebuffer )
         E_main_I_error_fatal();
     if( E_font_M() )
@@ -437,6 +437,7 @@ main( struct E_main_Z_kernel_args *kernel_args
     : "p" ( &E_main_S_gd.limit )
     : "rax"
     );
+    E_flow_S_inited = no;
     if( E_interrupt_M() )
         goto End;
     E_interrupt_S_external[ E_interrupt_S_gsi_ipi ] = &E_main_I_ipi_test;
@@ -475,8 +476,7 @@ main( struct E_main_Z_kernel_args *kernel_args
         "\n"    "pause"
         );
     }
-    if( E_gui_M() )
-        goto End;
+    E_flow_S_inited = yes;
     if( W( E_main_S_stack ))
         goto End;
     E_flow_I_lock( &E_mem_blk_S_lock );
@@ -492,6 +492,8 @@ main( struct E_main_Z_kernel_args *kernel_args
         goto End;*/
     if( W( kernel_args->bootloader ))
         goto End;
+    if( E_gui_M() )
+        goto End;
     if( E_keyboard_M() )
         goto End;
     if( E_mouse_M() )
@@ -500,8 +502,7 @@ main( struct E_main_Z_kernel_args *kernel_args
         goto End;
 
     X_M( main, test );
-    D_M( main, 0, test )
-        goto End;
+    D_M( main, test, 0 );
     O{  X_B( main, test, 0 )
             break;
     }
@@ -516,7 +517,7 @@ D( main, test )
     O{  Y_B( timer, 0 )
             break;
         G( "test" );
-        E_interrupt_I_ipi( 1, 32 + E_interrupt_S_gsi_ipi );
+        E_interrupt_I_ipi( 1, E_interrupt_S_gsi_ipi );
     }
     Y_W(timer);
 }

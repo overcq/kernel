@@ -112,12 +112,7 @@ E_mem_Q_stack_I_page_fault( N address
     for_each( task_id, E_flow_S_scheduler[ sched_i ].task, E_mem_Q_tab )
     {   struct E_flow_Q_task_Z *task = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, task_id );
         if( (N)task->stack == address )
-        {   G( "Larger stack required for task: %x", task_id );
-                #ifdef C_line_report
-            G_( ", %s", task->proc_name );
-                #endif
             break;
-        }
     }
     E_main_I_error_fatal();
 }

@@ -13,6 +13,9 @@ _internal N32 E_emerg_print_S_y;
 _internal N32 E_emerg_print_S_color;
 _internal N8 E_emerg_print_S_font_size;
 _internal N8 E_emerg_print_S_font_thickness;
+_internal N8 E_emerg_print_S_x_pre_post, E_emerg_print_S_y_pre_post;
+_internal N32 E_emerg_print_S_background_color;
+_internal N32 E_emerg_print_S_x_min, E_emerg_print_S_x_max, E_emerg_print_S_y_min;
 //==============================================================================
 _private
 N
@@ -22,7 +25,10 @@ E_emerg_print_M( void
     E_emerg_print_S_font_thickness = 1;
     E_emerg_print_S_x = E_emerg_print_S_font_thickness + 1;
     E_emerg_print_S_y = E_emerg_print_S_font_size + 1;
+    E_emerg_print_S_x_pre_post = ( E_emerg_print_S_font_thickness + 1 + 2 ) / 3;
+    E_emerg_print_S_y_pre_post = ( E_emerg_print_S_font_size + 1 + 2 ) / 3;
     E_emerg_print_S_color = E_vga_S_text_color;
+    E_emerg_print_S_background_color = 0xffeff0;
     E_vga_I_fill_rect( 0, 0, E_main_S_framebuffer.width, E_main_S_framebuffer.height, E_vga_R_video_color( E_vga_S_background_color ));
     E_vga_I_fill_rect( E_main_S_framebuffer.width / 2 - 50, E_main_S_framebuffer.height / 2 - 10 - 13, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
     E_vga_I_fill_rect( E_main_S_framebuffer.width / 2 - 50, E_main_S_framebuffer.height / 2 - 10, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
@@ -44,38 +50,56 @@ E_emerg_print_I_scroll_fwd( N dy
     );
     E_vga_I_fill_rect( 0, E_main_S_framebuffer.height - dy, E_main_S_framebuffer.width, dy, E_vga_R_video_color( E_vga_S_background_color ));
 }
-_internal
+_private
 void
 E_emerg_print_I_print_nl( void
 ){  E_emerg_print_S_x = E_emerg_print_S_font_thickness + 1;
-    if( E_emerg_print_S_y + ( E_emerg_print_S_font_size + 1 ) * ( E_font_S_font.height + E_emerg_print_S_font_thickness + 1 ) > E_main_S_framebuffer.height )
-        E_emerg_print_I_scroll_fwd( E_emerg_print_S_font_size + 1 + E_font_S_font.height );
+    E_emerg_print_S_x_min = E_emerg_print_S_x - E_emerg_print_S_x_pre_post;
+    N32 y_next = E_emerg_print_S_y + ( E_emerg_print_S_font_size + 1 ) * E_font_S_font.height + E_emerg_print_S_font_size + 1;
+    if( y_next > E_main_S_framebuffer.height )
+        E_emerg_print_I_scroll_fwd( E_emerg_print_S_font_size + 1 + ( E_emerg_print_S_font_size + 1 ) * E_font_S_font.height );
     else
-        E_emerg_print_S_y += ( E_emerg_print_S_font_size + 1 ) * ( E_font_S_font.height + E_emerg_print_S_font_size + 1 );
+        E_emerg_print_S_y = y_next;
+    E_vga_I_fill_rect( 0
+    , E_emerg_print_S_y - E_emerg_print_S_y_pre_post
+    , E_emerg_print_S_x_pre_post
+    , E_emerg_print_S_y_pre_post + ( E_emerg_print_S_font_size + 1 ) * E_font_S_font.height + E_emerg_print_S_y_pre_post
+    , E_vga_R_video_color( E_emerg_print_S_background_color )
+    );
 }
 _internal
-N
+void
 E_emerg_print_I_print_u( U u
 ){  if( u == '\n' )
     {   E_emerg_print_I_print_nl();
-        return 0;
+        return;
     }
     N32 font_i;
     if( !E_font_T_print_u( E_main_S_framebuffer.width - E_emerg_print_S_x, E_emerg_print_S_font_thickness, &u, &font_i ))
         E_emerg_print_I_print_nl();
+    N width = ( E_emerg_print_S_font_thickness + 1 ) * E_font_S_font.bitmap[ font_i ].width;
+    E_vga_I_fill_rect( E_emerg_print_S_x - E_emerg_print_S_x_pre_post
+    , E_emerg_print_S_y - E_emerg_print_S_y_pre_post
+    , E_emerg_print_S_x_pre_post + width + E_emerg_print_S_x_pre_post
+    , E_emerg_print_S_y_pre_post + ( E_emerg_print_S_font_size + 1 ) * E_font_S_font.height + E_emerg_print_S_y_pre_post
+    , E_vga_R_video_color( E_emerg_print_S_background_color )
+    );
     E_font_I_draw_u( font_i
     , E_emerg_print_S_x, E_emerg_print_S_y
     , 0, E_main_S_framebuffer.height
     , E_emerg_print_S_color
     , E_emerg_print_S_font_size, E_emerg_print_S_font_thickness
     );
-    E_emerg_print_S_x += ( E_emerg_print_S_font_thickness + 1 ) * E_font_S_font.bitmap[ font_i ].width + E_emerg_print_S_font_thickness + 1;
-    return 0;
+    if( E_emerg_print_S_x_max < E_emerg_print_S_x + width + E_emerg_print_S_x_pre_post )
+        E_emerg_print_S_x_max = E_emerg_print_S_x + width + E_emerg_print_S_x_pre_post;
+    E_emerg_print_S_x += width + E_emerg_print_S_font_thickness + 1;
 }
 _private
 N
 E_emerg_print_I_print( Pc s
-){  while( *s )
+){  E_emerg_print_S_x_min = E_emerg_print_S_x_max = E_emerg_print_S_x - E_emerg_print_S_x_pre_post;
+    E_emerg_print_S_y_min = E_emerg_print_S_y - E_emerg_print_S_y_pre_post;
+    while( *s )
     {   U u = ~0;
         Pc s_ = E_text_Z_su_R_u( s, &u );
         if( s_ == s )
@@ -84,10 +108,22 @@ E_emerg_print_I_print( Pc s
         if( ~u )
             E_emerg_print_I_print_u(u);
     }
-    E_vga_Q_buffer_I_draw( 0, 0, E_main_S_framebuffer.width, E_main_S_framebuffer.height );
+    E_vga_Q_buffer_I_draw( E_emerg_print_S_x_min
+    , E_emerg_print_S_y_min
+    , E_emerg_print_S_x_max - E_emerg_print_S_x_min
+    , E_emerg_print_S_y + ( E_emerg_print_S_font_size + 1 ) * E_font_S_font.height + E_emerg_print_S_y_pre_post - E_emerg_print_S_y_min
+    );
     __asm__ volatile (
     "\n"    "sfence"
     );
     return 0;
+}
+_private
+void
+E_emerg_print_I_set_panic( void
+){  E_emerg_print_S_x = E_emerg_print_S_font_thickness + 1;
+    E_emerg_print_S_y = E_emerg_print_S_font_size + 1;
+    E_emerg_print_S_background_color = 0x88;
+    E_emerg_print_S_color = 0xffffff;
 }
 /******************************************************************************/

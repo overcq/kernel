@@ -27,7 +27,7 @@ simple.h \
 $(patsubst %.cx,I_compile_S_0_%.c,$(wildcard *.cx)) \
 main.ld \
 Makefile
-	$(CC) $(CFLAGS) -std=gnu23 -march=native -mno-sse -fno-zero-initialized-in-bss -ffreestanding -fno-stack-protector -fwrapv -Wall -Wextra -Wno-address-of-packed-member -Wno-dangling-else -Wno-incompatible-pointer-types-discards-qualifiers -Wno-parentheses -Wno-sign-compare -Wno-switch -include stdarg.h -include I_compile_S_0.h -nostdlib -shared -s -Wl,-T,main.ld -o $@.elf $(filter %.o,$^) $(filter %.c,$^)
+	$(CC) $(CFLAGS) -std=gnu23 -march=native -mno-sse -mno-red-zone -fno-zero-initialized-in-bss -ffreestanding -fno-stack-protector -fwrapv -Wall -Wextra -Wno-address-of-packed-member -Wno-dangling-else -Wno-incompatible-pointer-types-discards-qualifiers -Wno-parentheses -Wno-sign-compare -Wno-switch -include stdarg.h -include I_compile_S_0.h -nostdlib -shared -s -Wl,-T,main.ld -o $@.elf $(filter %.o,$^) $(filter %.c,$^)
 	rm -f $@; elf2oux $@.elf
 	rm $@.elf
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

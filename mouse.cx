@@ -51,7 +51,9 @@ E_mouse_I_interrupt_I_smooth( void
 _internal
 void
 E_mouse_I_interrupt( void
-){  N8 v = E_main_I_in_8( 0x60 );
+){  N32 sched = E_flow_I_current_scheduler();
+    U_F( E_flow_S_scheduler[sched].state, inside_interrupt );
+    N8 v = E_main_I_in_8( 0x60 );
     switch( E_mouse_S_interrupt_state )
     { default:
             if( v == 0xfa )
@@ -106,7 +108,8 @@ E_mouse_I_interrupt( void
             Yi_A( mouse, click );
             if( E_mouse_S_moved )
             {   E_mouse_S_moved = no;
-                E_gui_Q_pointer_I_move();
+                if( !E_gui_Q_pointer_S_move_blocked )
+                    E_gui_Q_pointer_I_move();
                 if(( E_mouse_Q_button_S_state == E_mouse_Q_button_Z_state_S_press
                   || E_mouse_Q_button_S_state == E_mouse_Q_button_Z_state_S_release
                 )
@@ -236,6 +239,7 @@ E_mouse_I_interrupt( void
             break;
         }
     }
+    U_L( E_flow_S_scheduler[sched].state, inside_interrupt );
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _internal
@@ -326,7 +330,7 @@ E_mouse_M( void
     E_mouse_Q_button_S_dirty_timeout = 100; //CONF
     E_mouse_Q_button_S_click_count = 0;
     E_mouse_Q_wheel_S_count = 0;
-    D_M( mouse, 0, click )
+    D_M( mouse, click, 0 )
         return ~0;
     if( E_mouse_P_rate(200)
     || E_mouse_P_rate(100)

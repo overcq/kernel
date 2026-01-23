@@ -254,550 +254,490 @@
 .data
 fmt_0:  .asciz ""
 fmt:    .asciz "%x"
-msg_0:  .asciz "\nexception de"
-msg_1:  .asciz "\nexception db"
-msg_2:  .asciz "\nexception nmi"
-msg_3:  .asciz "\nexception bp"
-msg_4:  .asciz "\nexception of"
-msg_5:  .asciz "\nexception br"
-msg_6:  .asciz "\nexception ud"
-msg_7:  .asciz "\nexception nm"
-msg_8:  .asciz "\nexception df"
-msg_10: .asciz "\nexception ts"
-msg_11: .asciz "\nexception np"
-msg_12: .asciz "\nexception ss"
-msg_13: .asciz "\nexception gp"
-msg_14: .asciz "\nexception pf"
-msg_16: .asciz "\nexception mf"
-msg_17: .asciz "\nexception ac"
-msg_18: .asciz "\nexception mc"
-msg_19: .asciz "\nexception xm"
-msg_20: .asciz "\nexception ve"
-msg_21: .asciz "\nexception cp"
-msg_x:  .asciz "\nexception spurious"
+msg_0:  .asciz "exception de"
+msg_1:  .asciz "exception db"
+msg_2:  .asciz "exception nmi"
+msg_3:  .asciz "exception bp"
+msg_4:  .asciz "exception of"
+msg_5:  .asciz "exception br"
+msg_6:  .asciz "exception ud"
+msg_7:  .asciz "exception nm"
+msg_8:  .asciz "exception df"
+msg_10: .asciz "exception ts"
+msg_11: .asciz "exception np"
+msg_12: .asciz "exception ss"
+msg_13: .asciz "exception gp"
+msg_14: .asciz "exception pf"
+msg_16: .asciz "exception mf"
+msg_17: .asciz "exception ac"
+msg_18: .asciz "exception mc"
+msg_19: .asciz "exception xm"
+msg_20: .asciz "exception ve"
+msg_21: .asciz "exception cp"
+msg_x:  .asciz "exception spurious"
 //==============================================================================
 .text
 E_interrupt_I_exeception_de:
+    push    %rdx
     push    %rax
     push    %rcx
     push    %rdx
+    push    %rbx
+    push    %rbp
     push    %rsi
     push    %rdi
     push    %r8
     push    %r9
     push    %r10
     push    %r11
+    push    %r12
+    push    %r13
+    push    %r14
+    push    %r15
+    mov     %rsp,%rsi
+    and     $~0xf,%rsp
+    lea     -4*8(%rsp),%rsp
     lea     msg_0-.-3(%rip),%rdi
-    lea     fmt_0-.-3(%rip),%rsi
-    call    E_se_log_I_log
-    pop     %r11
-    pop     %r10
-    pop     %r9
-    pop     %r8
-    pop     %rdi
-    pop     %rsi
-    pop     %rdx
-    pop     %rcx
-    pop     %rax
-    iretq
+    call    E_interrupt_I_panic
 E_interrupt_I_exeception_db:
+    push    %rdx
     push    %rax
     push    %rcx
     push    %rdx
+    push    %rbx
+    push    %rbp
     push    %rsi
     push    %rdi
     push    %r8
     push    %r9
     push    %r10
     push    %r11
+    push    %r12
+    push    %r13
+    push    %r14
+    push    %r15
+    mov     %rsp,%rsi
+    and     $~0xf,%rsp
+    lea     -4*8(%rsp),%rsp
     lea     msg_1-.-3(%rip),%rdi
-    lea     fmt_0-.-3(%rip),%rsi
-    call    E_se_log_I_log
-    pop     %r11
-    pop     %r10
-    pop     %r9
-    pop     %r8
-    pop     %rdi
-    pop     %rsi
-    pop     %rdx
-    pop     %rcx
-    pop     %rax
-    iretq
+    call    E_interrupt_I_panic
 E_interrupt_I_exeception_nmi:
+    push    %rdx
     push    %rax
     push    %rcx
     push    %rdx
+    push    %rbx
+    push    %rbp
     push    %rsi
     push    %rdi
     push    %r8
     push    %r9
     push    %r10
     push    %r11
+    push    %r12
+    push    %r13
+    push    %r14
+    push    %r15
+    mov     %rsp,%rsi
+    and     $~0xf,%rsp
+    lea     -4*8(%rsp),%rsp
     lea     msg_2-.-3(%rip),%rdi
-    lea     fmt_0-.-3(%rip),%rsi
-    call    E_se_log_I_log
-    pop     %r11
-    pop     %r10
-    pop     %r9
-    pop     %r8
-    pop     %rdi
-    pop     %rsi
-    pop     %rdx
-    pop     %rcx
-    pop     %rax
-    iretq
+    call    E_interrupt_I_panic
 E_interrupt_I_exeception_bp:
+    push    %rdx
     push    %rax
     push    %rcx
     push    %rdx
+    push    %rbx
+    push    %rbp
     push    %rsi
     push    %rdi
     push    %r8
     push    %r9
     push    %r10
     push    %r11
+    push    %r12
+    push    %r13
+    push    %r14
+    push    %r15
+    mov     %rsp,%rsi
+    and     $~0xf,%rsp
+    lea     -4*8(%rsp),%rsp
     lea     msg_3-.-3(%rip),%rdi
-    lea     fmt_0-.-3(%rip),%rsi
-    call    E_se_log_I_log
-    pop     %r11
-    pop     %r10
-    pop     %r9
-    pop     %r8
-    pop     %rdi
-    pop     %rsi
-    pop     %rdx
-    pop     %rcx
-    pop     %rax
-    iretq
+    call    E_interrupt_I_panic
 E_interrupt_I_exeception_of:
+    push    %rdx
     push    %rax
     push    %rcx
     push    %rdx
+    push    %rbx
+    push    %rbp
     push    %rsi
     push    %rdi
     push    %r8
     push    %r9
     push    %r10
     push    %r11
+    push    %r12
+    push    %r13
+    push    %r14
+    push    %r15
+    mov     %rsp,%rsi
+    and     $~0xf,%rsp
+    lea     -4*8(%rsp),%rsp
     lea     msg_4-.-3(%rip),%rdi
-    lea     fmt_0-.-3(%rip),%rsi
-    call    E_se_log_I_log
-    pop     %r11
-    pop     %r10
-    pop     %r9
-    pop     %r8
-    pop     %rdi
-    pop     %rsi
-    pop     %rdx
-    pop     %rcx
-    pop     %rax
-    iretq
+    call    E_interrupt_I_panic
 E_interrupt_I_exeception_br:
+    push    %rdx
     push    %rax
     push    %rcx
     push    %rdx
+    push    %rbx
+    push    %rbp
     push    %rsi
     push    %rdi
     push    %r8
     push    %r9
     push    %r10
     push    %r11
+    push    %r12
+    push    %r13
+    push    %r14
+    push    %r15
+    mov     %rsp,%rsi
+    and     $~0xf,%rsp
+    lea     -4*8(%rsp),%rsp
     lea     msg_5-.-3(%rip),%rdi
-    lea     fmt_0-.-3(%rip),%rsi
-    call    E_se_log_I_log
-    pop     %r11
-    pop     %r10
-    pop     %r9
-    pop     %r8
-    pop     %rdi
-    pop     %rsi
-    pop     %rdx
-    pop     %rcx
-    pop     %rax
-    iretq
+    call    E_interrupt_I_panic
 E_interrupt_I_exeception_ud:
+    push    %rdx
     push    %rax
     push    %rcx
     push    %rdx
+    push    %rbx
+    push    %rbp
     push    %rsi
     push    %rdi
     push    %r8
     push    %r9
     push    %r10
     push    %r11
+    push    %r12
+    push    %r13
+    push    %r14
+    push    %r15
+    mov     %rsp,%rsi
+    and     $~0xf,%rsp
+    lea     -4*8(%rsp),%rsp
     lea     msg_6-.-3(%rip),%rdi
-    lea     fmt_0-.-3(%rip),%rsi
-    call    E_se_log_I_log
-    jmp     Halt
-    pop     %r11
-    pop     %r10
-    pop     %r9
-    pop     %r8
-    pop     %rdi
-    pop     %rsi
-    pop     %rdx
-    pop     %rcx
-    pop     %rax
-    iretq
+    call    E_interrupt_I_panic
 E_interrupt_I_exeception_nm:
+    push    %rdx
     push    %rax
     push    %rcx
     push    %rdx
+    push    %rbx
+    push    %rbp
     push    %rsi
     push    %rdi
     push    %r8
     push    %r9
     push    %r10
     push    %r11
+    push    %r12
+    push    %r13
+    push    %r14
+    push    %r15
+    mov     %rsp,%rsi
+    and     $~0xf,%rsp
+    lea     -4*8(%rsp),%rsp
     lea     msg_7-.-3(%rip),%rdi
-    lea     fmt_0-.-3(%rip),%rsi
-    call    E_se_log_I_log
-    pop     %r11
-    pop     %r10
-    pop     %r9
-    pop     %r8
-    pop     %rdi
-    pop     %rsi
-    pop     %rdx
-    pop     %rcx
-    pop     %rax
-    iretq
+    call    E_interrupt_I_panic
 E_interrupt_I_exeception_df:
+    push    %rdx
     push    %rax
     push    %rcx
     push    %rdx
+    push    %rbx
+    push    %rbp
     push    %rsi
     push    %rdi
     push    %r8
     push    %r9
     push    %r10
     push    %r11
+    push    %r12
+    push    %r13
+    push    %r14
+    push    %r15
+    mov     %rsp,%rsi
+    and     $~0xf,%rsp
+    lea     -4*8(%rsp),%rsp
     lea     msg_8-.-3(%rip),%rdi
-    lea     fmt-.-3(%rip),%rsi
-    mov     9*8(%rsp),%rdx
-    call    E_se_log_I_log
-    pop     %r11
-    pop     %r10
-    pop     %r9
-    pop     %r8
-    pop     %rdi
-    pop     %rsi
-    pop     %rdx
-    pop     %rcx
-    pop     %rax
-    lea     8(%rsp),%rsp
-    iretq
+    call    E_interrupt_I_panic
 E_interrupt_I_exeception_ts:
     push    %rax
     push    %rcx
     push    %rdx
+    push    %rbx
+    push    %rbp
     push    %rsi
     push    %rdi
     push    %r8
     push    %r9
     push    %r10
     push    %r11
+    push    %r12
+    push    %r13
+    push    %r14
+    push    %r15
+    mov     %rsp,%rsi
+    and     $~0xf,%rsp
+    lea     -4*8(%rsp),%rsp
     lea     msg_10-.-3(%rip),%rdi
-    lea     fmt-.-3(%rip),%rsi
-    mov     9*8(%rsp),%rdx
-    call    E_se_log_I_log
-    pop     %r11
-    pop     %r10
-    pop     %r9
-    pop     %r8
-    pop     %rdi
-    pop     %rsi
-    pop     %rdx
-    pop     %rcx
-    pop     %rax
-    lea     8(%rsp),%rsp
-    iretq
+    call    E_interrupt_I_panic
 E_interrupt_I_exeception_np:
     push    %rax
     push    %rcx
-    push    %rdx
-    push    %rsi
     push    %rdi
+    push    %rsi
     push    %r8
     push    %r9
     push    %r10
     push    %r11
+    push    %rbx
+    mov     %rsp,%rsi
+    and     $~0xf,%rsp
+    lea     -4*8(%rsp),%rsp
     lea     msg_11-.-3(%rip),%rdi
-    lea     fmt-.-3(%rip),%rsi
-    mov     9*8(%rsp),%rdx
-    call    E_se_log_I_log
-    pop     %r11
-    pop     %r10
-    pop     %r9
-    pop     %r8
-    pop     %rdi
-    pop     %rsi
-    pop     %rdx
-    pop     %rcx
-    pop     %rax
-    lea     8(%rsp),%rsp
-    iretq
+    call    E_interrupt_I_panic
 E_interrupt_I_exeception_ss:
     push    %rax
     push    %rcx
     push    %rdx
+    push    %rbx
+    push    %rbp
     push    %rsi
     push    %rdi
     push    %r8
     push    %r9
     push    %r10
     push    %r11
+    push    %r12
+    push    %r13
+    push    %r14
+    push    %r15
+    mov     %rsp,%rsi
+    and     $~0xf,%rsp
+    lea     -4*8(%rsp),%rsp
     lea     msg_12-.-3(%rip),%rdi
-    lea     fmt-.-3(%rip),%rsi
-    mov     9*8(%rsp),%rdx
-    call    E_se_log_I_log
-    pop     %r11
-    pop     %r10
-    pop     %r9
-    pop     %r8
-    pop     %rdi
-    pop     %rsi
-    pop     %rdx
-    pop     %rcx
-    pop     %rax
-    lea     8(%rsp),%rsp
-    iretq
+    call    E_interrupt_I_panic
 E_interrupt_I_exeception_gp:
     push    %rax
     push    %rcx
     push    %rdx
+    push    %rbx
+    push    %rbp
     push    %rsi
     push    %rdi
     push    %r8
     push    %r9
     push    %r10
     push    %r11
+    push    %r12
+    push    %r13
+    push    %r14
+    push    %r15
+    mov     %rsp,%rsi
+    and     $~0xf,%rsp
+    lea     -4*8(%rsp),%rsp
     lea     msg_13-.-3(%rip),%rdi
-    lea     fmt-.-3(%rip),%rsi
-    mov     9*8(%rsp),%rdx
-    call    E_se_log_I_log
-    pop     %r11
-    pop     %r10
-    pop     %r9
-    pop     %r8
-    pop     %rdi
-    pop     %rsi
-    pop     %rdx
-    pop     %rcx
-    pop     %rax
-    lea     8(%rsp),%rsp
-0:  cli
-    hlt
-    jmp     0b
-    iretq
+    call    E_interrupt_I_panic
 E_interrupt_I_exeception_pf:
     push    %rax
     push    %rcx
     push    %rdx
+    push    %rbx
+    push    %rbp
     push    %rsi
     push    %rdi
     push    %r8
     push    %r9
     push    %r10
     push    %r11
+    push    %r12
+    push    %r13
+    push    %r14
+    push    %r15
+    mov     %rsp,%rsi
+    and     $~0xf,%rsp
+    lea     -4*8(%rsp),%rsp
     lea     msg_14-.-3(%rip),%rdi
-    lea     fmt-.-3(%rip),%rsi
-    mov     9*8(%rsp),%rdx
-    call    E_se_log_I_log
-    mov     9*8(%rsp),%rax
-    test    $1,%rax
-    jnz     Halt
-    mov     %cr2,%rbx
-    lea     fmt-.-3(%rip),%rsi
-    mov     %rbx,%rdx
-    call    E_se_log_I_log
-    test    $~0<<12,%rbx
-    jz      Halt
-    mov     %rbx,%rdi
-    call    E_mem_Q_stack_I_page_fault
-0:  pop     %r11
-    pop     %r10
-    pop     %r9
-    pop     %r8
-    pop     %rdi
-    pop     %rsi
-    pop     %rdx
-    pop     %rcx
-    pop     %rax
-    lea     8(%rsp),%rsp
-    iretq
+    call    E_interrupt_I_panic
 E_interrupt_I_exeception_mf:
     push    %rax
     push    %rcx
     push    %rdx
+    push    %rbx
+    push    %rbp
     push    %rsi
     push    %rdi
     push    %r8
     push    %r9
     push    %r10
     push    %r11
+    push    %r12
+    push    %r13
+    push    %r14
+    push    %r15
+    mov     %rsp,%rsi
+    and     $~0xf,%rsp
+    lea     -4*8(%rsp),%rsp
     lea     msg_16-.-3(%rip),%rdi
-    lea     fmt_0-.-3(%rip),%rsi
-    call    E_se_log_I_log
-    pop     %r11
-    pop     %r10
-    pop     %r9
-    pop     %r8
-    pop     %rdi
-    pop     %rsi
-    pop     %rdx
-    pop     %rcx
-    pop     %rax
-    iretq
+    call    E_interrupt_I_panic
 E_interrupt_I_exeception_ac:
     push    %rax
     push    %rcx
     push    %rdx
+    push    %rbx
+    push    %rbp
     push    %rsi
     push    %rdi
     push    %r8
     push    %r9
     push    %r10
     push    %r11
+    push    %r12
+    push    %r13
+    push    %r14
+    push    %r15
+    mov     %rsp,%rsi
+    and     $~0xf,%rsp
+    lea     -4*8(%rsp),%rsp
     lea     msg_17-.-3(%rip),%rdi
-    lea     fmt-.-3(%rip),%rsi
-    mov     9*8(%rsp),%rdx
-    call    E_se_log_I_log
-    pop     %r11
-    pop     %r10
-    pop     %r9
-    pop     %r8
-    pop     %rdi
-    pop     %rsi
-    pop     %rdx
-    pop     %rcx
-    pop     %rax
-    lea     8(%rsp),%rsp
-    iretq
+    call    E_interrupt_I_panic
 E_interrupt_I_exeception_mc:
     push    %rax
     push    %rcx
     push    %rdx
+    push    %rbx
+    push    %rbp
     push    %rsi
     push    %rdi
     push    %r8
     push    %r9
     push    %r10
     push    %r11
+    push    %r12
+    push    %r13
+    push    %r14
+    push    %r15
+    mov     %rsp,%rsi
+    and     $~0xf,%rsp
+    lea     -4*8(%rsp),%rsp
     lea     msg_18-.-3(%rip),%rdi
-    lea     fmt_0-.-3(%rip),%rsi
-    call    E_se_log_I_log
-    pop     %r11
-    pop     %r10
-    pop     %r9
-    pop     %r8
-    pop     %rdi
-    pop     %rsi
-    pop     %rdx
-    pop     %rcx
-    pop     %rax
-    iretq
+    call    E_interrupt_I_panic
 E_interrupt_I_exeception_xm:
     push    %rax
     push    %rcx
     push    %rdx
+    push    %rbx
+    push    %rbp
     push    %rsi
     push    %rdi
     push    %r8
     push    %r9
     push    %r10
     push    %r11
+    push    %r12
+    push    %r13
+    push    %r14
+    push    %r15
+    mov     %rsp,%rsi
+    and     $~0xf,%rsp
+    lea     -4*8(%rsp),%rsp
     lea     msg_19-.-3(%rip),%rdi
-    lea     fmt_0-.-3(%rip),%rsi
-    call    E_se_log_I_log
-    pop     %r11
-    pop     %r10
-    pop     %r9
-    pop     %r8
-    pop     %rdi
-    pop     %rsi
-    pop     %rdx
-    pop     %rcx
-    pop     %rax
-    iretq
+    call    E_interrupt_I_panic
 E_interrupt_I_exeception_ve:
     push    %rax
     push    %rcx
     push    %rdx
+    push    %rbx
+    push    %rbp
     push    %rsi
     push    %rdi
     push    %r8
     push    %r9
     push    %r10
     push    %r11
+    push    %r12
+    push    %r13
+    push    %r14
+    push    %r15
+    mov     %rsp,%rsi
+    and     $~0xf,%rsp
+    lea     -4*8(%rsp),%rsp
     lea     msg_20-.-3(%rip),%rdi
-    lea     fmt_0-.-3(%rip),%rsi
-    call    E_se_log_I_log
-    pop     %r11
-    pop     %r10
-    pop     %r9
-    pop     %r8
-    pop     %rdi
-    pop     %rsi
-    pop     %rdx
-    pop     %rcx
-    pop     %rax
-    iretq
+    call    E_interrupt_I_panic
 E_interrupt_I_exeception_cp:
     push    %rax
     push    %rcx
     push    %rdx
+    push    %rbx
+    push    %rbp
     push    %rsi
     push    %rdi
     push    %r8
     push    %r9
     push    %r10
     push    %r11
+    push    %r12
+    push    %r13
+    push    %r14
+    push    %r15
+    mov     %rsp,%rsi
+    and     $~0xf,%rsp
+    lea     -4*8(%rsp),%rsp
     lea     msg_21-.-3(%rip),%rdi
-    lea     fmt-.-3(%rip),%rsi
-    mov     9*8(%rsp),%rdx
-    call    E_se_log_I_log
-    pop     %r11
-    pop     %r10
-    pop     %r9
-    pop     %r8
-    pop     %rdi
-    pop     %rsi
-    pop     %rdx
-    pop     %rcx
-    pop     %rax
-    lea     8(%rsp),%rsp
-    iretq
+    call    E_interrupt_I_panic
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 E_interrupt_I_external:
+    xchg    (%rsp),%rdx
     push    %rax
     push    %rcx
-    push    %rdx
-    push    %rsi
     push    %rdi
+    push    %rsi
     push    %r8
     push    %r9
     push    %r10
     push    %r11
-    mov     9*8(%rsp),%rcx
+    push    %rbp
+    mov     %rsp,%rbp
+    and     $~0xf,%rsp
+    sub     $512,%rsp
+    fxsave  (%rsp)
+    lea     -4*8(%rsp),%rsp
     mov     E_interrupt_S_external(%rip),%rax
-    mov     (%rax,%rcx,8),%rax
+    mov     (%rax,%rdx,8),%rax
     test    %rax,%rax
     jz      0f
     call    *%rax
 0:  mov     $0x80b,%rdi
     xor     %esi,%esi
     call    E_main_Q_msr_P
+    lea     4*8(%rsp),%rsp
+    fxrstor (%rsp)
+    mov     %rbp,%rsp
+    pop     %rbp
     pop     %r11
     pop     %r10
     pop     %r9
     pop     %r8
-    pop     %rdi
     pop     %rsi
-    pop     %rdx
+    pop     %rdi
     pop     %rcx
     pop     %rax
-    lea     8(%rsp),%rsp
+    pop     %rdx
     iretq
 //------------------------------------------------------------------------------
 E_interrupt_I_external_32:
@@ -1471,31 +1411,43 @@ E_interrupt_I_external_254:
     jmp     E_interrupt_I_external
 //------------------------------------------------------------------------------
 E_interrupt_I_external_spurious:
+    push    %rdi
     push    %rax
     push    %rcx
     push    %rdx
     push    %rsi
-    push    %rdi
     push    %r8
     push    %r9
     push    %r10
     push    %r11
-    lea     msg_x-.-3(%rip),%rdi
+    push    %rbx
+    push    %rbp
+    mov     %rsp,%rbp
+    and     $~0xf,%rsp
+    lea     -4*8(%rsp),%rsp
+    cmpb    $0,E_flow_S_inited(%rip)
+    je      0f
+    call    E_flow_I_current_scheduler
+    mov     E_flow_S_scheduler(%rip),%rbx
+    lea     6*8+4(%rbx,%rax,8),%rbx
+    bts     $0,(%rbx)
+0:  lea     msg_x-.-3(%rip),%rdi
     lea     fmt_0-.-3(%rip),%rsi
     call    E_se_log_I_log
+0:  cmpb    $0,E_flow_S_inited(%rip)
+    je      0f
+    btr     $0,(%rbx)
+0:  mov     %rbp,%rsp
+    pop     %rbp
+    pop     %rbx
     pop     %r11
     pop     %r10
     pop     %r9
     pop     %r8
-    pop     %rdi
     pop     %rsi
     pop     %rdx
     pop     %rcx
     pop     %rax
+    pop     %rdi
     iretq
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Halt:
-    cli
-0:  hlt
-    jmp     0b
 /******************************************************************************/

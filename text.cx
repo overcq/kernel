@@ -2032,6 +2032,8 @@ E_text_I_vsprintf( Pc *output
 Cont:   fmt = s;
     }
     P r = E_text_Z_s_I_append_c( output, '\0' );
+    if( !r )
+        W( *output );
     return r ? 0 : ~0;
 }
 /******************************************************************************/

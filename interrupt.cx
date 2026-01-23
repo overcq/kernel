@@ -274,12 +274,12 @@ struct __attribute__ ((packed)) E_interrupt_Z_id
 };
 _private struct E_interrupt_Z_id E_interrupt_S_id;
 //------------------------------------------------------------------------------
-_internal N E_interrupt_S_apic_timer_ticks;
-_private N E_interrupt_S_cpu_freq;
+_internal volatile N E_interrupt_S_apic_timer_ticks;
+_private volatile N E_interrupt_S_cpu_freq;
 _private N E_interrupt_S_apic_timer_tick_time;
-_private N E_interrupt_S_apic_timer_freq;
-_internal N E_interrupt_S_apic_timer_freq_;
-_internal N E_interrupt_S_apic_timer_div;
+_private volatile N E_interrupt_S_apic_timer_freq;
+_internal volatile N E_interrupt_S_apic_timer_freq_;
+_internal volatile N E_interrupt_S_apic_timer_div;
 _internal volatile N E_interrupt_S_rtc_ticks;
 //==============================================================================
 _internal
@@ -307,7 +307,7 @@ _private
 void
 E_interrupt_I_ipi( N32 processor
 , N8 i
-){  E_main_Q_msr_P( 0x830, ( (N64)processor << 32 ) | i );
+){  E_main_Q_msr_P( 0x830, ( (N64)processor << 32 ) | ( 32 + i ));
 }
 _private
 void
@@ -383,6 +383,51 @@ E_interrupt_R_gsi_next( void
         return ~0;
     return E_interrupt_S_gsi_next++;
 }
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_private
+void
+E_interrupt_I_print_hex( N v
+){  E_emerg_print_I_print( "0x" );
+    if( !v )
+    {   E_emerg_print_I_print( "0" );
+        return;
+    }
+    C buf[ 16 + 1 ];
+    buf[16] = '\0';
+    N8 i = 16;
+    while(v)
+    {   N8 v_ = v & 0xf;
+        buf[ --i ] = v_ < 10 ? '0' + v_ : 'a' + v_ - 10;
+        v >>= 4;
+    }
+    E_emerg_print_I_print( (Pc)&buf[i] );
+}
+_private
+__attribute__ (( __noreturn__ ))
+void
+E_interrupt_I_panic( Pc message
+, N *stack_frame
+){  E_emerg_print_I_set_panic();
+    E_emerg_print_I_print( "\nPANIC: " );
+    E_emerg_print_I_print(message);
+    E_emerg_print_I_print( "\nKernel Base: " );
+    E_interrupt_I_print_hex( (N)E_main_S_kernel );
+    if( stack_frame )
+    {   E_emerg_print_I_print( "\nStack dump (RBP):" );
+        for_n( i, 20 )
+        {   if( !( i % 4 ) )
+                E_emerg_print_I_print_nl();
+            else
+                E_emerg_print_I_print( " " );
+            E_interrupt_I_print_hex( stack_frame[i] );
+        }
+    }
+    O{  __asm__ volatile (
+        "\n"    "hlt"
+        );
+    }
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _private
 N
 E_interrupt_M( void
@@ -417,8 +462,8 @@ E_interrupt_M( void
         E_interrupt_S_idt[ i * 2 ] = 0;
     Mt_( E_interrupt_S_external, E_interrupt_S_gsi_n );
     if( !E_interrupt_S_external )
-    {   W( E_interrupt_S_idt );
-        return ~0;
+    {   N r = W( E_interrupt_S_idt );
+        return r ? ~1 : ~0;
     }
     _0t_( E_interrupt_S_external, E_interrupt_S_gsi_n );
     for( N i = 32; i != 32 + E_interrupt_S_gsi_n; i++ )
@@ -1153,7 +1198,7 @@ E_interrupt_M( void
         "\n"    "cli"
         );
         E_main_Q_msr_P( 0x838, 0 );
-        if(( E_interrupt_S_apic_timer_freq << 1 ) > E_interrupt_S_apic_timer_freq_ ) // Czy nie nadąża obsługiwać przerwań zliczających.
+        if(( E_interrupt_S_apic_timer_freq << 1 ) > E_interrupt_S_apic_timer_freq_ ) // Czy nie nadąża obsługiwać przerwań zliczających?
         {   E_interrupt_S_apic_timer_div <<= 1;
             break;
         }

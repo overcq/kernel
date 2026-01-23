@@ -89,9 +89,9 @@
 // Instrukcja blokowa definicji ‹zadania›.
 #define D(module,task)                      _private _unused void _D_proc(module,task)(void)
     #ifdef C_line_report
-#define D_M(module,additional_stack_pages,task) if( ~E_flow_Q_task_M( &D_id(module,task), ( additional_stack_pages ), &_D_proc(module,task), J_s( _D_proc(module,task) ))){} else
+#define D_M(module,task,additional_stack_pages) if( ~E_flow_Q_task_M( &D_id(module,task), ( additional_stack_pages ), &_D_proc(module,task), J_s( _D_proc(module,task) ))){} else
     #else
-#define D_M(module,additional_stack_pages,task) if( ~E_flow_Q_task_M( &D_id(module,task), ( additional_stack_pages ), &_D_proc(module,task) )){} else
+#define D_M(module,task,additional_stack_pages) if( ~E_flow_Q_task_M( &D_id(module,task), ( additional_stack_pages ), &_D_proc(module,task) )){} else
     #endif
 #define D_W(module,task)                    E_flow_Q_task_W( &D_id(module,task) )
 //------------------------------------------------------------------------------

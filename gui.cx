@@ -21,6 +21,7 @@ enum E_gui_Q_desktop_Z_window_resizing_state
 , E_gui_Q_desktop_Z_window_resizing_state_S_w
 };
 //==============================================================================
+_private volatile B E_gui_Q_pointer_S_move_blocked;
 _private B E_gui_Q_taskbar_S_redraw;
 _private N8 E_gui_Q_taskbar_S_font_size;
 _internal N8 E_gui_Q_taskbar_S_thickness;
@@ -28,7 +29,7 @@ _private N32 E_gui_Q_taskbar_S_height;
 _internal N32 E_gui_Q_taskbar_S_panel_width, E_gui_Q_taskbar_S_panel_height;
 _internal N8 E_gui_Q_pointer_S_width, E_gui_Q_pointer_S_height;
 _internal N32 E_gui_Q_pointer_S_coordinate[2];
-_private volatile I E_gui_Q_taskbar_S_mouse_over_panel;
+_private I E_gui_Q_taskbar_S_mouse_over_panel;
 _private B E_gui_Q_desktop_S_window_moving;
 _private enum E_gui_Q_desktop_Z_window_resizing_state E_gui_Q_desktop_S_window_resizing_state;
 _internal N32 E_gui_Q_desktop_S_window_moving_resizing_dx, E_gui_Q_desktop_S_window_moving_resizing_dy;
@@ -40,6 +41,7 @@ _private
 N
 E_gui_M( void
 ){  E_emerg_print_S_active = no;
+    E_gui_Q_pointer_S_move_blocked = no;
     E_gui_Q_taskbar_S_font_size = 1; //DFN Musi być co najmniej 1 ze względu na zmniejszanie dla opisu przycisku.
     E_gui_Q_taskbar_S_thickness = 1;
     E_gui_Q_desktop_S_window_border_thickness = 4;
@@ -66,8 +68,8 @@ E_gui_M( void
         if( window_id < 0 )
             return window_id;
     }
-    E_window_log_S_active = yes;
-    D_M( gui, 0, draw )
+    E_window_log_S_active = yes; //TODO Ustawiać tę flagę tylko, jeśli okno logowania jest widoczne.
+    D_M( gui, draw, 0 )
         return ~0;
     return 0;
 }
@@ -82,12 +84,14 @@ E_gui_Q_pointer_I_draw( N32 x
             break;
         video_address[ x_i ] = 0;
     }
-    video_address = E_main_S_framebuffer.p + ( y + 1 ) * E_main_S_framebuffer.pixels_per_scan_line + x;
-    for_n( y_i, E_gui_Q_pointer_S_height - 1 )
-    {   if( y + 1 + y_i == E_main_S_framebuffer.height )
-            break;
-        *video_address = 0;
-        video_address += E_main_S_framebuffer.pixels_per_scan_line;
+    if( y + 1 != E_main_S_framebuffer.height )
+    {   video_address = E_main_S_framebuffer.p + ( y + 1 ) * E_main_S_framebuffer.pixels_per_scan_line + x;
+        for_n( y_i, E_gui_Q_pointer_S_height - 1 )
+        {   if( y + 1 + y_i == E_main_S_framebuffer.height )
+                break;
+            *video_address = 0;
+            video_address += E_main_S_framebuffer.pixels_per_scan_line;
+        }
     }
     __asm__ volatile (
     "\n"    "sfence"
@@ -1202,7 +1206,9 @@ E_gui_Q_taskbar_I_draw_expander( void
         if( width < x + E_gui_Q_taskbar_S_thickness + 1 )
             width = x + E_gui_Q_taskbar_S_thickness + 1;
     }
-    if( panel_right_side)
+    if( width <= E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width - ( E_gui_Q_taskbar_S_mouse_over_panel != E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons - 1 ? 1 : 0 ))
+        return;
+    if( panel_right_side )
         x_0 = panel_x_1 > width ? panel_x_1 - width : 0;
     else
         x_0 = panel_x_0 + width > E_main_S_framebuffer.width ? E_main_S_framebuffer.width - width : panel_x_0;
@@ -1262,14 +1268,15 @@ D( gui, draw )
 {   X_M( gui, draw );
     O{  X_B( gui, draw, 0 )
             break;
-        E_flow_I_cli();
+        E_gui_Q_pointer_S_move_blocked = yes;
         E_gui_Q_pointer_I_move_0();
         E_gui_Q_desktop_I_draw();
         E_gui_Q_taskbar_I_draw();
         E_gui_Q_taskbar_I_draw_expander();
         E_vga_Q_buffer_I_draw( 0, 0, E_main_S_framebuffer.width, E_main_S_framebuffer.height ); //TODO Kopiować tylko obszary zmienione?
         E_gui_Q_pointer_I_move_1();
-        E_flow_I_sti();
+        E_gui_Q_pointer_S_move_blocked = no;
     }
+    X_W( gui, draw );
 }
 /******************************************************************************/
