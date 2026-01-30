@@ -51,8 +51,8 @@ E_mouse_I_interrupt_I_smooth( void
 _internal
 void
 E_mouse_I_interrupt( void
-){  N32 sched = E_flow_I_current_scheduler();
-    U_F( E_flow_S_scheduler[sched].state, inside_interrupt );
+){  N32 sched_i = E_flow_I_current_scheduler();
+    U_F( E_flow_S_scheduler[ sched_i ].state, inside_interrupt );
     N8 v = E_main_I_in_8( 0x60 );
     switch( E_mouse_S_interrupt_state )
     { default:
@@ -239,7 +239,7 @@ E_mouse_I_interrupt( void
             break;
         }
     }
-    U_L( E_flow_S_scheduler[sched].state, inside_interrupt );
+    U_L( E_flow_S_scheduler[ sched_i ].state, inside_interrupt );
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _internal
@@ -251,12 +251,12 @@ E_mouse_R_identify(
     if( E_keyboard_I_wait_write() )
         return ~0;
     E_main_I_out_8( 0x60, 0xf2 );
-    if( E_keyboard_I_wait_read(0) )
+    if( E_keyboard_I_wait_read() )
         return ~0;
     N8 v = E_main_I_in_8( 0x60 );
     if( v != 0xfa )
         return ~0;
-    if( E_keyboard_I_wait_read(0) )
+    if( E_keyboard_I_wait_read() )
         return ~0;
     return E_main_I_in_8( 0x60 );
 }
@@ -269,7 +269,7 @@ E_mouse_P_rate( N8 rate
     if( E_keyboard_I_wait_write() )
         return ~0;
     E_main_I_out_8( 0x60, 0xf3 );
-    if( E_keyboard_I_wait_read(0) )
+    if( E_keyboard_I_wait_read() )
         return ~0;
     N8 v = E_main_I_in_8( 0x60 );
     if( v != 0xfa )
@@ -280,7 +280,7 @@ E_mouse_P_rate( N8 rate
     if( E_keyboard_I_wait_write() )
         return ~0;
     E_main_I_out_8( 0x60, rate );
-    if( E_keyboard_I_wait_read(0) )
+    if( E_keyboard_I_wait_read() )
         return ~0;
     v = E_main_I_in_8( 0x60 );
     if( v != 0xfa )
@@ -308,7 +308,7 @@ E_mouse_I_disable( void
     if( E_keyboard_I_wait_write() )
         return ~0;
     E_main_I_out_8( 0x60, 0xf5 );
-    if( E_keyboard_I_wait_read(0) )
+    if( E_keyboard_I_wait_read() )
         return ~0;
     N8 v = E_main_I_in_8( 0x60 );
     if( v != 0xfa )

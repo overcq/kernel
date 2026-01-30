@@ -1,4 +1,4 @@
-//-*-C-*-
+    //-*-C-*-
 /*******************************************************************************
 *   ___   public
 *  ¦OUX¦  C+
@@ -34,7 +34,7 @@ struct E_mem_blk_Z
   B reserved_from_end;
 }E_mem_blk_S;
 //------------------------------------------------------------------------------
-_private volatile N8 E_mem_blk_S_lock;
+_private B E_mem_blk_S_lock;
 //==============================================================================
 _internal void E_mem_Q_blk_Q_sys_table_f_I_move_empty_entry(N);
 _internal N E_mem_Q_blk_Q_sys_table_R_last( N, N );

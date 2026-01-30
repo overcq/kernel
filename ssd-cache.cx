@@ -1,0 +1,505 @@
+//-*-C-*-
+/*******************************************************************************
+*   ___   public
+*  ¦OUX¦  C+
+*  ¦/C+¦  OUX/C+ OS
+*   ---   kernel
+*         SSD Cache driver (ASWB)
+*******************************************************************************/
+//TODO Dodać obsługę zakresów ‘dirty’.
+//==============================================================================
+#define E_ssd_cache_Q_trim_S_list_max   ( 4096 / sizeof( struct E_sata_Z_dsm_range ))
+//==============================================================================
+struct E_ssd_cache_Z
+{ N pba;
+  N count;
+  P data;
+};
+//==============================================================================
+_private volatile N8 E_ssd_cache_S_lock;
+//==============================================================================
+_private
+N
+E_ssd_cache_I_init( struct E_disc_Z *disc
+){  disc->sata_ahci.ssd_cache_n = 0;
+    Mt_( disc->sata_ahci.ssd_cache, disc->sata_ahci.ssd_cache_n );
+    if( !disc->sata_ahci.ssd_cache )
+        return ~0;
+    disc->sata_ahci.trim_list_n = 0;
+    Mt_( disc->sata_ahci.trim_list, E_ssd_cache_Q_trim_S_list_max );
+    if( !disc->sata_ahci.trim_list )
+        return ~0;
+    _0( disc->sata_ahci.trim_list, E_ssd_cache_Q_trim_S_list_max * sizeof( *disc->sata_ahci.trim_list ));
+    return 0;
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//DFN Procedury ‘read’/‘write’ — jeśli zakończyły się bez błędu — to nie zwalniają ‘lock’. Trzeba go zwolnić po wykonaniu operacji na danych.
+_private
+N
+E_ssd_cache_I_read( I disc_id
+, N pba
+, N count
+, P *data //DFN Adres do danych w ‘cache’.
+, N *r
+){  *r = 0;
+    struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
+    if( E_flow_I_lock_r( &disc->sata_ahci.ssd_cache_lock, r ))
+        return ~0;
+    N32 slot_mask = 0;
+    if( disc->sata_ahci.ssd_cache_n )
+    {   N min = 0;
+        N max = disc->sata_ahci.ssd_cache_n - 1;
+        N cache_i = max / 2;
+        O{  N cache_start = disc->sata_ahci.ssd_cache[ cache_i ].pba;
+            N cache_end = disc->sata_ahci.ssd_cache[ cache_i ].pba + disc->sata_ahci.ssd_cache[ cache_i ].count;
+            if( pba >= cache_start
+            && pba < cache_end
+            ) // Początek żądanego sektora jest wewnątrz bloku ‘cache’.
+                break;
+            if( cache_start > pba )
+            {   if( cache_i == min )
+                {   if( !E_mem_Q_blk_I_insert( &disc->sata_ahci.ssd_cache, cache_i, 1 ))
+                    {   *r = ~0;
+                        goto End;
+                    }
+                    disc->sata_ahci.ssd_cache[ cache_i ].data = Mt( disc->sata_ahci.physical_sector_size, 0 );
+                    if( !disc->sata_ahci.ssd_cache[ cache_i ].data )
+                    {   *r = E_mem_Q_blk_I_remove( &disc->sata_ahci.ssd_cache, cache_i, 1 ) ? ~0 : ~2;
+                        goto End;
+                    }
+                    disc->sata_ahci.ssd_cache_n++;
+                    disc->sata_ahci.ssd_cache[ cache_i ].pba = pba;
+                    disc->sata_ahci.ssd_cache[ cache_i ].count = 0;
+                    break;
+                }
+                max = cache_i - 1;
+                cache_i = max - ( cache_i - min ) / 2;
+            }else
+            {   if( cache_i == max )
+                {   cache_i++;
+                    if( !E_mem_Q_blk_I_insert( &disc->sata_ahci.ssd_cache, cache_i, 1 ))
+                    {   *r = ~0;
+                        goto End;
+                    }
+                    disc->sata_ahci.ssd_cache[ cache_i ].data = Mt( disc->sata_ahci.physical_sector_size, 0 );
+                    if( !disc->sata_ahci.ssd_cache[ cache_i ].data )
+                    {   *r = E_mem_Q_blk_I_remove( &disc->sata_ahci.ssd_cache, cache_i, 1 ) ? ~0 : ~2;
+                        goto End;
+                    }
+                    disc->sata_ahci.ssd_cache_n++;
+                    disc->sata_ahci.ssd_cache[ cache_i ].pba = pba;
+                    disc->sata_ahci.ssd_cache[ cache_i ].count = 0;
+                    break;
+                }
+                min = cache_i + 1;
+                cache_i = min + ( max - cache_i ) / 2;
+            }
+        }
+        N cache_i_last = cache_i;
+        while( cache_i_last + 1 != disc->sata_ahci.ssd_cache_n
+        && disc->sata_ahci.ssd_cache[ cache_i_last + 1 ].pba <= pba + count
+        ) // Dopóki następny blok rozpoczyna się wewnątrz lub przylega do żądanego zakresu.
+            cache_i_last++;
+        if( cache_i != cache_i_last )
+        {   if( !E_mem_Q_blk_I_append_align( &disc->sata_ahci.ssd_cache[ cache_i ].data
+            , J_max( pba + count, disc->sata_ahci.ssd_cache[ cache_i_last ].pba + disc->sata_ahci.ssd_cache[ cache_i_last ].count )
+              - ( disc->sata_ahci.ssd_cache[ cache_i ].pba + disc->sata_ahci.ssd_cache[ cache_i ].count )
+            , 4096
+            ))
+            {   *r = ~2;
+                goto End;
+            }
+            N cache_i_0 = cache_i;
+            N cache_start, cache_end;
+            do
+            {   cache_start = disc->sata_ahci.ssd_cache[ cache_i + 1 ].pba;
+                cache_end = disc->sata_ahci.ssd_cache[ cache_i + 1 ].pba + disc->sata_ahci.ssd_cache[ cache_i + 1 ].count;
+                N read_count = cache_start - ( disc->sata_ahci.ssd_cache[ cache_i ].pba + disc->sata_ahci.ssd_cache[ cache_i ].count );
+                if( E_sata_Q_sata_ahci_I_read( disc_id
+                , disc->sata_ahci.logical_sector_shift + pba * disc->sata_ahci.physical_sector_size / disc->sata_ahci.logical_sector_size
+                , read_count * disc->sata_ahci.physical_sector_size / disc->sata_ahci.logical_sector_size
+                , disc->sata_ahci.ssd_cache[ cache_i_0 ].data + disc->sata_ahci.ssd_cache[ cache_i_0 ].count * disc->sata_ahci.physical_sector_size
+                , &slot_mask
+                ))
+                {   *r = ~2;
+                    goto End;
+                }
+                disc = E_mem_Q_tab_R( E_disc_S, disc_id );
+                disc->sata_ahci.ssd_cache[ cache_i_0 ].count += read_count;
+                N copy_count = cache_end - cache_start;
+                E_mem_Q_blk_I_copy( disc->sata_ahci.ssd_cache[ cache_i_0 ].data + disc->sata_ahci.ssd_cache[ cache_i_0 ].count * disc->sata_ahci.physical_sector_size
+                , disc->sata_ahci.ssd_cache[ cache_i + 1 ].data
+                , copy_count * disc->sata_ahci.physical_sector_size
+                );
+                disc->sata_ahci.ssd_cache[ cache_i_0 ].count += copy_count;
+                if( W( disc->sata_ahci.ssd_cache[ cache_i + 1 ].data ))
+                {   *r = ~2;
+                    goto End;
+                }
+                cache_i++;
+            }while( cache_i != cache_i_last );
+            if( cache_end < pba + count )
+            {   N read_count = pba + count - cache_end;
+                if( E_sata_Q_sata_ahci_I_read( disc_id
+                , disc->sata_ahci.logical_sector_shift + pba * disc->sata_ahci.physical_sector_size / disc->sata_ahci.logical_sector_size
+                , read_count * disc->sata_ahci.physical_sector_size / disc->sata_ahci.logical_sector_size
+                , disc->sata_ahci.ssd_cache[ cache_i_0 ].data + disc->sata_ahci.ssd_cache[ cache_i_0 ].count * disc->sata_ahci.physical_sector_size
+                , &slot_mask
+                ))
+                {   *r = ~2;
+                    goto End;
+                }
+                disc = E_mem_Q_tab_R( E_disc_S, disc_id );
+                disc->sata_ahci.ssd_cache[ cache_i_0 ].count += read_count;
+            }
+            if( !E_mem_Q_blk_I_remove( &disc->sata_ahci.ssd_cache, cache_i_0 + 1, cache_i_last - cache_i_0 ))
+            {   *r = ~2;
+                goto End;
+            }
+            disc->sata_ahci.ssd_cache_n -= cache_i_last - cache_i_0;
+            *data = disc->sata_ahci.ssd_cache[ cache_i_0 ].data + ( pba - disc->sata_ahci.ssd_cache[ cache_i_0 ].pba ) * disc->sata_ahci.physical_sector_size;
+        }else
+        {   N cache_end = disc->sata_ahci.ssd_cache[ cache_i ].pba + disc->sata_ahci.ssd_cache[ cache_i ].count;
+            if( cache_end < pba + count )
+            {   if( !E_mem_Q_blk_I_append_align( &disc->sata_ahci.ssd_cache[ cache_i ].data
+                , pba + count - cache_end
+                , 4096
+                ))
+                {   *r = ~2;
+                    goto End;
+                }
+                N read_count = pba + count - cache_end;
+                if( E_sata_Q_sata_ahci_I_read( disc_id
+                , disc->sata_ahci.logical_sector_shift + pba * disc->sata_ahci.physical_sector_size / disc->sata_ahci.logical_sector_size
+                , read_count * disc->sata_ahci.physical_sector_size / disc->sata_ahci.logical_sector_size
+                , disc->sata_ahci.ssd_cache[ cache_i ].data + disc->sata_ahci.ssd_cache[ cache_i ].count * disc->sata_ahci.physical_sector_size
+                , &slot_mask
+                ))
+                {   *r = ~2;
+                    goto End;
+                }
+                disc = E_mem_Q_tab_R( E_disc_S, disc_id );
+                disc->sata_ahci.ssd_cache[ cache_i ].count += read_count;
+            }
+            *data = disc->sata_ahci.ssd_cache[ cache_i ].data + ( pba - disc->sata_ahci.ssd_cache[ cache_i ].pba ) * disc->sata_ahci.physical_sector_size;
+        }
+    }else
+    {   if( !E_mem_Q_blk_I_append( &disc->sata_ahci.ssd_cache, 1 ))
+        {   *r = ~0;
+            goto End;
+        }
+        disc->sata_ahci.ssd_cache[0].data = E_mem_Q_blk_M_align_tab( disc->sata_ahci.physical_sector_size, count, 4096 );
+        if( !disc->sata_ahci.ssd_cache[0].data )
+        {   *r = E_mem_Q_blk_I_remove( &disc->sata_ahci.ssd_cache, 0, 1 ) ? ~0 : ~2;
+            goto End;
+        }
+        if( E_sata_Q_sata_ahci_I_read( disc_id
+        , disc->sata_ahci.logical_sector_shift + pba * disc->sata_ahci.physical_sector_size / disc->sata_ahci.logical_sector_size
+        , count * disc->sata_ahci.physical_sector_size / disc->sata_ahci.logical_sector_size
+        , disc->sata_ahci.ssd_cache[0].data
+        , &slot_mask
+        ))
+        {   *r = ~2;
+            goto End;
+        }
+        disc = E_mem_Q_tab_R( E_disc_S, disc_id );
+        disc->sata_ahci.ssd_cache_n++;
+        disc->sata_ahci.ssd_cache[0].pba = pba;
+        disc->sata_ahci.ssd_cache[0].count = count;
+        *data = disc->sata_ahci.ssd_cache[0].data;
+    }
+    if( E_sata_Q_sata_ahci_I_wait_on_completion( disc, slot_mask ))
+        *r = ~2;
+End:if( *r )
+        E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, r, *r );
+    return *r;
+}
+// Ta procedura jest potrzebna tylko wtedy, gdy zapisujemy cały blok; nie czytamy wcześniej.
+_private
+N
+E_ssd_cache_I_write( I disc_id
+, N pba
+, N count
+, P *data //DFN Adres do danych w ‘cache’.
+, N *r
+){  *r = 0;
+    struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
+    if( E_flow_I_lock_r( &disc->sata_ahci.ssd_cache_lock, r ))
+        return ~0;
+    if( disc->sata_ahci.ssd_cache_n )
+    {   N min = 0;
+        N max = disc->sata_ahci.ssd_cache_n - 1;
+        N cache_i = max / 2;
+        O{  N cache_start = disc->sata_ahci.ssd_cache[ cache_i ].pba;
+            N cache_end = disc->sata_ahci.ssd_cache[ cache_i ].pba + disc->sata_ahci.ssd_cache[ cache_i ].count;
+            if( pba >= cache_start
+            && pba < cache_end
+            ) // Początek żądanego sektora jest wewnątrz bloku ‘cache’.
+                break;
+            if( cache_start > pba )
+            {   if( cache_i == min )
+                {   if( !E_mem_Q_blk_I_insert( &disc->sata_ahci.ssd_cache, cache_i, 1 ))
+                    {   *r = ~0;
+                        goto End;
+                    }
+                    disc->sata_ahci.ssd_cache[ cache_i ].data = Mt( disc->sata_ahci.physical_sector_size, 0 );
+                    if( !disc->sata_ahci.ssd_cache[ cache_i ].data )
+                    {   *r = E_mem_Q_blk_I_remove( &disc->sata_ahci.ssd_cache, cache_i, 1 ) ? ~0 : ~2;
+                        goto End;
+                    }
+                    disc->sata_ahci.ssd_cache_n++;
+                    disc->sata_ahci.ssd_cache[ cache_i ].pba = pba;
+                    disc->sata_ahci.ssd_cache[ cache_i ].count = 0;
+                    break;
+                }
+                max = cache_i - 1;
+                cache_i = max - ( cache_i - min ) / 2;
+            }else
+            {   if( cache_i == max )
+                {   cache_i++;
+                    if( !E_mem_Q_blk_I_insert( &disc->sata_ahci.ssd_cache, cache_i, 1 ))
+                    {   *r = ~0;
+                        goto End;
+                    }
+                    disc->sata_ahci.ssd_cache[ cache_i ].data = Mt( disc->sata_ahci.physical_sector_size, 0 );
+                    if( !disc->sata_ahci.ssd_cache[ cache_i ].data )
+                    {   *r = E_mem_Q_blk_I_remove( &disc->sata_ahci.ssd_cache, cache_i, 1 ) ? ~0 : ~2;
+                        goto End;
+                    }
+                    disc->sata_ahci.ssd_cache_n++;
+                    disc->sata_ahci.ssd_cache[ cache_i ].pba = pba;
+                    disc->sata_ahci.ssd_cache[ cache_i ].count = 0;
+                    break;
+                }
+                min = cache_i + 1;
+                cache_i = min + ( max - cache_i ) / 2;
+            }
+        }
+        N cache_i_last = cache_i;
+        while( cache_i_last + 1 != disc->sata_ahci.ssd_cache_n
+        && disc->sata_ahci.ssd_cache[ cache_i_last + 1 ].pba <= pba + count
+        ) // Dopóki następny blok rozpoczyna się wewnątrz lub przylega do żądanego zakresu.
+            cache_i_last++;
+        if( cache_i != cache_i_last )
+        {   if( !E_mem_Q_blk_I_append_align( &disc->sata_ahci.ssd_cache[ cache_i ].data
+            , J_max( pba + count, disc->sata_ahci.ssd_cache[ cache_i_last ].pba + disc->sata_ahci.ssd_cache[ cache_i_last ].count )
+              - ( disc->sata_ahci.ssd_cache[ cache_i ].pba + disc->sata_ahci.ssd_cache[ cache_i ].count )
+            , 4096
+            ))
+            {   *r = ~2;
+                goto End;
+            }
+            N cache_i_0 = cache_i;
+            N cache_start, cache_end;
+            do
+            {   cache_start = disc->sata_ahci.ssd_cache[ cache_i + 1 ].pba;
+                cache_end = disc->sata_ahci.ssd_cache[ cache_i + 1 ].pba + disc->sata_ahci.ssd_cache[ cache_i + 1 ].count;
+                N write_count = cache_start - ( disc->sata_ahci.ssd_cache[ cache_i ].pba + disc->sata_ahci.ssd_cache[ cache_i ].count );
+                disc->sata_ahci.ssd_cache[ cache_i_0 ].count += write_count;
+                N copy_count = cache_end - cache_start;
+                E_mem_Q_blk_I_copy( disc->sata_ahci.ssd_cache[ cache_i_0 ].data + disc->sata_ahci.ssd_cache[ cache_i_0 ].count * disc->sata_ahci.physical_sector_size
+                , disc->sata_ahci.ssd_cache[ cache_i + 1 ].data
+                , copy_count * disc->sata_ahci.physical_sector_size
+                );
+                disc->sata_ahci.ssd_cache[ cache_i_0 ].count += copy_count;
+                if( W( disc->sata_ahci.ssd_cache[ cache_i + 1 ].data ))
+                {   *r = ~2;
+                    goto End;
+                }
+                cache_i++;
+            }while( cache_i != cache_i_last );
+            if( cache_end < pba + count )
+            {   N write_count = pba + count - cache_end;
+                disc->sata_ahci.ssd_cache[ cache_i_0 ].count += write_count;
+            }
+            if( !E_mem_Q_blk_I_remove( &disc->sata_ahci.ssd_cache, cache_i_0 + 1, cache_i_last - cache_i_0 ))
+            {   *r = ~2;
+                goto End;
+            }
+            disc->sata_ahci.ssd_cache_n -= cache_i_last - cache_i_0;
+            *data = disc->sata_ahci.ssd_cache[ cache_i_0 ].data + ( pba - disc->sata_ahci.ssd_cache[ cache_i_0 ].pba ) * disc->sata_ahci.physical_sector_size;
+        }else
+        {   N cache_end = disc->sata_ahci.ssd_cache[ cache_i ].pba + disc->sata_ahci.ssd_cache[ cache_i ].count;
+            if( cache_end < pba + count )
+            {   if( !E_mem_Q_blk_I_append_align( &disc->sata_ahci.ssd_cache[ cache_i ].data
+                , pba + count - cache_end
+                , 4096
+                ))
+                {   *r = ~2;
+                    goto End;
+                }
+                N write_count = pba + count - cache_end;
+                disc->sata_ahci.ssd_cache[ cache_i ].count += write_count;
+            }
+            *data = disc->sata_ahci.ssd_cache[ cache_i ].data + ( pba - disc->sata_ahci.ssd_cache[ cache_i ].pba ) * disc->sata_ahci.physical_sector_size;
+        }
+    }else
+    {   if( !E_mem_Q_blk_I_append( &disc->sata_ahci.ssd_cache, 1 ))
+        {   *r = ~0;
+            goto End;
+        }
+        disc->sata_ahci.ssd_cache[0].data = E_mem_Q_blk_M_align_tab( disc->sata_ahci.physical_sector_size, count, 4096 );
+        if( !disc->sata_ahci.ssd_cache[0].data )
+        {   *r = E_mem_Q_blk_I_remove( &disc->sata_ahci.ssd_cache, 0, 1 ) ? ~0 : ~2;
+            goto End;
+        }
+        disc->sata_ahci.ssd_cache_n++;
+        disc->sata_ahci.ssd_cache[0].pba = pba;
+        disc->sata_ahci.ssd_cache[0].count = count;
+        *data = disc->sata_ahci.ssd_cache[0].data;
+    }
+End:if( *r )
+        E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, r, *r );
+    return *r;
+}
+_private
+N
+E_ssd_cache_I_trim( I disc_id
+, N pba
+, N count
+){  N r = 0;
+    struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
+    if( !disc->sata_ahci.trim )
+        return r;
+    if( E_flow_I_lock_r( &disc->sata_ahci.ssd_cache_lock, &r ))
+        return ~0;
+    if( disc->sata_ahci.ssd_cache_n )
+    {   N min = 0;
+        N max = disc->sata_ahci.ssd_cache_n - 1;
+        N cache_i = max / 2;
+        O{  N cache_start = disc->sata_ahci.ssd_cache[ cache_i ].pba;
+            N cache_end = disc->sata_ahci.ssd_cache[ cache_i ].pba + disc->sata_ahci.ssd_cache[ cache_i ].count;
+            if( pba >= cache_start
+            && pba < cache_end
+            ) // Początek żądanego sektora jest wewnątrz bloku ‘cache’.
+            {   if( cache_start < pba )
+                {   disc->sata_ahci.ssd_cache[ cache_i ].count = pba - cache_start;
+                    cache_i++;
+                }
+                break;
+            }
+            if( cache_start > pba )
+            {   if( cache_i == min )
+                    break;
+                max = cache_i - 1;
+                cache_i = max - ( cache_i - min ) / 2;
+            }else
+            {   if( cache_i == max )
+                {   cache_i++;
+                    break;
+                }
+                min = cache_i + 1;
+                cache_i = min + ( max - cache_i ) / 2;
+            }
+        }
+        {   if( !E_mem_Q_blk_I_remove( &disc->sata_ahci.ssd_cache, cache_i, 1 ))
+            {   r = ~2;
+                goto End;
+            }
+            disc->sata_ahci.ssd_cache_n--;
+        }
+        N cache_i_last = cache_i;
+        while( cache_i_last != disc->sata_ahci.ssd_cache_n
+        && disc->sata_ahci.ssd_cache[ cache_i_last ].pba < pba + count
+        ) // Dopóki następny blok rozpoczyna się wewnątrz żądanego zakresu.
+            cache_i_last++;
+        if( cache_i != cache_i_last )
+        {   cache_i_last--;
+            if( disc->sata_ahci.ssd_cache[ cache_i_last ].pba + disc->sata_ahci.ssd_cache[ cache_i_last ].count > pba + count )
+            {   disc->sata_ahci.ssd_cache[ cache_i_last ].count = disc->sata_ahci.ssd_cache[ cache_i_last ].pba + disc->sata_ahci.ssd_cache[ cache_i_last ].count - ( pba + count );
+                disc->sata_ahci.ssd_cache[ cache_i_last ].pba = pba + count;
+                if( cache_i == cache_i_last )
+                    goto End_1;
+                cache_i_last--;
+            }
+            if( !E_mem_Q_blk_I_remove( &disc->sata_ahci.ssd_cache, cache_i, cache_i_last - cache_i + 1 ))
+            {   r = ~2;
+                goto End;
+            }
+            disc->sata_ahci.ssd_cache_n -= cache_i_last - cache_i + 1;
+        }
+    }
+End_1:
+    disc->sata_ahci.trim_list[ disc->sata_ahci.trim_list_n ].lba = pba * disc->sata_ahci.logical_sector_size / disc->sata_ahci.physical_sector_size;
+    disc->sata_ahci.trim_list[ disc->sata_ahci.trim_list_n ].count = count * disc->sata_ahci.logical_sector_size / disc->sata_ahci.physical_sector_size;
+    disc->sata_ahci.trim_list_n++;
+    if( disc->sata_ahci.trim_list_n == E_ssd_cache_Q_trim_S_list_max )
+    {   N32 slot_mask = 0;
+        if( E_sata_Q_sata_ahci_I_trim( disc_id
+        , disc->sata_ahci.trim_list
+        , E_ssd_cache_Q_trim_S_list_max * sizeof( *disc->sata_ahci.trim_list ) / disc->sata_ahci.logical_sector_size
+        , &slot_mask
+        ))
+        {   r = ~2;
+            goto End;
+        }
+        disc->sata_ahci.trim_list_n = 0;
+        if( E_sata_Q_sata_ahci_I_wait_on_completion( disc, slot_mask ))
+        {   r = ~2;
+            goto End;
+        }
+        _0( disc->sata_ahci.trim_list, E_ssd_cache_Q_trim_S_list_max * sizeof( *disc->sata_ahci.trim_list ));
+    }
+End:E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r, r );
+    return r;
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//TODO Dodać statystykę i na tej podstawie decydować, czy należy zapisać/usunąć blok z cache?
+_private
+N
+E_ssd_cache_I_sync_and_free( void
+){  N r = 0;
+    for_n( disc_id, E_mem_Q_tab_R_n( E_disc_S ))
+    {   struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
+        if( disc->type != E_disc_Z_type_S_sata_ahci )
+            continue;
+        if( E_flow_I_lock_r( &disc->sata_ahci.ssd_cache_lock, &r ))
+            return ~0;
+        if( disc->sata_ahci.trim_list_n )
+        {   N32 slot_mask = 0;
+            if( E_sata_Q_sata_ahci_I_trim( disc_id
+            , disc->sata_ahci.trim_list
+            , E_ssd_cache_Q_trim_S_list_max * sizeof( *disc->sata_ahci.trim_list ) / disc->sata_ahci.logical_sector_size
+            , &slot_mask
+            ))
+            {   r = ~2;
+                goto End;
+            }
+            disc->sata_ahci.trim_list_n = 0;
+            if( E_sata_Q_sata_ahci_I_wait_on_completion( disc, slot_mask ))
+            {   r = ~2;
+                goto End;
+            }
+            _0( disc->sata_ahci.trim_list, E_ssd_cache_Q_trim_S_list_max * sizeof( *disc->sata_ahci.trim_list ));
+        }
+        N32 slot_mask = 0;
+        for_n( cache_i, disc->sata_ahci.ssd_cache_n )
+        {   if( !E_sata_Q_sata_ahci_I_write( disc_id
+            , disc->sata_ahci.logical_sector_shift + disc->sata_ahci.ssd_cache[ cache_i ].pba * disc->sata_ahci.physical_sector_size / disc->sata_ahci.logical_sector_size
+            , disc->sata_ahci.ssd_cache[ cache_i ].count * disc->sata_ahci.physical_sector_size / disc->sata_ahci.logical_sector_size
+            , disc->sata_ahci.ssd_cache[ cache_i ].data
+            , &slot_mask
+            ))
+            {   r = ~2;
+                goto End;
+            }
+        }
+        if( E_sata_Q_sata_ahci_I_wait_on_completion( disc, slot_mask ))
+        {   r = ~2;
+            goto End;
+        }
+        for_n_( cache_i, disc->sata_ahci.ssd_cache_n )
+            if( W( disc->sata_ahci.ssd_cache[ cache_i ].data ))
+            {   r = ~2;
+                goto End;
+            }
+        if( E_mem_Q_blk_I_remove( &disc->sata_ahci.ssd_cache, 0, disc->sata_ahci.ssd_cache_n ))
+        {   r = ~2;
+            goto End;
+        }
+        disc->sata_ahci.ssd_cache_n = 0;
+End:    E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r, r );
+    }
+    return r;
+}
+/******************************************************************************/

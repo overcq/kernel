@@ -194,12 +194,12 @@ E_simple_Z_p_T_cross( P p_1
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #define E_simple_Z_p_T_aligned_to_v2(p,v2)      E_simple_Z_n_T_aligned_to_v2( (N)p, v2 )
 //------------------------------------------------------------------------------
-#define E_simple_Z_p_I_align_down_to_i2(p,i)    (Pc)E_simple_Z_n_I_align_down_to_i2( (N)p, i )
-#define E_simple_Z_p_I_align_up_to_i2(p,i)      (Pc)E_simple_Z_n_I_align_up_to_i2( (N)p, i )
-#define E_simple_Z_p_I_align_down_to_v2(p,v2)   (Pc)E_simple_Z_n_I_align_down_to_v2( (N)p, v2 )
-#define E_simple_Z_p_I_align_up_to_v2(p,v2)     (Pc)E_simple_Z_n_I_align_up_to_v2( (N)p, v2 )
-#define E_simple_Z_p_I_align_down(p)            (Pc)E_simple_Z_n_I_align_down( (N)p )
-#define E_simple_Z_p_I_align_up(p)              (Pc)E_simple_Z_n_I_align_up( (N)p )
+#define E_simple_Z_p_I_align_down_to_i2(p,i)    (P)E_simple_Z_n_I_align_down_to_i2( (N)p, i )
+#define E_simple_Z_p_I_align_up_to_i2(p,i)      (P)E_simple_Z_n_I_align_up_to_i2( (N)p, i )
+#define E_simple_Z_p_I_align_down_to_v2(p,v2)   (P)E_simple_Z_n_I_align_down_to_v2( (N)p, v2 )
+#define E_simple_Z_p_I_align_up_to_v2(p,v2)     (P)E_simple_Z_n_I_align_up_to_v2( (N)p, v2 )
+#define E_simple_Z_p_I_align_down(p)            (P)E_simple_Z_n_I_align_down( (N)p )
+#define E_simple_Z_p_I_align_up(p)              (P)E_simple_Z_n_I_align_up( (N)p )
 //==============================================================================
 _inline
 Pc
@@ -255,5 +255,45 @@ P
 E_mem_Q_tab_R( struct E_mem_Q_tab_Z *tab_
 , I id
 ){  return tab_->index[id];
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_inline
+void
+E_flow_I_lock( B *lock
+){  __asm__ volatile (
+    "\n"    "mov    $1,%%cl"
+    "\n0:"  "xor    %%al,%%al"
+    "\n"    "lock cmpxchg %%cl,%0"
+    "\n"    "je     0f"
+    "\n"    "pause"
+    "\n"    "jmp    0b"
+    "\n0:"
+    : "+m" ( *lock )
+    :
+    : "cc", "al", "cl"
+    );
+}
+_inline
+void
+E_flow_I_unlock( B *lock
+){  *lock = no;
+}
+_inline
+N
+E_flow_I_lock_r( B *lock
+, N *r
+){  E_flow_I_lock(lock);
+    return *r;
+}
+_inline
+void
+E_flow_I_unlock_r( B *lock
+, N *r
+, N r_
+){  E_flow_I_unlock(lock);
+    __asm__ volatile (
+    "\n"    "lock xchg %1,%0"
+    : "+m" ( *r ), "+r" ( r_ )
+    );
 }
 /******************************************************************************/

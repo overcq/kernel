@@ -63,7 +63,7 @@ E_gui_M( void
     E_gui_Q_taskbar_S_button_min_width = E_gui_Q_taskbar_S_panel_width;
     if( E_windows_M() )
         return ~0;
-    for_n( i, 1000 )
+    for_n( i, 2 )
     {   I window_id = E_windows_Q_window_M( E_window_Q_desktop_S_current, "System log", "In memory system log window", E_window_log_I_draw );
         if( window_id < 0 )
             return window_id;
@@ -680,7 +680,7 @@ E_gui_Q_pointer_I_click( void
                 ) //TODO Menu główne.
                 {   G( "Menu główne nie jest jeszcze zaimplementowane." );
                 }
-            }else // Przełączanie pulpitów.
+            }else // Przełączanie pulpitów z tworzeniem nowego, jeśli na krańcu.
             {   if( !E_mouse_Q_button_S_coordinate[0] )
                 {   if( E_window_Q_desktop_S_current )
                         E_window_Q_desktop_S_current--;
@@ -697,7 +697,7 @@ E_gui_Q_pointer_I_click( void
                 X_A( gui, draw );
                 X_F( gui, draw );
             }
-        }else if( !~(S8)E_mouse_Q_button_S_click_count ) // Przełączanie pulpitów.
+        }else if( !~(S8)E_mouse_Q_button_S_click_count ) // Przełączanie pulpitów z usuwaniem, jeśli na krańcu.
         {   if( !E_mouse_Q_button_S_coordinate[0] )
             {   if( E_window_Q_desktop_S_current )
                 {   if( E_window_Q_desktop_S_current == E_windows_Q_desktop_S_n - 1 )

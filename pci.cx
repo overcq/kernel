@@ -333,7 +333,7 @@ struct __attribute__ (( __packed__ )) E_pci_Z_header_Z_status
   N16 detected_parity_err   :1;
 };
 //==============================================================================
-_internal N E_pci_I_check_bus( N8 );
+_internal N E_pci_I_check_bus( N8, Pc );
 //==============================================================================
 _private
 N32
@@ -361,37 +361,49 @@ E_pci_I_check_device( N8 bus_i
 , N8 function_i
 , N32 ids
 ){  G( "bus: %8x, device: %8x: %32x", bus_i, device_i, ids );
-    switch(ids)
-    { case 0x07e015ad:
-        {   N8 cap_pointer = E_pci_I_read( bus_i, device_i, function_i, 0x34 ) & 0xfc;
-            while( cap_pointer )
-            {   N32 n_0 = E_pci_I_read( bus_i, device_i, function_i, cap_pointer );
-                switch( n_0 & 0xff )
-                { case 5: // MSI
-                    {   N8 interrupt = E_interrupt_R_gsi_next();
-                        if( !~interrupt )
+    N32 rev_prog_sub_class = E_pci_I_read( bus_i, device_i, function_i, 8 );
+    N8 class = rev_prog_sub_class >> 24;
+    N8 subclass = ( rev_prog_sub_class >> 16 ) & 0xff;
+    if( class == E_pci_Z_header_Z_class_S_mass_storage
+    && subclass == E_pci_Z_header_Z_subclass_mass_storage_S_sata
+    )
+    {   N8 cap_pointer = E_pci_I_read( bus_i, device_i, function_i, 0x34 ) & 0xfc;
+        while( cap_pointer )
+        {   N32 n_0 = E_pci_I_read( bus_i, device_i, function_i, cap_pointer );
+            switch( n_0 & 0xff )
+            { case 5: // MSI
+                {   N8 interrupt = E_interrupt_R_gsi_next();
+                    if( !~interrupt )
+                        return ~0;
+                    N address = (N)E_main_Z_p_I_to_physical( E_interrupt_Q_local_apic_S_address );
+                    if( n_0 & ( 1 << ( 7 + 16 ))) // 64‐bit address
+                    {   E_pci_I_write( bus_i, device_i, function_i, cap_pointer + 4, address & 0xffffffff );
+                        E_pci_I_write( bus_i, device_i, function_i, cap_pointer + 8, address >> 32 );
+                        E_pci_I_write( bus_i, device_i, function_i, cap_pointer + 0xc, 32 + interrupt );
+                    }else
+                    {   if( address & ~0xffffffffULL )
                             return ~0;
-                        if( n_0 & ( 1 << 7 )) // 64‐bit address
-                        {   E_pci_I_write( bus_i, device_i, function_i, cap_pointer + 4, (N)E_interrupt_Q_local_apic_S_address & 0xffffffff );
-                            E_pci_I_write( bus_i, device_i, function_i, cap_pointer + 8, (N)E_interrupt_Q_local_apic_S_address >> 32 );
-                            E_pci_I_write( bus_i, device_i, function_i, cap_pointer + 0xc, interrupt );
-                        }else
-                        {   E_pci_I_write( bus_i, device_i, function_i, cap_pointer + 4, (N)E_interrupt_Q_local_apic_S_address & 0xffffffff );
-                            E_pci_I_write( bus_i, device_i, function_i, cap_pointer + 8, interrupt );
-                        }
-                        E_interrupt_S_external[interrupt] = &E_sata_I_interrupt;
-                        n_0 |= 1 << 16;
-                        E_pci_I_write( bus_i, device_i, function_i, cap_pointer, n_0 );
-                        break;
+                        E_pci_I_write( bus_i, device_i, function_i, cap_pointer + 4, address );
+                        E_pci_I_write( bus_i, device_i, function_i, cap_pointer + 8, interrupt );
                     }
+                    E_interrupt_S_external[interrupt] = &E_sata_I_interrupt;
+                    n_0 |= 1 << 16;
+                    E_pci_I_write( bus_i, device_i, function_i, cap_pointer, n_0 );
+                    break;
                 }
-                cap_pointer = ( n_0 >> 8 ) & 0xfc;
             }
-            N ret = E_sata_I_init();
-            if(ret)
-                return ret;
-            break;
+            cap_pointer = ( n_0 >> 8 ) & 0xfc;
         }
+        P sata_ahci_address = (P)(N)E_pci_I_read( bus_i, device_i, function_i, 0x24 );
+        N r = E_sata_I_init( E_main_Z_p_I_to_virtual( sata_ahci_address ));
+        if( ~r
+        && (S)r < 0
+        )
+            return r;
+    }
+    switch(ids)
+    { case 0ULL:
+        break;
     }
     return 0;
 }
@@ -400,6 +412,7 @@ N
 E_pci_I_check_function( N8 bus_i
 , N8 device_i
 , N8 function_i
+, Pc bus_mask
 ){  N32 rev_prog_sub_class = E_pci_I_read( bus_i, device_i, function_i, 8 );
     N8 class = rev_prog_sub_class >> 24;
     N8 subclass = ( rev_prog_sub_class >> 16 ) & 0xff;
@@ -408,36 +421,40 @@ E_pci_I_check_function( N8 bus_i
     )
     {   N32 buses_latency = E_pci_I_read( bus_i, device_i, function_i, 0x18 );
         N8 secondary_bus = ( buses_latency >> 8 ) & 0xff;
-        N ret = E_pci_I_check_bus( secondary_bus );
-        if(ret)
-            return ret;
+        N r = E_pci_I_check_bus( secondary_bus, bus_mask );
+        if(r)
+            return r;
     }
     return 0;
 }
 _internal
 N
 E_pci_I_check_bus( N8 bus_i
-){  for_n( device_i, 32 )
+, Pc bus_mask
+){  if( E_mem_Q_mask_R( bus_mask, bus_i ))
+        return 0;
+    E_mem_Q_mask_P_set( bus_mask, bus_i );
+    for_n( device_i, 32 )
     {   N32 ids = E_pci_I_read( bus_i, device_i, 0, 0 );
         if( !~ids )
             continue;
-        N ret = E_pci_I_check_device( bus_i, device_i, 0, ids );
-        if(ret)
-            return ret;
-        ret = E_pci_I_check_function( bus_i, device_i, 0 );
-        if(ret)
-            return ret;
-        N8 header_type = E_pci_I_read( 0, 0, 0, 0xe );
+        N r = E_pci_I_check_device( bus_i, device_i, 0, ids );
+        if(r)
+            return r;
+        r = E_pci_I_check_function( bus_i, device_i, 0, bus_mask );
+        if(r)
+            return r;
+        N8 header_type = E_pci_I_read( bus_i, device_i, 0, 0xe );
         if( header_type & 0x80 )
         {   for_n( function_i, 7 )
-            {   ids = E_pci_I_read( bus_i, device_i, 0, 1 + function_i );
+            {   ids = E_pci_I_read( bus_i, device_i, 1 + function_i, 0 );
                 if( ~ids )
-                {   ret = E_pci_I_check_device( bus_i, device_i, 1 + function_i, ids );
-                    if(ret)
-                        return ret;
-                    ret = E_pci_I_check_function( bus_i, device_i, 1 + function_i );
-                    if(ret)
-                        return ret;
+                {   r = E_pci_I_check_device( bus_i, device_i, 1 + function_i, ids );
+                    if(r)
+                        return r;
+                    r = E_pci_I_check_function( bus_i, device_i, 1 + function_i, bus_mask );
+                    if(r)
+                        return r;
                 }
             }
         }
@@ -447,21 +464,24 @@ E_pci_I_check_bus( N8 bus_i
 _private
 N
 E_pci_I_check_buses( void
-){  N8 header_type = E_pci_I_read( 0, 0, 0, 0xe );
+){  Pc bus_mask = E_mem_Q_mask_M(256);
+    if( !bus_mask )
+        return ~0;
+    N8 header_type = E_pci_I_read( 0, 0, 0, 0xe );
+    N r;
     if( header_type & 0x80 )
     {   for_n( function_i, 8 )
-        {   N32 ids = E_pci_I_read( 0, 0, function_i, 0 );
-            if( !~ids )
-                break;
-            N ret = E_pci_I_check_bus( function_i );
-            if(ret)
-                return ret;
+        {   r = E_pci_I_check_bus( function_i, bus_mask );
+            if(r)
+                goto End;
         }
     }else
-    {   N ret = E_pci_I_check_bus(0);
-        if(ret)
-            return ret;
+        r = E_pci_I_check_bus( 0, bus_mask );
+End:if( !r )
+    {   r = W( bus_mask );
+        if(r)
+            r = ~1;
     }
-    return 0;
+    return r;
 }
 /******************************************************************************/
