@@ -6,14 +6,16 @@
 *   ---   kernel
 *         SSD Cache driver (ASWB)
 *******************************************************************************/
-//TODO Dodać obsługę zakresów ‘dirty’.
-//==============================================================================
 #define E_ssd_cache_Q_trim_S_list_max   ( 4096 / sizeof( struct E_sata_Z_dsm_range ))
 //==============================================================================
 struct E_ssd_cache_Z
 { N pba;
   N count;
   P data;
+};
+struct E_ssd_cache_Z_dirty
+{ N pba;
+  N count;
 };
 //==============================================================================
 _private volatile N8 E_ssd_cache_S_lock;
@@ -25,6 +27,10 @@ E_ssd_cache_I_init( struct E_disc_Z *disc
     Mt_( disc->sata_ahci.ssd_cache, disc->sata_ahci.ssd_cache_n );
     if( !disc->sata_ahci.ssd_cache )
         return ~0;
+    disc->sata_ahci.dirty_n = 0;
+    Mt_( disc->sata_ahci.dirty, disc->sata_ahci.dirty_n );
+    if( !disc->sata_ahci.dirty )
+        return ~0;
     disc->sata_ahci.trim_list_n = 0;
     Mt_( disc->sata_ahci.trim_list, E_ssd_cache_Q_trim_S_list_max );
     if( !disc->sata_ahci.trim_list )
@@ -33,7 +39,104 @@ E_ssd_cache_I_init( struct E_disc_Z *disc
     return 0;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//DFN Procedury ‘read’/‘write’ — jeśli zakończyły się bez błędu — to nie zwalniają ‘lock’. Trzeba go zwolnić po wykonaniu operacji na danych.
+_private
+N
+E_ssd_cache_P_dirty( struct E_disc_Z *disc
+, N pba
+, N count
+){  if( disc->sata_ahci.dirty_n )
+    {   N min = 0;
+        N max = disc->sata_ahci.dirty_n - 1;
+        N dirty_i = max / 2;
+        O{  N dirty_start = disc->sata_ahci.dirty[ dirty_i ].pba;
+            N dirty_end = disc->sata_ahci.dirty[ dirty_i ].pba + disc->sata_ahci.dirty[ dirty_i ].count;
+            if( pba >= dirty_start
+            && pba < dirty_end
+            ) // Początek żądanego sektora jest wewnątrz bloku ‘dirty’.
+                break;
+            if( dirty_start > pba )
+            {   if( dirty_i == min )
+                {   if( dirty_i + 1 != disc->sata_ahci.dirty_n
+                    && disc->sata_ahci.dirty[ dirty_i + 1 ].pba <= pba + count
+                    )
+                    {   disc->sata_ahci.dirty[ dirty_i + 1 ].count += disc->sata_ahci.dirty[ dirty_i + 1 ].pba - pba;
+                        disc->sata_ahci.dirty[ dirty_i + 1 ].pba = pba;
+                        dirty_i++;
+                    }else
+                    {   if( !E_mem_Q_blk_I_insert( &disc->sata_ahci.dirty, dirty_i, 1 ))
+                            return ~0;
+                        disc->sata_ahci.dirty_n++;
+                        disc->sata_ahci.dirty[ dirty_i ].pba = pba;
+                        disc->sata_ahci.dirty[ dirty_i ].count = 0;
+                    }
+                    break;
+                }
+                max = dirty_i - 1;
+                dirty_i = max - ( dirty_i - min ) / 2;
+            }else
+            {   if( dirty_i == max )
+                {   dirty_i++;
+                    if( dirty_i != disc->sata_ahci.dirty_n
+                    && dirty_i + 1 != disc->sata_ahci.dirty_n
+                    && disc->sata_ahci.dirty[ dirty_i + 1 ].pba <= pba + count
+                    )
+                    {   disc->sata_ahci.dirty[ dirty_i + 1 ].count += disc->sata_ahci.dirty[ dirty_i + 1 ].pba - pba;
+                        disc->sata_ahci.dirty[ dirty_i + 1 ].pba = pba;
+                        dirty_i++;
+                    }else
+                    {   if( !E_mem_Q_blk_I_insert( &disc->sata_ahci.dirty, dirty_i, 1 ))
+                            return ~0;
+                        disc->sata_ahci.dirty_n++;
+                        disc->sata_ahci.dirty[ dirty_i ].pba = pba;
+                        disc->sata_ahci.dirty[ dirty_i ].count = 0;
+                    }
+                    break;
+                }
+                min = dirty_i + 1;
+                dirty_i = min + ( max - dirty_i ) / 2;
+            }
+        }
+        N dirty_i_last = dirty_i;
+        while( dirty_i_last + 1 != disc->sata_ahci.dirty_n
+        && disc->sata_ahci.dirty[ dirty_i_last + 1 ].pba <= pba + count
+        ) // Dopóki następny blok rozpoczyna się wewnątrz lub przylega do żądanego zakresu.
+            dirty_i_last++;
+        if( dirty_i != dirty_i_last )
+        {   N dirty_i_0 = dirty_i;
+            N dirty_start, dirty_end;
+            do
+            {   dirty_start = disc->sata_ahci.dirty[ dirty_i + 1 ].pba;
+                dirty_end = disc->sata_ahci.dirty[ dirty_i + 1 ].pba + disc->sata_ahci.dirty[ dirty_i + 1 ].count;
+                N write_count = dirty_start - ( disc->sata_ahci.dirty[ dirty_i ].pba + disc->sata_ahci.dirty[ dirty_i ].count );
+                disc->sata_ahci.dirty[ dirty_i_0 ].count += write_count;
+                N copy_count = dirty_end - dirty_start;
+                disc->sata_ahci.dirty[ dirty_i_0 ].count += copy_count;
+                dirty_i++;
+            }while( dirty_i != dirty_i_last );
+            if( dirty_end < pba + count )
+            {   N write_count = pba + count - dirty_end;
+                disc->sata_ahci.dirty[ dirty_i_0 ].count += write_count;
+            }
+            if( !E_mem_Q_blk_I_remove( &disc->sata_ahci.dirty, dirty_i_0 + 1, dirty_i_last - dirty_i_0 ))
+                return ~2;
+            disc->sata_ahci.dirty_n -= dirty_i_last - dirty_i_0;
+        }else
+        {   N dirty_end = disc->sata_ahci.dirty[ dirty_i ].pba + disc->sata_ahci.dirty[ dirty_i ].count;
+            if( dirty_end < pba + count )
+            {   N write_count = pba + count - dirty_end;
+                disc->sata_ahci.dirty[ dirty_i ].count += write_count;
+            }
+        }
+    }else
+    {   if( !E_mem_Q_blk_I_append( &disc->sata_ahci.dirty, 1 ))
+            return ~0;
+        disc->sata_ahci.dirty_n++;
+        disc->sata_ahci.dirty[0].pba = pba;
+        disc->sata_ahci.dirty[0].count = count;
+    }
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//DFN Procedury ‘read’/‘write’ — jeśli zakończyły się bez błędu — to nie zwalniają ‘lock’. Trzeba go zwolnić po wykonaniu operacji na danych: “E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );”.
 _private
 N
 E_ssd_cache_I_read( I disc_id
@@ -392,12 +495,6 @@ E_ssd_cache_I_trim( I disc_id
                 cache_i = min + ( max - cache_i ) / 2;
             }
         }
-        {   if( !E_mem_Q_blk_I_remove( &disc->sata_ahci.ssd_cache, cache_i, 1 ))
-            {   r = ~2;
-                goto End;
-            }
-            disc->sata_ahci.ssd_cache_n--;
-        }
         N cache_i_last = cache_i;
         while( cache_i_last != disc->sata_ahci.ssd_cache_n
         && disc->sata_ahci.ssd_cache[ cache_i_last ].pba < pba + count
@@ -473,11 +570,32 @@ E_ssd_cache_I_sync_and_free( void
             _0( disc->sata_ahci.trim_list, E_ssd_cache_Q_trim_S_list_max * sizeof( *disc->sata_ahci.trim_list ));
         }
         N32 slot_mask = 0;
-        for_n( cache_i, disc->sata_ahci.ssd_cache_n )
-        {   if( !E_sata_Q_sata_ahci_I_write( disc_id
-            , disc->sata_ahci.logical_sector_shift + disc->sata_ahci.ssd_cache[ cache_i ].pba * disc->sata_ahci.physical_sector_size / disc->sata_ahci.logical_sector_size
-            , disc->sata_ahci.ssd_cache[ cache_i ].count * disc->sata_ahci.physical_sector_size / disc->sata_ahci.logical_sector_size
-            , disc->sata_ahci.ssd_cache[ cache_i ].data
+        for_n( dirty_i, disc->sata_ahci.dirty_n )
+        {   N min = 0;
+            N max = disc->sata_ahci.ssd_cache_n - 1;
+            N cache_i = max / 2;
+            O{  N cache_start = disc->sata_ahci.ssd_cache[ cache_i ].pba;
+                N cache_end = disc->sata_ahci.ssd_cache[ cache_i ].pba + disc->sata_ahci.ssd_cache[ cache_i ].count;
+                if( disc->sata_ahci.dirty[ dirty_i ].pba >= cache_start
+                && disc->sata_ahci.dirty[ dirty_i ].pba < cache_end
+                ) // Początek sektora ‘dirty’ jest wewnątrz bloku ‘cache’.
+                    break;
+                if( cache_start > disc->sata_ahci.dirty[ dirty_i ].pba )
+                {   if( cache_i == min )
+                        break;
+                    max = cache_i - 1;
+                    cache_i = max - ( cache_i - min ) / 2;
+                }else
+                {   if( cache_i == max )
+                        break;
+                    min = cache_i + 1;
+                    cache_i = min + ( max - cache_i ) / 2;
+                }
+            }
+            if( !E_sata_Q_sata_ahci_I_write( disc_id
+            , disc->sata_ahci.logical_sector_shift + disc->sata_ahci.dirty[ dirty_i ].pba * disc->sata_ahci.physical_sector_size / disc->sata_ahci.logical_sector_size
+            , disc->sata_ahci.dirty[ dirty_i ].count * disc->sata_ahci.physical_sector_size / disc->sata_ahci.logical_sector_size
+            , disc->sata_ahci.ssd_cache[ cache_i ].data + ( disc->sata_ahci.dirty[ dirty_i ].pba - disc->sata_ahci.ssd_cache[ cache_i ].pba ) * disc->sata_ahci.physical_sector_size
             , &slot_mask
             ))
             {   r = ~2;
@@ -488,7 +606,12 @@ E_ssd_cache_I_sync_and_free( void
         {   r = ~2;
             goto End;
         }
-        for_n_( cache_i, disc->sata_ahci.ssd_cache_n )
+        if( E_mem_Q_blk_I_remove( &disc->sata_ahci.dirty, 0, disc->sata_ahci.dirty_n ))
+        {   r = ~2;
+            goto End;
+        }
+        disc->sata_ahci.dirty_n = 0;
+        for_n( cache_i, disc->sata_ahci.ssd_cache_n )
             if( W( disc->sata_ahci.ssd_cache[ cache_i ].data ))
             {   r = ~2;
                 goto End;

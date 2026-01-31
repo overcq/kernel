@@ -10,6 +10,7 @@
 //DFN Rozmiary fragmentów tablicy bloków na dysku zawsze są ustawione tak, że wpisy wypełniają je całe.
 //DFN Tablice bloków na dysku są posortowane według sektora, a następnie według lokalizacji w sektorze. Tablice plików i katalogów – według ‘uid’.
 //TODO Co do plików zwykłych pozostaje decyzja, jak ograniczać fragmentację, a nie zużywać nośnika na zapis danych.
+//TODO Przeanalizować, co się stanie, gdy zabraknie przydzielanej pamięci.
 //==============================================================================
 #define E_ouxfs_Q_device_S_ident    "OUXFS"
 //==============================================================================
@@ -3880,7 +3881,10 @@ End_loop:;
                         }
                     }while( data != sector + disc->sata_ahci.physical_sector_size );
                     if( block_table_i >= disc->partition[ partition_i ].oux.block_table_changed_from )
-                        ; //TODO Dodać oznaczanie ‘dirty’.
+                    {   N r_ = E_disc_I_dirty( disc_id, partition_i, disc->partition[ partition_i ].oux.block_table[ block_table_i_write ].sector - 1, 1 );
+                        if( r_ )
+                            return r_;
+                    }
                     E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                 }
                 N r_;
@@ -3945,7 +3949,10 @@ End_loop:;
                         }
                     }while( data != sector + disc->sata_ahci.physical_sector_size );
                     if( block_table_i >= disc->partition[ partition_i ].oux.block_table_changed_from )
-                        ; //TODO Dodać oznaczanie ‘dirty’.
+                    {   N r_ = E_disc_I_dirty( disc_id, partition_i, disc->partition[ partition_i ].oux.block_table[ block_table_i_write ].sector + sector_i, 1 );
+                        if( r_ )
+                            return r_;
+                    }
                     sector += disc->sata_ahci.physical_sector_size;
                 }
                 E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
@@ -4011,7 +4018,13 @@ End_loop:;
                         }
                     }while( data != sector + disc->partition[ partition_i ].oux.block_table[ block_table_i_write ].location.sectors.post );
                     if( block_table_i >= disc->partition[ partition_i ].oux.block_table_changed_from )
-                        ; //TODO Dodać oznaczanie ‘dirty’.
+                    {   N r_ = E_disc_I_dirty( disc_id, partition_i
+                        , disc->partition[ partition_i ].oux.block_table[ block_table_i_write ].sector
+                          + disc->partition[ partition_i ].oux.block_table[ block_table_i_write ].location.sectors.n
+                        , 1 );
+                        if( r_ )
+                            return r_;
+                    }
                     E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                 }
             }else
@@ -4089,7 +4102,10 @@ End_loop:;
                   + disc->partition[ partition_i ].oux.block_table[ block_table_i_write ].location.in_sector.size
                 );
                 if( block_table_i >= disc->partition[ partition_i ].oux.block_table_changed_from )
-                    ; //TODO Dodać oznaczanie ‘dirty’.
+                {   N r_ = E_disc_I_dirty( disc_id, partition_i, disc->partition[ partition_i ].oux.block_table[ block_table_i_write ].sector, 1 );
+                    if( r_ )
+                        return r_;
+                }
                 E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
             }
         }
@@ -4145,7 +4161,13 @@ End_loop:;
                         }
                     }while( data != sector + disc->sata_ahci.physical_sector_size );
                     if( directory_i >= disc->partition[ partition_i ].oux.directory_table_changed_from )
-                        ; //TODO Dodać oznaczanie ‘dirty’.
+                    {   N r_ = E_disc_I_dirty( disc_id, partition_i
+                        , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].sector - 1
+                        , 1
+                        );
+                        if( r_ )
+                            return r_;
+                    }
                     E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                 }
                 N r_;
@@ -4188,7 +4210,13 @@ End_loop:;
                         }
                     }while( data != sector + disc->sata_ahci.physical_sector_size );
                     if( directory_i >= disc->partition[ partition_i ].oux.directory_table_changed_from )
-                        ; //TODO Dodać oznaczanie ‘dirty’.
+                    {   N r_ = E_disc_I_dirty( disc_id, partition_i
+                        , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].sector + sector_i
+                        , 1
+                        );
+                        if( r_ )
+                            return r_;
+                    }
                     sector += disc->sata_ahci.physical_sector_size;
                 }
                 E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
@@ -4232,7 +4260,14 @@ End_loop:;
                         }
                     }while( data != sector + disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].location.sectors.post );
                     if( directory_i >= disc->partition[ partition_i ].oux.directory_table_changed_from )
-                        ; //TODO Dodać oznaczanie ‘dirty’.
+                    {   N r_ = E_disc_I_dirty( disc_id, partition_i
+                        , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].sector
+                          + disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].location.sectors.n
+                        , 1
+                        );
+                        if( r_ )
+                            return r_;
+                    }
                     E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                 }
             }else
@@ -4285,7 +4320,13 @@ End_loop:;
                   + disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].location.in_sector.size
                 );
                 if( directory_i >= disc->partition[ partition_i ].oux.directory_table_changed_from )
-                    ; //TODO Dodać oznaczanie ‘dirty’.
+                {   N r_ = E_disc_I_dirty( disc_id, partition_i
+                    , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].sector
+                    , 1
+                    );
+                    if( r_ )
+                        return r_;
+                }
                 E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
             }
         disc->partition[ partition_i ].oux.directory_table_changed_from = ~0;
@@ -4343,7 +4384,13 @@ End_loop:;
                                 }
                         }
                     }while( data != sector + disc->sata_ahci.physical_sector_size );
-                        ; //TODO Dodać oznaczanie ‘dirty’.
+                    {   N r_ = E_disc_I_dirty( disc_id, partition_i
+                        , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].sector - 1
+                        , 1
+                        );
+                        if( r_ )
+                            return r_;
+                    }
                     E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                 }
                 N r_;
@@ -4393,7 +4440,13 @@ End_loop:;
                                 }
                         }
                     }while( data != sector + disc->sata_ahci.physical_sector_size );
-                        ; //TODO Dodać oznaczanie ‘dirty’.
+                    {   N r_ = E_disc_I_dirty( disc_id, partition_i
+                        , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].sector + sector_i
+                        , 1
+                        );
+                        if( r_ )
+                            return r_;
+                    }
                     sector += disc->sata_ahci.physical_sector_size;
                 }
                 E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
@@ -4445,7 +4498,14 @@ End_loop:;
                         }
                     }while( data != sector + disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].location.sectors.post );
                     if( file_i >= disc->partition[ partition_i ].oux.file_table_changed_from )
-                        ; //TODO Dodać oznaczanie ‘dirty’.
+                    {   N r_ = E_disc_I_dirty( disc_id, partition_i
+                        , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].sector
+                          + disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].location.sectors.n
+                        , 1
+                        );
+                        if( r_ )
+                            return r_;
+                    }
                     E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                 }
             }else
@@ -4514,7 +4574,13 @@ End_loop:;
                   + disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].location.in_sector.size
                 );
                 if( file_i >= disc->partition[ partition_i ].oux.file_table_changed_from )
-                    ; //TODO Dodać oznaczanie ‘dirty’.
+                {   N r_ = E_disc_I_dirty( disc_id, partition_i
+                    , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].sector
+                    , 1
+                    );
+                    if( r_ )
+                        return r_;
+                }
                 E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
             }
         }
@@ -5354,6 +5420,9 @@ E_ouxfs_Q_file_I_write( I disc_id
                     goto End;
                 N64 n_ = J_min( n, block->location.sectors.pre - pos );
                 E_mem_Q_blk_I_copy( sector + ( disc->sata_ahci.physical_sector_size - block->location.sectors.pre ) + pos, data + data_p, n_ );
+                r = E_disc_I_dirty( disc_id, partition_i, block->sector - 1, 1 );
+                if(r)
+                    goto End;
                 E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                 data_p += n_;
                 n -= n_;
@@ -5371,6 +5440,9 @@ E_ouxfs_Q_file_I_write( I disc_id
                         goto End;
                     N64 n_ = J_min( n, disc->sata_ahci.physical_sector_size - pos );
                     E_mem_Q_blk_I_copy( sector + pos, data + data_p, n_ );
+                    r = E_disc_I_dirty( disc_id, partition_i, block->sector + sector_i, 1 );
+                    if(r)
+                        goto End;
                     E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                     data_p += n_;
                     n -= n_;
@@ -5388,6 +5460,9 @@ E_ouxfs_Q_file_I_write( I disc_id
                     goto End;
                 N64 n_ = J_min( n, block->location.sectors.post - pos );
                 E_mem_Q_blk_I_copy( sector + pos, data + data_p, n_ );
+                r = E_disc_I_dirty( disc_id, partition_i, block->sector + block->location.sectors.n, 1 );
+                if(r)
+                    goto End;
                 E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                 data_p += n_;
                 n -= n_;
@@ -5405,6 +5480,9 @@ E_ouxfs_Q_file_I_write( I disc_id
                     goto End;
                 N64 n_ = J_min( n, block->location.in_sector.size - pos );
                 E_mem_Q_blk_I_copy( sector + block->location.in_sector.start + pos, data + data_p, n_ );
+                r = E_disc_I_dirty( disc_id, partition_i, block->sector, 1 );
+                if(r)
+                    goto End;
                 E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                 data_p += n_;
                 n -= n_;
@@ -5596,6 +5674,9 @@ Write:      N64 n_;
                     if(r)
                         goto End;
                     E_mem_Q_blk_I_copy( sector + ( disc->sata_ahci.physical_sector_size - disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.pre ), data + data_p, n_ );
+                    r = E_disc_I_dirty( disc_id, partition_i, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector - 1, 1 );
+                    if(r)
+                        goto End;
                     E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                     data_p += n_;
                     n -= n_;
@@ -5641,6 +5722,9 @@ Write:      N64 n_;
                 if(r)
                     goto End;
                 E_mem_Q_blk_I_copy( sector, data + data_p, sector_i * disc->sata_ahci.physical_sector_size );
+                r = E_disc_I_dirty( disc_id, partition_i, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector, sector_i );
+                if(r)
+                    goto End;
                 E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                 data_p += sector_i * disc->sata_ahci.physical_sector_size;
                 n -= sector_i * disc->sata_ahci.physical_sector_size;
@@ -5652,6 +5736,9 @@ Write:      N64 n_;
                     if(r)
                         goto End;
                     E_mem_Q_blk_I_copy( sector, data + data_p, n );
+                    r = E_disc_I_dirty( disc_id, partition_i, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector + sector_i, 1 );
+                    if(r)
+                        goto End;
                     E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                     data_p += n;
                     n_ = n;
@@ -5713,11 +5800,22 @@ Write:      N64 n_;
                 {   n_ = J_min( n, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.post );
                     N16 post = disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.post;
                     N r_;
-                    r = E_disc_I_read( disc_id, partition_i, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector + disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.n, 1, &sector, &r_ );
+                    r = E_disc_I_read( disc_id, partition_i
+                    , disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector
+                      + disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.n
+                    , 1, &sector, &r_
+                    );
                     disc = E_mem_Q_tab_R( E_disc_S, disc_id );
                     if(r)
                         goto End;
                     E_mem_Q_blk_I_copy( sector, data + data_p, n_ );
+                    r = E_disc_I_dirty( disc_id, partition_i
+                    , disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector
+                      + disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.n
+                    , 1
+                    );
+                    if(r)
+                        goto End;
                     E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                     data_p += n_;
                     n -= n_;
@@ -5761,6 +5859,9 @@ Write:      N64 n_;
                 if(r)
                     goto End;
                 E_mem_Q_blk_I_copy( sector + disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.in_sector.start, data + data_p, n_ );
+                r = E_disc_I_dirty( disc_id, partition_i, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector, 1 );
+                if(r)
+                    goto End;
                 E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                 data_p += n_;
                 n -= n_;

@@ -109,16 +109,18 @@ struct E_disc_Z
     { volatile struct E_sata_Z_memory *memory;
       struct E_ssd_cache_Z *ssd_cache;
       N ssd_cache_n;
-      N logical_sector_n;
+      struct E_ssd_cache_Z_dirty *dirty;
+      N dirty_n;
       struct E_sata_Z_dsm_range *trim_list;
       N trim_list_n;
+      N logical_sector_n;
       N16 logical_sector_size, physical_sector_size;
       N8 logical_sector_shift;
       N8 port;
       N8 queue_n;
-      B trim;
       B sata_lock;
       B ssd_cache_lock;
+      unsigned trim     :1;
     }sata_ahci;
     struct
     { volatile struct E_sata_Z_memory *memory;
@@ -303,6 +305,29 @@ E_disc_I_init( I disc_id
     return 0;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_private
+N
+E_disc_I_dirty( I disc_id
+, N partition_i
+, N pba
+, N count
+){  struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
+    pba += disc->partition[ partition_i ].pba;
+    if( pba + count > disc->partition[ partition_i ].pba + disc->partition[ partition_i ].count )
+        return ~0;
+    switch( disc->type )
+    { case E_disc_Z_type_S_sata_ahci:
+        {   G( "dirty %x, %x", pba, count );
+            N r_ = E_ssd_cache_P_dirty( disc, pba, count );
+            if( r_ )
+                return r_;
+            break;
+        }
+      default:
+            return ~0;
+    }
+    return 0;
+}
 _private
 N
 E_disc_I_read( I disc_id
