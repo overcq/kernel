@@ -139,7 +139,7 @@ E_ssd_cache_P_dirty( struct E_disc_Z *disc
 //DFN Procedury ‘read’/‘write’ — jeśli zakończyły się bez błędu — to nie zwalniają ‘lock’. Trzeba go zwolnić po wykonaniu operacji na danych: “E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );”.
 _private
 N
-E_ssd_cache_I_read( I disc_id
+E_ssd_cache_R( I disc_id
 , N pba
 , N count
 , P *data //DFN Adres do danych w ‘cache’.
@@ -320,7 +320,7 @@ End:if( *r )
 // Ta procedura jest potrzebna tylko wtedy, gdy zapisujemy cały blok; nie czytamy wcześniej.
 _private
 N
-E_ssd_cache_I_write( I disc_id
+E_ssd_cache_P( I disc_id
 , N pba
 , N count
 , P *data //DFN Adres do danych w ‘cache’.
@@ -541,7 +541,7 @@ End:E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r, r );
     return r;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//TODO Dodać statystykę i na tej podstawie decydować, czy należy zapisać/usunąć blok z cache?
+//TODO Dodać statystykę i na tej podstawie decydować, czy należy zapisać blok ‘dirty’, usunąć blok z ‘cache’?
 _private
 N
 E_ssd_cache_I_sync_and_free( void

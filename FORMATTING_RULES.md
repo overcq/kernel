@@ -78,4 +78,4 @@ while( cache_i != cache_i_last ) // Spacje
 ```
 
 ## 6. Etykiety (Labels)
-* Etykiety (np. `End:`, `End_1:`) są umieszczane bez wcięcia lub z minimalnym wcięciem, często w tej samej linii co instrukcja (np. `End:if( *r )`).
+* Etykiety (np. `End:`, `End_1:`) są umieszczane bez wcięcia, często w tej samej linii co instrukcja (np. `End:if( *r )`).

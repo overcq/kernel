@@ -1583,7 +1583,7 @@ E_ouxfs_Q_device_M( I disc_id
         return ~0;
     N r_;
     Pc sector;
-    if( E_disc_I_read( disc_id, partition_i, 0, 1, &sector, &r_ ))
+    if( E_disc_R( disc_id, partition_i, 0, 1, &sector, &r_ ))
     {   G( "read sector: 0" );
         E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
         r = ~0;
@@ -1751,7 +1751,7 @@ End_loop:
         }
         if( disc->partition[ partition_i ].oux.block_table[ block_table_i_read ].location_type == E_ouxfs_Z_block_Z_location_S_sectors )
         {   if( disc->partition[ partition_i ].oux.block_table[ block_table_i_read ].location.sectors.pre )
-            {   r = E_disc_I_read( disc_id, partition_i, disc->partition[ partition_i ].oux.block_table[ block_table_i_read ].sector - 1, 1, &sector, &r_ );
+            {   r = E_disc_R( disc_id, partition_i, disc->partition[ partition_i ].oux.block_table[ block_table_i_read ].sector - 1, 1, &sector, &r_ );
                 disc = E_mem_Q_tab_R( E_disc_S, disc_id );
                 if(r)
                     goto End_1;
@@ -1853,7 +1853,7 @@ End_loop:
                 }while( data != sector + disc->sata_ahci.physical_sector_size );
                 E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
             }
-            r = E_disc_I_read( disc_id, partition_i
+            r = E_disc_R( disc_id, partition_i
             , disc->partition[ partition_i ].oux.block_table[ block_table_i_read ].sector
             , disc->partition[ partition_i ].oux.block_table[ block_table_i_read ].location.sectors.n
             , &sector, &r_
@@ -1962,7 +1962,7 @@ End_loop:
             }
             E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
             if( disc->partition[ partition_i ].oux.block_table[ block_table_i_read ].location.sectors.post )
-            {   r = E_disc_I_read( disc_id, partition_i
+            {   r = E_disc_R( disc_id, partition_i
                 , disc->partition[ partition_i ].oux.block_table[ block_table_i_read ].sector + disc->partition[ partition_i ].oux.block_table[ block_table_i_read ].location.sectors.n
                 , 1, &sector, &r_
                 );
@@ -2068,7 +2068,7 @@ End_loop:
                 E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
             }
         }else
-        {   r = E_disc_I_read( disc_id, partition_i, disc->partition[ partition_i ].oux.block_table[ block_table_i_read ].sector, 1, &sector, &r_ );
+        {   r = E_disc_R( disc_id, partition_i, disc->partition[ partition_i ].oux.block_table[ block_table_i_read ].sector, 1, &sector, &r_ );
             disc = E_mem_Q_tab_R( E_disc_S, disc_id );
             if(r)
                 goto End_1;
@@ -2875,7 +2875,7 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
             G( "start: %16x, size: %16x", disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].location.in_sector.start, disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].location.in_sector.size );*/
         if( disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].location_type == E_ouxfs_Z_block_Z_location_S_sectors )
         {   if( disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].location.sectors.pre )
-            {   r = E_disc_I_read( disc_id, partition_i
+            {   r = E_disc_R( disc_id, partition_i
                 , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].sector - 1
                 , 1, &sector, &r_
                 );
@@ -2955,7 +2955,7 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
                 }while( data != sector + disc->sata_ahci.physical_sector_size );
                 E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
             }
-            r = E_disc_I_read( disc_id, partition_i
+            r = E_disc_R( disc_id, partition_i
             , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].sector
             , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].location.sectors.n
             , &sector, &r_
@@ -3038,7 +3038,7 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
             }
             E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
             if( disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].location.sectors.post )
-            {   r = E_disc_I_read( disc_id, partition_i
+            {   r = E_disc_R( disc_id, partition_i
                 , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].sector
                   + disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].location.sectors.n
                 , 1, &sector, &r_
@@ -3120,7 +3120,7 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
                 E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
             }
         }else
-        {   r = E_disc_I_read( disc_id, partition_i
+        {   r = E_disc_R( disc_id, partition_i
             , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].sector
             , 1, &sector, &r_
             );
@@ -3243,7 +3243,7 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
             G( "start: %16x, size: %16x", disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].location.in_sector.start, disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].location.in_sector.size );*/
         if( disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].location_type == E_ouxfs_Z_block_Z_location_S_sectors )
         {   if( disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].location.sectors.pre )
-            {   r = E_disc_I_read( disc_id, partition_i
+            {   r = E_disc_R( disc_id, partition_i
                 , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].sector - 1
                 , 1, &sector, &r_
                 );
@@ -3346,7 +3346,7 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
                 }while( data != sector + disc->sata_ahci.physical_sector_size );
                 E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
             }
-            r = E_disc_I_read( disc_id, partition_i
+            r = E_disc_R( disc_id, partition_i
             , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].sector
             , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].location.sectors.n
             , &sector, &r_
@@ -3454,7 +3454,7 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
             }
             E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
             if( disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].location.sectors.post )
-            {   r = E_disc_I_read( disc_id, partition_i
+            {   r = E_disc_R( disc_id, partition_i
                 , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].sector
                   + disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].location.sectors.n
                 , 1, &sector, &r_
@@ -3562,7 +3562,7 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
                 E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
             }
         }else
-        {   r = E_disc_I_read( disc_id, partition_i
+        {   r = E_disc_R( disc_id, partition_i
             , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].sector
             , 1, &sector, &r_
             );
@@ -3744,7 +3744,7 @@ E_ouxfs_Q_device_I_save( I disc_id
     N r = 0;
     if( ~disc->partition[ partition_i ].oux.block_table_changed_from )
     {   N r_;
-        r = E_disc_I_write( disc_id, partition_i, 0, 1, &sector, &r_ );
+        r = E_disc_P( disc_id, partition_i, 0, 1, &sector, &r_ );
         disc = E_mem_Q_tab_R( E_disc_S, disc_id );
         if(r)
             return r;
@@ -3825,7 +3825,7 @@ End_loop:;
         {   if( disc->partition[ partition_i ].oux.block_table[ block_table_i_write ].location_type == E_ouxfs_Z_block_Z_location_S_sectors )
             {   if( disc->partition[ partition_i ].oux.block_table[ block_table_i_write ].location.sectors.pre )
                 {   N r_;
-                    r = E_disc_I_read( disc_id, partition_i, disc->partition[ partition_i ].oux.block_table[ block_table_i_write ].sector - 1, 1, &sector, &r_ );
+                    r = E_disc_R( disc_id, partition_i, disc->partition[ partition_i ].oux.block_table[ block_table_i_write ].sector - 1, 1, &sector, &r_ );
                     disc = E_mem_Q_tab_R( E_disc_S, disc_id );
                     if(r)
                         return r;
@@ -3881,14 +3881,14 @@ End_loop:;
                         }
                     }while( data != sector + disc->sata_ahci.physical_sector_size );
                     if( block_table_i >= disc->partition[ partition_i ].oux.block_table_changed_from )
-                    {   N r_ = E_disc_I_dirty( disc_id, partition_i, disc->partition[ partition_i ].oux.block_table[ block_table_i_write ].sector - 1, 1 );
+                    {   N r_ = E_disc_P_dirty( disc_id, partition_i, disc->partition[ partition_i ].oux.block_table[ block_table_i_write ].sector - 1, 1 );
                         if( r_ )
                             return r_;
                     }
                     E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                 }
                 N r_;
-                r = E_disc_I_write( disc_id, partition_i
+                r = E_disc_P( disc_id, partition_i
                 , disc->partition[ partition_i ].oux.block_table[ block_table_i_write ].sector
                 , disc->partition[ partition_i ].oux.block_table[ block_table_i_write ].location.sectors.n
                 , &sector, &r_
@@ -3949,7 +3949,7 @@ End_loop:;
                         }
                     }while( data != sector + disc->sata_ahci.physical_sector_size );
                     if( block_table_i >= disc->partition[ partition_i ].oux.block_table_changed_from )
-                    {   N r_ = E_disc_I_dirty( disc_id, partition_i, disc->partition[ partition_i ].oux.block_table[ block_table_i_write ].sector + sector_i, 1 );
+                    {   N r_ = E_disc_P_dirty( disc_id, partition_i, disc->partition[ partition_i ].oux.block_table[ block_table_i_write ].sector + sector_i, 1 );
                         if( r_ )
                             return r_;
                     }
@@ -3958,7 +3958,7 @@ End_loop:;
                 E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                 if( disc->partition[ partition_i ].oux.block_table[ block_table_i_write ].location.sectors.post )
                 {   N r_;
-                    r = E_disc_I_read( disc_id, partition_i
+                    r = E_disc_R( disc_id, partition_i
                     , disc->partition[ partition_i ].oux.block_table[ block_table_i_write ].sector
                       + disc->partition[ partition_i ].oux.block_table[ block_table_i_write ].location.sectors.n
                     , 1, &sector, &r_
@@ -4018,7 +4018,7 @@ End_loop:;
                         }
                     }while( data != sector + disc->partition[ partition_i ].oux.block_table[ block_table_i_write ].location.sectors.post );
                     if( block_table_i >= disc->partition[ partition_i ].oux.block_table_changed_from )
-                    {   N r_ = E_disc_I_dirty( disc_id, partition_i
+                    {   N r_ = E_disc_P_dirty( disc_id, partition_i
                         , disc->partition[ partition_i ].oux.block_table[ block_table_i_write ].sector
                           + disc->partition[ partition_i ].oux.block_table[ block_table_i_write ].location.sectors.n
                         , 1 );
@@ -4029,7 +4029,7 @@ End_loop:;
                 }
             }else
             {   N r_;
-                r = E_disc_I_read( disc_id, partition_i, disc->partition[ partition_i ].oux.block_table[ block_table_i_write ].sector, 1, &sector, &r_ );
+                r = E_disc_R( disc_id, partition_i, disc->partition[ partition_i ].oux.block_table[ block_table_i_write ].sector, 1, &sector, &r_ );
                 disc = E_mem_Q_tab_R( E_disc_S, disc_id );
                 if(r)
                     return r;
@@ -4102,7 +4102,7 @@ End_loop:;
                   + disc->partition[ partition_i ].oux.block_table[ block_table_i_write ].location.in_sector.size
                 );
                 if( block_table_i >= disc->partition[ partition_i ].oux.block_table_changed_from )
-                {   N r_ = E_disc_I_dirty( disc_id, partition_i, disc->partition[ partition_i ].oux.block_table[ block_table_i_write ].sector, 1 );
+                {   N r_ = E_disc_P_dirty( disc_id, partition_i, disc->partition[ partition_i ].oux.block_table[ block_table_i_write ].sector, 1 );
                     if( r_ )
                         return r_;
                 }
@@ -4124,7 +4124,7 @@ End_loop:;
             if( disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].location_type == E_ouxfs_Z_block_Z_location_S_sectors )
             {   if( disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].location.sectors.pre )
                 {   N r_;
-                    r = E_disc_I_read( disc_id, partition_i
+                    r = E_disc_R( disc_id, partition_i
                     , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].sector - 1
                     , 1, &sector, &r_
                     );
@@ -4161,7 +4161,7 @@ End_loop:;
                         }
                     }while( data != sector + disc->sata_ahci.physical_sector_size );
                     if( directory_i >= disc->partition[ partition_i ].oux.directory_table_changed_from )
-                    {   N r_ = E_disc_I_dirty( disc_id, partition_i
+                    {   N r_ = E_disc_P_dirty( disc_id, partition_i
                         , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].sector - 1
                         , 1
                         );
@@ -4171,7 +4171,7 @@ End_loop:;
                     E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                 }
                 N r_;
-                r = E_disc_I_write( disc_id, partition_i
+                r = E_disc_P( disc_id, partition_i
                 , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].sector
                 , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].location.sectors.n
                 , &sector, &r_
@@ -4210,7 +4210,7 @@ End_loop:;
                         }
                     }while( data != sector + disc->sata_ahci.physical_sector_size );
                     if( directory_i >= disc->partition[ partition_i ].oux.directory_table_changed_from )
-                    {   N r_ = E_disc_I_dirty( disc_id, partition_i
+                    {   N r_ = E_disc_P_dirty( disc_id, partition_i
                         , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].sector + sector_i
                         , 1
                         );
@@ -4222,7 +4222,7 @@ End_loop:;
                 E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                 if( disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].location.sectors.post )
                 {   N r_;
-                    r = E_disc_I_read( disc_id, partition_i
+                    r = E_disc_R( disc_id, partition_i
                     , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].sector
                       + disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].location.sectors.n
                     , 1, &sector, &r_
@@ -4260,7 +4260,7 @@ End_loop:;
                         }
                     }while( data != sector + disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].location.sectors.post );
                     if( directory_i >= disc->partition[ partition_i ].oux.directory_table_changed_from )
-                    {   N r_ = E_disc_I_dirty( disc_id, partition_i
+                    {   N r_ = E_disc_P_dirty( disc_id, partition_i
                         , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].sector
                           + disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].location.sectors.n
                         , 1
@@ -4272,7 +4272,7 @@ End_loop:;
                 }
             }else
             {   N r_;
-                r = E_disc_I_read( disc_id, partition_i
+                r = E_disc_R( disc_id, partition_i
                 , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].sector
                 , 1, &sector, &r_
                 );
@@ -4320,7 +4320,7 @@ End_loop:;
                   + disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].location.in_sector.size
                 );
                 if( directory_i >= disc->partition[ partition_i ].oux.directory_table_changed_from )
-                {   N r_ = E_disc_I_dirty( disc_id, partition_i
+                {   N r_ = E_disc_P_dirty( disc_id, partition_i
                     , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].sector
                     , 1
                     );
@@ -4340,7 +4340,7 @@ End_loop:;
         {   if( disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].location_type == E_ouxfs_Z_block_Z_location_S_sectors )
             {   if( disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].location.sectors.pre )
                 {   N r_;
-                    r = E_disc_I_read( disc_id, partition_i
+                    r = E_disc_R( disc_id, partition_i
                     , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].sector - 1
                     , 1, &sector, &r_
                     );
@@ -4384,7 +4384,7 @@ End_loop:;
                                 }
                         }
                     }while( data != sector + disc->sata_ahci.physical_sector_size );
-                    {   N r_ = E_disc_I_dirty( disc_id, partition_i
+                    {   N r_ = E_disc_P_dirty( disc_id, partition_i
                         , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].sector - 1
                         , 1
                         );
@@ -4394,7 +4394,7 @@ End_loop:;
                     E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                 }
                 N r_;
-                r = E_disc_I_write( disc_id, partition_i
+                r = E_disc_P( disc_id, partition_i
                 , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].sector
                 , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].location.sectors.n
                 , &sector, &r_
@@ -4440,7 +4440,7 @@ End_loop:;
                                 }
                         }
                     }while( data != sector + disc->sata_ahci.physical_sector_size );
-                    {   N r_ = E_disc_I_dirty( disc_id, partition_i
+                    {   N r_ = E_disc_P_dirty( disc_id, partition_i
                         , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].sector + sector_i
                         , 1
                         );
@@ -4452,7 +4452,7 @@ End_loop:;
                 E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                 if( disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].location.sectors.post )
                 {   N r_;
-                    r = E_disc_I_read( disc_id, partition_i
+                    r = E_disc_R( disc_id, partition_i
                     , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].sector
                       + disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].location.sectors.n
                     , 1, &sector, &r_
@@ -4498,7 +4498,7 @@ End_loop:;
                         }
                     }while( data != sector + disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].location.sectors.post );
                     if( file_i >= disc->partition[ partition_i ].oux.file_table_changed_from )
-                    {   N r_ = E_disc_I_dirty( disc_id, partition_i
+                    {   N r_ = E_disc_P_dirty( disc_id, partition_i
                         , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].sector
                           + disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].location.sectors.n
                         , 1
@@ -4510,7 +4510,7 @@ End_loop:;
                 }
             }else
             {   N r_;
-                r = E_disc_I_read( disc_id, partition_i
+                r = E_disc_R( disc_id, partition_i
                 , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].sector
                 , 1, &sector, &r_
                 );
@@ -4574,7 +4574,7 @@ End_loop:;
                   + disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].location.in_sector.size
                 );
                 if( file_i >= disc->partition[ partition_i ].oux.file_table_changed_from )
-                {   N r_ = E_disc_I_dirty( disc_id, partition_i
+                {   N r_ = E_disc_P_dirty( disc_id, partition_i
                     , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].sector
                     , 1
                     );
@@ -5307,7 +5307,7 @@ E_ouxfs_Q_file_I_read( N disc_id
         if( block->location_type == E_ouxfs_Z_block_Z_location_S_sectors )
         {   if( pos < block->location.sectors.pre )
             {   N r_;
-                r = E_disc_I_read( disc_id, partition_i, block->sector - 1, 1, &sector, &r_ );
+                r = E_disc_R( disc_id, partition_i, block->sector - 1, 1, &sector, &r_ );
                 disc = E_mem_Q_tab_R( E_disc_S, disc_id );
                 if(r)
                     goto End;
@@ -5326,7 +5326,7 @@ E_ouxfs_Q_file_I_read( N disc_id
             for_n( sector_i, block->location.sectors.n )
             {   if( pos < disc->sata_ahci.physical_sector_size )
                 {   N r_;
-                    r = E_disc_I_read( disc_id, partition_i, block->sector + sector_i, 1, &sector, &r_ );
+                    r = E_disc_R( disc_id, partition_i, block->sector + sector_i, 1, &sector, &r_ );
                     disc = E_mem_Q_tab_R( E_disc_S, disc_id );
                     if(r)
                         goto End;
@@ -5345,7 +5345,7 @@ E_ouxfs_Q_file_I_read( N disc_id
             }
             if( pos < block->location.sectors.post )
             {   N r_;
-                r = E_disc_I_read( disc_id, partition_i, block->sector + block->location.sectors.n, 1, &sector, &r_ );
+                r = E_disc_R( disc_id, partition_i, block->sector + block->location.sectors.n, 1, &sector, &r_ );
                 disc = E_mem_Q_tab_R( E_disc_S, disc_id );
                 if(r)
                     goto End;
@@ -5364,7 +5364,7 @@ E_ouxfs_Q_file_I_read( N disc_id
         }else
             if( pos < block->location.in_sector.size )
             {   N r_;
-                r = E_disc_I_read( disc_id, partition_i, block->sector, 1, &sector, &r_ );
+                r = E_disc_R( disc_id, partition_i, block->sector, 1, &sector, &r_ );
                 disc = E_mem_Q_tab_R( E_disc_S, disc_id );
                 if(r)
                     goto End;
@@ -5414,13 +5414,13 @@ E_ouxfs_Q_file_I_write( I disc_id
         if( block->location_type == E_ouxfs_Z_block_Z_location_S_sectors )
         {   if( pos < block->location.sectors.pre )
             {   N r_;
-                r = E_disc_I_read( disc_id, partition_i, block->sector - 1, 1, &sector, &r_ );
+                r = E_disc_R( disc_id, partition_i, block->sector - 1, 1, &sector, &r_ );
                 disc = E_mem_Q_tab_R( E_disc_S, disc_id );
                 if(r)
                     goto End;
                 N64 n_ = J_min( n, block->location.sectors.pre - pos );
                 E_mem_Q_blk_I_copy( sector + ( disc->sata_ahci.physical_sector_size - block->location.sectors.pre ) + pos, data + data_p, n_ );
-                r = E_disc_I_dirty( disc_id, partition_i, block->sector - 1, 1 );
+                r = E_disc_P_dirty( disc_id, partition_i, block->sector - 1, 1 );
                 if(r)
                     goto End;
                 E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
@@ -5434,13 +5434,13 @@ E_ouxfs_Q_file_I_write( I disc_id
             for_n( sector_i, block->location.sectors.n )
             {   if( pos < disc->sata_ahci.physical_sector_size )
                 {   N r_;
-                    r = E_disc_I_read( disc_id, partition_i, block->sector + sector_i, 1, &sector, &r_ );
+                    r = E_disc_R( disc_id, partition_i, block->sector + sector_i, 1, &sector, &r_ );
                     disc = E_mem_Q_tab_R( E_disc_S, disc_id );
                     if(r)
                         goto End;
                     N64 n_ = J_min( n, disc->sata_ahci.physical_sector_size - pos );
                     E_mem_Q_blk_I_copy( sector + pos, data + data_p, n_ );
-                    r = E_disc_I_dirty( disc_id, partition_i, block->sector + sector_i, 1 );
+                    r = E_disc_P_dirty( disc_id, partition_i, block->sector + sector_i, 1 );
                     if(r)
                         goto End;
                     E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
@@ -5454,13 +5454,13 @@ E_ouxfs_Q_file_I_write( I disc_id
             }
             if( pos < block->location.sectors.post )
             {   N r_;
-                r = E_disc_I_read( disc_id, partition_i, block->sector + block->location.sectors.n, 1, &sector, &r_ );
+                r = E_disc_R( disc_id, partition_i, block->sector + block->location.sectors.n, 1, &sector, &r_ );
                 disc = E_mem_Q_tab_R( E_disc_S, disc_id );
                 if(r)
                     goto End;
                 N64 n_ = J_min( n, block->location.sectors.post - pos );
                 E_mem_Q_blk_I_copy( sector + pos, data + data_p, n_ );
-                r = E_disc_I_dirty( disc_id, partition_i, block->sector + block->location.sectors.n, 1 );
+                r = E_disc_P_dirty( disc_id, partition_i, block->sector + block->location.sectors.n, 1 );
                 if(r)
                     goto End;
                 E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
@@ -5474,13 +5474,13 @@ E_ouxfs_Q_file_I_write( I disc_id
         }else
             if( pos < block->location.in_sector.size )
             {   N r_;
-                r = E_disc_I_read( disc_id, partition_i, block->sector, 1, &sector, &r_ );
+                r = E_disc_R( disc_id, partition_i, block->sector, 1, &sector, &r_ );
                 disc = E_mem_Q_tab_R( E_disc_S, disc_id );
                 if(r)
                     goto End;
                 N64 n_ = J_min( n, block->location.in_sector.size - pos );
                 E_mem_Q_blk_I_copy( sector + block->location.in_sector.start + pos, data + data_p, n_ );
-                r = E_disc_I_dirty( disc_id, partition_i, block->sector, 1 );
+                r = E_disc_P_dirty( disc_id, partition_i, block->sector, 1 );
                 if(r)
                     goto End;
                 E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
@@ -5669,12 +5669,12 @@ Write:      N64 n_;
             {   if( disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.pre )
                 {   n_ = J_min( n, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.pre );
                     N r_;
-                    r = E_disc_I_read( disc_id, partition_i, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector - 1, 1, &sector, &r_ );
+                    r = E_disc_R( disc_id, partition_i, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector - 1, 1, &sector, &r_ );
                     disc = E_mem_Q_tab_R( E_disc_S, disc_id );
                     if(r)
                         goto End;
                     E_mem_Q_blk_I_copy( sector + ( disc->sata_ahci.physical_sector_size - disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.pre ), data + data_p, n_ );
-                    r = E_disc_I_dirty( disc_id, partition_i, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector - 1, 1 );
+                    r = E_disc_P_dirty( disc_id, partition_i, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector - 1, 1 );
                     if(r)
                         goto End;
                     E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
@@ -5717,12 +5717,12 @@ Write:      N64 n_;
                 }
                 N sector_i = J_min( n / disc->sata_ahci.physical_sector_size, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.n );
                 N r_;
-                r = E_disc_I_write( disc_id, partition_i, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector, sector_i, &sector, &r_ );
+                r = E_disc_P( disc_id, partition_i, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector, sector_i, &sector, &r_ );
                 disc = E_mem_Q_tab_R( E_disc_S, disc_id );
                 if(r)
                     goto End;
                 E_mem_Q_blk_I_copy( sector, data + data_p, sector_i * disc->sata_ahci.physical_sector_size );
-                r = E_disc_I_dirty( disc_id, partition_i, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector, sector_i );
+                r = E_disc_P_dirty( disc_id, partition_i, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector, sector_i );
                 if(r)
                     goto End;
                 E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
@@ -5731,12 +5731,12 @@ Write:      N64 n_;
                 N n_;
                 if( sector_i != disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.n )
                 {   N r_;
-                    r = E_disc_I_read( disc_id, partition_i, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector + sector_i, 1, &sector, &r_ );
+                    r = E_disc_R( disc_id, partition_i, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector + sector_i, 1, &sector, &r_ );
                     disc = E_mem_Q_tab_R( E_disc_S, disc_id );
                     if(r)
                         goto End;
                     E_mem_Q_blk_I_copy( sector, data + data_p, n );
-                    r = E_disc_I_dirty( disc_id, partition_i, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector + sector_i, 1 );
+                    r = E_disc_P_dirty( disc_id, partition_i, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector + sector_i, 1 );
                     if(r)
                         goto End;
                     E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
@@ -5800,7 +5800,7 @@ Write:      N64 n_;
                 {   n_ = J_min( n, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.post );
                     N16 post = disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.post;
                     N r_;
-                    r = E_disc_I_read( disc_id, partition_i
+                    r = E_disc_R( disc_id, partition_i
                     , disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector
                       + disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.n
                     , 1, &sector, &r_
@@ -5809,7 +5809,7 @@ Write:      N64 n_;
                     if(r)
                         goto End;
                     E_mem_Q_blk_I_copy( sector, data + data_p, n_ );
-                    r = E_disc_I_dirty( disc_id, partition_i
+                    r = E_disc_P_dirty( disc_id, partition_i
                     , disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector
                       + disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.n
                     , 1
@@ -5854,12 +5854,12 @@ Write:      N64 n_;
             }else
             {   n_ = J_min( n, size );
                 N r_;
-                r = E_disc_I_read( disc_id, partition_i, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector, 1, &sector, &r_ );
+                r = E_disc_R( disc_id, partition_i, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector, 1, &sector, &r_ );
                 disc = E_mem_Q_tab_R( E_disc_S, disc_id );
                 if(r)
                     goto End;
                 E_mem_Q_blk_I_copy( sector + disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.in_sector.start, data + data_p, n_ );
-                r = E_disc_I_dirty( disc_id, partition_i, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector, 1 );
+                r = E_disc_P_dirty( disc_id, partition_i, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector, 1 );
                 if(r)
                     goto End;
                 E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );

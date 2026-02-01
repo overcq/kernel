@@ -307,7 +307,7 @@ E_disc_I_init( I disc_id
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _private
 N
-E_disc_I_dirty( I disc_id
+E_disc_P_dirty( I disc_id
 , N partition_i
 , N pba
 , N count
@@ -330,7 +330,7 @@ E_disc_I_dirty( I disc_id
 }
 _private
 N
-E_disc_I_read( I disc_id
+E_disc_R( I disc_id
 , N partition_i
 , N pba
 , N count
@@ -343,7 +343,7 @@ E_disc_I_read( I disc_id
     switch( disc->type )
     { case E_disc_Z_type_S_sata_ahci:
         {   G( "read %x, %x", pba, count );
-            N r_ = E_ssd_cache_I_read( disc_id, pba, count, data, r );
+            N r_ = E_ssd_cache_R( disc_id, pba, count, data, r );
             if( r_ )
                 return r_;
             break;
@@ -355,7 +355,7 @@ E_disc_I_read( I disc_id
 }
 _private
 N
-E_disc_I_write( I disc_id
+E_disc_P( I disc_id
 , N partition_i
 , N pba
 , N count
@@ -367,7 +367,7 @@ E_disc_I_write( I disc_id
         return ~0;
     switch( disc->type )
     { case E_disc_Z_type_S_sata_ahci:
-        {   N r_ = E_ssd_cache_I_write( disc_id, pba, count, data, r );
+        {   N r_ = E_ssd_cache_P( disc_id, pba, count, data, r );
             if( r_ )
                 return r_;
             break;
