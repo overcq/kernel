@@ -325,8 +325,8 @@ E_mouse_M( void
     E_mouse_Q_button_S_click_dx = 16; //CONF
     E_mouse_Q_button_S_click_dy = 16; //CONF
     E_mouse_Q_button_S_press_timeout = 600; //CONF
-    E_mouse_Q_button_S_release_timeout = 300; //CONF
-    E_mouse_Q_button_S_border_timeout = 1000; //CONF
+    E_mouse_Q_button_S_release_timeout = 200; //CONF
+    E_mouse_Q_button_S_border_timeout = 800; //CONF
     E_mouse_Q_button_S_dirty_timeout = 100; //CONF
     E_mouse_Q_button_S_click_count = 0;
     E_mouse_Q_wheel_S_count = 0;

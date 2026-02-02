@@ -134,6 +134,7 @@ E_ssd_cache_P_dirty( struct E_disc_Z *disc
         disc->sata_ahci.dirty[0].pba = pba;
         disc->sata_ahci.dirty[0].count = count;
     }
+    return 0;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //DFN Procedury ‘read’/‘write’ — jeśli zakończyły się bez błędu — to nie zwalniają ‘lock’. Trzeba go zwolnić po wykonaniu operacji na danych: “E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );”.

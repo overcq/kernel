@@ -11,7 +11,13 @@
 //==============================================================================
 struct E_window_Q_window_Z
 { Pc title, description;
-  void ( *draw )( N32 x, N32 y, N32 width, N32 height );
+  void ( *draw )( I window_id, N32 x, N32 y, N32 width, N32 height );
+  void ( *mouse_move )( I window_id, N32 x, N32 y );
+  void ( *click )( I window_id );
+  void ( *wheel )( I window_id );
+  void ( *key )( I window_id );
+  void ( *destroy )( N8 desktop_id, I window_id );
+  P data;
   N32 x, y, width, height;
   B sized;
 };
@@ -19,7 +25,7 @@ struct E_window_Q_desktop_Z
 { struct E_mem_Q_tab_Z *window;
   I *stack;
   I visible_button_start, visible_buttons;
-  I button_width;
+  N32 button_width;
 };
 //==============================================================================
 _private struct E_window_Q_desktop_Z *E_windows_Q_desktop_S;
@@ -85,7 +91,12 @@ N
 E_windows_Q_window_M( N8 desktop_id
 , Pc title
 , Pc description
-, void ( *draw_proc )( N32, N32, N32, N32 )
+, void ( *draw_proc )( I, N32, N32, N32, N32 )
+, void ( *mouse_move )( I, N32, N32 )
+, void ( *click )(I)
+, void ( *wheel )(I)
+, void ( *key )(I)
+, void ( *destroy )( N8, I )
 ){  E_flow_I_cli();
     I window_id = E_mem_Q_tab_I_add( E_windows_Q_desktop_S[ desktop_id ].window );
     if( window_id < 0 )
@@ -130,6 +141,11 @@ E_windows_Q_window_M( N8 desktop_id
     window->x = ( E_main_S_framebuffer.width - window->width ) / 2;
     window->y = E_gui_Q_taskbar_S_height + ( E_main_S_framebuffer.height - E_gui_Q_taskbar_S_height - window->height ) / 2;
     window->draw = draw_proc;
+    window->mouse_move = mouse_move;
+    window->click = click;
+    window->wheel = wheel;
+    window->key = key;
+    window->destroy = destroy;
     I windows = E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ desktop_id ].window );
     E_windows_Q_desktop_S[ desktop_id ].button_width = E_main_S_framebuffer.width / windows;
     if( E_windows_Q_desktop_S[ desktop_id ].button_width < E_gui_Q_taskbar_S_button_min_width )
@@ -155,6 +171,8 @@ N
 E_windows_Q_window_W( N8 desktop_id
 , I window_id
 ){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
+    if( window->destroy )
+        window->destroy( desktop_id, window_id );
     if( W( window->description ))
         return ~2;
     if( W( window->title ))

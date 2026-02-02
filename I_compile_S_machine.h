@@ -6,6 +6,7 @@
 *         platform definitions
 * ©overcq                on ‟Gentoo Linux 23.0” “x86_64”              2025‒5‒2 Q
 *******************************************************************************/
+#define S_os_version "OUX/C+ OS 0.0.0-alpha"
 typedef unsigned char       N8;
 typedef signed char         S8;
 typedef unsigned short      N16;

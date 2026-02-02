@@ -10,7 +10,7 @@ Contact the manufacturer: overcq@int.pl
 
 Source code: https://github.com/overcq/kernel
 
-Description: https://overcq.ct8.pl/system-operacyjny-ouxc.html
+Description: https://overcq.ct8.pl/oux-c-plus-os.html
 
 ## 2. Vulnerabilities
 
@@ -22,13 +22,14 @@ Operating system for x86_64 architecture.
 
 ## 4. Needed to build
 
-* Gentoo Linux
-* elf2oux
-* 
+* Linux
+* “elf2oux”
+* “mkfs.oux”
+* bootloader
 
 ## 5. Support
 
-Technical security support at: https://overcq.ct8.pl/system-operacyjny-ouxc.html and via e‐mail: overcq@int.pl
+Technical security support at: https://overcq.ct8.pl/oux-c-plus-os.html and via e‐mail: overcq@int.pl
 
 Issues at: https://github.com/overcq/kernel/issues
 

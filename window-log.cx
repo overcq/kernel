@@ -7,76 +7,119 @@
 *         log window
 * (c)overcq              on WSL\Debian (Linux 6.6.87.2)             2025-12-21 S
 *******************************************************************************/
+struct E_window_log_Z_data
+{ N line;
+};
 _private B E_window_log_S_active;
 //==============================================================================
 _private
+I
+E_window_log_M( N8 desktop_id
+){  struct E_window_log_Z_data *M_(data);
+    if( !data )
+        return ~0;
+    data->line = ~0;
+    I window_id = E_windows_Q_window_M( desktop_id, "System log", "In memory system log window", E_window_log_I_draw, 0, 0, &E_window_log_I_wheel, 0, &E_window_log_W );
+    if( !~window_id )
+        return ~0;
+    struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
+    window->data = data;
+    return 0;
+}
+_private
 void
-E_window_log_I_draw( N32 x
+E_window_log_W( N8 desktop_id
+, I window_id
+){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
+    W( window->data );
+}
+_private
+void
+E_window_log_I_draw( I window_id
+, N32 x
 , N32 y
 , N32 width
 , N32 height
 ){  E_vga_I_fill_rect( x, y, width, height, E_vga_S_background_color );
     if( !E_se_log_S_buffer_l )
         return;
+    struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
+    struct E_window_log_Z_data *window_data = window->data;
     N8 font_size = 0;
     N8 thickness = 0;
     if( width <= 2 * ( thickness + 1 )
     || height <= 2 * ( font_size + 1 )
     )
         return;
-    // Sprawdź, ile byłoby linii wyświetlanych dla szerokości okna od ostatnich akapitów/znaków nowej linii/początków linii w tekście.
     N nl = 0;
-    Pc s_begin = E_se_log_S_buffer + E_se_log_S_buffer_l;
-    Pc s_end;
+    Pc s_begin, s_end;
+    N32 y_ = 0;
     N32 x_;
-    do
-    {   nl++;
-        s_end = s_begin;
-        Pc s = s_begin = E_text_Z_s_R_search_last_c( E_se_log_S_buffer, s_end, '\n' );
-        if( *s == '\n' )
-            s++;
+    if( ~window_data->line )
+    {   // Przesuń wskaźnik na początkową linię.
+        s_begin = E_se_log_S_buffer;
+        s_end = E_se_log_S_buffer + E_se_log_S_buffer_l;
+        while( nl != window_data->line )
+        {   nl++;
+            s_begin = E_text_Z_s_R_search_c( s_begin, s_end, '\n' );
+            if( s_begin == s_end )
+                break;
+            s_begin++;
+        }
+        if( s_begin == E_se_log_S_buffer )
+            s_begin++;
         x_ = thickness + 1;
-        while( s != s_end )
-        {   U u = ~0;
-            Pc s_ = E_text_Z_su_R_u( s, &u );
-            s = s_;
-            N32 font_i;
-            if( width <= x_ + thickness + 1
-            || !E_font_T_print_u( width - x_ - ( thickness + 1 ), thickness, &u, &font_i )
-            )
-            {   x_ = thickness + 1;
-                nl++;
-            }else
-                x_ += ( thickness + 1 ) * E_font_S_font.bitmap[ font_i ].width + thickness + 1;
-        }
-    }while( s_begin != E_se_log_S_buffer
-    && height > font_size + 1 + nl * (( font_size + 1 ) * E_font_S_font.height + font_size + 1 )
-    );
-    if( *s_begin == '\n' )
-        s_begin++;
-    // Przesuń wskaźnik tekstu do przodu, tak by pozostały tylko linie, które się zmieszczą w wysokości okna.
-    x_ = thickness + 1;
-    if( height < font_size + 1 + ( nl - 1 ) * (( font_size + 1 ) * E_font_S_font.height + font_size + 1 ) + 1 )
-        while( s_begin != s_end )
-        {   U u = ~0;
-            Pc s = E_text_Z_su_R_u( s_begin, &u );
-            N32 font_i;
-            if( width <= x_ + thickness + 1
-            || !E_font_T_print_u( width - x_ - ( thickness + 1 ), thickness, &u, &font_i )
-            )
-            {   x_ = thickness + 1;
-                nl--;
-                if( height >= font_size + 1 + ( nl - 1 ) * (( font_size + 1 ) * E_font_S_font.height + font_size + 1 ) + 1 )
-                    break;
-            }else
-                x_ += ( thickness + 1 ) * E_font_S_font.bitmap[ font_i ].width + thickness + 1;
-            s_begin = s;
-        }
-    // Narysuj tekst.
-    N32 y_ = height > font_size + 1 + nl * (( font_size + 1 ) * E_font_S_font.height + font_size + 1 )
-    ? 0
-    : height - ( font_size + 1 + nl * (( font_size + 1 ) * E_font_S_font.height + font_size + 1 ));
+    }else
+    {   // Sprawdź, ile byłoby linii wyświetlanych dla szerokości okna od ostatnich akapitów/znaków nowej linii/początków linii w tekście.
+        s_begin = E_se_log_S_buffer + E_se_log_S_buffer_l;
+        do
+        {   nl++;
+            s_end = s_begin;
+            Pc s = s_begin = E_text_Z_s_R_search_last_c( E_se_log_S_buffer, s_end, '\n' );
+            if( s != s_end )
+                s++;
+            x_ = thickness + 1;
+            while( s != s_end )
+            {   U u = ~0;
+                Pc s_ = E_text_Z_su_R_u( s, &u );
+                s = s_;
+                N32 font_i;
+                if( width <= x_ + thickness + 1
+                || !E_font_T_print_u( width - x_ - ( thickness + 1 ), thickness, &u, &font_i )
+                )
+                {   x_ = thickness + 1;
+                    nl++;
+                }else
+                    x_ += ( thickness + 1 ) * E_font_S_font.bitmap[ font_i ].width + thickness + 1;
+            }
+        }while( s_begin != E_se_log_S_buffer
+        && height > font_size + 1 + nl * (( font_size + 1 ) * E_font_S_font.height + font_size + 1 )
+        );
+        if( s_begin == E_se_log_S_buffer )
+            s_begin++;
+        // Przesuń wskaźnik tekstu do przodu, tak by pozostały tylko linie, które się zmieszczą w wysokości okna.
+        x_ = thickness + 1;
+        if( height < font_size + 1 + ( nl - 1 ) * (( font_size + 1 ) * E_font_S_font.height + font_size + 1 ) + 1 )
+            while( s_begin != s_end )
+            {   U u = ~0;
+                Pc s = E_text_Z_su_R_u( s_begin, &u );
+                N32 font_i;
+                if( width <= x_ + thickness + 1
+                || !E_font_T_print_u( width - x_ - ( thickness + 1 ), thickness, &u, &font_i )
+                )
+                {   x_ = thickness + 1;
+                    nl--;
+                    if( height >= font_size + 1 + ( nl - 1 ) * (( font_size + 1 ) * E_font_S_font.height + font_size + 1 ) + 1 )
+                        break;
+                }else
+                    x_ += ( thickness + 1 ) * E_font_S_font.bitmap[ font_i ].width + thickness + 1;
+                s_begin = s;
+            }
+        if( height < font_size + 1 + nl * (( font_size + 1 ) * E_font_S_font.height + font_size + 1 ))
+            y_ = height - ( font_size + 1 + nl * (( font_size + 1 ) * E_font_S_font.height + font_size + 1 ));
+    }
     y_ += y + font_size + 1;
+    // Narysuj tekst.
     while( s_begin != E_se_log_S_buffer + E_se_log_S_buffer_l )
     {   U u = ~0;
         Pc s = E_text_Z_su_R_u( s_begin, &u );
@@ -88,10 +131,30 @@ E_window_log_I_draw( N32 x
         )
         {   x_ = thickness + 1;
             y_ += ( font_size + 1 ) * E_font_S_font.height + font_size + 1;
+            if( y_ >= y + height )
+                break;
         }else
         {   E_font_I_draw_u( font_i, x + x_, y_, y + ( font_size + 1 ), height - 2 * ( font_size + 1 ), E_vga_S_text_color, font_size, thickness );
             x_ += ( thickness + 1 ) * E_font_S_font.bitmap[ font_i ].width + thickness + 1;
         }
+    }
+}
+_private
+void
+E_window_log_I_wheel( I window_id
+){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
+    struct E_window_log_Z_data *window_data = window->data;
+    if( !~window_data->line )
+        window_data->line = E_se_log_S_lines - 1;
+    S line = window_data->line + E_mouse_Q_wheel_S_count * 5;
+    if( line < 0 )
+        line = 0;
+    else if( line > E_se_log_S_lines - 1 )
+        line = ~0;
+    if( window_data->line != line )
+    {   window_data->line = line;
+        X_A( gui, draw );
+        X_F( gui, draw );
     }
 }
 /******************************************************************************/

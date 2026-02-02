@@ -11,8 +11,20 @@
 #define E_keyboard_Z_led_S_num_lock     ( 1 << 1 )
 #define E_keyboard_Z_led_S_caps_lock    ( 1 << 2 )
 #define E_keyboard_S_rw_timeout         1000
+#define E_keyboard_S_queue_n            16
+//==============================================================================
+struct E_keyboard_S_key
+{ N8 code;
+  B ex;
+  B up;
+};
 //==============================================================================
 _internal volatile N8 E_keyboard_S_reply;
+_internal B E_keyboard_S_ex;
+_private volatile struct E_keyboard_S_key *E_keyboard_S_queue;
+_private volatile N8 E_keyboard_S_queue_i;
+_internal volatile N8 E_keyboard_S_led_set;
+_internal volatile B E_keyboard_S_led_set_changed, E_keyboard_S_queue_changed;
 //==============================================================================
 _private
 N
@@ -74,9 +86,54 @@ E_keyboard_I_interrupt( void
     {   E_keyboard_S_reply = v;
         return;
     }
+    if( v == 0xe0 )
+    {   E_keyboard_S_ex = yes;
+        return;
+    }
     N32 sched_i = E_flow_I_current_scheduler();
     U_F( E_flow_S_scheduler[ sched_i ].state, inside_interrupt );
-    G( "keyboard interrupt, key=%8x", v );
+    if( v == 0x3a
+    || v == ( 0x3a | 0x80 ))
+    {   if( !( v & 0x80 ))
+        {   E_keyboard_S_led_set ^= E_keyboard_Z_led_S_caps_lock;
+            E_keyboard_S_led_set_changed = yes;
+            X_A( keyboard, key );
+            X_F( keyboard, key );
+        }
+        return;
+    }
+    if( v == 0x45
+    || v == ( 0x45 | 0x80 ))
+    {   if( !( v & 0x80 ))
+        {   E_keyboard_S_led_set ^= E_keyboard_Z_led_S_num_lock;
+            E_keyboard_S_led_set_changed = yes;
+            X_A( keyboard, key );
+            X_F( keyboard, key );
+        }
+        return;
+    }
+    if( v == 0x46
+    || v == ( 0x46 | 0x80 ))
+    {   if( !( v & 0x80 ))
+        {   E_keyboard_S_led_set ^= E_keyboard_Z_led_S_scroll_lock;
+            E_keyboard_S_led_set_changed = yes;
+            X_A( keyboard, key );
+            X_F( keyboard, key );
+        }
+        return;
+    }
+    if( E_keyboard_S_queue_i == E_keyboard_S_queue_n )
+    {   G( "keyboard queue full" );
+        return;
+    }
+    E_keyboard_S_queue[ E_keyboard_S_queue_i ].up = v & 0x80;
+    E_keyboard_S_queue[ E_keyboard_S_queue_i ].code = v & ~0x80;
+    E_keyboard_S_queue[ E_keyboard_S_queue_i ].ex = E_keyboard_S_ex;
+    E_keyboard_S_queue_i++;
+    E_keyboard_S_ex = no;
+    E_keyboard_S_queue_changed = yes;
+    X_A( keyboard, key );
+    X_F( keyboard, key );
     U_L( E_flow_S_scheduler[ sched_i ].state, inside_interrupt );
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -230,8 +287,34 @@ E_keyboard_M( void
         }else
             E_mouse_S_initialized = no;
     }
+    E_keyboard_S_ex = no;
+    E_keyboard_S_queue_i = 0;
+    Mt_( E_keyboard_S_queue, E_keyboard_S_queue_n );
+    if( !E_keyboard_S_queue )
+        return ~0;
+    E_keyboard_S_led_set_changed = no;
+    E_keyboard_S_queue_changed = no;
+    D_M( keyboard, key, 0 )
+        return ~1;
     E_interrupt_P( 1, &E_keyboard_I_interrupt );
     G( "Keyboard initialized." );
     return 0;
+}
+D( keyboard, key )
+{   X_M( keyboard, key );
+    O{  X_B( keyboard, key, 0 )
+            break;
+        E_flow_I_cli();
+        if( E_keyboard_S_led_set_changed )
+        {   E_keyboard_S_led_set_changed = no;
+            E_keyboard_P_led( E_keyboard_S_led_set );
+        }
+        if( E_keyboard_S_queue_changed )
+        {   E_keyboard_S_queue_changed = no;
+            E_gui_Q_keyboard_I_key();
+        }
+        E_flow_I_sti();
+    }
+    X_W( keyboard, key );
 }
 /******************************************************************************/
