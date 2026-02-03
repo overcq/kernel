@@ -15,7 +15,7 @@ struct E_window_Q_window_Z
   void ( *mouse_move )( I window_id, N32 x, N32 y );
   void ( *click )( I window_id );
   void ( *wheel )( I window_id );
-  void ( *key )( I window_id );
+  void ( *key )( I window_id, N queue_i );
   void ( *destroy )( N8 desktop_id, I window_id );
   P data;
   N32 x, y, width, height;
@@ -95,7 +95,7 @@ E_windows_Q_window_M( N8 desktop_id
 , void ( *mouse_move )( I, N32, N32 )
 , void ( *click )(I)
 , void ( *wheel )(I)
-, void ( *key )(I)
+, void ( *key )( I, N )
 , void ( *destroy )( N8, I )
 ){  E_flow_I_cli();
     I window_id = E_mem_Q_tab_I_add( E_windows_Q_desktop_S[ desktop_id ].window );

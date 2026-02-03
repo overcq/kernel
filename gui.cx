@@ -902,13 +902,13 @@ E_gui_Q_pointer_I_wheel( void
 _private
 void
 E_gui_Q_keyboard_I_key( void
-){  do
-    {   E_keyboard_S_queue_i--;
-        G( "up=%8x, ex=%8x, key=%8x", E_keyboard_S_queue[ E_keyboard_S_queue_i ].up, E_keyboard_S_queue[ E_keyboard_S_queue_i ].ex, E_keyboard_S_queue[ E_keyboard_S_queue_i ].code );
-        if( E_keyboard_S_queue[ E_keyboard_S_queue_i ].ex
-        && E_keyboard_S_queue[ E_keyboard_S_queue_i ].code == 0x5b
+){  N queue_i = 0;
+    do
+    {   if( E_keyboard_S_queue[ queue_i ].ex_1
+        && !E_keyboard_S_queue[ queue_i ].ex_2
+        && E_keyboard_S_queue[ queue_i ].code == 0x5b
         ) // logo
-        {   if( E_keyboard_S_queue[ E_keyboard_S_queue_i ].up )
+        {   if( E_keyboard_S_queue[ queue_i ].up )
             {   I windows = E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window );
                 I window_id;
                 for_i( window_i, windows )
@@ -927,11 +927,11 @@ E_gui_Q_keyboard_I_key( void
             if(windows)
             {   struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ windows - 1 ] );
                 if( window->key )
-                    window->key( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ windows - 1 ] );
+                    window->key( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ windows - 1 ], queue_i );
             }
         }
-    }
-    while( E_keyboard_S_queue_i );
+    }while( ++queue_i != E_keyboard_S_queue_i );
+    E_keyboard_S_queue_i = 0;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _internal
@@ -959,8 +959,12 @@ E_gui_Q_desktop_I_draw( void
             break;
     }
     if( ~(S8)stack_i )
-        window->draw( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ], 0, E_gui_Q_taskbar_S_height, E_main_S_framebuffer.width, E_main_S_framebuffer.height - E_gui_Q_taskbar_S_height );
-    else
+    {   E_vga_I_fill_rect( 0, E_gui_Q_taskbar_S_height, E_main_S_framebuffer.width, E_main_S_framebuffer.height - E_gui_Q_taskbar_S_height, E_vga_S_background_color );
+        window->draw( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ]
+        , 0, E_gui_Q_taskbar_S_height
+        , E_main_S_framebuffer.width, E_main_S_framebuffer.height - E_gui_Q_taskbar_S_height
+        );
+    }else
         E_gui_Q_desktop_I_draw_background();
     if( ++stack_i == windows ) // Jest tylko jedno zmaksymalizowane okno lub nie ma żadnego.
         return;
@@ -968,6 +972,12 @@ E_gui_Q_desktop_I_draw( void
     for( ; stack_i != windows - 1; stack_i++ )
     {   window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ] );
         E_vga_I_draw_rect( window->x, window->y, window->width, window->height, E_gui_Q_desktop_S_window_border_thickness, E_vga_R_video_color( 0x908b8b ));
+        E_vga_I_fill_rect( window->x + E_gui_Q_desktop_S_window_border_thickness
+        , window->y + E_gui_Q_desktop_S_window_border_thickness
+        , window->width - 2 * E_gui_Q_desktop_S_window_border_thickness
+        , window->height - 2 * E_gui_Q_desktop_S_window_border_thickness
+        , E_vga_S_background_color
+        );
         window->draw( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ]
         , window->x + E_gui_Q_desktop_S_window_border_thickness
         , window->y + E_gui_Q_desktop_S_window_border_thickness
@@ -1003,6 +1013,12 @@ E_gui_Q_desktop_I_draw( void
             , E_vga_R_video_color( 0x908b8b )
             );
         E_vga_I_draw_rect( x, y, width, height, E_gui_Q_desktop_S_window_border_thickness, E_vga_R_video_color( 0x70fb ));
+        E_vga_I_fill_rect( x + E_gui_Q_desktop_S_window_border_thickness
+        , y + E_gui_Q_desktop_S_window_border_thickness
+        , width - 2 * E_gui_Q_desktop_S_window_border_thickness
+        , height - 2 * E_gui_Q_desktop_S_window_border_thickness
+        , E_vga_S_background_color
+        );
         window->draw( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ]
         , x + E_gui_Q_desktop_S_window_border_thickness
         , y + E_gui_Q_desktop_S_window_border_thickness
@@ -1059,6 +1075,12 @@ E_gui_Q_desktop_I_draw( void
             , E_vga_R_video_color( 0x908b8b )
             );
         E_vga_I_draw_rect( x, y, width, height, E_gui_Q_desktop_S_window_border_thickness, E_vga_R_video_color( 0x70fb ));
+        E_vga_I_fill_rect( x + E_gui_Q_desktop_S_window_border_thickness
+        , y + E_gui_Q_desktop_S_window_border_thickness
+        , width - 2 * E_gui_Q_desktop_S_window_border_thickness
+        , height - 2 * E_gui_Q_desktop_S_window_border_thickness
+        , E_vga_S_background_color
+        );
         window->draw( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ]
         , x + E_gui_Q_desktop_S_window_border_thickness
         , y + E_gui_Q_desktop_S_window_border_thickness
@@ -1075,6 +1097,12 @@ E_gui_Q_desktop_I_draw( void
             , E_vga_R_video_color( 0x908b8b )
             );
         E_vga_I_draw_rect( window->x, window->y, window->width, window->height, E_gui_Q_desktop_S_window_border_thickness, E_vga_R_video_color( 0x908b8b ));
+        E_vga_I_fill_rect( window->x + E_gui_Q_desktop_S_window_border_thickness
+        , window->y + E_gui_Q_desktop_S_window_border_thickness
+        , window->width - 2 * E_gui_Q_desktop_S_window_border_thickness
+        , window->height - 2 * E_gui_Q_desktop_S_window_border_thickness
+        , E_vga_S_background_color
+        );
         window->draw( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ]
         , window->x + E_gui_Q_desktop_S_window_border_thickness
         , window->y + E_gui_Q_desktop_S_window_border_thickness

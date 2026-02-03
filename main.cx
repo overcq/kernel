@@ -500,7 +500,6 @@ main( struct E_main_Z_kernel_args *kernel_args
     O{  X_B( main, test, 0 )
             break;
     }
-    X_W( main, test );
     S status = E_main_S_uefi_runtime_services.reset_system( H_uefi_Z_reset_Z_shutdown, 0, 0, 0 );
 End:G( "end loop" );
     E_main_I_error_fatal();

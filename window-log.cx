@@ -7,9 +7,12 @@
 *         log window
 * (c)overcq              on WSL\Debian (Linux 6.6.87.2)             2025-12-21 S
 *******************************************************************************/
+#define E_window_log_S_scroll_count  8
+//==============================================================================
 struct E_window_log_Z_data
 { N line;
 };
+//==============================================================================
 _private B E_window_log_S_active;
 //==============================================================================
 _private
@@ -19,7 +22,7 @@ E_window_log_M( N8 desktop_id
     if( !data )
         return ~0;
     data->line = ~0;
-    I window_id = E_windows_Q_window_M( desktop_id, "System log", "In memory system log window", E_window_log_I_draw, 0, 0, &E_window_log_I_wheel, 0, &E_window_log_W );
+    I window_id = E_windows_Q_window_M( desktop_id, "System log", "In memory system log window", E_window_log_I_draw, 0, 0, &E_window_log_I_wheel, &E_window_log_I_key, &E_window_log_W );
     if( !~window_id )
         return ~0;
     struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
@@ -40,8 +43,7 @@ E_window_log_I_draw( I window_id
 , N32 y
 , N32 width
 , N32 height
-){  E_vga_I_fill_rect( x, y, width, height, E_vga_S_background_color );
-    if( !E_se_log_S_buffer_l )
+){  if( !E_se_log_S_buffer_l )
         return;
     struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
     struct E_window_log_Z_data *window_data = window->data;
@@ -146,15 +148,71 @@ E_window_log_I_wheel( I window_id
     struct E_window_log_Z_data *window_data = window->data;
     if( !~window_data->line )
         window_data->line = E_se_log_S_lines - 1;
-    S line = window_data->line + E_mouse_Q_wheel_S_count * 5;
-    if( line < 0 )
-        line = 0;
+    S line = (S)window_data->line + E_mouse_Q_wheel_S_count * E_window_log_S_scroll_count;
+    if( line < 1 )
+        line = 1;
     else if( line > E_se_log_S_lines - 1 )
         line = ~0;
     if( window_data->line != line )
     {   window_data->line = line;
         X_A( gui, draw );
         X_F( gui, draw );
+    }
+}
+_private
+void
+E_window_log_I_key( I window_id
+, N queue_i
+){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
+    if( E_keyboard_S_queue[ queue_i ].ex_2
+    || !E_keyboard_S_queue[ queue_i ].up
+    )
+        return;
+    struct E_window_log_Z_data *window_data = window->data;
+    if( E_keyboard_S_queue[ queue_i ].code == 0x48
+    || E_keyboard_S_queue[ queue_i ].code == 0x49
+    || E_keyboard_S_queue[ queue_i ].code == 0x50
+    || E_keyboard_S_queue[ queue_i ].code == 0x51
+    )
+    {   if( !~window_data->line )
+            window_data->line = E_se_log_S_lines - 1;
+        S count;
+        switch( E_keyboard_S_queue[ queue_i ].code )
+        { case 0x48:
+                count = -1;
+                break;
+          case 0x49:
+                count = -E_window_log_S_scroll_count;
+                break;
+          case 0x50:
+                count = 1;
+                break;
+          case 0x51:
+                count = E_window_log_S_scroll_count;
+                break;
+        }
+        S line = (S)window_data->line + count;
+        if( line < 1 )
+            line = 1;
+        else if( line > E_se_log_S_lines - 1 )
+            line = ~0;
+        if( window_data->line != line )
+        {   window_data->line = line;
+            X_A( gui, draw );
+            X_F( gui, draw );
+        }
+    }else if( E_keyboard_S_queue[ queue_i ].code == 0x47 )
+    {   if( window_data->line != 1 )
+        {   window_data->line = 1;
+            X_A( gui, draw );
+            X_F( gui, draw );
+        }
+    }else if( E_keyboard_S_queue[ queue_i ].code == 0x4f )
+    {   if( window_data->line != ~0 )
+        {   window_data->line = ~0;
+            X_A( gui, draw );
+            X_F( gui, draw );
+        }
     }
 }
 /******************************************************************************/
