@@ -483,12 +483,11 @@ main( struct E_main_Z_kernel_args *kernel_args
     E_flow_I_unlock( &E_mem_blk_S_lock );
     if( W( kernel_args->processor_proc ))
         goto End;
-    /*if( E_acpi_aml_M( kernel_args->acpi.dsdt_content, kernel_args->acpi.dsdt_content_l, &kernel_args->acpi.ssdt_contents[0], kernel_args->acpi.ssdt_contents_n )
-    || E_acpi_reader_M()
-    )
-        goto End;*/
-    if( W( kernel_args->bootloader )
+    if( E_acpi_aml_M( kernel_args->acpi.dsdt_content, kernel_args->acpi.dsdt_content_l, &kernel_args->acpi.ssdt_contents[0], kernel_args->acpi.ssdt_contents_n )
+    || ( E_acpi_reader_M() & 0 )
+    || W( kernel_args->bootloader )
     || E_disc_M()
+    || E_ethernet_M()
     || E_pci_I_check_buses()
     || E_gui_M()
     || E_keyboard_M()
@@ -506,6 +505,8 @@ End:G( "end loop" );
 }
 D( main, test )
 {   I timer = Y_M(10000);
+    if( timer < 0 )
+        E_main_I_error_fatal();
     O{  Y_B( timer, 0 )
             break;
         G( "test" );

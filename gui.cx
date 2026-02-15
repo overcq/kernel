@@ -774,14 +774,15 @@ E_gui_Q_pointer_I_click( void
         if( E_gui_Q_desktop_S_window_moving )
         {   I window_id = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window ) - 1 ];
             if( !E_mouse_Q_button_S_click_count ) // Zakończenie przesuwania okna.
-            {   if( !E_mouse_Q_button_S_press_held_cancel
-                && E_mouse_Q_button_S_coordinate[0] >= E_gui_Q_desktop_S_window_moving_resizing_dx
-                )
+            {   if( !E_mouse_Q_button_S_press_held_cancel )
                 {   struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
-                    if( E_mouse_Q_button_S_coordinate[0] - E_gui_Q_desktop_S_window_moving_resizing_dx + window->width <= E_main_S_framebuffer.width )
-                    {   window->x = E_mouse_Q_button_S_coordinate[0] - E_gui_Q_desktop_S_window_moving_resizing_dx;
-                        window->y = E_mouse_Q_button_S_coordinate[1] - E_gui_Q_desktop_S_window_moving_resizing_dy;
-                    }
+                    window->x = E_mouse_Q_button_S_coordinate[0] < E_gui_Q_desktop_S_window_moving_resizing_dx
+                    ? 0
+                    : ( E_mouse_Q_button_S_coordinate[0] - E_gui_Q_desktop_S_window_moving_resizing_dx + window->width > E_main_S_framebuffer.width
+                      ? E_main_S_framebuffer.width - window->width
+                      : E_mouse_Q_button_S_coordinate[0] - E_gui_Q_desktop_S_window_moving_resizing_dx
+                    );
+                    window->y = E_mouse_Q_button_S_coordinate[1] - E_gui_Q_desktop_S_window_moving_resizing_dy;
                 }
                 E_gui_Q_desktop_S_window_moving = no;
                 X_A( gui, draw );

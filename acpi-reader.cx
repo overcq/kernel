@@ -474,6 +474,7 @@ E_acpi_reader_M_crs( struct E_acpi_reader_Z_resources *resources
                         }
                         resources->irq_n++;
                         resources->irq[ prepended ? 0 : resources->irq_n - 1 ] = irq_i;
+                        G( "irq=%8x", irq_i );
                     }
                     irq->irq_mask = irq_->irq_mask;
                     if( l_ == 4 )
@@ -637,6 +638,7 @@ E_acpi_reader_I_check_crs( struct E_acpi_reader_Z_resources *resources
                             return ~0;
                         resources->irq_n++;
                         resources->irq[ prepended ? 0 : resources->irq_n - 1 ] = irq_i;
+                        G( "irq=%8x", irq_i );
                     }
                     break;
                 }
@@ -750,15 +752,15 @@ E_acpi_reader_M( void
         }
     // Konfigurowanie urządzeń.
     struct E_acpi_reader_Z_resources resources;
-    resources.irq_n = 0;
-    Mt_( resources.irq, resources.irq_n );
-    if( !resources.irq )
-        return ~0;
     resources.bus_polarity_low = yes; //NDFN Tymczasowo dla ISA.
     resources.bus_trigger_edge = no; //NDFN Tymczasowo dla ISA.
     for_n_( i, E_acpi_aml_S_object_n )
     {   if( E_acpi_aml_S_object[i].type == E_acpi_aml_Z_object_Z_type_S_device )
-        {   struct E_acpi_aml_Z_value result;
+        {   resources.irq_n = 0;
+            Mt_( resources.irq, resources.irq_n );
+            if( !resources.irq )
+                return ~0;
+            struct E_acpi_aml_Z_value result;
             struct E_acpi_aml_Z_pathname sta = E_acpi_reader_I_child_build( i, "_STA" );
             N ret = E_acpi_aml_I_procedure( sta, &result, 0, 0 );
             W( sta.s );
@@ -767,7 +769,9 @@ E_acpi_reader_M( void
                 return ~0;
             }
             if( ret == ~1 )
+            {   W( resources.irq );
                 continue;
+            }
             if( ret != ~2 )
             {   if( result.type == E_acpi_aml_Z_value_Z_type_S_pathname )
                 {   N object_i = E_acpi_aml_Q_object_R( result.pathname );
@@ -790,12 +794,15 @@ E_acpi_reader_M( void
                   && ( result.n & 8 ) == 0 // not functional
                 ))
                 {   i = E_acpi_reader_I_next_sibling(i) - 1;
+                    W( resources.irq );
                     continue;
                 }
                 if(( result.n & 1 ) == 0 // not present
                 || ( result.n & 8 ) == 0 // not functional
                 )
+                {   W( resources.irq );
                     continue;
+                }
             }else
             {   result.n = 0xb; // present, enabled, functional
                 result.type = E_acpi_aml_Z_value_Z_type_S_number;
@@ -811,7 +818,9 @@ E_acpi_reader_M( void
             if( ret == ~1
             || ret == ~2
             )
+            {   W( resources.irq );
                 continue;
+            }
             if( crs_value.type == E_acpi_aml_Z_value_Z_type_S_pathname )
             {   N object_i = E_acpi_aml_Q_object_R( crs_value.pathname );
                 if( ~object_i
@@ -825,7 +834,9 @@ E_acpi_reader_M( void
                 crs_value.type = E_acpi_aml_Z_value_Z_type_S_uninitialized;
             }
             if( crs_value.type == E_acpi_aml_Z_value_Z_type_S_uninitialized )
+            {   W( resources.irq );
                 continue;
+            }
             struct E_acpi_aml_Z_pathname prs = E_acpi_reader_I_child_build( i, "_PRS" );
             struct E_acpi_aml_Z_value prs_value;
             ret = E_acpi_aml_I_procedure( prs, &prs_value, 0, 0 );
@@ -861,6 +872,7 @@ E_acpi_reader_M( void
                 }
                 if( ret == ~1 )
                 {   E_acpi_aml_Q_value_W( &crs_value );
+                    W( resources.irq );
                     continue;
                 }
                 struct E_acpi_aml_Z_pathname srs = E_acpi_reader_I_child_build( i, "_SRS" );
@@ -875,6 +887,7 @@ E_acpi_reader_M( void
                 || ret == ~2
                 )
                 {   E_acpi_aml_Q_value_W( &crs_value );
+                    W( resources.irq );
                     continue;
                 }
             }else
@@ -886,6 +899,7 @@ E_acpi_reader_M( void
                 }
                 if( ret == ~1 )
                 {   E_acpi_aml_Q_value_W( &crs_value );
+                    W( resources.irq );
                     continue;
                 }
                 if(( result.n & 2 ) == 0 ) // not enabled
@@ -901,15 +915,18 @@ E_acpi_reader_M( void
                     || ret == ~2
                     )
                     {   E_acpi_aml_Q_value_W( &crs_value );
+                        W( resources.irq );
                         continue;
                     }
                 }
             }
             //TODO Przypisanie zasobów urządzenia.
+            for_n( i, resources.irq_n )
+                G( "irq=%8x", resources.irq[i] );
             E_acpi_aml_Q_value_W( &crs_value );
+            W( resources.irq );
         }
     }
-    W( resources.irq );
     // Diagnostyczne wypisanie urządzeń.
     for_n_( i, E_acpi_aml_S_object_n )
         if( E_acpi_aml_S_object[i].type == E_acpi_aml_Z_object_Z_type_S_device )

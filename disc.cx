@@ -377,4 +377,27 @@ E_disc_P( I disc_id
     }
     return 0;
 }
+_private
+N
+E_disc_P_trim( I disc_id
+, N partition_i
+, N pba
+, N count
+){  struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
+    pba += disc->partition[ partition_i ].pba;
+    if( pba + count > disc->partition[ partition_i ].pba + disc->partition[ partition_i ].count )
+        return ~0;
+    switch( disc->type )
+    { case E_disc_Z_type_S_sata_ahci:
+        {   G( "trim %x, %x", pba, count );
+            N r_ = E_ssd_cache_P_trim( disc_id, pba, count );
+            if( r_ )
+                return r_;
+            break;
+        }
+      default:
+            return ~0;
+    }
+    return 0;
+}
 /******************************************************************************/

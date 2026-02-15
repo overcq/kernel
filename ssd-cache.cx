@@ -458,7 +458,7 @@ End:if( *r )
 }
 _private
 N
-E_ssd_cache_I_trim( I disc_id
+E_ssd_cache_P_trim( I disc_id
 , N pba
 , N count
 ){  N r = 0;

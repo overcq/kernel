@@ -838,6 +838,10 @@ E_ouxfs_Z_start_n_I_block_truncate( N disc_id
                 }
                 break;
             }
+            n__ = J_min( n, block->location.sectors.n * disc->sata_ahci.physical_sector_size );
+            N64 size = ( block->location.sectors.n * disc->sata_ahci.physical_sector_size - n__ ) / disc->sata_ahci.physical_sector_size;
+            if( E_disc_P_trim( disc_id, partition_i, block->sector + size, block->location.sectors.n - size ))
+                return ~0;
             for_n( sector_i, block->location.sectors.n )
             {   N64 n__ = J_min( n, disc->sata_ahci.physical_sector_size );
                 n -= n__;

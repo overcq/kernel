@@ -402,8 +402,46 @@ E_pci_I_check_device( N8 bus_i
             return r;
     }
     switch(ids)
-    { case 0ULL:
-        break;
+    { case 0x100f8086:
+        {   N32 n = E_pci_I_read( bus_i, device_i, function_i, 0x04 );
+            n |= ( 1 << 2 ) | ( 1 << 1 );
+            n &= ~( 1 << 10 );
+            E_pci_I_write( bus_i, device_i, function_i, 0x04, n );
+            E_interrupt_P( 18, &E_ethernet_I_interrupt ); //NDFN Tymczasowo, do czasu zrobienia ACPI.
+            N8 cap_pointer = E_pci_I_read( bus_i, device_i, function_i, 0x34 ) & 0xfc;
+            while( cap_pointer )
+            {   N32 n_0 = E_pci_I_read( bus_i, device_i, function_i, cap_pointer );
+                switch( n_0 & 0xff )
+                { case 7: // PCI-X
+                    {   N32 n_1 = E_pci_I_read( bus_i, device_i, function_i, cap_pointer + 4 );
+                        n_0 |= ((( n_1 >> 23 ) & 7 ) << ( 16 + 4 )) | ((( n_1 >> 21 ) & 3 ) << ( 16 + 2 ));
+                        E_pci_I_write( bus_i, device_i, function_i, cap_pointer, n_0 );
+                        break;
+                    }
+                }
+                cap_pointer = ( n_0 >> 8 ) & 0xfc;
+            }
+            N offset = 0x10;
+            N64 ethernet_address = E_pci_I_read( bus_i, device_i, function_i, offset );
+            if(( ethernet_address & 6 ) == 4 )
+            {   offset += sizeof( N32 );
+                ethernet_address |= (N64)E_pci_I_read( bus_i, device_i, function_i, offset ) << 32;
+            }
+            ethernet_address &= ~0xf;
+            offset += sizeof( N32 );
+            N64 eeprom_address = E_pci_I_read( bus_i, device_i, function_i, offset );
+            if(( eeprom_address & 6 ) == 4 )
+            {   offset += sizeof( N32 );
+                eeprom_address |= (N64)E_pci_I_read( bus_i, device_i, function_i, offset ) << 32;
+            }
+            eeprom_address &= ~0xf;
+            N r = E_ethernet_I_init( E_main_Z_p_I_to_virtual( (P)ethernet_address ), E_main_Z_p_I_to_virtual( (P)eeprom_address ));
+            if( ~r
+            && (S)r < 0
+            )
+                return r;
+            break;
+        }
     }
     return 0;
 }

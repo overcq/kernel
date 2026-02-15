@@ -1,0 +1,407 @@
+//-*-C-*-
+/*******************************************************************************
+*   ___   public
+*  ¦OUX¦  C+
+*  ¦/C+¦  OUX/C+ OS
+*   ---   kernel
+*         Ethernet driver for Intel 82545EM
+* (c)overcq              on WSL\Debian (Linux 6.6.87.2)               2026-2-8 W
+*******************************************************************************/
+struct __attribute__ (( __packed__ )) E_ethernet_Z_header
+{ N8 destination_address[6];
+  N8 source_address[6];
+  N16 type;
+};
+struct __attribute__ (( __packed__ )) E_ethernet_Z_ipv4_header
+{ N8 ihl        :4;
+  N8 version    :4;
+  N8 ecn        :2;
+  N8 tscp       :6;
+  N16 total_length;
+  N16 identification;
+  N16 fragment_offset   :13;
+  N16 flags             :3;
+  N8 ttl;
+  N8 protocol;
+  N16 header_checksum;
+  N32 source_address;
+  N32 destination_address;
+};
+struct __attribute__ (( __packed__ )) E_ethernet_Z_ipv4_header_checksum
+{ N32 source_address;
+  N32 destination_address;
+  N8 reserved;
+  N8 protocol;
+  N16 udp_length;
+};
+struct __attribute__ (( __packed__ )) E_ethernet_Z_udp_header
+{ N16 source_port;
+  N16 destination_port;
+  N16 length;
+  N16 checksum;
+};
+struct __attribute__ (( __packed__ )) E_ipv4_Z_dhcp_packet
+{ struct E_ethernet_Z_header ethernet;
+  struct E_ethernet_Z_ipv4_header ipv4;
+  struct E_ethernet_Z_udp_header udp;
+  N8 op;
+  N8 htype;
+  N8 hlen;
+  N8 hops;
+  N32 xid;
+  N16 secs;
+  N16 flags;
+  N32 ciaddr;
+  N32 yiaddr;
+  N32 siaddr;
+  N32 giaddr;
+  N8 chaddr[16];
+  N8 sname[64];
+  N8 file[128];
+  N8 options[];
+};
+struct __attribute__ (( __packed__ )) E_ethernet_Z_receive_descriptor
+{ N64 buffer_address;
+  N16 length;
+  N16 packet_checksum;
+  N8 dd         :1;
+  N8 eop        :1;
+  N8 ixsm       :1;
+  N8 vp         :1;
+  N8 reserved_0 :1;
+  N8 tcpcs      :1;
+  N8 ipcs       :1;
+  N8 pif        :1;
+  N8 ce         :1;
+  N8 se         :1;
+  N8 seq        :1;
+  N8 reserved_1 :1;
+  N8 cxe        :1;
+  N8 tcpe       :1;
+  N8 ipe        :1;
+  N8 rxe        :1;
+  N16 vlan      :12;
+  N16 cfi       :1;
+  N16 pri       :3;
+};
+struct __attribute__ (( __packed__ )) E_ethernet_Z_transmit_descriptor
+{ N64 buffer_address;
+  N16 length;
+  N8 cso;
+  N8 eop        :1;
+  N8 ifcs       :1;
+  N8 tse        :1;
+  N8 rs         :1;
+  N8 rps        :1;
+  N8 dext       :1;
+  N8 vle        :1;
+  N8 ide        :1;
+  N8 dd         :1;
+  N8 reserved_0 :7;
+  N8 css;
+  N16 special;
+};
+struct __attribute__ (( __packed__ )) E_ethernet_Z_tcpip_context_descriptor
+{ N8 ipcss;
+  N8 ipcso;
+  N16 ipcse;
+  N8 tucss;
+  N8 tucso;
+  N16 tucse;
+  N32 paylen    :20;
+  N32 dtyp      :4;
+  N32 tcp       :1;
+  N32 ip        :1;
+  N32 tse       :1;
+  N32 rs        :1;
+  N32 reserved_0:1;
+  N32 dext      :1;
+  N32 reserved_1:1;
+  N32 ide       :1;
+  N8 dd         :1;
+  N8 reserved_2 :7;
+  N8 hdrlen;
+  N16 mss;
+};
+struct __attribute__ (( __packed__ )) E_ethernet_Z_tcpip_data_descriptor
+{ N64 buffer_address;
+  N32 dtalen    :20;
+  N32 dtyp      :4;
+  N32 eop       :1;
+  N32 ifcs      :1;
+  N32 tse       :1;
+  N32 rs        :1;
+  N32 rps       :1;
+  N32 dext      :1;
+  N32 vle       :1;
+  N32 ide       :1;
+  N8 dd         :1;
+  N8 reserved_0 :7;
+  N8 ixsm       :1;
+  N8 txsm       :1;
+  N8 reserved_1 :6;
+  N16 vlan      :12;
+  N16 cfi       :1;
+  N16 pri       :3;
+};
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+struct E_ethernet_Z_interface
+{ P register_memory;
+  struct E_ethernet_Z_eeprom_memory *eeprom_memory;
+  N8 mac_address[6];
+  N8 ipv4_address[4];
+  N8 ipv4_network_prefix;
+  N8 ipv6_address[16];
+  N8 ipv6_network_prefix;
+  struct
+  { N dhcp_lease_time;
+    N8 dhcp_server[4];
+    N8 ipv4_gateway[4];
+    N8 ipv6_gateway[16];
+    N8 ipv4_dns[8];
+    N8 ipv6_dns[16];
+    B dhcp;
+  }client;
+};
+//==============================================================================
+_private struct E_mem_Q_tab_Z *E_ethernet_S;
+//==============================================================================
+_private
+N16
+E_ethernet_I_to_network( N16 v
+){  return ( v << 8 ) | ( v >> 8 );
+}
+_private
+void
+E_ethernet_I_checksum_0( N16 *start
+, N16 *end
+, N16 *checksum
+, N16 *carry
+){  while( start != end )
+    {   __asm__ volatile (
+        "\n" "addw  %2,%0"
+        "\n" "adcw  $0,%1"
+        : "+m" ( *checksum ), "+m" ( *carry )
+        : "r" ( *start )
+        : "cc"
+        );
+        start++;
+    }
+}
+_private
+void
+E_ethernet_I_checksum_1( N16 *checksum
+, N16 *carry
+){  __asm__ volatile (
+    "\n" "addw  %1,%0"
+    "\n" "adcw  $0,%0"
+    "\n" "adcw  $0,%0"
+    "\n" "cmpw  $~0,%0"
+    "\n" "je    0f"
+    "\n" "notw  %0"
+    "\n0:"
+    : "+m" ( *checksum )
+    : "r" ( *carry )
+    : "cc"
+    );
+}
+_private
+N16
+E_ethernet_I_checksum( N16 *start
+, N16 *end
+){  N16 checksum = 0, carry = 0;
+    E_ethernet_I_checksum_0( start, end, &checksum, &carry );
+    E_ethernet_I_checksum_1( &checksum, &carry );
+    return checksum;
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_private
+N
+E_ethernet_M( void
+){  E_ethernet_S = E_mem_Q_tab_M( sizeof( struct E_ethernet_Z_interface ), 0 );
+    if( !E_ethernet_S )
+        return ~0;
+    D_M( ethernet, dhcp, 0 )
+        return ~1;
+    return 0;
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_private
+void
+E_ethernet_I_interrupt( void
+){  N32 sched_i = E_flow_I_current_scheduler();
+    U_F( E_flow_S_scheduler[ sched_i ].state, inside_interrupt );
+    G( "Ethernet interrupt" );
+    for_each( interface_id, E_ethernet_S, E_mem_Q_tab )
+    {   struct E_ethernet_Z_interface *interface = E_mem_Q_tab_R( E_ethernet_S, interface_id );
+        N32 cause = *( N32 * )(( Pc )interface->register_memory + 0xc0 );
+        G( "cause=%32x", cause );
+        if( cause & ( 1 << 2 ))
+        {   G( "link status change" );
+        }
+        if( cause & (( 1 << 4 ) | ( 1 << 7 )))
+        {   G( "received" );
+        }
+        if( cause & 1 )
+        {   struct E_ethernet_Z_transmit_descriptor *transmit_descriptors = E_main_Z_p_I_to_virtual( (P)*( N64 * )(( Pc )interface->register_memory + 0x3800 ));
+            N32 count = *( N32 * )(( Pc )interface->register_memory + 0x3808 ) / sizeof( struct E_ethernet_Z_transmit_descriptor );
+            for_n( i, count )
+            {   struct E_ethernet_Z_transmit_descriptor *context_descriptor = (P)&transmit_descriptors[i];
+                G( "dd %x:%8x", i, ( N8 )context_descriptor->dd );
+            }
+        }
+    }
+    U_L( E_flow_S_scheduler[ sched_i ].state, inside_interrupt );
+}
+_internal
+N16
+E_ethernet_I_eeprom_read( struct E_ethernet_Z_interface *interface
+, N8 offset
+){  *( N32 * )(( Pc )interface->register_memory + 0x14 ) = (( N32 )offset << 8 ) | 1;
+    N time;
+    E_flow_Q_spin_time_M( &time, 100000 ); //NDFN
+    while( !( *( N32 *)(( Pc )interface->register_memory + 0x14 ) & ( 1 << 4 ))
+    && !E_flow_Q_spin_time_T( &time )
+    )
+        __asm__ volatile (
+        "\n"    "pause"
+        );
+    *( N32 * )(( Pc )interface->register_memory + 0x14 ) &= ~1;
+    if( *( N32 * )(( Pc )interface->register_memory + 0x14 ) & 1 ) //TEST
+        G( "EEPROM still reading" );
+    return *( N32 * )(( Pc )interface->register_memory + 0x14 ) >> 16;
+}
+_internal
+N
+E_ethernet_I_dhcp( struct E_ethernet_Z_interface *interface
+){  N packet_size = sizeof( struct E_ipv4_Z_dhcp_packet ) + 8;
+    struct E_ipv4_Z_dhcp_packet *packet = M( packet_size );
+    if( !packet )
+        return ~0;
+    _0_(packet);
+    for_n( i, 6 )
+        packet->ethernet.destination_address[i] = 0xff;
+    for_n_( i, 6 )
+        packet->ethernet.source_address[ 5 - i ] = interface->mac_address[i];
+    packet->ethernet.type = 0x8;
+    packet->ipv4.version = 4;
+    packet->ipv4.ihl = 5;
+    packet->ipv4.total_length = E_ethernet_I_to_network( sizeof( *packet ) - sizeof( packet->ethernet ));
+    packet->ipv4.ttl = 1;
+    packet->ipv4.protocol = 17;
+    packet->ipv4.destination_address = 0xffffffff;
+    packet->udp.source_port = E_ethernet_I_to_network(67);
+    packet->udp.destination_port = E_ethernet_I_to_network(68);
+    packet->udp.length = E_ethernet_I_to_network( sizeof( *packet ) - sizeof( packet->ipv4 ) - sizeof( packet->ethernet ));
+    packet->op = 1;
+    packet->htype = 1;
+    packet->hlen = 6;
+    packet->xid = 0x78563412;
+    for_n_( i, 6 )
+        packet->chaddr[ 5 - i ] = interface->mac_address[i];
+    packet->options[0] = 99;
+    packet->options[1] = 130;
+    packet->options[2] = 83;
+    packet->options[3] = 99;
+    //DISCOVER
+    packet->options[4] = 53;
+    packet->options[5] = 1;
+    packet->options[6] = 1;
+    //END
+    packet->options[7] = 255;
+    packet->ipv4.total_length = E_ethernet_I_to_network( packet_size - sizeof( packet->ethernet ));
+    packet->udp.length = E_ethernet_I_to_network( packet_size - sizeof( packet->ipv4 ) - sizeof( packet->ethernet ));
+    packet->ipv4.header_checksum = E_ethernet_I_checksum( (P)&packet->ipv4, (P)(( Pc )&packet->ipv4 + sizeof( packet->ipv4 )));
+    struct E_ethernet_Z_ipv4_header_checksum ipv4 =
+    { packet->ipv4.source_address
+    , packet->ipv4.destination_address
+    , 0
+    , packet->ipv4.protocol
+    , packet->udp.length
+    };
+    N16 checksum = 0, carry = 0;
+    E_ethernet_I_checksum_0( (P)&ipv4, (P)(( Pc )&ipv4 + sizeof( ipv4 )), &checksum, &carry );
+    E_ethernet_I_checksum_0( (P)&packet->udp, (P)(( Pc )packet + packet_size ), &checksum, &carry );
+    E_ethernet_I_checksum_1( &checksum, &carry );
+    packet->udp.checksum = checksum;
+    struct E_ethernet_Z_transmit_descriptor *transmit_descriptors = E_main_Z_p_I_to_virtual( (P)*( N64 * )(( Pc )interface->register_memory + 0x3800 ));
+    _0_( &transmit_descriptors[0] );
+    transmit_descriptors[0].buffer_address = ( N64 )E_main_Z_p_I_to_physical(packet);
+    transmit_descriptors[0].length = packet_size;
+    transmit_descriptors[0].rs = 1;
+    transmit_descriptors[0].ifcs = 1;
+    transmit_descriptors[0].eop = 1;
+    *( N32 * )(( Pc )interface->register_memory + 0x3818 ) = ( *( N32 * )(( Pc )interface->register_memory + 0x3818 ) + 1 ) % ( *( N32 * )(( Pc )interface->register_memory + 0x2808 ) / sizeof( struct E_ethernet_Z_transmit_descriptor ));
+    return 0;
+}
+_private
+N
+E_ethernet_I_init( volatile P register_address
+, volatile P eeprom_address
+){  G( "Ethernet" );
+    I interface_id = E_mem_Q_tab_I_add( E_ethernet_S );
+    if( interface_id < 0 )
+        return ~0;
+    struct E_ethernet_Z_interface *interface = E_mem_Q_tab_R( E_ethernet_S, interface_id );
+    interface->register_memory = register_address;
+    interface->eeprom_memory = eeprom_address;
+    *( N32 *)interface->register_memory |= 1 << 26;
+    E_flow_I_sleep(1);
+    N time;
+    E_flow_Q_spin_time_M( &time, 1000000 ); //NDFN
+    while(( *( N32 *)interface->register_memory & ( 1 << 26 ))
+    && !E_flow_Q_spin_time_T( &time )
+    )
+        __asm__ volatile (
+        "\n"    "pause"
+        );
+    *( N32 *)interface->register_memory &= ~( 1 << 3 );
+    N16 a_0 = E_ethernet_I_eeprom_read( interface, 0 );
+    N16 a_1 = E_ethernet_I_eeprom_read( interface, 1 );
+    N16 a_2 = E_ethernet_I_eeprom_read( interface, 2 );
+    interface->mac_address[0] = a_2 >> 8;
+    interface->mac_address[1] = a_2 & 0xff;
+    interface->mac_address[2] = a_1 >> 8;
+    interface->mac_address[3] = a_1 & 0xff;
+    interface->mac_address[4] = a_0 >> 8;
+    interface->mac_address[5] = a_0 & 0xff;
+    *( N64 * )(( Pc )interface->register_memory + 0x5400 ) = ( 1ULL << 63 ) | (( N64 )a_2 << 32 ) | (( N64 )a_1 << 16 ) | a_0;
+    for_n( i, 128 )
+        *( N32 * )(( Pc )interface->register_memory + 0x5200 + i * sizeof( N32 )) = 0;
+    *( N32 * )(( Pc )interface->register_memory + 0xd8 ) = 0xffffffff;
+    *( N32 * )(( Pc )interface->register_memory + 0xd0 ) = ( 1 << 7 ) | ( 1 << 6 ) | ( 1 << 4 ) | ( 1 << 3 ) | ( 1 << 2 ) | ( 1 << 0 );
+    struct E_ethernet_Z_receive_descriptor *receive_descriptors = E_mem_Q_blk_M_align_tab( sizeof( struct E_ethernet_Z_receive_descriptor ), 8, 16 );
+    *( N64 * )(( Pc )interface->register_memory + 0x2800 ) = (N)E_main_Z_p_I_to_physical( receive_descriptors );
+    *( N32 * )(( Pc )interface->register_memory + 0x2808 ) = 1 << 7;
+    for_n_( i, 8 )
+    {   receive_descriptors[i].length = 16 * 1024;
+        P buffer = E_mem_Q_blk_M_align( receive_descriptors[i].length, 4096 );
+        if( !buffer )
+            return ~1;
+        receive_descriptors[i].buffer_address = (N)E_main_Z_p_I_to_physical(buffer);
+        receive_descriptors[i].pif = receive_descriptors[i].ipcs = receive_descriptors[i].tcpcs = receive_descriptors[i].reserved_0 = receive_descriptors[i].vp = receive_descriptors[i].ixsm = receive_descriptors[i].eop = receive_descriptors[i].dd = 0;
+    }
+    *( N32 * )(( Pc )interface->register_memory + 0x2818 ) = 8;
+    *( N32 * )(( Pc )interface->register_memory + 0x100 ) |= ( 1 << 25 ) | ( 1 << 16 ) | ( 1 << 5 ) | ( 1 << 1 );
+    struct E_ethernet_Z_transmit_descriptor *transmit_descriptors = E_mem_Q_blk_M_align_tab( sizeof( struct E_ethernet_Z_transmit_descriptor ), 8, 16 );
+    *( N64 * )(( Pc )interface->register_memory + 0x3800 ) = (N)E_main_Z_p_I_to_physical( transmit_descriptors );
+    *( N32 * )(( Pc )interface->register_memory + 0x3808 ) = 1 << 7;
+    for_n_( i, 8 )
+        transmit_descriptors[i].dd = 0; //NDFN
+    *( N32 * )(( Pc )interface->register_memory + 0x400 ) |= ( 0x40 << 12 ) | ( 1 << 1 );
+    *( N32 * )(( Pc )interface->register_memory + 0x410 ) = ( 6 << 20 ) | ( 8 << 10 ) | 10;
+    if( E_ethernet_I_dhcp(interface) )
+        return ~1;
+    return 0;
+}
+D( ethernet, dhcp )
+{   Yi_M( ethernet, dhcp );
+    if( _Yi_var( ethernet, dhcp ) < 0 )
+        E_main_I_error_fatal();
+    O{  Yi_B( ethernet, dhcp )
+            break;
+        G( "dhcp req" );
+    }
+    Yi_W( ethernet, dhcp );
+}
+/******************************************************************************/
