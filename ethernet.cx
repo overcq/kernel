@@ -266,7 +266,6 @@ E_ethernet_I_eeprom_read( struct E_ethernet_Z_interface *interface
         __asm__ volatile (
         "\n"    "pause"
         );
-    *( N32 * )(( Pc )interface->register_memory + 0x14 ) &= ~1;
     if( *( N32 * )(( Pc )interface->register_memory + 0x14 ) & 1 ) //TEST
         G( "EEPROM still reading" );
     return *( N32 * )(( Pc )interface->register_memory + 0x14 ) >> 16;
@@ -348,7 +347,7 @@ E_ethernet_I_init( volatile P register_address
     *( N32 *)interface->register_memory |= 1 << 26;
     E_flow_I_sleep(1);
     N time;
-    E_flow_Q_spin_time_M( &time, 1000000 ); //NDFN
+    E_flow_Q_spin_time_M( &time, 30000000 ); //NDFN
     while(( *( N32 *)interface->register_memory & ( 1 << 26 ))
     && !E_flow_Q_spin_time_T( &time )
     )
@@ -365,7 +364,7 @@ E_ethernet_I_init( volatile P register_address
     interface->mac_address[3] = a_1 & 0xff;
     interface->mac_address[4] = a_0 >> 8;
     interface->mac_address[5] = a_0 & 0xff;
-    *( N64 * )(( Pc )interface->register_memory + 0x5400 ) = ( 1ULL << 63 ) | (( N64 )a_2 << 32 ) | (( N64 )a_1 << 16 ) | a_0;
+    *( N64 * )(( Pc )interface->register_memory + 0x5400 ) = ( 1ULL << 63 ) | ((( N64 )a_0 & 0xff ) << 48 ) | ((( N64 )a_0 >> 8 ) << 32 ) | ((( N64 )a_1 & 0xff ) << 24 ) | ((( N64 )a_1 >> 8 ) << 16 ) | ((( N64 )a_2 & 0xff ) << 8 ) | (( N64 )a_2 >> 8 );
     for_n( i, 128 )
         *( N32 * )(( Pc )interface->register_memory + 0x5200 + i * sizeof( N32 )) = 0;
     *( N32 * )(( Pc )interface->register_memory + 0xd8 ) = 0xffffffff;
@@ -382,13 +381,13 @@ E_ethernet_I_init( volatile P register_address
         receive_descriptors[i].pif = receive_descriptors[i].ipcs = receive_descriptors[i].tcpcs = receive_descriptors[i].reserved_0 = receive_descriptors[i].vp = receive_descriptors[i].ixsm = receive_descriptors[i].eop = receive_descriptors[i].dd = 0;
     }
     *( N32 * )(( Pc )interface->register_memory + 0x2818 ) = 8;
-    *( N32 * )(( Pc )interface->register_memory + 0x100 ) |= ( 1 << 25 ) | ( 1 << 16 ) | ( 1 << 5 ) | ( 1 << 1 );
+    *( N32 * )(( Pc )interface->register_memory + 0x100 ) |= ( 1 << 25 ) | ( 1 << 16 ) | ( 1 << 15 ) | ( 1 << 5 ) | ( 1 << 1 );
     struct E_ethernet_Z_transmit_descriptor *transmit_descriptors = E_mem_Q_blk_M_align_tab( sizeof( struct E_ethernet_Z_transmit_descriptor ), 8, 16 );
     *( N64 * )(( Pc )interface->register_memory + 0x3800 ) = (N)E_main_Z_p_I_to_physical( transmit_descriptors );
     *( N32 * )(( Pc )interface->register_memory + 0x3808 ) = 1 << 7;
     for_n_( i, 8 )
         transmit_descriptors[i].dd = 0; //NDFN
-    *( N32 * )(( Pc )interface->register_memory + 0x400 ) |= ( 0x40 << 12 ) | ( 1 << 1 );
+    *( N32 * )(( Pc )interface->register_memory + 0x400 ) |= ( 0x40 << 12 ) | ( 1 << 3 ) | ( 1 << 1 );
     *( N32 * )(( Pc )interface->register_memory + 0x410 ) = ( 6 << 20 ) | ( 8 << 10 ) | 10;
     if( E_ethernet_I_dhcp(interface) )
         return ~1;

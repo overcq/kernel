@@ -11,7 +11,7 @@
 //TODO Czy da się nie obliczać drugiego argumentu dla instrukcji “LOr”, jeśli nie potrzeba?
 //NDFN Co robić z aliasami do aliasów?
 /*DFN Kody powrotu:
- * ~0 — niewznawialny błąd przeważnie menedżera pamięci
+ * ~0 — niewznawialny błąd, przeważnie menedżera pamięci
  * ~1 — wznawialny w nadrzędnym bloku błąd składni
  * ~2 — brak procedury
  */
@@ -3669,8 +3669,9 @@ E_acpi_aml_M_field_finish_2( N bytes
             if( !field )
                 return ~0;
             if( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.copy )
+            {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.copy = no;
                 field->pathname = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.pathname;
-            else
+            }else
             {   field->pathname.s = E_text_Z_sl_M_duplicate( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.pathname.s
                 , E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.pathname.n * 4
                 );
@@ -3843,13 +3844,13 @@ E_acpi_aml_M_parse( void
     N ret = 0;
 Loop:
     O{  stack_n_last = E_acpi_aml_S_parse_stack_n;
-        if( E_acpi_aml_Q_procedure_invocation_stack_S_invoking && no )
+        /*if( E_acpi_aml_Q_procedure_invocation_stack_S_invoking )
         {   G( "entity=%8x", (N)E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].entity );
             G_( ",data=%x", E_acpi_aml_S_parse_data );
             G_( ",data_end=%x", E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end );
             G_( ",value=%x", (( N * )E_acpi_aml_S_parse_data )[0] );
             G_( ",%x", (( N * )E_acpi_aml_S_parse_data )[1] );
-        }
+        }*/
         switch( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].entity )
         { case E_acpi_aml_Z_parse_stack_Z_entity_S_result_to_n:
                 E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].n = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].n;
@@ -4109,10 +4110,51 @@ Loop:
                                     value_package.package->n++;
                                     break;
                                 }
+                              case E_acpi_aml_Z_value_Z_type_S_buffer:
+                                {   struct E_acpi_aml_Z_buffer buffer;
+                                    if( E_acpi_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result.copy )
+                                    {   E_acpi_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result.copy = no;
+                                        buffer = E_acpi_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result.buffer;
+                                    }else
+                                    {   buffer.n = E_acpi_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result.buffer.n;
+                                        buffer.p = E_text_Z_sl_M_duplicate( E_acpi_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result.buffer.p, buffer.n );
+                                        if( !buffer.p )
+                                        {   E_acpi_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result = value_package;
+                                            return ~0;
+                                        }
+                                    }
+                                    value->buffer = buffer;
+                                    value->copy = yes;
+                                    value->i = E_acpi_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result.i;
+                                    value->type = E_acpi_aml_Z_value_Z_type_S_buffer;
+                                    value_package.package->n++;
+                                    break;
+                                }
                               case E_acpi_aml_Z_value_Z_type_S_package:
                                 {   *value = E_acpi_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result;
                                     E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result = E_acpi_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result;
                                     E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.copy = no;
+                                    value_package.package->n++;
+                                    break;
+                                }
+                              case E_acpi_aml_Z_value_Z_type_S_pathname:
+                                {   Pc s;
+                                    if( E_acpi_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result.copy )
+                                    {   E_acpi_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result.copy = no;
+                                        s = E_acpi_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result.pathname.s;
+                                    }else
+                                    {   s = E_text_Z_sl_M_duplicate( E_acpi_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result.pathname.s
+                                        , E_acpi_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result.pathname.n * 4
+                                        );
+                                        if( !s )
+                                        {   E_acpi_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result = value_package;
+                                            return ~0;
+                                        }
+                                    }
+                                    value->pathname.s = s;
+                                    value->pathname.n = E_acpi_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result.pathname.n;
+                                    value->copy = yes;
+                                    value->type = E_acpi_aml_Z_value_Z_type_S_pathname;
                                     value_package.package->n++;
                                     break;
                                 }
@@ -4439,8 +4481,9 @@ Loop:
                         if( !field )
                             return ~0;
                         if( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.copy )
+                        {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.copy = no;
                             field->pathname = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.pathname;
-                        else
+                        }else
                         {   field->pathname.s = E_text_Z_sl_M_duplicate( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.pathname.s
                             , E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.pathname.n * 4
                             );
@@ -4610,8 +4653,9 @@ Loop:
                         if( !field )
                             return ~0;
                         if( value[0].copy )
+                        {   value[0].copy = no;
                             field->pathname = value[0].pathname;
-                        else
+                        }else
                         {   field->pathname.s = E_text_Z_sl_M_duplicate( value[0].pathname.s, value[0].pathname.n * 4 );
                             if( !field->pathname.s )
                             {   W(field);
@@ -7640,8 +7684,7 @@ Loop:
                                 if( !~i )
                                     switch( v.type )
                                     { case E_acpi_aml_Z_value_Z_type_S_string:
-                                        {   G( "string" );
-                                            if( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_acpi_aml_Z_value_Z_type_S_pathname )
+                                        {   if( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.type != E_acpi_aml_Z_value_Z_type_S_pathname )
                                             {   ret = ~1;
                                                 break;
                                             }

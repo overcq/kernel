@@ -474,7 +474,6 @@ E_acpi_reader_M_crs( struct E_acpi_reader_Z_resources *resources
                         }
                         resources->irq_n++;
                         resources->irq[ prepended ? 0 : resources->irq_n - 1 ] = irq_i;
-                        G( "irq=%8x", irq_i );
                     }
                     irq->irq_mask = irq_->irq_mask;
                     if( l_ == 4 )
@@ -638,7 +637,6 @@ E_acpi_reader_I_check_crs( struct E_acpi_reader_Z_resources *resources
                             return ~0;
                         resources->irq_n++;
                         resources->irq[ prepended ? 0 : resources->irq_n - 1 ] = irq_i;
-                        G( "irq=%8x", irq_i );
                     }
                     break;
                 }
@@ -929,6 +927,43 @@ E_acpi_reader_M( void
     }
     // Diagnostyczne wypisanie urządzeń.
     for_n_( i, E_acpi_aml_S_object_n )
+    {   N prt_i = E_acpi_reader_R_child( i, ( struct E_acpi_aml_Z_pathname ){ "_PRT", 1 });
+        if( ~prt_i
+        && E_acpi_aml_S_object[ prt_i ].type == E_acpi_aml_Z_object_Z_type_S_procedure
+        )
+        {   Pc name_ = M( E_acpi_aml_S_object[i].name.n * 4 + 1 );
+            E_text_Z_s_P_copy_sl_0( name_, E_acpi_aml_S_object[i].name.s, E_acpi_aml_S_object[i].name.n * 4 );
+            G( ",object with _PRT=%s", name_ );
+            W( name_ );
+            struct E_acpi_aml_Z_value result;
+            N ret = E_acpi_aml_I_procedure_( prt_i, &result, 0, 0 );
+            if( !ret )
+            {   if( result.type == E_acpi_aml_Z_value_Z_type_S_pathname )
+                {   N object_i = E_acpi_aml_Q_object_R( result.pathname );
+                    E_acpi_aml_Q_value_W( &result );
+                    if( ~object_i )
+                    {   G( "type=%8x", E_acpi_aml_S_object[ object_i ].type );
+                        if( E_acpi_aml_S_object[ object_i ].type == E_acpi_aml_Z_object_Z_type_S_package )
+                            result = E_acpi_aml_Q_object_I_to_value( object_i );
+                        else
+                            result.type = E_acpi_aml_Z_value_Z_type_S_uninitialized;
+                    }else
+                    {   result.n = 0;
+                        result.type = E_acpi_aml_Z_value_Z_type_S_number;
+                    }
+                }else if( result.type != E_acpi_aml_Z_value_Z_type_S_package )
+                {   E_acpi_aml_Q_value_W( &result );
+                    result.type = E_acpi_aml_Z_value_Z_type_S_uninitialized;
+                }
+                if( result.type == E_acpi_aml_Z_value_Z_type_S_package )
+                {   for_n( j, result.package->n )
+                    {   G_( ",device_function=%x", result.package->value[j].package->value[0].n );
+                        G_( ",pin=%8x", result.package->value[j].package->value[1].n );
+                    }
+                    E_acpi_aml_Q_value_W( &result );
+                }
+            }
+        }
         if( E_acpi_aml_S_object[i].type == E_acpi_aml_Z_object_Z_type_S_device )
         {   N hid_i = E_acpi_reader_R_child( i, ( struct E_acpi_aml_Z_pathname ){ "_HID", 1 });
             if( ~hid_i )
@@ -982,6 +1017,7 @@ E_acpi_reader_M( void
                 E_acpi_reader_I_child_print(i);
             }
         }
+    }
     return 0;
 }
 /******************************************************************************/
