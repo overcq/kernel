@@ -16,7 +16,7 @@ struct E_window_Q_window_Z
   void ( *click )( I window_id );
   void ( *wheel )( I window_id );
   void ( *key )( I window_id, N queue_i );
-  void ( *destroy )( N8 desktop_id, I window_id );
+  N ( *destroy )( N8 desktop_id, I window_id );
   P data;
   N32 x, y, width, height;
   B sized;
@@ -96,7 +96,7 @@ E_windows_Q_window_M( N8 desktop_id
 , void ( *click )(I)
 , void ( *wheel )(I)
 , void ( *key )( I, N )
-, void ( *destroy )( N8, I )
+, N ( *destroy )( N8, I )
 ){  E_flow_I_cli();
     I window_id = E_mem_Q_tab_I_add( E_windows_Q_desktop_S[ desktop_id ].window );
     if( window_id < 0 )
@@ -171,13 +171,20 @@ N
 E_windows_Q_window_W( N8 desktop_id
 , I window_id
 ){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
-    if( window->destroy )
-        window->destroy( desktop_id, window_id );
-    if( W( window->description ))
-        return ~2;
-    if( W( window->title ))
-        return ~2;
     E_flow_I_cli();
+    if( window->destroy )
+        if( window->destroy( desktop_id, window_id ))
+        {   E_flow_I_sti();
+            return ~2;
+        }
+    if( W( window->description ))
+    {   E_flow_I_sti();
+        return ~2;
+    }
+    if( W( window->title ))
+    {   E_flow_I_sti();
+        return ~2;
+    }
     for_n( stack_i, E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ desktop_id ].window ))
         if( E_windows_Q_desktop_S[ desktop_id ].stack[ stack_i ] == window_id )
             break;

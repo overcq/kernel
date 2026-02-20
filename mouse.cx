@@ -210,7 +210,7 @@ E_mouse_I_interrupt( void
                     {   E_mouse_Q_button_S_coordinate[0] = E_mouse_S_coordinate[0];
                         E_mouse_Q_button_S_coordinate[1] = E_mouse_S_coordinate[1];
                     }
-                    E_mouse_Q_wheel_S_count += (S8)v;
+                    E_mouse_Q_wheel_S_count -= (S8)v;
                     if( E_mouse_Q_wheel_S_count )
                         Yi_F( mouse, click, 0 );
                     else

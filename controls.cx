@@ -1,0 +1,149 @@
+//-*-C-*-
+/*******************************************************************************
+*   ___   public
+*  ¦OUX¦  C+
+*  ¦/C+¦  OUX/C+ OS
+*   ---   kernel
+*         window controls
+* (c)overcq              on WSL\Debian (Linux 6.6.87.2)               2026-2-3 Z
+*******************************************************************************/
+enum E_controls_Z_type
+{ E_controls_Z_type_S_label
+, E_controls_Z_type_S_button
+, E_controls_Z_type_S_textbox
+};
+struct E_controls_Z_control
+{ union
+  { struct
+    { Pc text;
+      N8 font_size, thickness;
+    }label;
+    struct
+    { Pc text;
+      N8 font_size, thickness;
+    }button;
+    struct
+    { Pc text;
+      N32 width;
+      N8 font_size, thickness;
+    }textbox;
+  };
+  N32 x, y;
+  enum E_controls_Z_type type;
+};
+struct E_controls_Z_data
+{ struct E_controls_Z_control *control;
+  N control_n;
+  N32 scroll_x, scroll_y;
+};
+//==============================================================================
+_private
+N
+E_controls_M( N8 desktop_id
+, I window_id
+){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
+    struct E_controls_Z_data *M_(data);
+    if( !data )
+        return ~0;
+    data->scroll_x = 0;
+    data->scroll_y = 0;
+    data->control_n = 0;
+    Mt_( data->control, data->control_n );
+    if( !data->control )
+        return ~2;
+    window->data = data;
+    return 0;
+}
+_private
+N
+E_controls_W( N8 desktop_id
+, I window_id
+){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
+    struct E_controls_Z_data *data = window->data;
+    for_n( control_i, data->control_n )
+        switch( data->control[ control_i ].type )
+        { case E_controls_Z_type_S_label:
+                if( W( data->control[ control_i ].label.text ))
+                    return ~1;
+                break;
+          case E_controls_Z_type_S_button:
+                if( W( data->control[ control_i ].button.text ))
+                    return ~1;
+                break;
+          case E_controls_Z_type_S_textbox:
+                if( W( data->control[ control_i ].textbox.text ))
+                    return ~1;
+                break;
+        }
+    if( W( data->control ))
+        return ~1;
+    return W( data );
+}
+//------------------------------------------------------------------------------
+_private
+N
+E_controls_Q_label_I_add( N8 desktop_id
+, I window_id
+, N32 x
+, N32 y
+, Pc text
+, N8 font_size
+, N8 thickness
+){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
+    struct E_controls_Z_data *data = window->data;
+    if( !E_mem_Q_blk_I_append( &data->control, 1 ))
+        return ~2;
+    data->control[ data->control_n ].type = E_controls_Z_type_S_label;
+    data->control[ data->control_n ].label.text = E_text_Z_s0_M_duplicate(text);
+    if( !data->control[ data->control_n ].label.text )
+        return ~2;
+    data->control[ data->control_n ].x = x;
+    data->control[ data->control_n ].y = y;
+    data->control[ data->control_n ].label.font_size = font_size;
+    data->control[ data->control_n ].label.thickness = thickness;
+    data->control_n++;
+    return 0;
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_private
+void
+E_controls_I_draw( I window_id
+, N32 x
+, N32 y
+, N32 width
+, N32 height
+){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
+    struct E_controls_Z_data *data = window->data;
+    for_n( i, data->control_n )
+        switch( data->control[i].type )
+        { case E_controls_Z_type_S_label:
+            {   S32 x_ = x + data->control[i].x + data->control[i].label.thickness + 1 - data->scroll_x;
+                Pc s = data->control[i].label.text;
+                while( *s )
+                {   U u = ~0;
+                    Pc s_ = E_text_Z_su_R_u( s, &u );
+                    s = s_;
+                    N32 font_i;
+                    if( width <= x_ + data->control[i].label.thickness + 1
+                    || !E_font_T_print_u( width - x_ - ( data->control[i].label.thickness + 1 ), data->control[i].label.thickness, &u, &font_i )
+                    )
+                        break;
+                    E_font_I_draw_u( font_i
+                    , x_, y + data->control[i].y + data->control[i].label.thickness + 1 - data->scroll_y
+                    , y + data->control[i].y + data->control[i].label.thickness + 1 - data->scroll_y
+                    , y + data->control[i].y + data->control[i].label.thickness + 1 - data->scroll_y + data->control[i].label.font_size + 1
+                    , E_vga_S_text_color
+                    , data->control[i].label.font_size
+                    , data->control[i].label.thickness
+                    );
+                    x_ += ( data->control[i].label.thickness + 1 ) * E_font_S_font.bitmap[ font_i ].width + data->control[i].label.thickness + 1;
+                }
+                break;
+            }
+          case E_controls_Z_type_S_button:
+                break;
+          case E_controls_Z_type_S_textbox:
+                break;
+        }
+}
+/******************************************************************************/

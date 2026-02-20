@@ -7,6 +7,8 @@
 *         Ethernet driver for Intel 82545EM
 * (c)overcq              on WSL\Debian (Linux 6.6.87.2)               2026-2-8 W
 *******************************************************************************/
+#define E_ethernet_S_receive_buffer_size    ( 16 * 1024 )
+//==============================================================================
 struct __attribute__ (( __packed__ )) E_ethernet_Z_header
 { N8 destination_address[6];
   N8 source_address[6];
@@ -145,6 +147,42 @@ struct __attribute__ (( __packed__ )) E_ethernet_Z_tcpip_data_descriptor
   N16 pri       :3;
 };
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+struct E_ethernet_Z_ip4_connection_state
+{ N32 local_address;
+  N32 remote_address;
+};
+struct E_ethernet_Z_udp4_connection_state
+{ struct E_ethernet_Z_ip4_connection_state ip4;
+  P buffer;
+  I report_id;
+  N16 local_port; // big‐endian
+  N16 remote_port; // big‐endian
+};
+enum E_ethernet_Z_tcp_state
+{ E_ethernet_Z_tcp_state_S_closed
+, E_ethernet_Z_tcp_state_S_listen
+, E_ethernet_Z_tcp_state_S_syn_sent
+, E_ethernet_Z_tcp_state_S_syn_received
+, E_ethernet_Z_tcp_state_S_established
+, E_ethernet_Z_tcp_state_S_fin_wait_1
+, E_ethernet_Z_tcp_state_S_fin_wait_2
+, E_ethernet_Z_tcp_state_S_close_wait
+, E_ethernet_Z_tcp_state_S_closing
+, E_ethernet_Z_tcp_state_S_last_ack
+, E_ethernet_Z_tcp_state_S_time_wait
+};
+struct E_ethernet_Z_tcp4_connection_state
+{ struct E_ethernet_Z_ip4_connection_state ip4;
+  P buffer;
+  I report_id;
+  N16 local_port; // big‐endian
+  N16 remote_port; // big‐endian
+  enum E_ethernet_Z_tcp_state state;
+};
+struct E_ethernet_Z_transmit_queue
+{ P buffer;
+  N buffer_l;
+};
 struct E_ethernet_Z_interface
 { P register_memory;
   struct E_ethernet_Z_eeprom_memory *eeprom_memory;
@@ -165,6 +203,11 @@ struct E_ethernet_Z_interface
 };
 //==============================================================================
 _private struct E_mem_Q_tab_Z *E_ethernet_S;
+_private struct E_ethernet_Z_transmit_queue *E_ethernet_S_transmit_queue;
+_private N E_ethernet_S_transmit_queue_n;
+//------------------------------------------------------------------------------
+_private struct E_mem_Q_tab_Z *E_ethernet_S_udp4_connection_state;
+_private struct E_mem_Q_tab_Z *E_ethernet_S_tcp4_connection_state;
 //==============================================================================
 _private
 N16
@@ -177,7 +220,10 @@ E_ethernet_I_checksum_0( N16 *start
 , N16 *end
 , N16 *checksum
 , N16 *carry
-){  while( start != end )
+){  B end_is_odd = (( Pc )end - ( Pc )start ) % 2;
+    if( end_is_odd )
+        end = (P)((( Pc )end ) - 1 );
+    while( start != end )
     {   __asm__ volatile (
         "\n" "addw  %2,%0"
         "\n" "adcw  $0,%1"
@@ -187,6 +233,17 @@ E_ethernet_I_checksum_0( N16 *start
         );
         start++;
     }
+    if( end_is_odd )
+        __asm__ volatile (
+        "\n" "xor   %%ah,%%ah"
+        "\n" "movb  %2,%%al"
+        "\n" "xchg  %%al,%%ah"
+        "\n" "addw  %%ax,%0"
+        "\n" "adcw  $0,%1"
+        : "+m" ( *checksum ), "+m" ( *carry )
+        : "g" ( *( N8 * )start )
+        : "cc", "ax"
+        );
 }
 _private
 void
@@ -221,6 +278,16 @@ E_ethernet_M( void
 ){  E_ethernet_S = E_mem_Q_tab_M( sizeof( struct E_ethernet_Z_interface ), 0 );
     if( !E_ethernet_S )
         return ~0;
+    E_ethernet_S_transmit_queue_n = 0;
+    Mt_( E_ethernet_S_transmit_queue, E_ethernet_S_transmit_queue_n );
+    if( !E_ethernet_S_transmit_queue )
+        return ~1;
+    E_ethernet_S_udp4_connection_state = E_mem_Q_tab_M(sizeof( struct E_ethernet_Z_udp4_connection_state ), 0 );
+    if( !E_ethernet_S_udp4_connection_state )
+        return ~1;
+    E_ethernet_S_tcp4_connection_state = E_mem_Q_tab_M(sizeof( struct E_ethernet_Z_tcp4_connection_state ), 0 );
+    if( !E_ethernet_S_tcp4_connection_state )
+        return ~1;
     D_M( ethernet, dhcp, 0 )
         return ~1;
     return 0;
@@ -239,20 +306,153 @@ E_ethernet_I_interrupt( void
         if( cause & ( 1 << 2 ))
         {   G( "link status change" );
         }
+        if(( cause & ( 1 << 0 ))
+        && E_ethernet_S_transmit_queue_n
+        )
+        {   N32 queue_i = 0;
+            N32 count = *( N32 * )(( Pc )interface->register_memory + 0x3808 ) / sizeof( struct E_ethernet_Z_transmit_descriptor );
+            N32 head = *( N32 * )(( Pc )interface->register_memory + 0x3810 ) % count;
+            N32 tail = *( N32 * )(( Pc )interface->register_memory + 0x3818 ) % count;
+            struct E_ethernet_Z_transmit_descriptor *transmit_descriptors = E_main_Z_p_I_to_virtual( (P)*( N64 * )(( Pc )interface->register_memory + 0x3800 ));
+            B eop = yes;
+            do
+            {   N part_count = E_ethernet_S_transmit_queue[ queue_i ].buffer_l / E_ethernet_S_receive_buffer_size + ( E_ethernet_S_transmit_queue[ queue_i ].buffer_l % E_ethernet_S_receive_buffer_size ? 1 : 0 );
+                if(( tail < head
+                && part_count > head - 1 - tail
+                )
+                || ( tail > head
+                && part_count > count - 1 - tail + head
+                ))
+                    break;
+                N last;
+                for_n( i, part_count )
+                {   if(eop)
+                        if( W( E_main_Z_p_I_to_virtual( (P)transmit_descriptors[tail].buffer_address )))
+                            E_main_I_error_fatal();
+                    eop = transmit_descriptors[tail].eop;
+                    _0_( &transmit_descriptors[tail] );
+                    transmit_descriptors[tail].buffer_address = ( N64 )E_main_Z_p_I_to_physical( E_ethernet_S_transmit_queue[ queue_i ].buffer ) + i * E_ethernet_S_receive_buffer_size;
+                    transmit_descriptors[tail].length = E_ethernet_S_receive_buffer_size;
+                    transmit_descriptors[tail].rs = 1;
+                    last = tail;
+                    tail = ( tail + 1 ) % count;
+                }
+                transmit_descriptors[last].length = E_ethernet_S_transmit_queue[ queue_i ].buffer_l % E_ethernet_S_receive_buffer_size;
+                transmit_descriptors[last].ifcs = 1;
+                transmit_descriptors[last].eop = 1;
+                queue_i++;
+            }while( --E_ethernet_S_transmit_queue_n );
+            if( queue_i )
+            {   if( !E_mem_Q_blk_I_remove( &E_ethernet_S_transmit_queue, 0, queue_i ))
+                    E_main_I_error_fatal();
+                *( N32 * )(( Pc )interface->register_memory + 0x3818 ) = tail;
+            }
+        }
         if( cause & (( 1 << 4 ) | ( 1 << 7 )))
         {   G( "received" );
-        }
-        if( cause & 1 )
-        {   struct E_ethernet_Z_transmit_descriptor *transmit_descriptors = E_main_Z_p_I_to_virtual( (P)*( N64 * )(( Pc )interface->register_memory + 0x3800 ));
-            N32 count = *( N32 * )(( Pc )interface->register_memory + 0x3808 ) / sizeof( struct E_ethernet_Z_transmit_descriptor );
-            for_n( i, count )
-            {   struct E_ethernet_Z_transmit_descriptor *context_descriptor = (P)&transmit_descriptors[i];
-                G( "dd %x:%8x", i, ( N8 )context_descriptor->dd );
+            struct E_ethernet_Z_receive_descriptor *receive_descriptors = E_main_Z_p_I_to_virtual( (P)*( N64 * )(( Pc )interface->register_memory + 0x2800 ));
+            N32 count = *( N32 * )(( Pc )interface->register_memory + 0x2808 ) / sizeof( struct E_ethernet_Z_receive_descriptor );
+            N32 head = *( N32 * )(( Pc )interface->register_memory + 0x2810 ) % count;
+            N32 tail = ( *( N32 * )(( Pc )interface->register_memory + 0x2818 ) + 1 ) % count;
+            G( "count=%32x,head=%32x,tail=%32x", count, head, tail );
+            if( receive_descriptors[tail].dd )
+            {   do
+                {   G( "dd %x", tail );
+                    receive_descriptors[tail].dd = no;
+                    struct E_ethernet_Z_ipv4_header *ipv4 = (P)(( Pc )E_main_Z_p_I_to_virtual( (P)receive_descriptors[tail].buffer_address ) + sizeof( struct E_ethernet_Z_header ));
+                    if( ipv4->version == 4 )
+                    {   if( E_ethernet_I_checksum( (P)ipv4, (P)(( Pc )ipv4 + sizeof( struct E_ethernet_Z_ipv4_header ))) != 0xffff )
+                            break;
+                                switch( ipv4->protocol )
+                        { case 1: // ICMP
+                                G( "ICMP" );
+                                break;
+                        case 6: // TCP
+                                G( "TCP" );
+                                break;
+                        case 17: // UDP
+                            {   G( "UDP" );
+                                struct E_ethernet_Z_udp_header *udp4 = (P)(( Pc )ipv4 + sizeof( struct E_ethernet_Z_ipv4_header ));
+                                if( udp4->checksum )
+                                {   struct E_ethernet_Z_ipv4_header_checksum ipv4_checksum =
+                                    { ipv4->source_address
+                                    , ipv4->destination_address
+                                    , 0
+                                    , ipv4->protocol
+                                    , udp4->length
+                                    };
+                                    N16 checksum = 0, carry = 0;
+                                    E_ethernet_I_checksum_0( (P)&ipv4_checksum, (P)(( Pc )&ipv4_checksum + sizeof( ipv4_checksum )), &checksum, &carry );
+                                    E_ethernet_I_checksum_0( (P)udp4, (P)(( Pc )udp4 + udp4->length ), &checksum, &carry );
+                                    E_ethernet_I_checksum_1( &checksum, &carry );
+                                    if( checksum != 0xffff )
+                                        break;
+                                }
+                                for_each( connection_id, E_ethernet_S_udp4_connection_state, E_mem_Q_tab )
+                                {   struct E_ethernet_Z_udp4_connection_state *connection_state = E_mem_Q_tab_R( E_ethernet_S_udp4_connection_state, connection_id );
+                                    G( "local_address=%32x,remote_address=%32x,local_port=%16x,remote_port=%16x", connection_state->ip4.local_address, connection_state->ip4.remote_address, connection_state->local_port, connection_state->remote_port );
+                                    G( "destination_address=%32x,source_address=%32x,destination_port=%16x,source_port=%16x", ipv4->destination_address, ipv4->source_address, udp4->destination_port, udp4->source_port );
+                                    if(( !connection_state->ip4.local_address
+                                    || connection_state->ip4.local_address == ipv4->destination_address
+                                    )
+                                    && ( connection_state->ip4.remote_address == 0xffffffff
+                                    || connection_state->ip4.remote_address == ipv4->source_address
+                                    )
+                                    && connection_state->local_port == udp4->destination_port
+                                    && connection_state->remote_port == udp4->source_port
+                                    )
+                                    {   G( "found connection" );
+                                        if( connection_state->buffer )
+                                        {   while( !receive_descriptors[tail].eop )
+                                            {   tail = ( tail + 1 ) % count;
+                                                if( tail == head )
+                                                    E_main_I_error_fatal();
+                                                receive_descriptors[tail].dd = no;
+                                            }
+                                            break;
+                                        }
+                                        N length = udp4->length + sizeof( struct E_ethernet_Z_ipv4_header );
+                                        connection_state->buffer = M(length);
+                                        if( !connection_state->buffer )
+                                            E_main_I_error_fatal();
+                                        N offset = J_min( length, E_ethernet_S_receive_buffer_size - sizeof( struct E_ethernet_Z_header ));
+                                        E_mem_Q_blk_I_copy( connection_state->buffer, ( Pc )ipv4, offset );
+                                        length -= offset;
+                                        if( !receive_descriptors[tail].eop )
+                                        {   do
+                                            {   tail = ( tail + 1 ) % count;
+                                                if( tail == head
+                                                || length <= E_ethernet_S_receive_buffer_size
+                                                )
+                                                    E_main_I_error_fatal();
+                                                E_mem_Q_blk_I_copy( connection_state->buffer + offset, E_main_Z_p_I_to_virtual( (P)receive_descriptors[tail].buffer_address ), E_ethernet_S_receive_buffer_size );
+                                                offset += E_ethernet_S_receive_buffer_size;
+                                                length -= E_ethernet_S_receive_buffer_size;
+                                            }while( !receive_descriptors[tail].eop );
+                                            tail = ( tail + 1 ) % count;
+                                            if( tail == head )
+                                                E_main_I_error_fatal();
+                                            E_mem_Q_blk_I_copy( connection_state->buffer + offset, E_main_Z_p_I_to_virtual( (P)receive_descriptors[tail].buffer_address ), length );
+                                        }
+                                        E_flow_Q_report_I_signal( connection_state->report_id );
+                                        break;
+                                    }
+                                }
+                                break;
+                            }
+                        }
+                    }
+                    tail = ( tail + 1 ) % count;
+                }while( tail != head );
+                if( !tail )
+                    tail = count;
+                *( N32 * )(( Pc )interface->register_memory + 0x2818 ) = tail - 1;
             }
         }
     }
     U_L( E_flow_S_scheduler[ sched_i ].state, inside_interrupt );
 }
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _internal
 N16
 E_ethernet_I_eeprom_read( struct E_ethernet_Z_interface *interface
@@ -270,69 +470,6 @@ E_ethernet_I_eeprom_read( struct E_ethernet_Z_interface *interface
         G( "EEPROM still reading" );
     return *( N32 * )(( Pc )interface->register_memory + 0x14 ) >> 16;
 }
-_internal
-N
-E_ethernet_I_dhcp( struct E_ethernet_Z_interface *interface
-){  N packet_size = sizeof( struct E_ipv4_Z_dhcp_packet ) + 8;
-    struct E_ipv4_Z_dhcp_packet *packet = M( packet_size );
-    if( !packet )
-        return ~0;
-    _0_(packet);
-    for_n( i, 6 )
-        packet->ethernet.destination_address[i] = 0xff;
-    for_n_( i, 6 )
-        packet->ethernet.source_address[ 5 - i ] = interface->mac_address[i];
-    packet->ethernet.type = 0x8;
-    packet->ipv4.version = 4;
-    packet->ipv4.ihl = 5;
-    packet->ipv4.total_length = E_ethernet_I_to_network( sizeof( *packet ) - sizeof( packet->ethernet ));
-    packet->ipv4.ttl = 1;
-    packet->ipv4.protocol = 17;
-    packet->ipv4.destination_address = 0xffffffff;
-    packet->udp.source_port = E_ethernet_I_to_network(67);
-    packet->udp.destination_port = E_ethernet_I_to_network(68);
-    packet->udp.length = E_ethernet_I_to_network( sizeof( *packet ) - sizeof( packet->ipv4 ) - sizeof( packet->ethernet ));
-    packet->op = 1;
-    packet->htype = 1;
-    packet->hlen = 6;
-    packet->xid = 0x78563412;
-    for_n_( i, 6 )
-        packet->chaddr[ 5 - i ] = interface->mac_address[i];
-    packet->options[0] = 99;
-    packet->options[1] = 130;
-    packet->options[2] = 83;
-    packet->options[3] = 99;
-    //DISCOVER
-    packet->options[4] = 53;
-    packet->options[5] = 1;
-    packet->options[6] = 1;
-    //END
-    packet->options[7] = 255;
-    packet->ipv4.total_length = E_ethernet_I_to_network( packet_size - sizeof( packet->ethernet ));
-    packet->udp.length = E_ethernet_I_to_network( packet_size - sizeof( packet->ipv4 ) - sizeof( packet->ethernet ));
-    packet->ipv4.header_checksum = E_ethernet_I_checksum( (P)&packet->ipv4, (P)(( Pc )&packet->ipv4 + sizeof( packet->ipv4 )));
-    struct E_ethernet_Z_ipv4_header_checksum ipv4 =
-    { packet->ipv4.source_address
-    , packet->ipv4.destination_address
-    , 0
-    , packet->ipv4.protocol
-    , packet->udp.length
-    };
-    N16 checksum = 0, carry = 0;
-    E_ethernet_I_checksum_0( (P)&ipv4, (P)(( Pc )&ipv4 + sizeof( ipv4 )), &checksum, &carry );
-    E_ethernet_I_checksum_0( (P)&packet->udp, (P)(( Pc )packet + packet_size ), &checksum, &carry );
-    E_ethernet_I_checksum_1( &checksum, &carry );
-    packet->udp.checksum = checksum;
-    struct E_ethernet_Z_transmit_descriptor *transmit_descriptors = E_main_Z_p_I_to_virtual( (P)*( N64 * )(( Pc )interface->register_memory + 0x3800 ));
-    _0_( &transmit_descriptors[0] );
-    transmit_descriptors[0].buffer_address = ( N64 )E_main_Z_p_I_to_physical(packet);
-    transmit_descriptors[0].length = packet_size;
-    transmit_descriptors[0].rs = 1;
-    transmit_descriptors[0].ifcs = 1;
-    transmit_descriptors[0].eop = 1;
-    *( N32 * )(( Pc )interface->register_memory + 0x3818 ) = ( *( N32 * )(( Pc )interface->register_memory + 0x3818 ) + 1 ) % ( *( N32 * )(( Pc )interface->register_memory + 0x2808 ) / sizeof( struct E_ethernet_Z_transmit_descriptor ));
-    return 0;
-}
 _private
 N
 E_ethernet_I_init( volatile P register_address
@@ -344,63 +481,205 @@ E_ethernet_I_init( volatile P register_address
     struct E_ethernet_Z_interface *interface = E_mem_Q_tab_R( E_ethernet_S, interface_id );
     interface->register_memory = register_address;
     interface->eeprom_memory = eeprom_address;
-    *( N32 *)interface->register_memory |= 1 << 26;
+    if( *( N32 * )interface->register_memory & ( 1 << 26 ))
+    {   *( N32 * )interface->register_memory &= ~( 1 << 26 );
+        E_flow_I_sleep(1);
+    }
+    *( N32 * )interface->register_memory |= 1 << 26;
     E_flow_I_sleep(1);
     N time;
-    E_flow_Q_spin_time_M( &time, 30000000 ); //NDFN
-    while(( *( N32 *)interface->register_memory & ( 1 << 26 ))
+    E_flow_Q_spin_time_M( &time, 40000000 ); //NDFN
+    while(( *( N32 * )interface->register_memory & ( 1 << 26 ))
     && !E_flow_Q_spin_time_T( &time )
     )
         __asm__ volatile (
         "\n"    "pause"
         );
-    *( N32 *)interface->register_memory &= ~( 1 << 3 );
+    if( *( N32 * )interface->register_memory & ( 1 << 26 ))
+        return ~1;
     N16 a_0 = E_ethernet_I_eeprom_read( interface, 0 );
     N16 a_1 = E_ethernet_I_eeprom_read( interface, 1 );
     N16 a_2 = E_ethernet_I_eeprom_read( interface, 2 );
-    interface->mac_address[0] = a_2 >> 8;
-    interface->mac_address[1] = a_2 & 0xff;
-    interface->mac_address[2] = a_1 >> 8;
-    interface->mac_address[3] = a_1 & 0xff;
-    interface->mac_address[4] = a_0 >> 8;
-    interface->mac_address[5] = a_0 & 0xff;
-    *( N64 * )(( Pc )interface->register_memory + 0x5400 ) = ( 1ULL << 63 ) | ((( N64 )a_0 & 0xff ) << 48 ) | ((( N64 )a_0 >> 8 ) << 32 ) | ((( N64 )a_1 & 0xff ) << 24 ) | ((( N64 )a_1 >> 8 ) << 16 ) | ((( N64 )a_2 & 0xff ) << 8 ) | (( N64 )a_2 >> 8 );
+    interface->mac_address[0] = a_0 & 0xff;
+    interface->mac_address[1] = a_0 >> 8;
+    interface->mac_address[2] = a_1 & 0xff;
+    interface->mac_address[3] = a_1 >> 8;
+    interface->mac_address[4] = a_2 & 0xff;
+    interface->mac_address[5] = a_2 >> 8;
+    *( N64 * )(( Pc )interface->register_memory + 0x5400 ) = ( 1ULL << 63 ) | (( N64 )a_2 << 32 ) | (( N64 )a_1 << 16 ) | a_0;
     for_n( i, 128 )
         *( N32 * )(( Pc )interface->register_memory + 0x5200 + i * sizeof( N32 )) = 0;
+    *( N32 * )(( Pc )interface->register_memory + 0x410 ) = ( 6 << 20 ) | ( 8 << 10 ) | 10;
+    // *( N32 * )(( Pc )interface->register_memory + 0x178 ) = 1 << 31;
+    *( N32 * )interface->register_memory &= ~( 1 << 3 );
     *( N32 * )(( Pc )interface->register_memory + 0xd8 ) = 0xffffffff;
     *( N32 * )(( Pc )interface->register_memory + 0xd0 ) = ( 1 << 7 ) | ( 1 << 6 ) | ( 1 << 4 ) | ( 1 << 3 ) | ( 1 << 2 ) | ( 1 << 0 );
     struct E_ethernet_Z_receive_descriptor *receive_descriptors = E_mem_Q_blk_M_align_tab( sizeof( struct E_ethernet_Z_receive_descriptor ), 8, 16 );
     *( N64 * )(( Pc )interface->register_memory + 0x2800 ) = (N)E_main_Z_p_I_to_physical( receive_descriptors );
     *( N32 * )(( Pc )interface->register_memory + 0x2808 ) = 1 << 7;
     for_n_( i, 8 )
-    {   receive_descriptors[i].length = 16 * 1024;
+    {   receive_descriptors[i].length = E_ethernet_S_receive_buffer_size;
         P buffer = E_mem_Q_blk_M_align( receive_descriptors[i].length, 4096 );
         if( !buffer )
             return ~1;
         receive_descriptors[i].buffer_address = (N)E_main_Z_p_I_to_physical(buffer);
         receive_descriptors[i].pif = receive_descriptors[i].ipcs = receive_descriptors[i].tcpcs = receive_descriptors[i].reserved_0 = receive_descriptors[i].vp = receive_descriptors[i].ixsm = receive_descriptors[i].eop = receive_descriptors[i].dd = 0;
     }
-    *( N32 * )(( Pc )interface->register_memory + 0x2818 ) = 8;
-    *( N32 * )(( Pc )interface->register_memory + 0x100 ) |= ( 1 << 25 ) | ( 1 << 16 ) | ( 1 << 15 ) | ( 1 << 5 ) | ( 1 << 1 );
+    *( N32 * )(( Pc )interface->register_memory + 0x2818 ) = 8 - 1;
+    *( N32 * )(( Pc )interface->register_memory + 0x100 ) = ( 1 << 25 ) | ( 1 << 16 ) | ( 1 << 15 ) | ( 1 << 5 ) | ( 1 << 1 );
     struct E_ethernet_Z_transmit_descriptor *transmit_descriptors = E_mem_Q_blk_M_align_tab( sizeof( struct E_ethernet_Z_transmit_descriptor ), 8, 16 );
     *( N64 * )(( Pc )interface->register_memory + 0x3800 ) = (N)E_main_Z_p_I_to_physical( transmit_descriptors );
     *( N32 * )(( Pc )interface->register_memory + 0x3808 ) = 1 << 7;
     for_n_( i, 8 )
-        transmit_descriptors[i].dd = 0; //NDFN
-    *( N32 * )(( Pc )interface->register_memory + 0x400 ) |= ( 0x40 << 12 ) | ( 1 << 3 ) | ( 1 << 1 );
-    *( N32 * )(( Pc )interface->register_memory + 0x410 ) = ( 6 << 20 ) | ( 8 << 10 ) | 10;
-    if( E_ethernet_I_dhcp(interface) )
-        return ~1;
+        transmit_descriptors[i].dd = yes;
+    *( N32 * )(( Pc )interface->register_memory + 0x400 ) = ( 0x40 << 12 ) | ( 1 << 3 ) | ( 1 << 1 );
+    X_A( ethernet, dhcp );
+    X_F( ethernet, dhcp );
     return 0;
 }
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_private
+N
+E_ethernet_I_transmit( struct E_ethernet_Z_interface *interface
+, P packet
+, N packet_l
+){  N32 count = *( N32 * )(( Pc )interface->register_memory + 0x3808 ) / sizeof( struct E_ethernet_Z_transmit_descriptor );
+    N part_count = packet_l / E_ethernet_S_receive_buffer_size + ( packet_l % E_ethernet_S_receive_buffer_size ? 1 : 0 );
+    if( part_count > count - 1 )
+        return ~0;
+    E_flow_I_cli();
+    N32 head = *( N32 * )(( Pc )interface->register_memory + 0x3810 ) % count;
+    N32 tail = *( N32 * )(( Pc )interface->register_memory + 0x3818 ) % count;
+    struct E_ethernet_Z_transmit_descriptor *transmit_descriptors = E_main_Z_p_I_to_virtual( (P)*( N64 * )(( Pc )interface->register_memory + 0x3800 ));
+    if(( tail < head
+      && part_count > head - 1 - tail
+    )
+    || ( tail > head
+      && part_count > count - 1 - tail + head
+    ))
+    {   if( E_mem_Q_blk_I_append( &E_ethernet_S_transmit_queue, 1 ))
+        {   E_flow_I_sti();
+            return ~0;
+        }
+        E_ethernet_S_transmit_queue_n++;
+        E_ethernet_S_transmit_queue[ E_ethernet_S_transmit_queue_n - 1 ].buffer = packet;
+        E_ethernet_S_transmit_queue[ E_ethernet_S_transmit_queue_n - 1 ].buffer_l = packet_l;
+        E_flow_I_sti();
+        return 0;
+    }
+    N last;
+    for_n( i, part_count )
+    {   _0_( &transmit_descriptors[tail] );
+        transmit_descriptors[tail].buffer_address = ( N64 )E_main_Z_p_I_to_physical(packet) + i * E_ethernet_S_receive_buffer_size;
+        transmit_descriptors[tail].length = E_ethernet_S_receive_buffer_size;
+        transmit_descriptors[tail].rs = 1;
+        last = tail;
+        tail = ( tail + 1 ) % count;
+    }
+    transmit_descriptors[last].length = packet_l % E_ethernet_S_receive_buffer_size;
+    transmit_descriptors[last].ifcs = 1;
+    transmit_descriptors[last].eop = 1;
+    *( N32 * )(( Pc )interface->register_memory + 0x3818 ) = tail;
+    E_flow_I_sti();
+    return 0;
+}
+_private
+I
+E_ethernet_Q_udp4_connection_state_M(
+  N32 local_address
+, N16 local_port
+, N32 remote_address
+, N16 remote_port
+, I report_id
+){  for_each( connection_id, E_ethernet_S_udp4_connection_state, E_mem_Q_tab )
+    {   struct E_ethernet_Z_udp4_connection_state *connection_state = E_mem_Q_tab_R( E_ethernet_S_udp4_connection_state, connection_id );
+        if(( !connection_state->ip4.local_address
+          || connection_state->ip4.local_address == local_address
+        )
+        && connection_state->local_port == local_port
+        )
+            return ~0;
+    }
+    connection_id = E_mem_Q_tab_I_add( E_ethernet_S_udp4_connection_state );
+    if( !~connection_id )
+        return ~0;
+    struct E_ethernet_Z_udp4_connection_state *connection_state = E_mem_Q_tab_R( E_ethernet_S_udp4_connection_state, connection_id );
+    connection_state->report_id = report_id;
+    connection_state->ip4.local_address = local_address;
+    connection_state->local_port = local_port;
+    connection_state->ip4.remote_address = remote_address;
+    connection_state->remote_port = remote_port;
+    connection_state->buffer = 0;
+    return connection_id;
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 D( ethernet, dhcp )
-{   Yi_M( ethernet, dhcp );
-    if( _Yi_var( ethernet, dhcp ) < 0 )
+{   X_M( ethernet, dhcp );
+    if( _X_var( ethernet, dhcp ) < 0 )
         E_main_I_error_fatal();
-    O{  Yi_B( ethernet, dhcp )
+    O{  X_B( ethernet, dhcp, 0 )
             break;
         G( "dhcp req" );
+        for_each( interface_id, E_ethernet_S, E_mem_Q_tab )
+        {   struct E_ethernet_Z_interface *interface = E_mem_Q_tab_R( E_ethernet_S, interface_id );
+            N packet_l = sizeof( struct E_ipv4_Z_dhcp_packet ) + 8;
+            struct E_ipv4_Z_dhcp_packet *packet = M( packet_l );
+            if( !packet )
+                E_main_I_error_fatal();
+            _0_(packet);
+            for_n( i, 6 )
+                packet->ethernet.destination_address[i] = 0xff;
+            for_n_( i, 6 )
+                packet->ethernet.source_address[i] = interface->mac_address[i];
+            packet->ethernet.type = 0x8;
+            packet->ipv4.version = 4;
+            packet->ipv4.ihl = 5;
+            packet->ipv4.total_length = E_ethernet_I_to_network( sizeof( *packet ) - sizeof( packet->ethernet ));
+            packet->ipv4.ttl = 1;
+            packet->ipv4.protocol = 17;
+            packet->ipv4.destination_address = 0xffffffff;
+            packet->udp.source_port = E_ethernet_I_to_network(68);
+            packet->udp.destination_port = E_ethernet_I_to_network(67);
+            packet->udp.length = E_ethernet_I_to_network( sizeof( *packet ) - sizeof( packet->ipv4 ) - sizeof( packet->ethernet ));
+            packet->op = 1;
+            packet->htype = 1;
+            packet->hlen = 6;
+            packet->xid = 0x78563412;
+            for_n_( i, 6 )
+                packet->chaddr[i] = interface->mac_address[i];
+            packet->options[0] = 99;
+            packet->options[1] = 130;
+            packet->options[2] = 83;
+            packet->options[3] = 99;
+            // DISCOVER
+            packet->options[4] = 53;
+            packet->options[5] = 1;
+            packet->options[6] = 1;
+            // END
+            packet->options[7] = 255;
+            packet->ipv4.total_length = E_ethernet_I_to_network( packet_l - sizeof( packet->ethernet ));
+            packet->udp.length = E_ethernet_I_to_network( packet_l - sizeof( packet->ipv4 ) - sizeof( packet->ethernet ));
+            packet->ipv4.header_checksum = E_ethernet_I_checksum( (P)&packet->ipv4, (P)(( Pc )&packet->ipv4 + sizeof( packet->ipv4 )));
+            struct E_ethernet_Z_ipv4_header_checksum ipv4 =
+            { packet->ipv4.source_address
+            , packet->ipv4.destination_address
+            , 0
+            , packet->ipv4.protocol
+            , packet->udp.length
+            };
+            N16 checksum = 0, carry = 0;
+            E_ethernet_I_checksum_0( (P)&ipv4, (P)(( Pc )&ipv4 + sizeof( ipv4 )), &checksum, &carry );
+            E_ethernet_I_checksum_0( (P)&packet->udp, (P)(( Pc )packet + packet_l ), &checksum, &carry );
+            E_ethernet_I_checksum_1( &checksum, &carry );
+            packet->udp.checksum = checksum;
+            I connection_id = E_ethernet_Q_udp4_connection_state_M( packet->ipv4.source_address, packet->udp.source_port, packet->ipv4.destination_address, packet->udp.destination_port, _X_var( ethernet, dhcp ));
+            if( !~connection_id )
+                E_main_I_error_fatal();
+            E_ethernet_I_transmit( interface, packet, packet_l );
+        }
+        X_B( ethernet, dhcp, 0 )
+            break;
     }
-    Yi_W( ethernet, dhcp );
+    X_W( ethernet, dhcp );
 }
 /******************************************************************************/

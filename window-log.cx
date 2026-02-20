@@ -30,11 +30,11 @@ E_window_log_M( N8 desktop_id
     return 0;
 }
 _private
-void
+N
 E_window_log_W( N8 desktop_id
 , I window_id
 ){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
-    W( window->data );
+    return W( window->data );
 }
 _private
 void
@@ -97,8 +97,7 @@ E_window_log_I_draw( I window_id
         }while( s_begin != E_se_log_S_buffer
         && height > font_size + 1 + nl * (( font_size + 1 ) * E_font_S_font.height + font_size + 1 )
         );
-        if( s_begin == E_se_log_S_buffer )
-            s_begin++;
+        s_begin++;
         // Przesuń wskaźnik tekstu do przodu, tak by pozostały tylko linie, które się zmieszczą w wysokości okna.
         x_ = thickness + 1;
         if( height < font_size + 1 + ( nl - 1 ) * (( font_size + 1 ) * E_font_S_font.height + font_size + 1 ) + 1 )
