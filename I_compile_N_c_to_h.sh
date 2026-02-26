@@ -43,6 +43,7 @@ case "$1" in
         local $\ = $/;
         chomp;
         /\bX_B\(\s*(\w+)\s*,\s*(\w+)\s*,/ and print "$1,X_$2";
+        /\bXi_B\(\s*(\w+)\s*,\s*(\w+)\s*,/ and print "$1,Xi_$2";
         /\bYi_B\(\s*(\w+)\s*,\s*(\w+)\s*\)/ and print "$1,Yi_$2";
     ' \
     | sort -u \

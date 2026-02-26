@@ -35,6 +35,8 @@
 #define _XhYi_uid(module,report_impulser)   J_autogen(J_a_b(J_a_b(E,module),report_impulser))
 #define _X_uid(module,report)               J_autogen(J_a_b(J_a_b(E,module),J_a_b(X,report)))
 #define _X_var(module,report)               J_autogen(J_a_b(J_a_b(E,module),J_a_b(J_a_b(X,report),S)))
+#define _Xi_uid(module,report)              J_autogen(J_a_b(J_a_b(E,module),J_a_b(Xi,report)))
+#define _Xi_var(module,report)              J_autogen(J_a_b(J_a_b(E,module),J_a_b(J_a_b(Xi,report),S)))
 #define _Yi_uid(module,impulser)            J_autogen(J_a_b(J_a_b(E,module),J_a_b(Yi,impulser)))
 #define _Yi_var(module,impulser)            J_autogen(J_a_b(J_a_b(E,module),J_a_b(J_a_b(Yi,impulser),S)))
 #define _D_proc(module,task)                J_a_b(J_a_b(E,module),J_a_b(D,task))
@@ -104,10 +106,9 @@
 // Albo blokowe.
 #define U_E(start_expr,state_name)          ( U_R(start_expr,state_name) && ( U_L(start_expr,state_name), yes ))
 //------------------------------------------------------------------------------
-// Instrukcje “X_M”/“X_A”, “Yi_M”/“Yi_A” muszą występować w jednym z najwyższych bloków struktury programu ‹zadania›, w miejscu zapewniającym taką widoczność (do użycia ‹raportu› w tym ‹zadaniu›) jak deklaracja zmiennej lokalnej.
+// Instrukcje “X_M”/“X_A”, “Xi_M”, “Yi_M”/“Yi_A” muszą występować w jednym z najwyższych bloków struktury programu ‹zadania›, w miejscu zapewniającym taką widoczność (do użycia ‹raportu› w tym ‹zadaniu›) jak deklaracja zmiennej lokalnej.
 // Utworzenie i wyrzucenie ‹raportu›.
-#define X_M_(module,report)                 _X_var(module,report) = E_flow_Q_report_M( _X_uid(module,report) )
-#define X_M(module,report)                  I X_M_(module,report)
+#define X_M(module,report)                  I _X_var(module,report) = E_flow_Q_report_M( _X_uid(module,report) )
 #define X_W(module,report)                  E_flow_Q_report_W( _X_var(module,report) )
 // Deklaracja emisji ‹raportu› przez ‹zadanie›.
 #define X_A(module,report)                  X_M(module,report); _unused B U_L(module,report)
@@ -116,9 +117,21 @@
 // I warunkowa– gdy jest stan pojedynczego obiektu.
 #define X_U(module,report)                  if( !U_E(module,report) ){} else X_F(module,report)
 // Czekanie na ‹raport› kolekcji.
-#define X_B(module,report,lost_count)       if( !E_flow_Q_report_I_wait( _X_var(module,report), (lost_count) )){} else
+#define X_B(module,report,report_count)     if( !E_flow_Q_report_I_wait( _X_var(module,report), (report_count) )){} else
 // Czyszczenie licznika raportów.
 #define X_L(module,report)                  E_flow_Q_report_I_clear( _X_var(module,report) )
+//------------------------------------------------------------------------------
+// Utworzenie i wyrzucenie ‹raportu czasowego›.
+#define Xi_M(module,report)                 I _Xi_var(module,report) = E_flow_Q_report_timed_M( _Xi_uid(module,report) )
+#define Xi_W(module,report)                 E_flow_Q_report_timed_W( _Xi_var(module,report) )
+// Deklaracja emisji ‹raportu czasowego› przez ‹zadanie›.
+#define Xi_A(module,report)                 Xi_M(module,report); _unused B U_L(module,report)
+// Sygnalizacja ‹zadania› obsługującego ‹raport czasowy› kolekcji.
+#define Xi_F(module,report)                 E_flow_Q_report_timed_I_signal( _Xi_var(module,report) )
+// I warunkowa– gdy jest stan pojedynczego obiektu.
+#define Xi_U(module,report)                 if( !U_E(module,report) ){} else Xi_F(module,report)
+// Czekanie na ‹raport czasowy› kolekcji.
+#define Xi_B(module,report,time,report_count) if( !E_flow_Q_report_timed_I_wait( _Xi_var(module,report), (time), (report_count) )){} else
 //------------------------------------------------------------------------------
 // Utworzenie i wyrzucenie ‹cyklera›.
 #define Y_M(period)                         E_flow_Q_timer_M(period)

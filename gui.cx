@@ -90,7 +90,6 @@ E_gui_Q_main_menu_M( void
 ){  I window_id = E_windows_Q_window_M( E_window_Q_desktop_S_current, "Main menu", S_os_version, &E_gui_Q_main_menu_I_draw, 0, 0, 0, 0, 0 );
     if( !~window_id )
         return window_id;
-    struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
     if( E_controls_M( E_window_Q_desktop_S_current, window_id ))
         return ~2;
     if( E_controls_Q_label_I_add( E_window_Q_desktop_S_current, window_id, 0, 0, "Main menu", E_gui_Q_taskbar_S_font_size, E_gui_Q_taskbar_S_thickness ))

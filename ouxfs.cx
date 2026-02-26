@@ -64,7 +64,6 @@ struct E_ouxfs_Z_directory
 _internal
 B
 E_ouxfs_Q_block_T_cross( I disc_id
-, N partition_i
 , const struct E_ouxfs_Z_block *block_1
 , const struct E_ouxfs_Z_block *block_2
 ){  struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
@@ -2843,7 +2842,7 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
         for_n( j, disc->partition[ partition_i ].oux.free_table_n )
         {   if( j == i )
                 continue;
-            if( E_ouxfs_Q_block_T_cross( disc_id, partition_i
+            if( E_ouxfs_Q_block_T_cross( disc_id
             , &disc->partition[ partition_i ].oux.free_table[i]
             , &disc->partition[ partition_i ].oux.free_table[j]
             )) // Sprawdzenie na czas testów.

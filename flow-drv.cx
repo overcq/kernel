@@ -10,8 +10,8 @@
 enum E_flow_Z_run_state
 { E_flow_Z_run_state_S_ready
 , E_flow_Z_run_state_S_waiting_for_report
+, E_flow_Z_run_state_S_waiting_for_report_timed
 , E_flow_Z_run_state_S_waiting_for_timer
-, E_flow_Z_run_state_S_waiting_for_call_reply
 , E_flow_Z_run_state_S_stopping_by_task
 };
 struct E_flow_Q_task_Z
@@ -27,6 +27,7 @@ _private
 struct E_flow_Z_scheduler
 { struct E_mem_Q_tab_Z *task;
   struct E_mem_Q_tab_Z *report;
+  struct E_mem_Q_tab_Z *report_timed;
   struct E_mem_Q_tab_Z *timer;
   N last_time;
   N next_time;
@@ -40,13 +41,19 @@ _private N E_flow_S_scheduler_n;
 _private B E_flow_S_inited;
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 struct E_flow_Q_report_Z
-{ N uid;
+{ N reported_count;
+  N uid;
+};
+struct E_flow_Q_report_timed_Z
+{ N left;
   N reported_count;
+  N uid;
+  I task_to;
 };
 struct E_flow_Q_timer_Z
 { N left;
   N period;
-  N lost_count;
+  N reported_count;
   N uid;
   I task_to;
 };
@@ -153,14 +160,27 @@ E_flow_M( P main_stack
     E_mem_Q_stack_I_patch_page_table_add_guard( (N)main_stack, E_flow_S_scheduler[ sched_i ].current_task );
     E_flow_S_scheduler[ sched_i ].report = E_mem_Q_tab_M( sizeof( struct E_flow_Q_report_Z ), 0 );
     if( !E_flow_S_scheduler[ sched_i ].report )
-    {   W( E_flow_S_scheduler[ sched_i ].task );
-        return ~0;
+    {   N r = W( E_flow_S_scheduler[ sched_i ].task );
+        return r ? ~1 : ~0;
+    }
+    E_flow_S_scheduler[ sched_i ].report_timed = E_mem_Q_tab_M( sizeof( struct E_flow_Q_report_timed_Z ), 0 );
+    if( !E_flow_S_scheduler[ sched_i ].report_timed )
+    {   N r = W( E_flow_S_scheduler[ sched_i ].report );
+        if(r)
+            return ~1;
+        r = W( E_flow_S_scheduler[ sched_i ].task );
+        return r ? ~1 : ~0;
     }
     E_flow_S_scheduler[ sched_i ].timer = E_mem_Q_tab_M( sizeof( struct E_flow_Q_timer_Z ), 0 );
     if( !E_flow_S_scheduler[ sched_i ].timer )
-    {   W( E_flow_S_scheduler[ sched_i ].report );
-        W( E_flow_S_scheduler[ sched_i ].task );
-        return ~0;
+    {   N r = W( E_flow_S_scheduler[ sched_i ].report_timed );
+        if(r)
+            return ~1;
+        r = W( E_flow_S_scheduler[ sched_i ].report );
+        if(r)
+            return ~1;
+        r = W( E_flow_S_scheduler[ sched_i ].task );
+        return r ? ~1 : ~0;
     }
     E_flow_S_scheduler[ sched_i ].last_time = 0;
     E_flow_S_scheduler[ sched_i ].next_time = ~0;
@@ -287,7 +307,7 @@ E_flow_Q_report_I_signal( I id
 _export
 B
 E_flow_Q_report_I_wait( I id
-, N *lost_count
+, N *reported_count
 ){  B ret;
     N sched_i = E_flow_I_current_scheduler();
     struct E_flow_Q_report_Z *report = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].report, id );
@@ -308,9 +328,10 @@ E_flow_Q_report_I_wait( I id
         E_flow_I_sti();
         ret = E_flow_Q_task_I_schedule();
         report = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].report, id );
+        E_flow_I_cli();
     }
-    if( lost_count )
-        *lost_count = report->reported_count - 1;
+    if( reported_count )
+        *reported_count = report->reported_count;
     report->reported_count = 0;
     E_flow_I_sti();
     U_L( E_flow_S_scheduler[ sched_i ].signal, wake );
@@ -324,6 +345,119 @@ E_flow_Q_report_I_clear( I id
     report->reported_count = 0;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//DFN “E_flow_Q_report_timed_I_signal” może wystąpić w procedurze obsługi przerwania.
+_export
+I
+E_flow_Q_report_timed_M( N uid
+){  N sched_i = E_flow_I_current_scheduler();
+    E_flow_I_cli();
+    for_each( report_id, E_flow_S_scheduler[ sched_i ].report_timed, E_mem_Q_tab )
+    {   struct E_flow_Q_report_timed_Z *report = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].report_timed, report_id );
+        if( report->uid == uid )
+            break;
+    }
+    if( !~report_id )
+    {   report_id = E_mem_Q_tab_I_add( E_flow_S_scheduler[ sched_i ].report_timed );
+        if( report_id < 0 )
+            goto End;
+        struct E_flow_Q_report_timed_Z *report = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].report_timed, report_id );
+        report->uid = uid;
+        report->left = 0;
+        report->reported_count = 0;
+    }
+End:E_flow_I_sti();
+    return report_id;
+}
+_export
+void
+E_flow_Q_report_timed_W( I id
+){  N sched_i = E_flow_I_current_scheduler();
+    E_mem_Q_tab_I_remove( E_flow_S_scheduler[ sched_i ].report_timed, id );
+}
+//------------------------------------------------------------------------------
+_export
+void
+E_flow_Q_report_timed_I_signal( I id
+){  N sched_i = E_flow_I_current_scheduler();
+    E_flow_I_cli();
+    struct E_flow_Q_report_timed_Z *report = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].report_timed, id );
+    report->left = 0;
+    if( ~report->reported_count )
+        report->reported_count++;
+    for_each( task_id, E_flow_S_scheduler[ sched_i ].task, E_mem_Q_tab )
+    {   struct E_flow_Q_task_Z *task = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, task_id );
+        if( task->run_state == E_flow_Z_run_state_S_waiting_for_report_timed
+        && task->run_state_object == id
+        )
+        {   task->run_state = E_flow_Z_run_state_S_ready;
+            break;
+        }
+    }
+    E_flow_I_sti();
+    U_F( E_flow_S_scheduler[ sched_i ].signal, wake );
+}
+_export
+B
+E_flow_Q_report_timed_I_wait( I id
+, N miliseconds
+, N *reported_count
+){  B ret;
+    N sched_i = E_flow_I_current_scheduler();
+    struct E_flow_Q_report_timed_Z *report = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].report_timed, id );
+    E_flow_I_cli();
+    if( report->reported_count )
+    {   //for_each( task_id, E_flow_S_scheduler[ sched_i ].task, E_mem_Q_tab )
+        //{   struct E_flow_Q_task_Z *task = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, task_id );
+            //if( task->run_state == E_flow_Z_run_state_S_emiting_report
+            //&& task->run_state_object == id
+            //)
+                //task->run_state = E_flow_Z_run_state_S_ready;
+        //}
+        ret = no; // Nie wywołuje “schedule”, ponieważ w przełączanym tylko w oznaczonych punktach przepływie wykonania — bieżące ‹zadanie› mogło umożliwić zaistnienie ‹raportu›, na który czeka, tylko wtedy, jeśli przełącza do innych ‹zadań› ·w innych punktach niż to oczekiwanie na ‹raport›·, więc po co czekać, skoro nie zaburza cyklu przełączania ‹zadań›, a tylko w implementacji własnego ‹zadania› zmienia na złożoną (przesuniętą) sekwencję przełączania.
+    }else
+    {   N time = E_flow_I_current_time();
+        report->left = E_interrupt_S_cpu_freq * miliseconds / 1000;
+        for_each_out( id, report_id, E_flow_S_scheduler[ sched_i ].report_timed, E_mem_Q_tab )
+        {   struct E_flow_Q_report_timed_Z *report_ = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].report_timed, report_id );
+            if( report_->left )
+            {   time += report->left;
+                if( E_flow_S_scheduler[ sched_i ].next_time > time )
+                    E_flow_S_scheduler[ sched_i ].next_time = time;
+                report->left = time - E_flow_S_scheduler[ sched_i ].last_time;
+                goto End;
+            }
+        }
+        for_each( timer_id, E_flow_S_scheduler[ sched_i ].timer, E_mem_Q_tab )
+        {   struct E_flow_Q_timer_Z *timer = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].timer, timer_id );
+            if( timer->period
+            || timer->left
+            )
+            {   time += report->left;
+                if( E_flow_S_scheduler[ sched_i ].next_time > time )
+                    E_flow_S_scheduler[ sched_i ].next_time = time;
+                report->left = time - E_flow_S_scheduler[ sched_i ].last_time;
+                goto End;
+            }
+        }
+        E_flow_S_scheduler[ sched_i ].last_time = time;
+        E_flow_S_scheduler[ sched_i ].next_time = time + report->left;
+End:    report->task_to = E_flow_S_scheduler[ sched_i ].current_task;
+        struct E_flow_Q_task_Z *task = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, E_flow_S_scheduler[ sched_i ].current_task );
+        task->run_state = E_flow_Z_run_state_S_waiting_for_report_timed;
+        task->run_state_object = id;
+        E_flow_I_sti();
+        ret = E_flow_Q_task_I_schedule();
+        report = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].report_timed, id );
+        E_flow_I_cli();
+    }
+    if( reported_count )
+        *reported_count = report->reported_count;
+    report->reported_count = 0;
+    E_flow_I_sti();
+    U_L( E_flow_S_scheduler[ sched_i ].signal, wake );
+    return ret;
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _export
 I
 E_flow_Q_timer_M( N miliseconds
@@ -334,21 +468,29 @@ E_flow_Q_timer_M( N miliseconds
         return timer_id;
     struct E_flow_Q_timer_Z *timer = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].timer, timer_id );
     timer->period = E_interrupt_S_cpu_freq * miliseconds / 1000;
-    timer->lost_count = 0;
+    timer->reported_count = 0;
     timer->uid = ~0;
     timer->task_to = E_flow_S_scheduler[ sched_i ].current_task;
-    if( E_mem_Q_tab_R_n( E_flow_S_scheduler[ sched_i ].timer ) != 1 )
-    {   for_each_out( timer_id, timer_id_, E_flow_S_scheduler[ sched_i ].timer, E_mem_Q_tab )
-        {   struct E_flow_Q_timer_Z *timer_ = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].timer, timer_id_ );
-            if( timer_->period // Jest co najmniej jeden ‹cykler›
-            || timer_->left // lub co najmniej jeden wzbudzony ‹impulsator›.
-            )
-            {   time += timer->period;
-                if( E_flow_S_scheduler[ sched_i ].next_time > time )
-                    E_flow_S_scheduler[ sched_i ].next_time = time;
-                timer->left = time - E_flow_S_scheduler[ sched_i ].last_time;
-                return timer_id;
-            }
+    for_each_out( timer_id, timer_id_, E_flow_S_scheduler[ sched_i ].timer, E_mem_Q_tab )
+    {   struct E_flow_Q_timer_Z *timer_ = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].timer, timer_id_ );
+        if( timer_->period // Jest co najmniej jeden ‹cykler›
+        || timer_->left // lub co najmniej jeden wzbudzony ‹impulsator›,
+        )
+        {   time += timer->period;
+            if( E_flow_S_scheduler[ sched_i ].next_time > time )
+                E_flow_S_scheduler[ sched_i ].next_time = time;
+            timer->left = time - E_flow_S_scheduler[ sched_i ].last_time;
+            return timer_id;
+        }
+    }
+    for_each( report_id, E_flow_S_scheduler[ sched_i ].report_timed, E_mem_Q_tab )
+    {   struct E_flow_Q_report_timed_Z *report = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].report_timed, report_id );
+        if( report->left ) // lub co najmniej jeden wzbudzony ‹raport czasowy›.
+        {   time += timer->period;
+            if( E_flow_S_scheduler[ sched_i ].next_time > time )
+                E_flow_S_scheduler[ sched_i ].next_time = time;
+            timer->left = time - E_flow_S_scheduler[ sched_i ].last_time;
+            return timer_id;
         }
     }
     E_flow_S_scheduler[ sched_i ].last_time = time;
@@ -374,16 +516,16 @@ E_flow_Q_timer_W( I id
 _export
 B
 E_flow_Q_timer_I_wait( I id
-, N *lost_count
+, N *reported_count
 ){  N sched_i = E_flow_I_current_scheduler();
     struct E_flow_Q_task_Z *task = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, E_flow_S_scheduler[ sched_i ].current_task );
     task->run_state = E_flow_Z_run_state_S_waiting_for_timer;
     task->run_state_object = id;
     B ret = E_flow_Q_task_I_schedule();
     struct E_flow_Q_timer_Z *timer = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].timer, id );
-    if( lost_count )
-        *lost_count = timer->lost_count;
-    timer->lost_count = 0;
+    if( reported_count )
+        *reported_count = timer->reported_count;
+    timer->reported_count = 0;
     return ret;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -442,18 +584,26 @@ E_flow_Q_impulser_I_activate( I id
     timer->left = E_interrupt_S_cpu_freq * miliseconds / 1000;
     if( !timer->left )
         timer->left = 1;
-    if( E_mem_Q_tab_R_n( E_flow_S_scheduler[ sched_i ].timer ) != 1 )
-    {   for_each_out( id, timer_id_, E_flow_S_scheduler[ sched_i ].timer, E_mem_Q_tab )
-        {   struct E_flow_Q_timer_Z *timer_ = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].timer, timer_id_ );
-            if( timer_->period
-            || timer_->left
-            )
-            {   time += timer->left;
-                if( E_flow_S_scheduler[ sched_i ].next_time > time )
-                    E_flow_S_scheduler[ sched_i ].next_time = time;
-                timer->left = time - E_flow_S_scheduler[ sched_i ].last_time;
-                goto End;
-            }
+    for_each_out( id, timer_id_, E_flow_S_scheduler[ sched_i ].timer, E_mem_Q_tab )
+    {   struct E_flow_Q_timer_Z *timer_ = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].timer, timer_id_ );
+        if( timer_->period
+        || timer_->left
+        )
+        {   time += timer->left;
+            if( E_flow_S_scheduler[ sched_i ].next_time > time )
+                E_flow_S_scheduler[ sched_i ].next_time = time;
+            timer->left = time - E_flow_S_scheduler[ sched_i ].last_time;
+            goto End;
+        }
+    }
+    for_each( report_id, E_flow_S_scheduler[ sched_i ].report_timed, E_mem_Q_tab )
+    {   struct E_flow_Q_report_timed_Z *report = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].report_timed, report_id );
+        if( report->left )
+        {   time += timer->left;
+            if( E_flow_S_scheduler[ sched_i ].next_time > time )
+                E_flow_S_scheduler[ sched_i ].next_time = time;
+            timer->left = time - E_flow_S_scheduler[ sched_i ].last_time;
+            goto End;
         }
     }
     E_flow_S_scheduler[ sched_i ].last_time = time;
@@ -475,6 +625,11 @@ E_flow_Q_impulser_I_deactivate( I id
         if( timer_->period
         || timer_->left
         )
+            goto End;
+    }
+    for_each( report_id, E_flow_S_scheduler[ sched_i ].report_timed, E_mem_Q_tab )
+    {   struct E_flow_Q_report_timed_Z *report = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].report_timed, report_id );
+        if( report->left )
             goto End;
     }
     E_flow_S_scheduler[ sched_i ].next_time = ~0;
@@ -517,14 +672,16 @@ E_flow_Q_task_I_schedule( void
                 N suspend_time = ~0;
                 for_each( timer_id, E_flow_S_scheduler[ sched_i ].timer, E_mem_Q_tab )
                 {   struct E_flow_Q_timer_Z *timer = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].timer, timer_id );
-                    if( timer->period ) // ‹cykler›.
-                    {   if( elapsed_time >= timer->left ) // ‹cykler› wykonał obieg— ‹zadanie› do wznowienia.
+                    if( timer->period ) // ‹cykler›
+                    {   if( elapsed_time >= timer->left ) // ‹Cykler› wykonał obieg — ‹zadanie› do wznowienia.
                         {   N overlate_time = elapsed_time - timer->left;
-                            if( overlate_time >= timer->period ) // ‹cykler› wykonał więcej niż jeden obieg.
+                            if( overlate_time >= timer->period ) // ‹Cykler› wykonał więcej niż jeden obieg.
                                 do
-                                {   timer->lost_count++;
+                                {   timer->reported_count++;
                                     overlate_time -= timer->period;
                                 }while( overlate_time >= timer->period );
+                            else
+                                timer->reported_count++;
                             timer->left = timer->period - overlate_time;
                             struct E_flow_Q_task_Z *task = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, timer->task_to );
                             if( task->run_state == E_flow_Z_run_state_S_waiting_for_timer
@@ -532,15 +689,14 @@ E_flow_Q_task_I_schedule( void
                             )
                             {   task->run_state = E_flow_Z_run_state_S_ready;
                                 some_task_got_ready = yes;
-                            }else
-                                timer->lost_count++;
+                            }
                         }else
                             timer->left -= elapsed_time;
                         if( suspend_time > timer->left )
                         {   suspend_time = timer->left;
                             some_timer_is_active = yes;
                         }
-                    }else if( timer->left ) // Aktywowany ‹impulsator›.
+                    }else if( timer->left ) // aktywowany ‹impulsator›
                     {   if( elapsed_time >= timer->left )
                         {   timer->left = 0;
                             struct E_flow_Q_task_Z *task = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, timer->task_to );
@@ -560,6 +716,28 @@ E_flow_Q_task_I_schedule( void
                         }
                     }
                 }
+                for_each( report_id, E_flow_S_scheduler[ sched_i ].report_timed, E_mem_Q_tab )
+                {   struct E_flow_Q_report_timed_Z *report = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].report_timed, report_id );
+                    if( report->left )
+                    {   if( elapsed_time >= report->left )
+                        {   report->left = 0;
+                            struct E_flow_Q_task_Z *task = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, report->task_to );
+                            if( task->run_state == E_flow_Z_run_state_S_waiting_for_report_timed
+                            && task->run_state_object == report_id
+                            )
+                            {   task->run_state = E_flow_Z_run_state_S_ready;
+                                some_task_got_ready = yes;
+                            } // Narazie – jeśli nie może wznowić ‹zadania›, to gubi impuls.
+                            some_timer_has_deactivated = yes;
+                        }else
+                        {   report->left -= elapsed_time;
+                            if( suspend_time > report->left )
+                            {   suspend_time = report->left;
+                                some_timer_is_active = yes;
+                            }
+                        }
+                    }
+                }
                 if( some_timer_has_deactivated
                 && !some_timer_is_active
                 ){  E_flow_S_scheduler[ sched_i ].next_time = ~0;
@@ -567,7 +745,7 @@ E_flow_Q_task_I_schedule( void
                 }
                 N time_2 = E_flow_I_current_time();
                 elapsed_time = time_2 - time;
-                if( elapsed_time < suspend_time // Czy przeliczanie czasów ‹cyklerów› trwało krócej niż obliczony czas oczekiwania do pierwszego budzącego ‹zadanie›?
+                if( elapsed_time < suspend_time // Czy przeliczanie czasów trwało krócej niż obliczony czas oczekiwania do pierwszego budzącego ‹zadanie›?
                 || !some_task_got_ready
                 ){  E_flow_S_scheduler[ sched_i ].last_time = time;
                     E_flow_S_scheduler[ sched_i ].next_time = time + suspend_time; //NDFN Rozważyć przepełnienie licznika czasu rzeczywistego.
