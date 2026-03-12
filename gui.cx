@@ -44,7 +44,7 @@ E_gui_M( void
     E_gui_Q_pointer_S_move_blocked = no;
     E_gui_Q_taskbar_S_font_size = 1; //DFN Musi być co najmniej 1 ze względu na zmniejszanie dla opisu przycisku.
     E_gui_Q_taskbar_S_thickness = 1;
-    E_gui_Q_desktop_S_window_border_thickness = 4;
+    E_gui_Q_desktop_S_window_border_thickness = 8;
     E_gui_Q_pointer_S_width = 4 * ( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height / 3;
     E_gui_Q_pointer_S_height = 4 * ( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height / 3;
     E_gui_Q_taskbar_S_height = E_gui_Q_taskbar_S_font_size + 1
@@ -83,16 +83,41 @@ E_gui_Q_main_menu_I_draw( I window_id
 , N32 height
 ){  E_controls_I_draw( window_id, x, y, width, height );
 }
+_internal
+void
+E_gui_Q_main_menu_I_click( I window_id
+){  E_controls_I_click( window_id );
+}
+_internal
+void
+E_gui_Q_main_menu_I_wheel( I window_id
+){  E_controls_I_wheel( window_id );
+}
+_internal
+void
+E_gui_Q_main_menu_I_key( I window_id
+, N queue_i
+){  E_controls_I_key( window_id, queue_i );
+}
 //------------------------------------------------------------------------------
+_internal
+void
+E_gui_Q_main_menu_I_button_action( I window_id
+){
+}
 _internal
 I
 E_gui_Q_main_menu_M( void
-){  I window_id = E_windows_Q_window_M( E_window_Q_desktop_S_current, "Main menu", S_os_version, &E_gui_Q_main_menu_I_draw, 0, 0, 0, 0, 0 );
+){  I window_id = E_windows_Q_window_M( E_window_Q_desktop_S_current, "Main menu", S_os_version, &E_gui_Q_main_menu_I_draw, 0, &E_gui_Q_main_menu_I_click, &E_gui_Q_main_menu_I_wheel, &E_gui_Q_main_menu_I_key, 0 );
     if( !~window_id )
         return window_id;
     if( E_controls_M( E_window_Q_desktop_S_current, window_id ))
         return ~2;
-    if( E_controls_Q_label_I_add( E_window_Q_desktop_S_current, window_id, 0, 0, "Main menu", E_gui_Q_taskbar_S_font_size, E_gui_Q_taskbar_S_thickness ))
+    if( E_controls_Q_label_I_add( E_window_Q_desktop_S_current, window_id, 0, 0, "Label", E_gui_Q_taskbar_S_font_size, E_gui_Q_taskbar_S_thickness ))
+        return ~2;
+    if( E_controls_Q_button_I_add( E_window_Q_desktop_S_current, window_id, 0, 30, "Button", E_gui_Q_taskbar_S_font_size, E_gui_Q_taskbar_S_thickness, E_gui_Q_main_menu_I_button_action ))
+        return ~2;
+    if( E_controls_Q_textbox_I_add( E_window_Q_desktop_S_current, window_id, 0, 60, 40, "Textbox", E_gui_Q_taskbar_S_font_size, E_gui_Q_taskbar_S_thickness ))
         return ~2;
     return window_id;
 }
@@ -929,7 +954,8 @@ void
 E_gui_Q_keyboard_I_key( void
 ){  N queue_i = 0;
     do
-    {   if( E_keyboard_S_queue[ queue_i ].ex_1
+    {   G( "code=%8x, ex_1=%8x, ex_2=%8x, up=%8x", E_keyboard_S_queue[ queue_i ].code, E_keyboard_S_queue[ queue_i ].ex_1, E_keyboard_S_queue[ queue_i ].ex_2, E_keyboard_S_queue[ queue_i ].up );
+        if( E_keyboard_S_queue[ queue_i ].ex_1
         && !E_keyboard_S_queue[ queue_i ].ex_2
         && E_keyboard_S_queue[ queue_i ].code == 0x5b
         ) // logo

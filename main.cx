@@ -487,7 +487,7 @@ main( struct E_main_Z_kernel_args *kernel_args
     || E_acpi_reader_M()
     || W( kernel_args->bootloader )
     || E_disc_M()
-    || E_ethernet_M()
+    || E_net_M()
     || E_pci_I_check_buses()
     || E_gui_M()
     || E_keyboard_M()

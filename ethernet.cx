@@ -8,70 +8,8 @@
 * (c)overcq              on WSL\Debian (Linux 6.6.87.2)               2026-2-8 W
 *******************************************************************************/
 #define E_ethernet_S_receive_buffer_size    ( 16 * 1024 )
-#define E_ethernet_S_dhcp_tries             4
 //==============================================================================
-struct __attribute__ (( __packed__ )) E_ethernet_Z_arp_ipv4
-{ N16 htype, ptype;
-  N8 hlen, plen;
-  N16 operation;
-  N8 sender_mac_address[6];
-  N32 sender_ip_address;
-  N8 target_mac_address[6];
-  N32 target_ip_address;
-};
-struct __attribute__ (( __packed__ )) E_ethernet_Z_header
-{ N8 destination_address[6];
-  N8 source_address[6];
-  N16 type;
-};
-struct __attribute__ (( __packed__ )) E_ethernet_Z_ipv4_header
-{ N8 ihl        :4;
-  N8 version    :4;
-  N8 ecn        :2;
-  N8 tscp       :6;
-  N16 total_length;
-  N16 identification;
-  N16 fragment_offset   :13;
-  N16 flags             :3;
-  N8 ttl;
-  N8 protocol;
-  N16 header_checksum;
-  N32 source_address;
-  N32 destination_address;
-};
-struct __attribute__ (( __packed__ )) E_ethernet_Z_ipv4_header_checksum
-{ N32 source_address;
-  N32 destination_address;
-  N8 reserved;
-  N8 protocol;
-  N16 udp_length;
-};
-struct __attribute__ (( __packed__ )) E_ethernet_Z_udp_header
-{ N16 source_port;
-  N16 destination_port;
-  N16 length;
-  N16 checksum;
-};
-struct __attribute__ (( __packed__ )) E_ipv4_Z_dhcp_packet
-{ struct E_ethernet_Z_header ethernet;
-  struct E_ethernet_Z_ipv4_header ipv4;
-  struct E_ethernet_Z_udp_header udp;
-  N8 op;
-  N8 htype;
-  N8 hlen;
-  N8 hops;
-  N32 xid;
-  N16 secs;
-  N16 flags;
-  N32 ciaddr;
-  N32 yiaddr;
-  N32 siaddr;
-  N32 giaddr;
-  N8 chaddr[16];
-  N8 sname[64];
-  N8 file[128];
-  N8 options[];
-};
+struct E_net_Z_interface;
 struct __attribute__ (( __packed__ )) E_ethernet_Z_receive_descriptor
 { N64 buffer_address;
   N16 length;
@@ -157,180 +95,22 @@ struct __attribute__ (( __packed__ )) E_ethernet_Z_tcpip_data_descriptor
   N16 pri       :3;
 };
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-struct E_ethernet_Z_mac_to_ip
-{ N128 ipv6_address;
-  N32 ip_address;
-  N8 mac_address[6];
-};
-struct E_ethernet_Z_ip4_connection_state
-{ N32 local_address;
-  N32 remote_address;
-};
-struct E_ethernet_Z_udp4_connection_state
-{ struct E_ethernet_Z_ip4_connection_state ip4;
-  P buffer;
-  I report_id;
-  N16 local_port; // big‐endian
-  N16 remote_port; // big‐endian
-};
-enum E_ethernet_Z_tcp_state
-{ E_ethernet_Z_tcp_state_S_closed
-, E_ethernet_Z_tcp_state_S_listen
-, E_ethernet_Z_tcp_state_S_syn_sent
-, E_ethernet_Z_tcp_state_S_syn_received
-, E_ethernet_Z_tcp_state_S_established
-, E_ethernet_Z_tcp_state_S_fin_wait_1
-, E_ethernet_Z_tcp_state_S_fin_wait_2
-, E_ethernet_Z_tcp_state_S_close_wait
-, E_ethernet_Z_tcp_state_S_closing
-, E_ethernet_Z_tcp_state_S_last_ack
-, E_ethernet_Z_tcp_state_S_time_wait
-};
-struct E_ethernet_Z_tcp4_connection_state
-{ struct E_ethernet_Z_ip4_connection_state ip4;
-  P buffer;
-  I report_id;
-  N16 local_port; // big‐endian
-  N16 remote_port; // big‐endian
-  enum E_ethernet_Z_tcp_state state;
-};
 struct E_ethernet_Z_transmit_queue
 { P buffer;
   N buffer_l;
 };
-enum E_ethernet_Z_interface_state
-{ E_ethernet_Z_interface_state_S_dhcp_invalid
-, E_ethernet_Z_interface_state_S_dhcp_discover
-, E_ethernet_Z_interface_state_S_dhcp_offer
-, E_ethernet_Z_interface_state_S_dhcp_request
-, E_ethernet_Z_interface_state_S_dhcp_ack
-, E_ethernet_Z_interface_state_S_dhcp_renew
-};
-struct E_ethernet_Z_interface
-{ P register_memory;
-  struct E_ethernet_Z_eeprom_memory *eeprom_memory;
-  N8 mac_address[6];
-  N32 ipv4_address;
-  N8 ipv4_network_prefix;
-  N8 ipv6_address[16];
-  N8 ipv6_network_prefix;
-  struct
-  { N dhcp_lease_time;
-    N32 ipv4_gateway;
-    N32 ipv4_dns;
-    N8 ipv6_gateway[16];
-    N8 ipv6_dns[16];
-    N32 dhcp_server;
-  }client;
-  struct
-  { enum E_ethernet_Z_interface_state state;
-    N connection_id;
-    N32 server_id;
-    N8 retry;
-  }dhcp;
-};
 //==============================================================================
-_private struct E_mem_Q_tab_Z *E_ethernet_S;
 _private struct E_ethernet_Z_transmit_queue *E_ethernet_S_transmit_queue;
 _private N E_ethernet_S_transmit_queue_n;
-//------------------------------------------------------------------------------
-_private struct E_ethernet_Z_mac_to_ip *E_ethernet_S_mac_to_ip;
-_private N E_ethernet_S_mac_to_ip_n;
-_private struct E_mem_Q_tab_Z *E_ethernet_S_udp4_connection_state;
-_private struct E_mem_Q_tab_Z *E_ethernet_S_tcp4_connection_state;
 //==============================================================================
-_private
-N16
-E_ethernet_I_to_network( N16 v
-){  return ( v << 8 ) | ( v >> 8 );
-}
-_private
-void
-E_ethernet_I_checksum_0( N16 *start
-, N16 *end
-, N16 *checksum
-, N16 *carry
-){  B end_is_odd = (( Pc )end - ( Pc )start ) % 2;
-    if( end_is_odd )
-        end = (P)((( Pc )end ) - 1 );
-    while( start != end )
-    {   __asm__ volatile (
-        "\n" "addw  %2,%0"
-        "\n" "adcw  $0,%1"
-        : "+m" ( *checksum ), "+m" ( *carry )
-        : "r" ( *start )
-        : "cc"
-        );
-        start++;
-    }
-    if( end_is_odd )
-        __asm__ volatile (
-        "\n" "xor   %%ah,%%ah"
-        "\n" "movb  %2,%%al"
-        "\n" "xchg  %%al,%%ah"
-        "\n" "addw  %%ax,%0"
-        "\n" "adcw  $0,%1"
-        : "+m" ( *checksum ), "+m" ( *carry )
-        : "g" ( *( N8 * )start )
-        : "cc", "ax"
-        );
-}
-_private
-void
-E_ethernet_I_checksum_1( N16 *checksum
-, N16 *carry
-){  __asm__ volatile (
-    "\n" "addw  %1,%0"
-    "\n" "adcw  $0,%0"
-    "\n" "adcw  $0,%0"
-    "\n" "cmpw  $~0,%0"
-    "\n" "je    0f"
-    "\n" "notw  %0"
-    "\n0:"
-    : "+m" ( *checksum )
-    : "r" ( *carry )
-    : "cc"
-    );
-}
-_private
-N16
-E_ethernet_I_checksum( N16 *start
-, N16 *end
-){  N16 checksum = 0, carry = 0;
-    E_ethernet_I_checksum_0( start, end, &checksum, &carry );
-    E_ethernet_I_checksum_1( &checksum, &carry );
-    return checksum;
-}
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-_private
-N
-E_ethernet_M( void
-){  E_ethernet_S = E_mem_Q_tab_M( sizeof( struct E_ethernet_Z_interface ), 0 );
-    if( !E_ethernet_S )
-        return ~0;
-    E_ethernet_S_transmit_queue_n = 0;
-    Mt_( E_ethernet_S_transmit_queue, E_ethernet_S_transmit_queue_n );
-    if( !E_ethernet_S_transmit_queue )
-        return ~1;
-    E_ethernet_S_udp4_connection_state = E_mem_Q_tab_M(sizeof( struct E_ethernet_Z_udp4_connection_state ), 0 );
-    if( !E_ethernet_S_udp4_connection_state )
-        return ~1;
-    E_ethernet_S_tcp4_connection_state = E_mem_Q_tab_M(sizeof( struct E_ethernet_Z_tcp4_connection_state ), 0 );
-    if( !E_ethernet_S_tcp4_connection_state )
-        return ~1;
-    D_M( ethernet, dhcp, 0 )
-        return ~1;
-    return 0;
-}
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _private
 void
 E_ethernet_I_interrupt( void
 ){  N32 sched_i = E_flow_I_current_scheduler();
     U_F( E_flow_S_scheduler[ sched_i ].state, inside_interrupt );
     G( "Ethernet interrupt" );
-    for_each( interface_id, E_ethernet_S, E_mem_Q_tab )
-    {   struct E_ethernet_Z_interface *interface = E_mem_Q_tab_R( E_ethernet_S, interface_id );
+    for_each( interface_id, E_net_S_interface, E_mem_Q_tab )
+    {   struct E_net_Z_interface *interface = E_mem_Q_tab_R( E_net_S_interface, interface_id );
         N32 cause = *( N32 * )(( Pc )interface->register_memory + 0xc0 );
         G( "cause=%32x", cause );
         if( cause & ( 1 << 2 ))
@@ -389,10 +169,10 @@ E_ethernet_I_interrupt( void
             {   do
                 {   G( "dd %x", tail );
                     receive_descriptors[tail].dd = no;
-                    struct E_ethernet_Z_header *eth = E_main_Z_p_I_to_virtual( (P)receive_descriptors[tail].buffer_address );
-                    struct E_ethernet_Z_ipv4_header *ipv4 = (P)(( Pc )eth + sizeof( struct E_ethernet_Z_header ));
+                    struct E_net_Z_ethernet_header *eth = E_main_Z_p_I_to_virtual( (P)receive_descriptors[tail].buffer_address );
+                    struct E_net_Z_ipv4_header *ipv4 = (P)(( Pc )eth + sizeof( struct E_net_Z_ethernet_header ));
                     if( ipv4->version == 4 )
-                    {   if( E_ethernet_I_checksum( (P)ipv4, (P)(( Pc )ipv4 + sizeof( struct E_ethernet_Z_ipv4_header ))) != 0xffff )
+                    {   if( E_net_I_checksum( (P)ipv4, (P)(( Pc )ipv4 + sizeof( struct E_net_Z_ipv4_header ))) != 0xffff )
                             break;
                         switch( ipv4->protocol )
                         { case 1: // ICMP
@@ -403,9 +183,9 @@ E_ethernet_I_interrupt( void
                                 break;
                         case 17: // UDP
                             {   G( "UDP" );
-                                struct E_ethernet_Z_udp_header *udp4 = (P)(( Pc )ipv4 + sizeof( struct E_ethernet_Z_ipv4_header ));
-                                for_each( connection_id, E_ethernet_S_udp4_connection_state, E_mem_Q_tab )
-                                {   struct E_ethernet_Z_udp4_connection_state *connection_state = E_mem_Q_tab_R( E_ethernet_S_udp4_connection_state, connection_id );
+                                struct E_net_Z_udp_header *udp4 = (P)(( Pc )ipv4 + sizeof( struct E_net_Z_ipv4_header ));
+                                for_each( connection_id, E_net_S_udp4_connection_state, E_mem_Q_tab )
+                                {   struct E_net_Z_udp4_connection_state *connection_state = E_mem_Q_tab_R( E_net_S_udp4_connection_state, connection_id );
                                     G( "local_address=%32x,remote_address=%32x,local_port=%16x,remote_port=%16x", connection_state->ip4.local_address, connection_state->ip4.remote_address, connection_state->local_port, connection_state->remote_port );
                                     G( "destination_address=%32x,source_address=%32x,destination_port=%16x,source_port=%16x", ipv4->destination_address, ipv4->source_address, udp4->destination_port, udp4->source_port );
                                     if(( !connection_state->ip4.local_address
@@ -427,7 +207,7 @@ E_ethernet_I_interrupt( void
                                             }
                                             break;
                                         }
-                                        N length = sizeof( struct E_ethernet_Z_ipv4_header ) + udp4->length;
+                                        N length = sizeof( struct E_net_Z_ipv4_header ) + udp4->length;
                                         connection_state->buffer = M(length);
                                         if( !connection_state->buffer )
                                             E_main_I_error_fatal();
@@ -450,10 +230,10 @@ E_ethernet_I_interrupt( void
                                                 E_main_I_error_fatal();
                                             E_mem_Q_blk_I_copy( connection_state->buffer + offset, E_main_Z_p_I_to_virtual( (P)receive_descriptors[tail].buffer_address ), length );
                                         }
-                                        struct E_ethernet_Z_ipv4_header *ipv4 = (P)connection_state->buffer;
-                                        struct E_ethernet_Z_udp_header *udp4 = (P)(( Pc )ipv4 + sizeof( struct E_ethernet_Z_ipv4_header ));
+                                        struct E_net_Z_ipv4_header *ipv4 = (P)connection_state->buffer;
+                                        struct E_net_Z_udp_header *udp4 = (P)(( Pc )ipv4 + sizeof( struct E_net_Z_ipv4_header ));
                                         if( udp4->checksum )
-                                        {   struct E_ethernet_Z_ipv4_header_checksum ipv4_checksum =
+                                        {   struct E_net_Z_ipv4_header_checksum ipv4_checksum =
                                             { ipv4->source_address
                                             , ipv4->destination_address
                                             , 0
@@ -461,9 +241,9 @@ E_ethernet_I_interrupt( void
                                             , udp4->length
                                             };
                                             N16 checksum = 0, carry = 0;
-                                            E_ethernet_I_checksum_0( (P)&ipv4_checksum, (P)(( Pc )&ipv4_checksum + sizeof( ipv4_checksum )), &checksum, &carry );
-                                            E_ethernet_I_checksum_0( (P)udp4, (P)(( Pc )udp4 + udp4->length ), &checksum, &carry );
-                                            E_ethernet_I_checksum_1( &checksum, &carry );
+                                            E_net_I_checksum_0( (P)&ipv4_checksum, (P)(( Pc )&ipv4_checksum + sizeof( ipv4_checksum )), &checksum, &carry );
+                                            E_net_I_checksum_0( (P)udp4, (P)(( Pc )udp4 + udp4->length ), &checksum, &carry );
+                                            E_net_I_checksum_1( &checksum, &carry );
                                             if( checksum != 0xffff )
                                                 break;
                                         }
@@ -488,7 +268,7 @@ E_ethernet_I_interrupt( void
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _internal
 N16
-E_ethernet_I_eeprom_read( struct E_ethernet_Z_interface *interface
+E_ethernet_I_eeprom_read( struct E_net_Z_interface *interface
 , N8 offset
 ){  *( N32 * )(( Pc )interface->register_memory + 0x14 ) = (( N32 )offset << 8 ) | 1;
     N time;
@@ -508,10 +288,10 @@ N
 E_ethernet_I_init( volatile P register_address
 , volatile P eeprom_address
 ){  G( "Ethernet" );
-    I interface_id = E_mem_Q_tab_I_add( E_ethernet_S );
+    I interface_id = E_mem_Q_tab_I_add( E_net_S_interface );
     if( interface_id < 0 )
         return ~0;
-    struct E_ethernet_Z_interface *interface = E_mem_Q_tab_R( E_ethernet_S, interface_id );
+    struct E_net_Z_interface *interface = E_mem_Q_tab_R( E_net_S_interface, interface_id );
     interface->register_memory = register_address;
     interface->eeprom_memory = eeprom_address;
     if( *( N32 * )interface->register_memory & ( 1 << 26 ))
@@ -521,7 +301,7 @@ E_ethernet_I_init( volatile P register_address
     *( N32 * )interface->register_memory |= 1 << 26;
     E_flow_I_sleep(1);
     N time;
-    E_flow_Q_spin_time_M( &time, 40000000 ); //NDFN
+    E_flow_Q_spin_time_M( &time, 1000000 ); //NDFN
     while(( *( N32 * )interface->register_memory & ( 1 << 26 ))
     && !E_flow_Q_spin_time_T( &time )
     )
@@ -568,17 +348,17 @@ E_ethernet_I_init( volatile P register_address
     for_n_( i, 8 )
         transmit_descriptors[i].dd = yes;
     *( N32 * )(( Pc )interface->register_memory + 0x400 ) = ( 0x40 << 12 ) | ( 1 << 3 ) | ( 1 << 1 );
-    interface->dhcp.state = E_ethernet_Z_interface_state_S_dhcp_discover;
+    interface->dhcp.state = E_net_Z_interface_state_S_dhcp_discover;
     interface->dhcp.connection_id = ~0;
     interface->dhcp.retry = 0;
-    Yi_A( ethernet, dhcp );
-    Yi_F( ethernet, dhcp, 0 );
+    Yi_A( net, dhcp );
+    Yi_F( net, dhcp, 0 );
     return 0;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _private
 N
-E_ethernet_I_transmit( struct E_ethernet_Z_interface *interface
+E_ethernet_I_transmit( struct E_net_Z_interface *interface
 , P packet
 , N packet_l
 ){  N32 count = *( N32 * )(( Pc )interface->register_memory + 0x3808 ) / sizeof( struct E_ethernet_Z_transmit_descriptor );
@@ -620,434 +400,5 @@ E_ethernet_I_transmit( struct E_ethernet_Z_interface *interface
     *( N32 * )(( Pc )interface->register_memory + 0x3818 ) = tail;
     E_flow_I_sti();
     return 0;
-}
-_private
-I
-E_ethernet_Q_udp4_connection_state_M(
-  N32 local_address
-, N16 local_port
-, N32 remote_address
-, N16 remote_port
-, I report_id
-){  for_each( connection_id, E_ethernet_S_udp4_connection_state, E_mem_Q_tab )
-    {   struct E_ethernet_Z_udp4_connection_state *connection_state = E_mem_Q_tab_R( E_ethernet_S_udp4_connection_state, connection_id );
-        if(( !connection_state->ip4.local_address
-          || connection_state->ip4.local_address == local_address
-        )
-        && connection_state->local_port == local_port
-        )
-            return ~0;
-    }
-    E_flow_I_cli();
-    connection_id = E_mem_Q_tab_I_add( E_ethernet_S_udp4_connection_state );
-    if( !~connection_id )
-    {   E_flow_I_sti();
-        return ~0;
-    }
-    struct E_ethernet_Z_udp4_connection_state *connection_state = E_mem_Q_tab_R( E_ethernet_S_udp4_connection_state, connection_id );
-    connection_state->report_id = report_id;
-    connection_state->ip4.local_address = local_address;
-    connection_state->local_port = local_port;
-    connection_state->ip4.remote_address = remote_address;
-    connection_state->remote_port = remote_port;
-    connection_state->buffer = 0;
-    E_flow_I_sti();
-    return connection_id;
-}
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-D( ethernet, dhcp )
-{   Yi_M( ethernet, dhcp );
-    if( _Yi_var( ethernet, dhcp ) < 0 )
-        E_main_I_error_fatal();
-    Xi_M( ethernet, dhcp );
-    if( _Xi_var( ethernet, dhcp ) < 0 )
-        E_main_I_error_fatal();
-    Yi_B( ethernet, dhcp )
-        goto End;
-    N reported_count;
-    O{  G( "dhcp req" );
-        for_each( interface_id, E_ethernet_S, E_mem_Q_tab )
-        {   struct E_ethernet_Z_interface *interface = E_mem_Q_tab_R( E_ethernet_S, interface_id );
-Switch:     switch( interface->dhcp.state )
-            { case E_ethernet_Z_interface_state_S_dhcp_discover:
-                {   N packet_l = sizeof( struct E_ipv4_Z_dhcp_packet ) + 16;
-                    struct E_ipv4_Z_dhcp_packet *packet = M( packet_l );
-                    if( !packet )
-                        E_main_I_error_fatal();
-                    _0( packet, packet_l );
-                    for_n( i, 6 )
-                        packet->ethernet.destination_address[i] = 0xff;
-                    for_n_( i, 6 )
-                        packet->ethernet.source_address[i] = interface->mac_address[i];
-                    packet->ethernet.type = 0x8;
-                    packet->ipv4.version = 4;
-                    packet->ipv4.ihl = 5;
-                    packet->ipv4.total_length = E_ethernet_I_to_network( sizeof( *packet ) - sizeof( packet->ethernet ));
-                    packet->ipv4.ttl = 1;
-                    packet->ipv4.protocol = 17;
-                    packet->ipv4.destination_address = 0xffffffff;
-                    packet->udp.source_port = E_ethernet_I_to_network(68);
-                    packet->udp.destination_port = E_ethernet_I_to_network(67);
-                    packet->udp.length = E_ethernet_I_to_network( sizeof( *packet ) - sizeof( packet->ipv4 ) - sizeof( packet->ethernet ));
-                    packet->op = 1;
-                    packet->htype = 1;
-                    packet->hlen = 6;
-                    packet->xid = 0x78563412;
-                    for_n_( i, 6 )
-                        packet->chaddr[i] = interface->mac_address[i];
-                    packet->options[0] = 99;
-                    packet->options[1] = 130;
-                    packet->options[2] = 83;
-                    packet->options[3] = 99;
-                    // DISCOVER
-                    packet->options[4] = 53;
-                    packet->options[5] = 1;
-                    packet->options[6] = 1;
-                    // CLIENT ID
-                    packet->options[7] = 61;
-                    packet->options[8] = 6;
-                    for_n_( i, 6 )
-                        packet->options[ 9 + i ] = interface->mac_address[i];
-                    // END
-                    packet->options[15] = 255;
-                    packet->ipv4.total_length = E_ethernet_I_to_network( packet_l - sizeof( packet->ethernet ));
-                    packet->udp.length = E_ethernet_I_to_network( packet_l - sizeof( packet->ipv4 ) - sizeof( packet->ethernet ));
-                    packet->ipv4.header_checksum = E_ethernet_I_checksum( (P)&packet->ipv4, (P)(( Pc )&packet->ipv4 + sizeof( packet->ipv4 )));
-                    struct E_ethernet_Z_ipv4_header_checksum ipv4 =
-                    { packet->ipv4.source_address
-                    , packet->ipv4.destination_address
-                    , 0
-                    , packet->ipv4.protocol
-                    , packet->udp.length
-                    };
-                    N16 checksum = 0, carry = 0;
-                    E_ethernet_I_checksum_0( (P)&ipv4, (P)(( Pc )&ipv4 + sizeof( ipv4 )), &checksum, &carry );
-                    E_ethernet_I_checksum_0( (P)&packet->udp, (P)(( Pc )packet + packet_l ), &checksum, &carry );
-                    E_ethernet_I_checksum_1( &checksum, &carry );
-                    packet->udp.checksum = checksum;
-                    if( !~interface->dhcp.connection_id )
-                    {   interface->dhcp.connection_id = E_ethernet_Q_udp4_connection_state_M( packet->ipv4.source_address, packet->udp.source_port, packet->ipv4.destination_address, packet->udp.destination_port, _Xi_var( ethernet, dhcp ));
-                        if( !~interface->dhcp.connection_id )
-                            E_main_I_error_fatal();
-                    }
-                    E_ethernet_I_transmit( interface, packet, packet_l );
-                    interface->dhcp.state = E_ethernet_Z_interface_state_S_dhcp_offer;
-                    break;
-                }
-              case E_ethernet_Z_interface_state_S_dhcp_offer:
-                {   struct E_ethernet_Z_udp4_connection_state *connection_state = E_mem_Q_tab_R( E_ethernet_S_udp4_connection_state, interface->dhcp.connection_id );
-                    if( !connection_state->buffer )
-                    {   if( !reported_count )
-                        {   if( ++interface->dhcp.retry == E_ethernet_S_dhcp_tries )
-                            {   interface->dhcp.state = E_ethernet_Z_interface_state_S_dhcp_invalid;
-                                break;
-                            }
-                            interface->dhcp.state = E_ethernet_Z_interface_state_S_dhcp_discover;
-                            goto Switch;
-                        }
-                        break;
-                    }
-                    struct E_ipv4_Z_dhcp_packet *offer_packet = connection_state->buffer;
-                    if( offer_packet->op != 2
-                    || offer_packet->htype != 1
-                    || offer_packet->hlen != 6
-                    || offer_packet->xid != 0x78563412
-                    || offer_packet->udp.length < sizeof( struct E_ipv4_Z_dhcp_packet ) - sizeof( struct E_ethernet_Z_ipv4_header ) - sizeof( struct E_ethernet_Z_header ) + 4
-                    || offer_packet->options[0] != 99
-                    || offer_packet->options[1] != 130
-                    || offer_packet->options[2] != 83
-                    || offer_packet->options[3] != 99
-                    )
-                    {   if( W( connection_state->buffer ))
-                            E_main_I_error_fatal();
-                        connection_state->buffer = 0;
-                        if( ++interface->dhcp.retry == E_ethernet_S_dhcp_tries )
-                        {   interface->dhcp.state = E_ethernet_Z_interface_state_S_dhcp_invalid;
-                            break;
-                        }
-                        interface->dhcp.state = E_ethernet_Z_interface_state_S_dhcp_discover;
-                        goto Switch;
-                    }
-                    N8 *option = &offer_packet->options[4];
-                    while(( Pc )option + 1 - ( Pc )&offer_packet->udp < offer_packet->udp.length
-                    && *option != 53
-                    && *option != 255
-                    )
-                        option += 2 + option[1];
-                    if(( Pc )option + 2 + 1 - ( Pc )&offer_packet->udp > offer_packet->udp.length
-                    || option[0] != 53
-                    || option[1] != 1
-                    || option[2] != 2
-                    )
-                    {   if( W( connection_state->buffer ))
-                            E_main_I_error_fatal();
-                        connection_state->buffer = 0;
-                        if( ++interface->dhcp.retry == E_ethernet_S_dhcp_tries )
-                        {   interface->dhcp.state = E_ethernet_Z_interface_state_S_dhcp_invalid;
-                            break;
-                        }
-                        interface->dhcp.state = E_ethernet_Z_interface_state_S_dhcp_discover;
-                        goto Switch;
-                    }
-                    interface->ipv4_address = offer_packet->yiaddr;
-                    interface->client.dhcp_server = offer_packet->siaddr;
-                    B has_server_id = no;
-                    option = &offer_packet->options[4];
-                    while(( Pc )option + 1 - ( Pc )&offer_packet->udp < offer_packet->udp.length
-                    && *option != 255
-                    )
-                    {   switch( option[0] )
-                        { case 54:
-                            {   if( option[1] != 4 )
-                                    goto Offer_end;
-                                interface->dhcp.server_id = option[2] | (( N32 )option[3] << 8 ) | (( N32 )option[4] << 16 ) | (( N32 )option[5] << 24 );
-                                has_server_id = yes;
-                                break;
-                            }
-                        }
-                        option += 2 + option[1];
-                    }
-Offer_end:          interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_packet->udp < offer_packet->udp.length
-                    && *option == 255
-                    && has_server_id
-                    ? E_ethernet_Z_interface_state_S_dhcp_request
-                    : E_ethernet_Z_interface_state_S_dhcp_invalid;
-                    if( W( connection_state->buffer ))
-                        E_main_I_error_fatal();
-                    connection_state->buffer = 0;
-                }
-              case E_ethernet_Z_interface_state_S_dhcp_request:
-                {   N packet_l = sizeof( struct E_ipv4_Z_dhcp_packet ) + 34;
-                    struct E_ipv4_Z_dhcp_packet *packet = M( packet_l );
-                    if( !packet )
-                        E_main_I_error_fatal();
-                    _0( packet, packet_l );
-                    for_n( i, 6 )
-                        packet->ethernet.destination_address[i] = 0xff;
-                    for_n_( i, 6 )
-                        packet->ethernet.source_address[i] = interface->mac_address[i];
-                    packet->ethernet.type = 0x8;
-                    packet->ipv4.version = 4;
-                    packet->ipv4.ihl = 5;
-                    packet->ipv4.total_length = E_ethernet_I_to_network( sizeof( *packet ) - sizeof( packet->ethernet ));
-                    packet->ipv4.ttl = 1;
-                    packet->ipv4.protocol = 17;
-                    packet->ipv4.destination_address = interface->client.dhcp_server;
-                    packet->udp.source_port = E_ethernet_I_to_network(68);
-                    packet->udp.destination_port = E_ethernet_I_to_network(67);
-                    packet->udp.length = E_ethernet_I_to_network( sizeof( *packet ) - sizeof( packet->ipv4 ) - sizeof( packet->ethernet ));
-                    packet->op = 1;
-                    packet->htype = 1;
-                    packet->hlen = 6;
-                    packet->xid = 0x78563412;
-                    for_n_( i, 6 )
-                        packet->chaddr[i] = interface->mac_address[i];
-                    packet->options[0] = 99;
-                    packet->options[1] = 130;
-                    packet->options[2] = 83;
-                    packet->options[3] = 99;
-                    // IP
-                    packet->options[4] = 50;
-                    packet->options[5] = 4;
-                    packet->options[6] = interface->ipv4_address & 0xff;
-                    packet->options[7] = ( interface->ipv4_address >> 8 ) & 0xff;
-                    packet->options[8] = ( interface->ipv4_address >> 16 ) & 0xff;
-                    packet->options[9] = ( interface->ipv4_address >> 24 ) & 0xff;
-                    // REQUEST
-                    packet->options[10] = 53;
-                    packet->options[11] = 1;
-                    packet->options[12] = 3;
-                    // SERVER ID
-                    packet->options[13] = 54;
-                    packet->options[14] = 4;
-                    packet->options[15] = interface->dhcp.server_id & 0xff;
-                    packet->options[16] = ( interface->dhcp.server_id >> 8 ) & 0xff;
-                    packet->options[17] = ( interface->dhcp.server_id >> 16 ) & 0xff;
-                    packet->options[18] = ( interface->dhcp.server_id >> 24 ) & 0xff;
-                    // PARAMETER
-                    packet->options[19] = 55;
-                    packet->options[20] = 4;
-                    packet->options[21] = 1;
-                    packet->options[22] = 3;
-                    packet->options[23] = 6;
-                    packet->options[24] = 15;
-                    // CLIENT ID
-                    packet->options[25] = 61;
-                    packet->options[26] = 6;
-                    for_n_( i, 6 )
-                        packet->options[ 27 + i ] = interface->mac_address[i];
-                    // END
-                    packet->options[33] = 255;
-                    packet->ipv4.total_length = E_ethernet_I_to_network( packet_l - sizeof( packet->ethernet ));
-                    packet->udp.length = E_ethernet_I_to_network( packet_l - sizeof( packet->ipv4 ) - sizeof( packet->ethernet ));
-                    packet->ipv4.header_checksum = E_ethernet_I_checksum( (P)&packet->ipv4, (P)(( Pc )&packet->ipv4 + sizeof( packet->ipv4 )));
-                    struct E_ethernet_Z_ipv4_header_checksum ipv4 =
-                    { packet->ipv4.source_address
-                    , packet->ipv4.destination_address
-                    , 0
-                    , packet->ipv4.protocol
-                    , packet->udp.length
-                    };
-                    N16 checksum = 0, carry = 0;
-                    E_ethernet_I_checksum_0( (P)&ipv4, (P)(( Pc )&ipv4 + sizeof( ipv4 )), &checksum, &carry );
-                    E_ethernet_I_checksum_0( (P)&packet->udp, (P)(( Pc )packet + packet_l ), &checksum, &carry );
-                    E_ethernet_I_checksum_1( &checksum, &carry );
-                    packet->udp.checksum = checksum;
-                    E_ethernet_I_transmit( interface, packet, packet_l );
-                    interface->dhcp.state = E_ethernet_Z_interface_state_S_dhcp_ack;
-                    break;
-                }
-              case E_ethernet_Z_interface_state_S_dhcp_ack:
-                {   struct E_ethernet_Z_udp4_connection_state *connection_state = E_mem_Q_tab_R( E_ethernet_S_udp4_connection_state, interface->dhcp.connection_id );
-                    if( !connection_state->buffer )
-                    {   if( !reported_count )
-                        {   if( ++interface->dhcp.retry == E_ethernet_S_dhcp_tries )
-                            {   interface->dhcp.state = E_ethernet_Z_interface_state_S_dhcp_invalid;
-                                break;
-                            }
-                            interface->dhcp.state = E_ethernet_Z_interface_state_S_dhcp_discover;
-                            goto Switch;
-                        }
-                        break;
-                    }
-                    struct E_ipv4_Z_dhcp_packet *offer_packet = connection_state->buffer;
-                    if( offer_packet->op != 2
-                    || offer_packet->htype != 1
-                    || offer_packet->hlen != 6
-                    || offer_packet->xid != 0x78563412
-                    || offer_packet->udp.length < sizeof( struct E_ipv4_Z_dhcp_packet ) - sizeof( struct E_ethernet_Z_ipv4_header ) - sizeof( struct E_ethernet_Z_header ) + 4
-                    || offer_packet->options[0] != 99
-                    || offer_packet->options[1] != 130
-                    || offer_packet->options[2] != 83
-                    || offer_packet->options[3] != 99
-                    )
-                    {   if( W( connection_state->buffer ))
-                            E_main_I_error_fatal();
-                        connection_state->buffer = 0;
-                        if( ++interface->dhcp.retry == E_ethernet_S_dhcp_tries )
-                        {   interface->dhcp.state = E_ethernet_Z_interface_state_S_dhcp_invalid;
-                            break;
-                        }
-                        interface->dhcp.state = E_ethernet_Z_interface_state_S_dhcp_request;
-                        goto Switch;
-                    }
-                    N8 *option = &offer_packet->options[4];
-                    while(( Pc )option + 1 - ( Pc )&offer_packet->udp < offer_packet->udp.length
-                    && *option != 53
-                    && *option != 255
-                    )
-                        option += 2 + option[1];
-                    if(( Pc )option + 2 + 1 - ( Pc )&offer_packet->udp > offer_packet->udp.length
-                    || option[0] != 53
-                    || option[1] != 1
-                    || option[2] != 5
-                    )
-                    {   if( W( connection_state->buffer ))
-                            E_main_I_error_fatal();
-                        connection_state->buffer = 0;
-                        if( ++interface->dhcp.retry == E_ethernet_S_dhcp_tries )
-                        {   interface->dhcp.state = E_ethernet_Z_interface_state_S_dhcp_invalid;
-                            break;
-                        }
-                        if(( Pc )option + 2 + 1 - ( Pc )&offer_packet->udp <= offer_packet->udp.length
-                        && option[0] == 53
-                        && option[1] == 1
-                        && option[2] == 6
-                        )
-                            interface->dhcp.state = E_ethernet_Z_interface_state_S_dhcp_discover;
-                        else
-                            interface->dhcp.state = E_ethernet_Z_interface_state_S_dhcp_request;
-                        goto Switch;
-                    }
-                    B has_mask = no, has_gateway = no, has_dns = no, has_time = no;
-                    option = &offer_packet->options[4];
-                    while(( Pc )option + 1 - ( Pc )&offer_packet->udp < offer_packet->udp.length
-                    && *option != 255
-                    )
-                    {   switch( option[0] )
-                        { case 1:
-                            {   if( option[1] != 4 )
-                                    goto Ack_end;
-                                N32 mask = option[5] | (( N32 )option[4] << 8 ) | (( N32 )option[3] << 16 ) | (( N32 )option[2] << 24 );
-                                N i = E_asm_I_bsf(mask);
-                                if( !~i
-                                || i < 2
-                                )
-                                    goto Ack_end;
-                                interface->ipv4_network_prefix = 32 - i;
-                                has_mask = yes;
-                                break;
-                            }
-                          case 3:
-                            {   if( option[1] != 4 )
-                                    goto Ack_end;
-                                interface->client.ipv4_gateway = option[2] | (( N32 )option[3] << 8 ) | (( N32 )option[4] << 16 ) | (( N32 )option[5] << 24 );
-                                has_gateway = yes;
-                                break;
-                            }
-                          case 6:
-                            {   if( option[1] != 4 )
-                                    goto Ack_end;
-                                interface->client.ipv4_dns = option[2] | (( N32 )option[3] << 8 ) | (( N32 )option[4] << 16 ) | (( N32 )option[5] << 24 );
-                                has_dns = yes;
-                                break;
-                            }
-                          case 51:
-                            {   if( option[1] != 4 )
-                                    goto Ack_end;
-                                interface->client.dhcp_lease_time = E_flow_I_current_time() + E_interrupt_S_cpu_freq * ( option[2] | (( N32 )option[3] << 8 ) | (( N32 )option[4] << 16 ) | (( N32 )option[5] << 24 ));
-                                has_time = yes;
-                                break;
-                            }
-                        }
-                        option += 2 + option[1];
-                    }
-Ack_end:            interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_packet->udp < offer_packet->udp.length
-                    && *option == 255
-                    && has_mask
-                    && has_gateway
-                    && has_dns
-                    && has_time
-                    ? E_ethernet_Z_interface_state_S_dhcp_renew
-                    : E_ethernet_Z_interface_state_S_dhcp_invalid;
-                    if( W( connection_state->buffer ))
-                        E_main_I_error_fatal();
-                    connection_state->buffer = 0;
-                    break;
-                }
-              case E_ethernet_Z_interface_state_S_dhcp_renew:
-                    break;
-            }
-        }
-        for_each_( interface_id, E_ethernet_S, E_mem_Q_tab )
-        {   struct E_ethernet_Z_interface *interface = E_mem_Q_tab_R( E_ethernet_S, interface_id );
-            if( interface->dhcp.state != E_ethernet_Z_interface_state_S_dhcp_invalid
-            && interface->dhcp.state != E_ethernet_Z_interface_state_S_dhcp_renew
-            )
-                break;
-        }
-        if( ~interface_id )
-            Xi_B( ethernet, dhcp, 200, &reported_count )
-                goto End;
-        else
-        {   N time = ~0;
-            for_each_( interface_id, E_ethernet_S, E_mem_Q_tab )
-            {   struct E_ethernet_Z_interface *interface = E_mem_Q_tab_R( E_ethernet_S, interface_id );
-                if( interface->dhcp.state == E_ethernet_Z_interface_state_S_dhcp_renew )
-                    if( time > interface->client.dhcp_lease_time )
-                        time = interface->client.dhcp_lease_time;
-            }
-            G( "time=%x", time );
-            if( ~time )
-            {   N current_time = E_flow_I_current_time();
-                time = time > current_time ? ( time - current_time ) * 1000 / E_interrupt_S_cpu_freq : 0;
-                Yi_F( ethernet, dhcp, time );
-            }
-            Yi_B( ethernet, dhcp )
-                goto End;
-        }
-    }
-End:Xi_W( ethernet, dhcp );
-    Yi_W( ethernet, dhcp );
 }
 /******************************************************************************/

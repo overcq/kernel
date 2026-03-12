@@ -7,6 +7,8 @@
 *         window controls
 * (c)overcq              on WSL\Debian (Linux 6.6.87.2)               2026-2-3 Z
 *******************************************************************************/
+#define E_controls_S_scroll_count   8
+//==============================================================================
 enum E_controls_Z_type
 { E_controls_Z_type_S_label
 , E_controls_Z_type_S_button
@@ -19,11 +21,13 @@ struct E_controls_Z_control
       N8 font_size, thickness;
     }label;
     struct
-    { Pc text;
+    { void ( *action )( I window_id );
+      Pc text;
       N8 font_size, thickness;
     }button;
     struct
     { Pc text;
+      N visible_start, cursor;
       N32 width;
       N8 font_size, thickness;
     }textbox;
@@ -34,8 +38,11 @@ struct E_controls_Z_control
 struct E_controls_Z_data
 { struct E_controls_Z_control *control;
   N control_n;
+  N control_cursor;
   N32 scroll_x, scroll_y;
 };
+//==============================================================================
+_internal B E_controls_S_horizontal_scroll;
 //==============================================================================
 _private
 N
@@ -47,11 +54,13 @@ E_controls_M( N8 desktop_id
         return ~0;
     data->scroll_x = 0;
     data->scroll_y = 0;
+    data->control_cursor = ~0;
     data->control_n = 0;
     Mt_( data->control, data->control_n );
     if( !data->control )
         return ~2;
     window->data = data;
+    E_controls_S_horizontal_scroll = no;
     return 0;
 }
 _private
@@ -104,6 +113,59 @@ E_controls_Q_label_I_add( N8 desktop_id
     data->control_n++;
     return 0;
 }
+_private
+N
+E_controls_Q_button_I_add( N8 desktop_id
+, I window_id
+, N32 x
+, N32 y
+, Pc text
+, N8 font_size
+, N8 thickness
+, void ( *action )(I)
+){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
+    struct E_controls_Z_data *data = window->data;
+    if( !E_mem_Q_blk_I_append( &data->control, 1 ))
+        return ~2;
+    data->control[ data->control_n ].type = E_controls_Z_type_S_button;
+    data->control[ data->control_n ].button.text = E_text_Z_s0_M_duplicate(text);
+    if( !data->control[ data->control_n ].button.text )
+        return ~2;
+    data->control[ data->control_n ].x = x;
+    data->control[ data->control_n ].y = y;
+    data->control[ data->control_n ].button.font_size = font_size;
+    data->control[ data->control_n ].button.thickness = thickness;
+    data->control[ data->control_n ].button.action = action;
+    data->control_n++;
+    return 0;
+}
+_private
+N
+E_controls_Q_textbox_I_add( N8 desktop_id
+, I window_id
+, N32 x
+, N32 y
+, N32 width
+, Pc text
+, N8 font_size
+, N8 thickness
+){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
+    struct E_controls_Z_data *data = window->data;
+    if( !E_mem_Q_blk_I_append( &data->control, 1 ))
+        return ~2;
+    data->control[ data->control_n ].type = E_controls_Z_type_S_textbox;
+    data->control[ data->control_n ].textbox.text = E_text_Z_s0_M_duplicate(text);
+    if( !data->control[ data->control_n ].textbox.text )
+        return ~2;
+    data->control[ data->control_n ].x = x;
+    data->control[ data->control_n ].y = y;
+    data->control[ data->control_n ].textbox.width = width;
+    data->control[ data->control_n ].textbox.visible_start = 0;
+    data->control[ data->control_n ].textbox.font_size = font_size;
+    data->control[ data->control_n ].textbox.thickness = thickness;
+    data->control_n++;
+    return 0;
+}
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _private
 void
@@ -115,23 +177,30 @@ E_controls_I_draw( I window_id
 ){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
     struct E_controls_Z_data *data = window->data;
     for_n( i, data->control_n )
+    {   if( data->control[i].x < data->scroll_x
+        || data->control[i].y < data->scroll_y
+        )
+            continue;
         switch( data->control[i].type )
         { case E_controls_Z_type_S_label:
-            {   S32 x_ = x + data->control[i].x + data->control[i].label.thickness + 1 - data->scroll_x;
+            {   if( data->control[i].y + data->control[i].label.thickness + 1 + ( data->control[i].label.font_size + 1 ) * E_font_S_font.height + data->control[i].label.thickness + 1 - data->scroll_y > height )
+                    continue;
+                S32 x_0 = x + data->control[i].x - data->scroll_x;
+                S32 x_ = x_0 + data->control[i].label.thickness + 1;
                 Pc s = data->control[i].label.text;
                 while( *s )
                 {   U u = ~0;
                     Pc s_ = E_text_Z_su_R_u( s, &u );
                     s = s_;
                     N32 font_i;
-                    if( width <= x_ + data->control[i].label.thickness + 1
-                    || !E_font_T_print_u( width - x_ - ( data->control[i].label.thickness + 1 ), data->control[i].label.thickness, &u, &font_i )
+                    if( width <= x_ - x_0 + data->control[i].label.thickness + 1
+                    || !E_font_T_print_u( width - ( x_ - x_0 ) - ( data->control[i].label.thickness + 1 ), data->control[i].label.thickness, &u, &font_i )
                     )
                         break;
                     E_font_I_draw_u( font_i
                     , x_, y + data->control[i].y + data->control[i].label.thickness + 1 - data->scroll_y
                     , y + data->control[i].y + data->control[i].label.thickness + 1 - data->scroll_y
-                    , y + data->control[i].y + data->control[i].label.thickness + 1 - data->scroll_y + data->control[i].label.font_size + 1
+                    , y + data->control[i].y + data->control[i].label.thickness + 1 - data->scroll_y + ( data->control[i].label.font_size + 1 ) * E_font_S_font.height
                     , E_vga_S_text_color
                     , data->control[i].label.font_size
                     , data->control[i].label.thickness
@@ -141,9 +210,436 @@ E_controls_I_draw( I window_id
                 break;
             }
           case E_controls_Z_type_S_button:
+            {   if( data->control[i].y + 1 + data->control[i].button.thickness + 1 + ( data->control[i].button.font_size + 1 ) * E_font_S_font.height + data->control[i].button.thickness + 1 + 1 - data->scroll_y > height )
+                    continue;
+                S32 x_0 = x + data->control[i].x - data->scroll_x;
+                S32 x_ = x_0 + 1 + data->control[i].button.thickness + 1;
+                Pc s = data->control[i].button.text;
+                while( *s )
+                {   U u = ~0;
+                    Pc s_ = E_text_Z_su_R_u( s, &u );
+                    s = s_;
+                    N32 font_i;
+                    if( width <= x_ - x_0 + data->control[i].button.thickness + 1 + 1
+                    || !E_font_T_print_u( width - ( x_ - x_0 ) - ( data->control[i].button.thickness + 1 ), data->control[i].button.thickness, &u, &font_i )
+                    )
+                        break;
+                    x_ += ( data->control[i].button.thickness + 1 ) * E_font_S_font.bitmap[ font_i ].width + data->control[i].button.thickness + 1;
+                }
+                N32 control_width = J_min( x_ - x + data->control[i].button.thickness + 1 + 1, width );
+                E_vga_I_draw_rect( x + data->control[i].x - data->scroll_x
+                , y + data->control[i].y - data->scroll_y
+                , control_width
+                , 1 + data->control[i].button.thickness + 1 + ( data->control[i].button.font_size + 1 ) * E_font_S_font.height + data->control[i].button.thickness + 1 + 1
+                , 1
+                , E_vga_R_video_color( 0x908b8b )
+                );
+                if( control_width > 2 )
+                    E_vga_I_fill_rect( x + data->control[i].x + 1 - data->scroll_x
+                    , y + data->control[i].y + 1 - data->scroll_y
+                    , control_width - 2
+                    , data->control[i].button.thickness + 1 + ( data->control[i].button.font_size + 1 ) * E_font_S_font.height + data->control[i].button.thickness + 1
+                    , E_vga_R_video_color( 0xb3b3b3 )
+                    );
+                x_0 = x + data->control[i].x - data->scroll_x;
+                x_ = x_0 + 1 + data->control[i].button.thickness + 1;
+                s = data->control[i].button.text;
+                while( *s )
+                {   U u = ~0;
+                    Pc s_ = E_text_Z_su_R_u( s, &u );
+                    s = s_;
+                    N32 font_i;
+                    if( width <= x_ - x_0 + data->control[i].button.thickness + 1
+                    || !E_font_T_print_u( width - ( x_ - x_0 ) - ( data->control[i].button.thickness + 1 ), data->control[i].button.thickness, &u, &font_i )
+                    )
+                        break;
+                    E_font_I_draw_u( font_i
+                    , x_, y + data->control[i].y + 1 + data->control[i].button.thickness + 1 - data->scroll_y
+                    , y + data->control[i].y + 1 + data->control[i].button.thickness + 1 - data->scroll_y
+                    , y + data->control[i].y + 1 + data->control[i].button.thickness + 1 - data->scroll_y + ( data->control[i].button.font_size + 1 ) * E_font_S_font.height
+                    , E_vga_S_text_color
+                    , data->control[i].button.font_size
+                    , data->control[i].button.thickness
+                    );
+                    x_ += ( data->control[i].button.thickness + 1 ) * E_font_S_font.bitmap[ font_i ].width + data->control[i].button.thickness + 1;
+                }
                 break;
+            }
           case E_controls_Z_type_S_textbox:
+            {   if( data->control[i].y + 1 + data->control[i].textbox.thickness + 1 + ( data->control[i].textbox.font_size + 1 ) * E_font_S_font.height + data->control[i].textbox.thickness + 1 + 1 - data->scroll_y > height )
+                    continue;
+                N32 control_width = J_min( data->control[i].textbox.width, width );
+                E_vga_I_draw_rect( x + data->control[i].x - data->scroll_x
+                , y + data->control[i].y - data->scroll_y
+                , control_width
+                , 1 + data->control[i].textbox.thickness + 1 + ( data->control[i].textbox.font_size + 1 ) * E_font_S_font.height + data->control[i].textbox.thickness + 1 + 1
+                , 1
+                , E_vga_R_video_color( 0x908b8b )
+                );
+                S32 x_0 = x + data->control[i].x - data->scroll_x;
+                S32 x_ = x_0 + 1 + data->control[i].textbox.thickness + 1;
+                Pc s = data->control[i].textbox.text;
+                N u_i = 0;
+                while( *s )
+                {   U u = ~0;
+                    Pc s_ = E_text_Z_su_R_u( s, &u );
+                    s = s_;
+                    if( u_i < data->control[i].textbox.visible_start )
+                    {   u_i++;
+                        continue;
+                    }
+                    if( i == data->control_cursor
+                    && u_i == data->control[i].textbox.cursor
+                    && u_i
+                    )
+                        E_vga_I_draw_y_line( x_ - ( data->control[i].textbox.thickness + 1 )
+                        , y + data->control[i].y + 1 + data->control[i].textbox.thickness + 1 - data->scroll_y
+                        , ( data->control[i].textbox.font_size + 1 ) * E_font_S_font.height
+                        , E_vga_R_video_color( 0x70fb )
+                        );
+                    N32 font_i;
+                    if( control_width <= x_ - x_0 + data->control[i].textbox.thickness + 1
+                    || !E_font_T_print_u( control_width - ( x_ - x_0 ) - ( data->control[i].textbox.thickness + 1 ), data->control[i].textbox.thickness, &u, &font_i )
+                    )
+                        break;
+                    E_font_I_draw_u( font_i
+                    , x_, y + data->control[i].y + 1 + data->control[i].textbox.thickness + 1 - data->scroll_y
+                    , y + data->control[i].y + 1 + data->control[i].textbox.thickness + 1 - data->scroll_y
+                    , y + data->control[i].y + 1 + data->control[i].textbox.thickness + 1 - data->scroll_y + ( data->control[i].textbox.font_size + 1 ) * E_font_S_font.height
+                    , E_vga_S_text_color
+                    , data->control[i].textbox.font_size
+                    , data->control[i].textbox.thickness
+                    );
+                    if( i == data->control_cursor
+                    && u_i == data->control[i].textbox.cursor
+                    && !u_i
+                    )
+                        E_vga_I_draw_y_line( x_
+                        , y + data->control[i].y + 1 + data->control[i].textbox.thickness + 1 - data->scroll_y
+                        , ( data->control[i].textbox.font_size + 1 ) * E_font_S_font.height
+                        , E_vga_R_video_color( 0x70fb )
+                        );
+                    x_ += ( data->control[i].textbox.thickness + 1 ) * E_font_S_font.bitmap[ font_i ].width + data->control[i].textbox.thickness + 1;
+                    u_i++;
+                }
+                if( i == data->control_cursor
+                && u_i == data->control[i].textbox.cursor
+                && u_i
+                && !*s
+                )
+                    E_vga_I_draw_y_line( x_ - ( data->control[i].textbox.thickness + 1 )
+                    , y + data->control[i].y + 1 + data->control[i].textbox.thickness + 1 - data->scroll_y
+                    , ( data->control[i].textbox.font_size + 1 ) * E_font_S_font.height
+                    , E_vga_R_video_color( 0x70fb )
+                    );
                 break;
+            }
         }
+    }
+}
+_private
+void
+E_controls_I_click( I window_id
+){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
+    struct E_controls_Z_data *data = window->data;
+    X_A( gui, draw );
+    N32 x, y, width, height;
+    if( window->sized )
+    {   x = window->x + E_gui_Q_desktop_S_window_border_thickness;
+        y = window->y + E_gui_Q_desktop_S_window_border_thickness;
+        width = window->width - 2 * E_gui_Q_desktop_S_window_border_thickness;
+        height = window->height - 2 * E_gui_Q_desktop_S_window_border_thickness;
+    }else
+    {   x = 0;
+        y = E_gui_Q_taskbar_S_height;
+        width = E_main_S_framebuffer.width;
+        height = E_main_S_framebuffer.height - y;
+    }
+    for_n( i, data->control_n )
+        if( E_mouse_Q_button_S_coordinate[0] >= x + data->control[i].x - data->scroll_x
+        && E_mouse_Q_button_S_coordinate[1] >= y + data->control[i].y - data->scroll_y
+        )
+        {   B inside = no;
+            switch( data->control[i].type )
+            { case E_controls_Z_type_S_label:
+                {   S32 x_0 = x + data->control[i].x - data->scroll_x;
+                    S32 x_ = x_0 + 1 + data->control[i].label.thickness + 1;
+                    Pc s = data->control[i].label.text;
+                    while( *s )
+                    {   U u = ~0;
+                        Pc s_ = E_text_Z_su_R_u( s, &u );
+                        s = s_;
+                        N32 font_i;
+                        if( width <= x_ - x_0 + data->control[i].label.thickness + 1 + 1
+                        || !E_font_T_print_u( width - ( x_ - x_0 ) - ( data->control[i].label.thickness + 1 ), data->control[i].label.thickness, &u, &font_i )
+                        )
+                            break;
+                        x_ += ( data->control[i].label.thickness + 1 ) * E_font_S_font.bitmap[ font_i ].width + data->control[i].label.thickness + 1;
+                    }
+                    N32 control_width = x_ - x + data->control[i].label.thickness + 1 + 1;
+                    if( E_mouse_Q_button_S_coordinate[0] < x + control_width - data->scroll_x
+                    && E_mouse_Q_button_S_coordinate[1] < y + data->control[i].y - data->scroll_y + data->control[i].label.thickness + 1 + ( data->control[i].label.font_size + 1 ) * E_font_S_font.height + data->control[i].label.thickness + 1
+                    )
+                        inside = yes;
+                    break;
+                }
+              case E_controls_Z_type_S_button:
+                {   S32 x_0 = x + data->control[i].x - data->scroll_x;
+                    S32 x_ = x_0 + 1 + data->control[i].button.thickness + 1;
+                    Pc s = data->control[i].button.text;
+                    while( *s )
+                    {   U u = ~0;
+                        Pc s_ = E_text_Z_su_R_u( s, &u );
+                        s = s_;
+                        N32 font_i;
+                        if( width <= x_ - x_0 + data->control[i].button.thickness + 1 + 1
+                        || !E_font_T_print_u( width - ( x_ - x_0 ) - ( data->control[i].button.thickness + 1 ), data->control[i].button.thickness, &u, &font_i )
+                        )
+                            break;
+                        x_ += ( data->control[i].button.thickness + 1 ) * E_font_S_font.bitmap[ font_i ].width + data->control[i].button.thickness + 1;
+                    }
+                    N32 control_width = x_ - x + data->control[i].button.thickness + 1 + 1;
+                    if( E_mouse_Q_button_S_coordinate[0] < x + control_width - data->scroll_x
+                    && E_mouse_Q_button_S_coordinate[1] < y + data->control[i].y - data->scroll_y + 1 + data->control[i].button.thickness + 1 + ( data->control[i].button.font_size + 1 ) * E_font_S_font.height + data->control[i].button.thickness + 1 + 1
+                    )
+                        inside = yes;
+                    break;
+                }
+              case E_controls_Z_type_S_textbox:
+                    if( E_mouse_Q_button_S_coordinate[0] < x + data->control[i].x + data->control[i].textbox.width - data->scroll_x
+                    && E_mouse_Q_button_S_coordinate[1] < y + data->control[i].y - data->scroll_y + 1 + data->control[i].textbox.thickness + 1 + ( data->control[i].textbox.font_size + 1 ) * E_font_S_font.height + data->control[i].textbox.thickness + 1 + 1
+                    )
+                        inside = yes;
+                    break;
+            }
+            if(inside)
+            {   switch( data->control[i].type )
+                { case E_controls_Z_type_S_button:
+                        data->control[i].button.action( window_id );
+                        if( ~data->control_cursor )
+                            U_F( gui, draw );
+                        data->control_cursor = ~0;
+                        break;
+                  case E_controls_Z_type_S_textbox:
+                    {   S32 x_0 = x + data->control[i].x - data->scroll_x;
+                        S32 x_ = x_0 + 1 + data->control[i].textbox.thickness + 1;
+                        Pc s = data->control[i].textbox.text;
+                        N u_i = 0;
+                        while( *s )
+                        {   U u = ~0;
+                            Pc s_ = E_text_Z_su_R_u( s, &u );
+                            s = s_;
+                            if( u_i < data->control[i].textbox.visible_start )
+                            {   u_i++;
+                                continue;
+                            }
+                            N32 font_i;
+                            if( data->control[i].textbox.width <= x_ - x_0 + data->control[i].textbox.thickness + 1
+                            || !E_font_T_print_u( data->control[i].textbox.width - ( x_ - x_0 ) - ( data->control[i].textbox.thickness + 1 ), data->control[i].textbox.thickness, &u, &font_i )
+                            )
+                                break;
+                            if( E_mouse_Q_button_S_coordinate[0] >= x_
+                            && E_mouse_Q_button_S_coordinate[0] < x_ + ( data->control[i].textbox.thickness + 1 ) * E_font_S_font.bitmap[ font_i ].width + data->control[i].textbox.thickness + 1
+                            )
+                                break;
+                            x_ += ( data->control[i].textbox.thickness + 1 ) * E_font_S_font.bitmap[ font_i ].width + data->control[i].textbox.thickness + 1;
+                            u_i++;
+                        }
+                        if( data->control_cursor != i
+                        || data->control[i].textbox.cursor != u_i
+                        )
+                            U_F( gui, draw );
+                        data->control_cursor = i;
+                        data->control[i].textbox.cursor = u_i;
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+    X_U( gui, draw );
+}
+_private
+void
+E_controls_I_wheel( I window_id
+){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
+    struct E_controls_Z_data *data = window->data;
+    if( E_controls_S_horizontal_scroll )
+    {   N32 new_scroll_x;
+        if( E_mouse_Q_wheel_S_count < 0 )
+            if( data->scroll_x < E_controls_S_scroll_count * -E_mouse_Q_wheel_S_count )
+                new_scroll_x = 0;
+            else
+                new_scroll_x = data->scroll_x + E_controls_S_scroll_count * E_mouse_Q_wheel_S_count;
+        else
+        {   new_scroll_x = data->scroll_x + E_controls_S_scroll_count * E_mouse_Q_wheel_S_count;
+            N32 max_x = 0;
+            for_n( i, data->control_n )
+                if( max_x < data->control[i].x )
+                    max_x = data->control[i].x;
+            if( new_scroll_x > max_x )
+                new_scroll_x = max_x;
+        }
+        if( data->scroll_x != new_scroll_x )
+        {   data->scroll_x = new_scroll_x;
+            X_A( gui, draw );
+            X_F( gui, draw );
+        }
+    }else
+    {   N32 new_scroll_y;
+        if( E_mouse_Q_wheel_S_count < 0 )
+            if( data->scroll_y < E_controls_S_scroll_count * -E_mouse_Q_wheel_S_count )
+                new_scroll_y = 0;
+            else
+                new_scroll_y = data->scroll_y + E_controls_S_scroll_count * E_mouse_Q_wheel_S_count;
+        else
+        {   new_scroll_y = data->scroll_y + E_controls_S_scroll_count * E_mouse_Q_wheel_S_count;
+            N32 max_y = 0;
+            for_n( i, data->control_n )
+                if( max_y < data->control[i].y )
+                    max_y = data->control[i].y;
+            if( new_scroll_y > max_y )
+                new_scroll_y = max_y;
+        }
+        if( data->scroll_y != new_scroll_y )
+        {   data->scroll_y = new_scroll_y;
+            X_A( gui, draw );
+            X_F( gui, draw );
+        }
+    }
+}
+_private
+void
+E_controls_I_key( I window_id
+, N queue_i
+){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
+    if( E_keyboard_S_queue[ queue_i ].ex_2 )
+        return;
+    if( E_keyboard_S_queue[ queue_i ].code == 0x1d )
+    {   E_controls_S_horizontal_scroll = !E_keyboard_S_queue[ queue_i ].up;
+        return;
+    }
+    struct E_controls_Z_data *data = window->data;
+    if( E_keyboard_S_queue[ queue_i ].up
+    || !~data->control_cursor
+    )
+        return;
+    N32 x, y;
+    if( window->sized )
+    {   x = window->x + E_gui_Q_desktop_S_window_border_thickness;
+        y = window->y + E_gui_Q_desktop_S_window_border_thickness;
+    }else
+    {   x = 0;
+        y = E_gui_Q_taskbar_S_height;
+    }
+    X_A( gui, draw );
+    switch( data->control[ data->control_cursor ].type )
+    { case E_controls_Z_type_S_textbox:
+            if( E_keyboard_S_queue[ queue_i ].code == 0x4b
+            || E_keyboard_S_queue[ queue_i ].code == 0x4d
+            )
+            {   if( E_keyboard_S_queue[ queue_i ].code == 0x4b // left
+                && data->control[ data->control_cursor ].textbox.visible_start == data->control[ data->control_cursor ].textbox.cursor
+                )
+                {   if( !data->control[ data->control_cursor ].textbox.cursor )
+                        break;
+                    data->control[ data->control_cursor ].textbox.visible_start--;
+                }else if( E_keyboard_S_queue[ queue_i ].code == 0x4d ) // right
+                {   S32 x_0 = x + data->control[ data->control_cursor ].x - data->scroll_x;
+                    S32 x_ = x_0 + 1 + data->control[ data->control_cursor ].textbox.thickness + 1;
+                    Pc s = data->control[ data->control_cursor ].textbox.text;
+                    N u_i = 0;
+                    Pc s_start;
+                    U u_next = ~0;
+                    while( *s )
+                    {   U u = ~0;
+                        Pc s_ = E_text_Z_su_R_u( s, &u );
+                        if( u_i < data->control[ data->control_cursor ].textbox.visible_start )
+                        {   s = s_;
+                            u_i++;
+                            continue;
+                        }
+                        if( u_i == data->control[ data->control_cursor ].textbox.visible_start )
+                            s_start = s;
+                        s = s_;
+                        N32 font_i;
+                        if( data->control[ data->control_cursor ].textbox.width <= x_ - x_0 + data->control[ data->control_cursor ].textbox.thickness + 1 + 1
+                        || !E_font_T_print_u( data->control[ data->control_cursor ].textbox.width - ( x_ - x_0 ) - ( data->control[ data->control_cursor ].textbox.thickness + 1 + 1 ), data->control[ data->control_cursor ].textbox.thickness, &u, &font_i )
+                        )
+                        {   u_next = u;
+                            break;
+                        }
+                        x_ += ( data->control[ data->control_cursor ].textbox.thickness + 1 ) * E_font_S_font.bitmap[ font_i ].width + data->control[ data->control_cursor ].textbox.thickness + 1;
+                        if( u_i == data->control[ data->control_cursor ].textbox.cursor )
+                            break;
+                        u_i++;
+                    }
+                    if( ~u_next
+                    || !*s
+                    )
+                    {   if( !*s
+                        && !~u_next
+                        )
+                            break;
+                        s = s_start;
+                        while( *s )
+                        {   U u = ~0;
+                            Pc s_ = E_text_Z_su_R_u( s, &u );
+                            s = s_;
+                            N32 font_i;
+                            E_font_T_print_u( 0, data->control[ data->control_cursor ].textbox.thickness, &u, &font_i );
+                            x_ -= ( data->control[ data->control_cursor ].textbox.thickness + 1 ) * E_font_S_font.bitmap[ font_i ].width + data->control[ data->control_cursor ].textbox.thickness + 1;
+                            if( ++data->control[ data->control_cursor ].textbox.visible_start == data->control[ data->control_cursor ].textbox.cursor + 1 )
+                                break;
+                            if( data->control[ data->control_cursor ].textbox.width > x_ - x_0 + data->control[ data->control_cursor ].textbox.thickness + 1 + 1
+                            && E_font_T_print_u( data->control[ data->control_cursor ].textbox.width - ( x_ - x_0 ) - ( data->control[ data->control_cursor ].textbox.thickness + 1 + 1 ), data->control[ data->control_cursor ].textbox.thickness, &u_next, &font_i )
+                            )
+                                break;
+                        }
+                    }
+                }
+                if( E_keyboard_S_queue[ queue_i ].code == 0x4b )
+                    data->control[ data->control_cursor ].textbox.cursor--;
+                else
+                    data->control[ data->control_cursor ].textbox.cursor++;
+                U_F( gui, draw );
+            }else if( E_keyboard_S_queue[ queue_i ].code == 0x47 ) // home
+            {   if( data->control[ data->control_cursor ].textbox.cursor )
+                {   data->control[ data->control_cursor ].textbox.visible_start = 0;
+                    data->control[ data->control_cursor ].textbox.cursor = 0;
+                    U_F( gui, draw );
+                }
+            }else if( E_keyboard_S_queue[ queue_i ].code == 0x4f ) // end
+            {   Pc s = data->control[ data->control_cursor ].textbox.text;
+                N u_i = 0;
+                while( *s )
+                {   U u = ~0;
+                    Pc s_ = E_text_Z_su_R_u( s, &u );
+                    s = s_;
+                    u_i++;
+                }
+                if( data->control[ data->control_cursor ].textbox.cursor != u_i )
+                {   data->control[ data->control_cursor ].textbox.cursor = u_i;
+                    S32 x_0 = x + data->control[ data->control_cursor ].x - data->scroll_x;
+                    S32 x_ = x_0 + 1 + data->control[ data->control_cursor ].textbox.thickness + 1;
+                    while( u_i )
+                    {   U u = ~0;
+                        Pc s_ = E_text_Z_su_R_u_rev( s, &u );
+                        s = s_;
+                        N32 font_i;
+                        if( data->control[ data->control_cursor ].textbox.width <= x_ - x_0 + data->control[ data->control_cursor ].textbox.thickness + 1 + 1
+                        || !E_font_T_print_u( data->control[ data->control_cursor ].textbox.width - ( x_ - x_0 ) - ( data->control[ data->control_cursor ].textbox.thickness + 1 + 1 ), data->control[ data->control_cursor ].textbox.thickness, &u, &font_i )
+                        )
+                            break;
+                        x_ += ( data->control[ data->control_cursor ].textbox.thickness + 1 ) * E_font_S_font.bitmap[ font_i ].width + data->control[ data->control_cursor ].textbox.thickness + 1;
+                        u_i--;
+                    }
+                    data->control[ data->control_cursor ].textbox.visible_start = u_i;
+                    U_F( gui, draw );
+                }
+            }
+            break;
+    }
+    X_U( gui, draw );
 }
 /******************************************************************************/
