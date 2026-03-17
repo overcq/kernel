@@ -160,7 +160,7 @@ E_net_I_checksum_0( N16 *start
 , N16 *carry
 ){  B end_is_odd = (( Pc )end - ( Pc )start ) % 2;
     if( end_is_odd )
-        end = (P)((( Pc )end ) - 1 );
+        end = (P)(( Pc )end - 1 );
     while( start != end )
     {   __asm__ volatile (
         "\n" "addw  %2,%0"
