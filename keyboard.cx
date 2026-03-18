@@ -228,6 +228,7 @@ _internal struct E_keyboard_Z_code_to_u E_keyboard_S_translate_alt_r_shift[] =
 , 0x2c, L'Ż'
 , 0x2d, L'Ź'
 , 0x2e, L'Ć'
+, 0x31, L'Ń'
 , 0x33, L'«'
 , 0x34, L'»'
 , 0x35, L'¿'

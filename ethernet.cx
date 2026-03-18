@@ -184,6 +184,8 @@ E_ethernet_I_interrupt( void
                         case 17: // UDP
                             {   G( "UDP" );
                                 struct E_net_Z_udp_header *udp4 = (P)(( Pc )ipv4 + sizeof( struct E_net_Z_ipv4_header ));
+                                if( udp4->length < 8 )
+                                    break;
                                 for_each( connection_id, E_net_S_udp4_connection_state, E_mem_Q_tab )
                                 {   struct E_net_Z_udp4_connection_state *connection_state = E_mem_Q_tab_R( E_net_S_udp4_connection_state, connection_id );
                                     G( "local_address=%32x,remote_address=%32x,local_port=%16x,remote_port=%16x", connection_state->ip4.local_address, connection_state->ip4.remote_address, connection_state->local_port, connection_state->remote_port );
@@ -207,7 +209,7 @@ E_ethernet_I_interrupt( void
                                             }
                                             break;
                                         }
-                                        N length = sizeof( struct E_net_Z_ipv4_header ) + udp4->length;
+                                        N length = sizeof( struct E_net_Z_ethernet_header ) + sizeof( struct E_net_Z_ipv4_header ) + udp4->length;
                                         connection_state->buffer = M(length);
                                         if( !connection_state->buffer )
                                             E_main_I_error_fatal();
@@ -230,7 +232,8 @@ E_ethernet_I_interrupt( void
                                                 E_main_I_error_fatal();
                                             E_mem_Q_blk_I_copy( connection_state->buffer + offset, E_main_Z_p_I_to_virtual( (P)receive_descriptors[tail].buffer_address ), length );
                                         }
-                                        struct E_net_Z_ipv4_header *ipv4 = (P)connection_state->buffer;
+                                        struct E_net_Z_ethernet_header *eth = (P)connection_state->buffer;
+                                        struct E_net_Z_ipv4_header *ipv4 = (P)(( Pc )ipv4 + sizeof( struct E_net_Z_ethernet_header ));
                                         struct E_net_Z_udp_header *udp4 = (P)(( Pc )ipv4 + sizeof( struct E_net_Z_ipv4_header ));
                                         if( udp4->checksum )
                                         {   struct E_net_Z_ipv4_header_checksum ipv4_checksum =
@@ -351,6 +354,8 @@ E_ethernet_I_init( volatile P register_address
     interface->dhcp.state = E_net_Z_interface_state_S_dhcp_discover;
     interface->dhcp.connection_id = ~0;
     interface->dhcp.retry = 0;
+    interface->dhcp.xid = E_flow_I_current_time() & 0xffffffff;
+    interface->ipv4_address = 0;
     Yi_A( net, dhcp );
     Yi_F( net, dhcp, 0 );
     return 0;
