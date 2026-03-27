@@ -355,7 +355,6 @@ E_ethernet_I_init( volatile P register_address
     interface->dhcp.connection_id = ~0;
     interface->dhcp.retry = 0;
     interface->dhcp.xid = E_flow_I_current_time() & 0xffffffff;
-    interface->ipv4_address = 0;
     Yi_A( net, dhcp );
     Yi_F( net, dhcp, 0 );
     return 0;

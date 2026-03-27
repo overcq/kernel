@@ -400,10 +400,10 @@ main( struct E_main_Z_kernel_args *kernel_args
         if( !tss )
             goto End;
         _0_(tss);
-        P exception_stack = E_mem_Q_blk_M_align_tab( E_mem_S_page_size, 1, E_mem_S_page_size );
-        if( !exception_stack )
+        P interrupt_stack = E_mem_Q_blk_M_align_tab( E_mem_S_page_size, 2, E_mem_S_page_size );
+        if( !interrupt_stack )
             goto End;
-        tss->ist[1] = (N)exception_stack + E_mem_S_page_size;
+        tss->ist[1] = (N)interrupt_stack + 2 * E_mem_S_page_size;
         tss->io_map_base_address = ~0;
         E_main_S_gdt[ 5 + i * 2 ] = E_main_J_task_descriptor_low( (N)tss, sizeof( *tss ));
         E_main_S_gdt[ 5 + i * 2 + 1 ] = (N)tss >> 32;

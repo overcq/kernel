@@ -314,8 +314,8 @@ E_ssd_cache_R( I disc_id
     }
     if( E_sata_Q_sata_ahci_I_wait_on_completion( disc, slot_mask ))
         *r = ~2;
-End:if( *r )
-        E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, r, *r );
+    if( *r )
+End:    E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, r, *r );
     return *r;
 }
 // Ta procedura jest potrzebna tylko wtedy, gdy zapisujemy cały blok; nie czytamy wcześniej.
@@ -452,8 +452,8 @@ E_ssd_cache_P( I disc_id
         disc->sata_ahci.ssd_cache[0].count = count;
         *data = disc->sata_ahci.ssd_cache[0].data;
     }
-End:if( *r )
-        E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, r, *r );
+    if( *r )
+End:    E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, r, *r );
     return *r;
 }
 _private

@@ -76,11 +76,16 @@ E_se_log_I_log( Pc scope
     {   X_A( gui, draw );
         X_F( gui, draw );
         r = 0;
-    }
+    }else
+        r = 0;
 End_1:
-    W( s_2 );
+    N r_ = W( s_2 );
+    if( !r )
+        r = r_;
 End_0:
-    W( s_1 );
+    r_ = W( s_1 );
+    if( !r )
+        r = r_;
     E_flow_I_sti();
     return r;
 }
@@ -110,9 +115,12 @@ E_se_log_I_log_( Pc fmt
     {   X_A( gui, draw );
         X_F( gui, draw );
         r = 0;
-    }
+    }else
+        r = 0;
 End_0:
-    W(s);
+    N r_ = W(s);
+    if( !r )
+        r = r_;
     E_flow_I_sti();
     return r;
 }

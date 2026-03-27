@@ -290,10 +290,10 @@ void
 E_flow_I_unlock_r( B *lock
 , N *r
 , N r_
-){  E_flow_I_unlock(lock);
-    __asm__ volatile (
+){  __asm__ volatile (
     "\n"    "lock xchg %1,%0"
     : "+m" ( *r ), "+r" ( r_ )
     );
+    E_flow_I_unlock(lock);
 }
 /******************************************************************************/

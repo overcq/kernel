@@ -36,8 +36,8 @@ _internal
 void
 E_mouse_I_interrupt_I_smooth( void
 ){  F mul = 0.5;
-    N32 x_move_abs = J_abs( E_mouse_S_move[0] );
-    N32 y_move_abs = J_abs( E_mouse_S_move[1] );
+    N16 x_move_abs = J_abs( E_mouse_S_move[0] );
+    N16 y_move_abs = J_abs( E_mouse_S_move[1] );
     if(( x_move_abs >= 4
       || y_move_abs >= 4
     )

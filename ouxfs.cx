@@ -1588,7 +1588,6 @@ E_ouxfs_Q_device_M( I disc_id
     Pc sector;
     if( E_disc_R( disc_id, partition_i, 0, 1, &sector, &r_ ))
     {   G( "read sector: 0" );
-        E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
         r = ~0;
         goto End;
     }
@@ -1765,6 +1764,7 @@ End_loop:
                             block_table_i++;
                             if( block_table_i == disc->partition[ partition_i ].oux.block_table_n )
                             {   G( "too much blocks size: block_table_i=%x", block_table_i );
+                                E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                                 r = ~0;
                                 goto End_1;
                             }
@@ -1783,6 +1783,7 @@ End_loop:
                                 && disc->partition[ partition_i ].oux.block_table[ block_table_i ].location_type != E_ouxfs_Z_block_Z_location_S_in_sector
                                 )
                                 {   G( "location type unknown: block_table_i=%x", block_table_i );
+                                    E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                                     r = ~0;
                                     goto End_1;
                                 }
@@ -1801,6 +1802,7 @@ End_loop:
                                         );
                                         if( disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.sectors.pre >= disc->sata_ahci.physical_sector_size )
                                         {   G( "pre not less than sector: block_table_i=%x", block_table_i );
+                                            E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                                             r = ~0;
                                             goto End_1;
                                         }
@@ -1811,6 +1813,7 @@ End_loop:
                                         );
                                         if( disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.sectors.post >= disc->sata_ahci.physical_sector_size )
                                         {   G( "post not less than sector: block_table_i=%x", block_table_i );
+                                            E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                                             r = ~0;
                                             goto End_1;
                                         }
@@ -1819,6 +1822,7 @@ End_loop:
                                             || !disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.sectors.post
                                         ))
                                         {   G( "sectors and pre or post 0: block_table_i=%x", block_table_i );
+                                            E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                                             r = ~0;
                                             goto End_1;
                                         }
@@ -1838,6 +1842,7 @@ End_loop:
                                         );
                                         if( !disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.in_sector.size )
                                         {   G( "in sector size 0: block_table_i=%x", block_table_i );
+                                            E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                                             r = ~0;
                                             goto End_1;
                                         }
@@ -1846,6 +1851,7 @@ End_loop:
                                             > disc->sata_ahci.physical_sector_size
                                         )
                                         {   G( "in sector not less than sector: block_table_i=%x", block_table_i );
+                                            E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                                             r = ~0;
                                             goto End_1;
                                         }
@@ -1872,6 +1878,7 @@ End_loop:
                             block_table_i++;
                             if( block_table_i == disc->partition[ partition_i ].oux.block_table_n )
                             {   G( "too much blocks size: block_table_i=%x", block_table_i );
+                                E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                                 r = ~0;
                                 goto End_1;
                             }
@@ -1890,6 +1897,7 @@ End_loop:
                                 && disc->partition[ partition_i ].oux.block_table[ block_table_i ].location_type != E_ouxfs_Z_block_Z_location_S_in_sector
                                 )
                                 {   G( "location type unknown: block_table_i=%x", block_table_i );
+                                    E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                                     r = ~0;
                                     goto End_1;
                                 }
@@ -1908,6 +1916,7 @@ End_loop:
                                         );
                                         if( disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.sectors.pre >= disc->sata_ahci.physical_sector_size )
                                         {   G( "pre not less than sector: block_table_i=%x", block_table_i );
+                                            E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                                             r = ~0;
                                             goto End_1;
                                         }
@@ -1918,6 +1927,7 @@ End_loop:
                                         );
                                         if( disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.sectors.post >= disc->sata_ahci.physical_sector_size )
                                         {   G( "post not less than sector: block_table_i=%x", block_table_i );
+                                            E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                                             r = ~0;
                                             goto End_1;
                                         }
@@ -1926,6 +1936,7 @@ End_loop:
                                             || !disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.sectors.post
                                         ))
                                         {   G( "sectors and pre or post 0: block_table_i=%x", block_table_i );
+                                            E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                                             r = ~0;
                                             goto End_1;
                                         }
@@ -1945,6 +1956,7 @@ End_loop:
                                         );
                                         if( !disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.in_sector.size )
                                         {   G( "in sector size 0: block_table_i=%x", block_table_i );
+                                            E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                                             r = ~0;
                                             goto End_1;
                                         }
@@ -1953,6 +1965,7 @@ End_loop:
                                             > disc->sata_ahci.physical_sector_size
                                         )
                                         {   G( "in sector not less than sector: block_table_i=%x", block_table_i );
+                                            E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                                             r = ~0;
                                             goto End_1;
                                         }
@@ -1979,6 +1992,7 @@ End_loop:
                             block_table_i++;
                             if( block_table_i == disc->partition[ partition_i ].oux.block_table_n )
                             {   G( "too much blocks size: block_table_i=%x", block_table_i );
+                                E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                                 r = ~0;
                                 goto End_1;
                             }
@@ -1997,6 +2011,7 @@ End_loop:
                                 && disc->partition[ partition_i ].oux.block_table[ block_table_i ].location_type != E_ouxfs_Z_block_Z_location_S_in_sector
                                 )
                                 {   G( "location type unknown: block_table_i=%x", block_table_i );
+                                    E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                                     r = ~0;
                                     goto End_1;
                                 }
@@ -2015,6 +2030,7 @@ End_loop:
                                         );
                                         if( disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.sectors.pre >= disc->sata_ahci.physical_sector_size )
                                         {   G( "pre not less than sector: block_table_i=%x", block_table_i );
+                                            E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                                             r = ~0;
                                             goto End_1;
                                         }
@@ -2025,6 +2041,7 @@ End_loop:
                                         );
                                         if( disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.sectors.post >= disc->sata_ahci.physical_sector_size )
                                         {   G( "post not less than sector: block_table_i=%x", block_table_i );
+                                            E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                                             r = ~0;
                                             goto End_1;
                                         }
@@ -2033,6 +2050,7 @@ End_loop:
                                             || !disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.sectors.post
                                         ))
                                         {   G( "sectors and pre or post 0: block_table_i=%x", block_table_i );
+                                            E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                                             r = ~0;
                                             goto End_1;
                                         }
@@ -2052,6 +2070,7 @@ End_loop:
                                         );
                                         if( !disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.in_sector.size )
                                         {   G( "in sector size 0: block_table_i=%x", block_table_i );
+                                            E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                                             r = ~0;
                                             goto End_1;
                                         }
@@ -2060,6 +2079,7 @@ End_loop:
                                             > disc->sata_ahci.physical_sector_size
                                         )
                                         {   G( "in sector not less than sector: block_table_i=%x", block_table_i );
+                                            E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                                             r = ~0;
                                             goto End_1;
                                         }
@@ -2082,6 +2102,7 @@ End_loop:
                         block_table_i++;
                         if( block_table_i == disc->partition[ partition_i ].oux.block_table_n )
                         {   G( "too much blocks size: block_table_i=%x", block_table_i );
+                            E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                             r = ~0;
                             goto End_1;
                         }
@@ -2104,6 +2125,7 @@ End_loop:
                             && disc->partition[ partition_i ].oux.block_table[ block_table_i ].location_type != E_ouxfs_Z_block_Z_location_S_in_sector
                             )
                             {   G( "location type unknown: block_table_i=%x", block_table_i );
+                                E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                                 r = ~0;
                                 goto End_1;
                             }
@@ -2126,6 +2148,7 @@ End_loop:
                                     );
                                     if( disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.sectors.pre >= disc->sata_ahci.physical_sector_size )
                                     {   G( "pre not less than sector: block_table_i=%x", block_table_i );
+                                        E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                                         r = ~0;
                                         goto End_1;
                                     }
@@ -2138,6 +2161,7 @@ End_loop:
                                     );
                                     if( disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.sectors.post >= disc->sata_ahci.physical_sector_size )
                                     {   G( "post not less than sector: block_table_i=%x", block_table_i );
+                                        E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                                         r = ~0;
                                         goto End_1;
                                     }
@@ -2146,6 +2170,7 @@ End_loop:
                                         || !disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.sectors.post
                                     ))
                                     {   G( "sectors and pre or post 0: block_table_i=%x", block_table_i );
+                                        E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                                         r = ~0;
                                         goto End_1;
                                     }
@@ -2169,6 +2194,7 @@ End_loop:
                                     );
                                     if( !disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.in_sector.size )
                                     {   G( "in sector size 0: block_table_i=%x", block_table_i );
+                                        E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                                         r = ~0;
                                         goto End_1;
                                     }
@@ -2177,6 +2203,7 @@ End_loop:
                                         > disc->sata_ahci.physical_sector_size
                                     )
                                     {   G( "in sector not less than sector: block_table_i=%x", block_table_i );
+                                        E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                                         r = ~0;
                                         goto End_1;
                                     }

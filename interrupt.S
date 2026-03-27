@@ -722,10 +722,7 @@ E_interrupt_I_external:
     test    %rax,%rax
     jz      0f
     call    *%rax
-0:  mov     $0x80b,%rdi
-    xor     %esi,%esi
-    call    E_main_Q_msr_P
-    lea     4*8(%rsp),%rsp
+0:  lea     4*8(%rsp),%rsp
     fxrstor (%rsp)
     mov     %rbp,%rsp
     pop     %rbp
@@ -735,6 +732,10 @@ E_interrupt_I_external:
     pop     %r8
     pop     %rsi
     pop     %rdi
+    mov     $0x80b,%ecx
+    xor     %edx,%edx
+    xor     %eax,%eax
+    wrmsr
     pop     %rcx
     pop     %rax
     pop     %rdx
