@@ -322,12 +322,12 @@ E_mouse_M( void
 ){  if( !E_mouse_S_initialized )
         return 0;
     E_mouse_S_interrupt_state = ~0;
-    E_mouse_Q_button_S_click_dx = 16; //CONF
-    E_mouse_Q_button_S_click_dy = 16; //CONF
-    E_mouse_Q_button_S_press_timeout = 600; //CONF
-    E_mouse_Q_button_S_release_timeout = 200; //CONF
-    E_mouse_Q_button_S_border_timeout = 900; //CONF
-    E_mouse_Q_button_S_dirty_timeout = 100; //CONF
+    E_mouse_Q_button_S_click_dx = 32; //CONF
+    E_mouse_Q_button_S_click_dy = 32; //CONF
+    E_mouse_Q_button_S_press_timeout = 540; //CONF
+    E_mouse_Q_button_S_release_timeout = 180; //CONF
+    E_mouse_Q_button_S_border_timeout = 720; //CONF
+    E_mouse_Q_button_S_dirty_timeout = 360; //CONF
     E_mouse_Q_button_S_click_count = 0;
     E_mouse_Q_wheel_S_count = 0;
     D_M( mouse, click, 0 )

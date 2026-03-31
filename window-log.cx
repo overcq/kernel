@@ -143,7 +143,9 @@ E_window_log_I_draw( I window_id
 _private
 void
 E_window_log_I_wheel( I window_id
-){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
+){  if( E_keyboard_S_meta_set )
+        return;
+    struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
     struct E_window_log_Z_data *window_data = window->data;
     if( !~window_data->line )
         window_data->line = E_se_log_S_lines - 1;
@@ -164,7 +166,7 @@ E_window_log_I_key( I window_id
 , N queue_i
 ){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
     if( E_keyboard_S_queue[ queue_i ].ex_2
-    || !E_keyboard_S_queue[ queue_i ].up
+    || E_keyboard_S_queue[ queue_i ].up
     )
         return;
     struct E_window_log_Z_data *window_data = window->data;
