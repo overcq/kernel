@@ -113,11 +113,11 @@ E_gui_Q_main_menu_M( void
         return window_id;
     if( E_controls_M( E_window_Q_desktop_S_current, window_id ))
         return ~2;
-    if( E_controls_Q_label_I_add( E_window_Q_desktop_S_current, window_id, 0, 0, "Label", E_gui_Q_taskbar_S_font_size, E_gui_Q_taskbar_S_thickness ))
+    if( E_controls_Q_label_I_add( E_window_Q_desktop_S_current, window_id, "Label", E_gui_Q_taskbar_S_font_size, E_gui_Q_taskbar_S_thickness, no ))
         return ~2;
-    if( E_controls_Q_button_I_add( E_window_Q_desktop_S_current, window_id, 0, 30, "Button", E_gui_Q_taskbar_S_font_size, E_gui_Q_taskbar_S_thickness, E_gui_Q_main_menu_I_button_action ))
+    if( E_controls_Q_button_I_add( E_window_Q_desktop_S_current, window_id, "Button", E_gui_Q_taskbar_S_font_size, E_gui_Q_taskbar_S_thickness, E_gui_Q_main_menu_I_button_action, no ))
         return ~2;
-    if( E_controls_Q_textbox_I_add( E_window_Q_desktop_S_current, window_id, 0, 60, 40, "Textbox", E_gui_Q_taskbar_S_font_size, E_gui_Q_taskbar_S_thickness ))
+    if( E_controls_Q_textbox_I_add( E_window_Q_desktop_S_current, window_id, 40, "Textbox", E_gui_Q_taskbar_S_font_size, E_gui_Q_taskbar_S_thickness, yes ))
         return ~2;
     return window_id;
 }

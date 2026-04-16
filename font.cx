@@ -2537,7 +2537,7 @@ E_font_T_print_u(
     }
     *font_i = i;
     dx *= thickness;
-    return dx + thickness <= width;
+    return dx <= width;
 }
 _private
 void

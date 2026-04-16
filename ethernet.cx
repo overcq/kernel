@@ -233,7 +233,7 @@ E_ethernet_I_interrupt( void
                                             E_mem_Q_blk_I_copy( connection_state->buffer + offset, E_main_Z_p_I_to_virtual( (P)receive_descriptors[tail].buffer_address ), length );
                                         }
                                         struct E_net_Z_ethernet_header *eth = (P)connection_state->buffer;
-                                        struct E_net_Z_ipv4_header *ipv4 = (P)(( Pc )ipv4 + sizeof( struct E_net_Z_ethernet_header ));
+                                        struct E_net_Z_ipv4_header *ipv4 = (P)(( Pc )eth + sizeof( struct E_net_Z_ethernet_header ));
                                         struct E_net_Z_udp_header *udp4 = (P)(( Pc )ipv4 + sizeof( struct E_net_Z_ipv4_header ));
                                         if( udp4->checksum )
                                         {   struct E_net_Z_ipv4_header_checksum ipv4_checksum =
@@ -248,7 +248,10 @@ E_ethernet_I_interrupt( void
                                             E_net_I_checksum_0( (P)udp4, (P)(( Pc )udp4 + udp4->length ), &checksum, &carry );
                                             E_net_I_checksum_1( &checksum, &carry );
                                             if( checksum != 0xffff )
+                                            {   W( connection_state->buffer );
+                                                connection_state->buffer = 0;
                                                 break;
+                                            }
                                         }
                                         E_flow_Q_report_timed_I_signal( connection_state->report_id );
                                         break;
