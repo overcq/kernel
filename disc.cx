@@ -254,12 +254,9 @@ E_disc_I_init( I disc_id
                                 struct E_disc_Z_partition *partition = E_mem_Q_blk_I_append( &disc->partition, 1 );
                                 if( !partition )
                                     return ~2;
-                                disc->partition_n++;
                                 partition->pba = gpt_partition_record->start_lba / ( disc->sata_ahci.physical_sector_size / disc->sata_ahci.logical_sector_size );
                                 partition->count = ( gpt_partition_record->end_lba - gpt_partition_record->start_lba + 1 ) / ( disc->sata_ahci.physical_sector_size / disc->sata_ahci.logical_sector_size );
                                 for_n( partition_i, disc->partition_n )
-                                {   if( partition_i == disc->partition_n - 1 )
-                                        continue;
                                     if(( disc->partition[ partition_i ].pba >= partition->pba
                                       && disc->partition[ partition_i ].pba < partition->pba + partition->count
                                     )
@@ -267,7 +264,6 @@ E_disc_I_init( I disc_id
                                       && disc->partition[ partition_i ].pba + disc->partition[ partition_i ].count <= partition->pba + partition->count
                                     ))
                                         return ~2;
-                                }
                                 if( !E_text_Z_sl_T_eq(( Pc )&gpt_partition_record->type_guid[0]
                                 , "\xc1\x2a\x73\x28\xf8\x1f\x11\xd2\xba\x4b\x00\xa0\xc9\x3e\xc9\x3b"
                                 , sizeof( gpt_partition_record->type_guid )
@@ -276,6 +272,7 @@ E_disc_I_init( I disc_id
                                 }else
                                 {   G( "other" );
                                 }
+                                disc->partition_n++;
                                 partition->lock = 0;
                                 if( !E_ouxfs_Q_device_M( disc_id, disc->partition_n - 1 ))
                                 {   G( "ouxfs" );

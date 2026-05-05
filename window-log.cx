@@ -15,28 +15,7 @@ struct E_window_log_Z_data
 //==============================================================================
 _private B E_window_log_S_active;
 //==============================================================================
-_private
-I
-E_window_log_M( N8 desktop_id
-){  struct E_window_log_Z_data *M_(data);
-    if( !data )
-        return ~0;
-    data->line = ~0;
-    I window_id = E_windows_Q_window_M( desktop_id, "System log", "In memory system log window", E_window_log_I_draw, 0, 0, &E_window_log_I_wheel, &E_window_log_I_key, &E_window_log_W );
-    if( !~window_id )
-        return ~0;
-    struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
-    window->data = data;
-    return 0;
-}
-_private
-N
-E_window_log_W( N8 desktop_id
-, I window_id
-){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
-    return W( window->data );
-}
-_private
+_internal
 void
 E_window_log_I_draw( I window_id
 , N32 x
@@ -140,7 +119,7 @@ E_window_log_I_draw( I window_id
         }
     }
 }
-_private
+_internal
 void
 E_window_log_I_wheel( I window_id
 ){  if( E_keyboard_S_meta_set )
@@ -160,7 +139,7 @@ E_window_log_I_wheel( I window_id
         X_F( gui, draw );
     }
 }
-_private
+_internal
 void
 E_window_log_I_key( I window_id
 , N queue_i
@@ -215,5 +194,27 @@ E_window_log_I_key( I window_id
             X_F( gui, draw );
         }
     }
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_internal
+N
+E_window_log_W( N8 desktop_id
+, I window_id
+){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
+    return W( window->data );
+}
+_private
+I
+E_window_log_M( N8 desktop_id
+){  struct E_window_log_Z_data *M_(data);
+    if( !data )
+        return ~0;
+    data->line = ~0;
+    I window_id = E_windows_Q_window_M( desktop_id, "System log", "In memory system log window", &E_window_log_I_draw, 0, 0, &E_window_log_I_wheel, &E_window_log_I_key, &E_window_log_W );
+    if( !~window_id )
+        return ~0;
+    struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
+    window->data = data;
+    return 0;
 }
 /******************************************************************************/

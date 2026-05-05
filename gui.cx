@@ -86,7 +86,9 @@ E_gui_Q_main_menu_I_draw( I window_id
 _internal
 void
 E_gui_Q_main_menu_I_click( I window_id
-){  E_controls_I_click( window_id );
+, N32 x
+, N32 y
+){  E_controls_I_click( window_id, x, y );
 }
 _internal
 void
@@ -102,8 +104,9 @@ E_gui_Q_main_menu_I_key( I window_id
 //------------------------------------------------------------------------------
 _internal
 void
-E_gui_Q_main_menu_I_button_action( I window_id
-){
+E_gui_Q_main_menu_I_browse_files( I window_id
+){  if( E_window_files_M( E_window_Q_desktop_S_current ) == ~2 )
+        ;//TODO Restart podsystemu okienkowego.
 }
 _internal
 I
@@ -113,11 +116,14 @@ E_gui_Q_main_menu_M( void
         return window_id;
     if( E_controls_M( E_window_Q_desktop_S_current, window_id ))
         return ~2;
-    if( E_controls_Q_label_I_add( E_window_Q_desktop_S_current, window_id, "Label", E_gui_Q_taskbar_S_font_size, E_gui_Q_taskbar_S_thickness, no ))
+    if( E_controls_Q_button_I_add( E_window_Q_desktop_S_current, window_id, "File browser", E_gui_Q_taskbar_S_font_size, E_gui_Q_taskbar_S_thickness, E_gui_Q_main_menu_I_browse_files, no ))
         return ~2;
-    if( E_controls_Q_button_I_add( E_window_Q_desktop_S_current, window_id, "Button", E_gui_Q_taskbar_S_font_size, E_gui_Q_taskbar_S_thickness, E_gui_Q_main_menu_I_button_action, no ))
+    struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
+    struct E_controls_Z_data *data = window->data;
+    data->control[0].button.action = &E_gui_Q_main_menu_I_browse_files;
+    if( E_controls_Q_label_I_add( E_window_Q_desktop_S_current, window_id, "Label", E_gui_Q_taskbar_S_font_size, E_gui_Q_taskbar_S_thickness, yes ))
         return ~2;
-    if( E_controls_Q_textbox_I_add( E_window_Q_desktop_S_current, window_id, 40, "Textbox", E_gui_Q_taskbar_S_font_size, E_gui_Q_taskbar_S_thickness, yes ))
+    if( E_controls_Q_textbox_I_add( E_window_Q_desktop_S_current, window_id, 40, "Textbox", E_gui_Q_taskbar_S_font_size, E_gui_Q_taskbar_S_thickness, no ))
         return ~2;
     return window_id;
 }
@@ -399,13 +405,20 @@ E_gui_Q_pointer_I_move( void
         }else
         {   I windows = E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window );
             struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ windows - 1 ] );
-            if( window->mouse_move
-            && E_gui_Q_pointer_S_coordinate[0] >= window->x
-            && E_gui_Q_pointer_S_coordinate[0] < window->x + window->width
-            && E_gui_Q_pointer_S_coordinate[1] >= window->y
-            && E_gui_Q_pointer_S_coordinate[1] < window->y + window->height
-            )
-                window->mouse_move( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ windows - 1 ], E_gui_Q_pointer_S_coordinate[0] - window->x, E_gui_Q_pointer_S_coordinate[1] - window->y );
+            if( window->mouse_move )
+                if( window->sized )
+                {   if( E_gui_Q_pointer_S_coordinate[0] >= window->x + E_gui_Q_desktop_S_window_border_thickness
+                    && E_gui_Q_pointer_S_coordinate[0] < window->x + window->width - E_gui_Q_desktop_S_window_border_thickness
+                    && E_gui_Q_pointer_S_coordinate[1] >= window->y + E_gui_Q_desktop_S_window_border_thickness
+                    && E_gui_Q_pointer_S_coordinate[1] < window->y + window->height - E_gui_Q_desktop_S_window_border_thickness
+                    )
+                        window->mouse_move( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ windows - 1 ]
+                        , E_gui_Q_pointer_S_coordinate[0] - ( window->x + E_gui_Q_desktop_S_window_border_thickness )
+                        , E_gui_Q_pointer_S_coordinate[1] - ( window->y + E_gui_Q_desktop_S_window_border_thickness )
+                        );
+                }else
+                    if( E_gui_Q_pointer_S_coordinate[1] >= E_gui_Q_taskbar_S_panel_height )
+                        window->mouse_move( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ windows - 1 ], E_gui_Q_pointer_S_coordinate[0], E_gui_Q_pointer_S_coordinate[1] - E_gui_Q_taskbar_S_panel_height );
         }
     if( pointer_moved )
         E_gui_Q_pointer_I_move_1();
@@ -757,10 +770,13 @@ E_gui_Q_pointer_I_click( void
                         && E_mouse_Q_button_S_coordinate[1] < window->y + window->height - E_gui_Q_desktop_S_window_border_thickness
                         )
                             if( window->click )
-                                window->click( window_id );
+                                window->click( window_id
+                                , E_mouse_Q_button_S_coordinate[0] - ( window->x + E_gui_Q_desktop_S_window_border_thickness )
+                                , E_mouse_Q_button_S_coordinate[1] - ( window->y + E_gui_Q_desktop_S_window_border_thickness )
+                                );
                     }else
                         if( window->click )
-                            window->click( window_id );
+                            window->click( window_id, E_mouse_Q_button_S_coordinate[0], E_mouse_Q_button_S_coordinate[1] - E_gui_Q_taskbar_S_height );
                     E_windows_Q_window_Q_stack_I_on_top( window_id );
                 }else if( E_mouse_Q_button_S_button == 2
                 && E_mouse_Q_button_S_click_count == 2

@@ -199,7 +199,7 @@ void
 E_sata_I_interrupt( void
 ){  N32 sched_i = E_flow_I_current_scheduler();
     U_F( E_flow_S_scheduler[ sched_i ].state, inside_interrupt );
-    //G( "sata interrupt" );
+    G( "sata interrupt" );
     for_each( disc_id, E_disc_S, E_mem_Q_tab )
     {   struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
         if( !( disc->sata_ahci.memory->interrupt_status & ( 1 << disc->sata_ahci.port )))
@@ -431,9 +431,9 @@ E_sata_I_init( volatile struct E_sata_Z_memory *sata_memory
                     disc->sata_ahci.logical_sector_shift = 0;
                 }
                 disc->sata_ahci.queue_n = ( *( N8 * )&identify[75] & 0x1f ) + 1;
-                if( E_disc_I_init( disc_id ))
-                    return ~2;
             }
+            if( E_disc_I_init( disc_id ))
+                return ~2;
 End:        N r = W(identify);
             if(r)
                 return ~2;

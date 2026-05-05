@@ -430,12 +430,12 @@ E_acpi_aml_Q_value_N_convert( enum E_acpi_aml_Z_value_Z_type type
     { case E_acpi_aml_Z_value_Z_type_S_number:
             switch(type)
             { case E_acpi_aml_Z_value_Z_type_S_string:
-                {   N l = E_text_Z_n_N_s_G( value->n, sizeof( value->n ), 10 );
+                {   N l = E_text_Z_n_N_s_G( value->n, 10 );
                     Pc s = M( l + 1 );
                     if( !s )
                         return ~0;
                     s[l] = '\0';
-                    E_text_Z_n_N_s( s + l, value->n, sizeof( value->n ), 10 );
+                    E_text_Z_n_N_s( s + l, value->n, 10 );
                     value->p = s;
                     value->i = ~0;
                     value->copy = yes;
@@ -8211,10 +8211,10 @@ Loop:
                             v.type = E_acpi_aml_Z_value_Z_type_S_uninitialized;
                     }
                     if( v.type != E_acpi_aml_Z_value_Z_type_S_uninitialized )
-                    {   N l = E_text_Z_n_N_bcd_G( v.n, sizeof( v.n ));
+                    {   N l = E_text_Z_n_N_bcd_G( v.n );
                         if( l <= sizeof( v.n ))
                         {   N ret = 0;
-                            E_text_Z_n_N_bcd( (Pc)&ret + l, v.n, sizeof( v.n ), l );
+                            E_text_Z_n_N_bcd( (Pc)&ret + l, v.n, l );
                             v.n = ret;
                             E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result = v;
                         }else
@@ -8391,14 +8391,14 @@ Loop:
                                 return ~0;
                             N l = 0;
                             for_n( i, v.buffer.n )
-                            {   N l_ = E_text_Z_n_N_s_G( v.buffer.p[i], sizeof( v.buffer.p[i] ), 10 );
+                            {   N l_ = E_text_Z_n_N_s_G( v.buffer.p[i], 10 );
                                 if( !E_mem_Q_blk_I_append( &s, l_ + 1 ))
                                 {   W(s);
                                     return ~0;
                                 }
                                 l += l_;
                                 s[l] = ',';
-                                E_text_Z_n_N_s( s + l, v.buffer.p[i], sizeof( v.buffer.p[i] ), 10 );
+                                E_text_Z_n_N_s( s + l, v.buffer.p[i], 10 );
                                 l++;
                             }
                             if( !l )
@@ -8497,12 +8497,12 @@ Loop:
                         v.type = E_acpi_aml_Z_value_Z_type_S_uninitialized;
                     switch( v.type )
                     { case E_acpi_aml_Z_value_Z_type_S_number:
-                        {   N l = E_text_Z_n_N_s_G( v.n, sizeof( v.n ), 16 );
+                        {   N l = E_text_Z_n_N_s_G( v.n, 16 );
                             Pc s = M( 2 + l + 1 );
                             if( !s )
                                 return ~0;
                             s[ 2 + l ] = '\0';
-                            E_text_Z_n_N_s( s + 2 + l, v.n, sizeof( v.n ), 16 );
+                            E_text_Z_n_N_s( s + 2 + l, v.n, 16 );
                             s[1] = 'x';
                             s[0] = '0';
                             E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.p = s;
@@ -8522,14 +8522,14 @@ Loop:
                                 return ~0;
                             N l = 0;
                             for_n( i, v.buffer.n )
-                            {   N l_ = E_text_Z_n_N_s_G( v.buffer.p[i], sizeof( v.buffer.p[i] ), 16 );
+                            {   N l_ = E_text_Z_n_N_s_G( v.buffer.p[i], 16 );
                                 if( !E_mem_Q_blk_I_append( &s, l_ + 1 ))
                                 {   W(s);
                                     return ~0;
                                 }
                                 l += l_;
                                 s[l] = ',';
-                                E_text_Z_n_N_s( s + l, v.buffer.p[i], sizeof( v.buffer.p[i] ), 16 );
+                                E_text_Z_n_N_s( s + l, v.buffer.p[i], 16 );
                                 l++;
                             }
                             if( !l )

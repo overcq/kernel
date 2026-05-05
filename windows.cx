@@ -13,7 +13,7 @@ struct E_window_Q_window_Z
 { Pc title, description;
   void ( *draw )( I window_id, N32 x, N32 y, N32 width, N32 height );
   void ( *mouse_move )( I window_id, N32 x, N32 y );
-  void ( *click )( I window_id );
+  void ( *click )( I window_id, N32 x, N32 y );
   void ( *wheel )( I window_id );
   void ( *key )( I window_id, N queue_i );
   N ( *destroy )( N8 desktop_id, I window_id );
@@ -93,7 +93,7 @@ E_windows_Q_window_M( N8 desktop_id
 , Pc description
 , void ( *draw_proc )( I, N32, N32, N32, N32 )
 , void ( *mouse_move )( I, N32, N32 )
-, void ( *click )(I)
+, void ( *click )( I, N32, N32 )
 , void ( *wheel )(I)
 , void ( *key )( I, N )
 , N ( *destroy )( N8, I )
