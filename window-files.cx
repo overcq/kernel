@@ -38,17 +38,51 @@ E_window_files_I_draw( I window_id
 , N32 height
 ){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
     struct E_window_files_Z_data *window_data = window->data;
+    N32 row_height = ( window_data->font_size + 1 ) * E_font_S_font.height + window_data->font_size + 1;
+    if( height < window_data->font_size + 1 + row_height )
+        return;
     N32 x_column;
+    N32 y_selected_row = ~0;
     if( !~window_data->selected_dir_start )
-    {   N32 y_ = y + window_data->font_size + 1;
-        N32 column_width = J_min( window_data->column_width, width );
-        for_n( row_i, window_data->disc_partition_n )
-        {   if( window_data->selected_column
-            || row_i >= window_data->selected_column_start
-            )
-            {   N32 row_height = ( window_data->font_size + 1 ) * E_font_S_font.height + window_data->font_size + 1;
-                if( y_ + row_height > y + height )
+    {   if( window_data->disc_partition_n )
+        {   N32 y_ = y + window_data->font_size + 1;
+            N32 column_width = J_min( window_data->column_width, width );
+            N row_i;
+            N row_middle = window_data->disc_partition_n < height - ( window_data->font_size + 1 ) / row_height
+            ? window_data->disc_partition_n
+            : height - ( window_data->font_size + 1 ) / row_height;
+            if( window_data->selected_column )
+            {   row_i = 0;
+                row_middle--;
+                if( ~window_data->disc_partition_selected_row )
+                    if( window_data->disc_partition_selected_row > row_middle )
+                    {   N row_middle_ = window_data->disc_partition_n < height - ( window_data->font_size + 1 ) / row_height
+                        ? window_data->disc_partition_n
+                        : height - ( window_data->font_size + 1 ) / row_height;
+                        row_middle_ /= 2;
+                        row_i = window_data->disc_partition_selected_row - row_middle_;
+                        row_middle /= 2;
+                    }else
+                        row_middle = window_data->disc_partition_selected_row;
+            }else
+            {   row_i = window_data->selected_column_start;
+                if( window_data->disc_partition_selected_row < row_i )
+                    row_middle = 0;
+                else if( window_data->disc_partition_selected_row < row_i + row_middle )
+                    row_middle = window_data->disc_partition_selected_row - row_i;
+            }
+            y_selected_row = window_data->font_size + 1 + row_middle * ( window_data->font_size + 1 ) * E_font_S_font.height + E_font_S_font.height / 2;
+            if( y_selected_row > height - 1 )
+                y_selected_row = height - 1;
+            y_selected_row += y;
+            for( ; row_i != window_data->disc_partition_n; row_i++ )
+            {   if( y_ + row_height > y + height )
                     break;
+                if( row_i == window_data->disc_partition_selected_row )
+                    E_vga_I_fill_rect( x, y_ - ( window_data->font_size + 1 )
+                    , column_width, window_data->font_size + 1 + row_height
+                    , E_vga_R_video_color( 0xdfdfdf )
+                    );
                 N32 x_ = x + window_data->thickness + 1;
                 Pc s = window_data->disc_partition[ row_i ].name;
                 while( *s )
@@ -72,45 +106,82 @@ E_window_files_I_draw( I window_id
                 y_ += row_height;
             }
         }
-        E_vga_I_draw_y_line( x + window_data->column_width + window_data->column_margin_width - 1, y, height, E_vga_R_video_color( 0x908b8b ));
+        if( window_data->column_width + window_data->column_margin_width - 1 < width )
+            E_vga_I_draw_y_line( x + window_data->column_width + window_data->column_margin_width - 1, y, height, E_vga_R_video_color( 0x908b8b ));
         x_column = window_data->column_width + window_data->column_margin_width;
     }else
         x_column = 0;
     x_column += x;
     for_n( column_i, window_data->selected_dir_n )
     {   N32 y_ = y + window_data->font_size + 1;
-        N32 column_width = J_min( window_data->column_width, width );
-        for_n( row_i, window_data->selected_dir[ column_i ].n )
-        {   if( window_data->selected_column != column_i + 1
-            || row_i >= window_data->selected_column_start
-            )
-            {   N32 row_height = ( window_data->font_size + 1 ) * E_font_S_font.height + window_data->font_size + 1;
-                if( y_ + row_height > y + height )
-                    break;
-                N32 x_ = x_column + window_data->thickness + 1;
-                Pc s = window_data->selected_dir[ column_i ].name[ row_i ];
-                while( *s )
-                {   U u = ~0;
-                    Pc s_ = E_text_Z_su_R_u( s, &u );
-                    s = s_;
-                    N32 font_i;
-                    if( column_width <= x_ - x_column + window_data->thickness + 1
-                    || !E_font_T_print_u( column_width - ( x_ - x_column + window_data->thickness + 1 ), window_data->thickness, &u, &font_i )
-                    )
-                        break;
-                    E_font_I_draw_u( font_i
-                    , x_, y_
-                    , y_, ( window_data->font_size + 1 ) * E_font_S_font.height
-                    , E_vga_S_text_color
-                    , window_data->font_size
-                    , window_data->thickness
-                    );
-                    x_ += ( window_data->thickness + 1 ) * E_font_S_font.bitmap[ font_i ].width + window_data->thickness + 1;
-                }
-                y_ += row_height;
-            }
+        N32 column_width = J_min( x_column + window_data->column_width, x + width );
+        if( column_width <= x_column )
+            break;
+        column_width -= x_column;
+        N row_i;
+        N row_middle = window_data->selected_dir[ column_i ].n < height - ( window_data->font_size + 1 ) / row_height
+        ? window_data->selected_dir[ column_i ].n
+        : height - ( window_data->font_size + 1 ) / row_height;
+        N row_middle_ = row_middle / 2;
+        if( window_data->selected_column != column_i + 1 )
+        {   row_i = 0;
+            row_middle--;
+            if( ~window_data->selected_dir[ column_i ].selected_row )
+                if( window_data->selected_dir[ column_i ].selected_row > row_middle )
+                {   row_i = window_data->selected_dir[ column_i ].selected_row - row_middle_;
+                    row_middle /= 2;
+                }else
+                    row_middle = window_data->selected_dir[ column_i ].selected_row;
+        }else
+        {   row_i = window_data->selected_column_start;
+            if( window_data->selected_dir[ column_i ].selected_row < row_i )
+                row_middle = 0;
+            else if( window_data->selected_dir[ column_i ].selected_row < row_i + row_middle )
+                row_middle = window_data->selected_dir[ column_i ].selected_row - row_i;
         }
-        E_vga_I_draw_y_line( x_column + window_data->column_width + window_data->column_margin_width - 1, y, height, E_vga_R_video_color( 0x908b8b ));
+        if( ~y_selected_row )
+            E_vga_I_draw_line( x_column - window_data->column_margin_width
+            , y_selected_row
+            , x_column - 2
+            , y + window_data->font_size + 1 + row_middle_ * ( window_data->font_size + 1 ) * E_font_S_font.height + E_font_S_font.height / 2
+            , E_vga_R_video_color( 0x908b8b )
+            );
+        y_selected_row = window_data->font_size + 1 + row_middle * ( window_data->font_size + 1 ) * E_font_S_font.height + E_font_S_font.height / 2;
+        if( y_selected_row > height - 1 )
+            y_selected_row = height - 1;
+        y_selected_row += y;
+        for( ; row_i != window_data->selected_dir[ column_i ].n; row_i++ )
+        {   if( y_ + row_height > y + height )
+                break;
+            if( row_i == window_data->selected_dir[ column_i ].selected_row )
+                E_vga_I_fill_rect( x_column, y_ - ( window_data->font_size + 1 )
+                , column_width, window_data->font_size + 1 + row_height
+                , E_vga_R_video_color( 0xdfdfdf )
+                );
+            N32 x_ = x_column + window_data->thickness + 1;
+            Pc s = window_data->selected_dir[ column_i ].name[ row_i ];
+            while( *s )
+            {   U u = ~0;
+                Pc s_ = E_text_Z_su_R_u( s, &u );
+                s = s_;
+                N32 font_i;
+                if( column_width <= x_ - x_column + window_data->thickness + 1
+                || !E_font_T_print_u( column_width - ( x_ - x_column + window_data->thickness + 1 ), window_data->thickness, &u, &font_i )
+                )
+                    break;
+                E_font_I_draw_u( font_i
+                , x_, y_
+                , y_, ( window_data->font_size + 1 ) * E_font_S_font.height
+                , E_vga_S_text_color
+                , window_data->font_size
+                , window_data->thickness
+                );
+                x_ += ( window_data->thickness + 1 ) * E_font_S_font.bitmap[ font_i ].width + window_data->thickness + 1;
+            }
+            y_ += row_height;
+        }
+        if( x_column + window_data->column_width + window_data->column_margin_width - 1 < x + width )
+            E_vga_I_draw_y_line( x_column + window_data->column_width + window_data->column_margin_width - 1, y, height, E_vga_R_video_color( 0x908b8b ));
         x_column += window_data->column_width + window_data->column_margin_width;
     }
 }
@@ -123,7 +194,9 @@ E_window_files_I_mouse_move( I window_id
     struct E_window_files_Z_data *window_data = window->data;
     N32 column_width = window_data->column_width + window_data->column_margin_width;
     N column = window_data->selected_dir_start + x / column_width;
-    if( ~column )
+    if( x % column_width >= window_data->column_width )
+        column = ~0;
+    else if( ~column )
         if( column < window_data->selected_dir_n )
         {   column++;
             if( window_data->selected_column != column )
@@ -148,133 +221,135 @@ E_window_files_I_click( I window_id
 , N32 y
 ){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
     struct E_window_files_Z_data *window_data = window->data;
-    N32 column_width = window_data->column_width + window_data->column_margin_width;
-    N column = window_data->selected_dir_start + x / column_width;
+    if( !~window_data->selected_column )
+        return;
     N32 row_height = ( window_data->font_size + 1 ) * E_font_S_font.height + window_data->font_size + 1;
-    if( ~column )
-        if( column < window_data->selected_dir_n )
+    if( window_data->selected_column )
+        if( window_data->selected_column - 1 < window_data->selected_dir_n )
         {   N row = window_data->selected_column_start
             + y > window_data->font_size + 1
               ? ( y - ( window_data->font_size + 1 )) / row_height
               : 0;
-            if( row < window_data->selected_dir[column].file_start_row )
-            {   if( row < window_data->selected_dir[row].n )
-                {   if( column + 1 != window_data->selected_dir_n )
-                    {   for( N i = window_data->selected_dir_n - 1; i != column + 1; i-- )
-                        {   N r = W( window_data->selected_dir[i].uid );
-                            if(r)
-                            {   E_mem_Q_blk_I_remove( &window_data->selected_dir, i + 1, window_data->selected_dir_n - ( i + 1 ));
-                                window_data->selected_dir_n = i + 1;
-                                return;
-                            }
-                            for_n( j, window_data->selected_dir[i].n )
-                            {   r = W( window_data->selected_dir[i].name[j] );
-                                if(r)
-                                {   E_mem_Q_blk_I_remove( &window_data->selected_dir, i, window_data->selected_dir_n - i );
-                                    window_data->selected_dir_n = i;
-                                    return;
-                                }
-                            }
-                            r = W( window_data->selected_dir[i].name );
+            if( row == window_data->selected_dir[ window_data->selected_column - 1 ].selected_row
+            && window_data->selected_dir_n == window_data->selected_column + 1
+            )
+                return;
+            if( row < window_data->selected_dir[ window_data->selected_column - 1 ].file_start_row )
+            {   if( window_data->selected_column != window_data->selected_dir_n )
+                {   for( N i = window_data->selected_dir_n - 1; i != window_data->selected_column; i-- )
+                    {   N r = W( window_data->selected_dir[i].uid );
+                        if(r)
+                        {   E_mem_Q_blk_I_remove( &window_data->selected_dir, i + 1, window_data->selected_dir_n - ( i + 1 ));
+                            window_data->selected_dir_n = i + 1;
+                            return;
+                        }
+                        for_n( j, window_data->selected_dir[i].n )
+                        {   r = W( window_data->selected_dir[i].name[j] );
                             if(r)
                             {   E_mem_Q_blk_I_remove( &window_data->selected_dir, i, window_data->selected_dir_n - i );
                                 window_data->selected_dir_n = i;
                                 return;
                             }
                         }
-                        if( !E_mem_Q_blk_I_remove( &window_data->selected_dir, column + 2, window_data->selected_dir_n - ( column + 2 )))
-                        {   window_data->selected_dir_n = column + 1;
+                        r = W( window_data->selected_dir[i].name );
+                        if(r)
+                        {   E_mem_Q_blk_I_remove( &window_data->selected_dir, i, window_data->selected_dir_n - i );
+                            window_data->selected_dir_n = i;
                             return;
                         }
-                    }else
-                        if( !E_mem_Q_blk_I_append( &window_data->selected_dir, 1 ))
-                            return;
-                    N n_dir;
-                    N64 *list_dir;
-                    if( E_ouxfs_Q_directory_I_list_directory( window_data->disc_partition[ window_data->disc_partition_selected_row ].disc
+                    }
+                    if( !E_mem_Q_blk_I_remove( &window_data->selected_dir, window_data->selected_column + 1, window_data->selected_dir_n - ( window_data->selected_column + 1 )))
+                    {   window_data->selected_dir_n = window_data->selected_column;
+                        return;
+                    }
+                }else
+                    if( !E_mem_Q_blk_I_append( &window_data->selected_dir, 1 ))
+                        return;
+                N n_dir;
+                N64 *list_dir;
+                if( E_ouxfs_Q_directory_I_list_directory( window_data->disc_partition[ window_data->disc_partition_selected_row ].disc
+                , window_data->disc_partition[ window_data->disc_partition_selected_row ].partition
+                , window_data->selected_dir[ window_data->selected_column - 1 ].uid[row]
+                , &n_dir
+                , &list_dir
+                ))
+                {   E_mem_Q_blk_I_remove( &window_data->selected_dir, window_data->selected_column, 1 );
+                    window_data->selected_dir_n = window_data->selected_column;
+                    return;
+                }
+                N n_file;
+                N64 *list_file;
+                if( E_ouxfs_Q_directory_I_list_file( window_data->disc_partition[ window_data->disc_partition_selected_row ].disc
+                , window_data->disc_partition[ window_data->disc_partition_selected_row ].partition
+                , window_data->selected_dir[ window_data->selected_column - 1 ].uid[row]
+                , &n_file
+                , &list_file
+                ))
+                {   W( list_dir );
+                    E_mem_Q_blk_I_remove( &window_data->selected_dir, window_data->selected_column, 1 );
+                    window_data->selected_dir_n = window_data->selected_column;
+                    return;
+                }
+                Mt_( window_data->selected_dir[ window_data->selected_column ].name, n_dir + n_file );
+                if( !window_data->selected_dir[ window_data->selected_column ].name )
+                {   W( list_file );
+                    W( list_dir );
+                    E_mem_Q_blk_I_remove( &window_data->selected_dir, window_data->selected_column, 1 );
+                    window_data->selected_dir_n = window_data->selected_column;
+                    return;
+                }
+                for_n( i, n_dir )
+                    if( E_ouxfs_Q_directory_R_name( window_data->disc_partition[ window_data->disc_partition_selected_row ].disc
                     , window_data->disc_partition[ window_data->disc_partition_selected_row ].partition
-                    , window_data->selected_dir[column].uid[row]
-                    , &n_dir
-                    , &list_dir
+                    , list_dir[i]
+                    , &window_data->selected_dir[ window_data->selected_column ].name[i]
                     ))
-                    {   E_mem_Q_blk_I_remove( &window_data->selected_dir, column + 1, 1 );
-                        window_data->selected_dir_n = column + 1;
-                        return;
-                    }
-                    N n_file;
-                    N64 *list_file;
-                    if( E_ouxfs_Q_directory_I_list_file( window_data->disc_partition[ window_data->disc_partition_selected_row ].disc
-                    , window_data->disc_partition[ window_data->disc_partition_selected_row ].partition
-                    , window_data->selected_dir[column].uid[row]
-                    , &n_file
-                    , &list_file
-                    ))
-                    {   W( list_dir );
-                        E_mem_Q_blk_I_remove( &window_data->selected_dir, column + 1, 1 );
-                        window_data->selected_dir_n = column + 1;
-                        return;
-                    }
-                    Mt_( window_data->selected_dir[ column + 1 ].name, n_dir + n_file );
-                    if( !window_data->selected_dir[ column + 1 ].name )
-                    {   W( list_file );
-                        W( list_dir );
-                        E_mem_Q_blk_I_remove( &window_data->selected_dir, column + 1, 1 );
-                        window_data->selected_dir_n = column + 1;
-                        return;
-                    }
-                    for_n( i, n_dir )
-                        if( E_ouxfs_Q_directory_R_name( window_data->disc_partition[ window_data->disc_partition_selected_row ].disc
-                        , window_data->disc_partition[ window_data->disc_partition_selected_row ].partition
-                        , list_dir[i]
-                        , &window_data->selected_dir[ column + 1 ].name[i]
-                        ))
-                        {   for_n( i_, i )
-                                W( window_data->selected_dir[ column + 1 ].name[ i_ ] );
-                            W( window_data->selected_dir[ column + 1 ].name );
-                            W( list_file );
-                            W( list_dir );
-                            E_mem_Q_blk_I_remove( &window_data->selected_dir, column + 1, 1 );
-                            window_data->selected_dir_n = column + 1;
-                            return;
-                        }
-                    for_n_( i, n_file )
-                        if( E_ouxfs_Q_file_R_name( window_data->disc_partition[ window_data->disc_partition_selected_row ].disc
-                        , window_data->disc_partition[ window_data->disc_partition_selected_row ].partition
-                        , list_file[i]
-                        , &window_data->selected_dir[ column + 1 ].name[ n_dir + i ]
-                        ))
-                        {   for_n( i_, n_dir + i )
-                                W( window_data->selected_dir[ column + 1 ].name[ i_ ] );
-                            W( window_data->selected_dir[ column + 1 ].name );
-                            W( list_file );
-                            W( list_dir );
-                            E_mem_Q_blk_I_remove( &window_data->selected_dir, column + 1, 1 );
-                            window_data->selected_dir_n = column + 1;
-                            return;
-                        }
-                    Mt_( window_data->selected_dir[ column + 1 ].uid, n_dir + n_file );
-                    if( !window_data->selected_dir[ column + 1 ].uid )
-                    {   for_n( i, n_dir + n_file )
-                            W( window_data->selected_dir[ column + 1 ].name[i] );
-                        W( window_data->selected_dir[ column + 1 ].name );
+                    {   for_n( i_, i )
+                            W( window_data->selected_dir[ window_data->selected_column ].name[ i_ ] );
+                        W( window_data->selected_dir[ window_data->selected_column ].name );
                         W( list_file );
                         W( list_dir );
-                        E_mem_Q_blk_I_remove( &window_data->selected_dir, column + 1, 1 );
-                        window_data->selected_dir_n = column + 1;
+                        E_mem_Q_blk_I_remove( &window_data->selected_dir, window_data->selected_column, 1 );
+                        window_data->selected_dir_n = window_data->selected_column;
                         return;
                     }
-                    for_n_( i, n_dir )
-                        window_data->selected_dir[ column + 1 ].uid[i] = list_dir[i];
-                    W( list_dir );
-                    for_n_( i, n_file )
-                        window_data->selected_dir[ column + 1 ].uid[ n_dir + i ] = list_file[i];
+                for_n_( i, n_file )
+                    if( E_ouxfs_Q_file_R_name( window_data->disc_partition[ window_data->disc_partition_selected_row ].disc
+                    , window_data->disc_partition[ window_data->disc_partition_selected_row ].partition
+                    , list_file[i]
+                    , &window_data->selected_dir[ window_data->selected_column ].name[ n_dir + i ]
+                    ))
+                    {   for_n( i_, n_dir + i )
+                            W( window_data->selected_dir[ window_data->selected_column ].name[ i_ ] );
+                        W( window_data->selected_dir[ window_data->selected_column ].name );
+                        W( list_file );
+                        W( list_dir );
+                        E_mem_Q_blk_I_remove( &window_data->selected_dir, window_data->selected_column, 1 );
+                        window_data->selected_dir_n = window_data->selected_column;
+                        return;
+                    }
+                Mt_( window_data->selected_dir[ window_data->selected_column ].uid, n_dir + n_file );
+                if( !window_data->selected_dir[ window_data->selected_column ].uid )
+                {   for_n( i, n_dir + n_file )
+                        W( window_data->selected_dir[ window_data->selected_column ].name[i] );
+                    W( window_data->selected_dir[ window_data->selected_column ].name );
                     W( list_file );
-                    window_data->selected_dir[ column + 1 ].file_start_row = n_dir;
-                    window_data->selected_dir[ column + 1 ].n = n_dir + n_file;
-                    window_data->selected_dir[column].selected_row = row;
-                    window_data->selected_dir_n = column + 2;
-                }else
+                    W( list_dir );
+                    E_mem_Q_blk_I_remove( &window_data->selected_dir, window_data->selected_column, 1 );
+                    window_data->selected_dir_n = window_data->selected_column;
                     return;
+                }
+                for_n_( i, n_dir )
+                    window_data->selected_dir[ window_data->selected_column ].uid[i] = list_dir[i];
+                W( list_dir );
+                for_n_( i, n_file )
+                    window_data->selected_dir[ window_data->selected_column ].uid[ n_dir + i ] = list_file[i];
+                W( list_file );
+                window_data->selected_dir[ window_data->selected_column ].file_start_row = n_dir;
+                window_data->selected_dir[ window_data->selected_column ].n = n_dir + n_file;
+                window_data->selected_dir[ window_data->selected_column ].selected_row = ~0;
+                window_data->selected_dir[ window_data->selected_column - 1 ].selected_row = row;
+                window_data->selected_dir_n = window_data->selected_column + 1;
             }else
                 return; //TODO Akcja dla pliku.
         }else
@@ -285,7 +360,11 @@ E_window_files_I_click( I window_id
           ? ( y - ( window_data->font_size + 1 )) / row_height
           : 0;
         if( row < window_data->disc_partition_n )
-        {   for_n_rev( i, window_data->selected_dir_n )
+        {   if( row == window_data->disc_partition_selected_row
+            && window_data->selected_dir_n == 1
+            )
+                return;
+            for_n_rev( i, window_data->selected_dir_n )
             {   N r = W( window_data->selected_dir[i].uid );
                 if(r)
                 {   E_mem_Q_blk_I_remove( &window_data->selected_dir, i + 1, window_data->selected_dir_n - ( i + 1 ));
@@ -310,7 +389,7 @@ E_window_files_I_click( I window_id
             struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, window_data->disc_partition[row].disc );
             if( disc->partition[ window_data->disc_partition[row].partition ].file_system == E_disc_Z_file_system_S_oux )
             {   if( window_data->selected_dir_n )
-                {   if( !E_mem_Q_blk_I_remove( &window_data->selected_dir, 0, window_data->selected_dir_n - 1 ))
+                {   if( !E_mem_Q_blk_I_remove( &window_data->selected_dir, 1, window_data->selected_dir_n - 1 ))
                     {   window_data->selected_dir_n = 0;
                         return;
                     }
@@ -394,11 +473,13 @@ E_window_files_I_click( I window_id
                     window_data->selected_dir[0].uid[ n_dir + i ] = list_file[i];
                 W( list_file );
                 window_data->selected_dir[0].n = n_dir + n_file;
+                window_data->selected_dir[0].selected_row = ~0;
                 window_data->disc_partition_selected_row = row;
                 window_data->selected_dir_n = 1;
             }else
             {   E_mem_Q_blk_I_remove( &window_data->selected_dir, 0, window_data->selected_dir_n );
                 window_data->selected_dir_n = 0;
+                window_data->disc_partition_selected_row = row;
             }
         }else
             return;
