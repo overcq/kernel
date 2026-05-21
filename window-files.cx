@@ -112,7 +112,10 @@ E_window_files_I_draw( I window_id
     }else
         x_column = 0;
     x_column += x;
-    for_n( column_i, window_data->selected_dir_n )
+    N column_i = ~window_data->selected_dir_start
+    ? window_data->selected_dir_start
+    : 0;
+    for( ; column_i != window_data->selected_dir_n; column_i++ )
     {   N32 y_ = y + window_data->font_size + 1;
         N32 column_width = J_min( x_column + window_data->column_width, x + width );
         if( column_width <= x_column )
@@ -492,7 +495,7 @@ void
 E_window_files_I_wheel( I window_id
 ){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
     struct E_window_files_Z_data *window_data = window->data;
-    if( E_keyboard_S_meta_set )
+    if( E_keyboard_S_meta_set == E_keyboard_Z_meta_S_ctrl )
     {   N selected_dir_start;
         if( E_mouse_Q_wheel_S_count > 0 )
             if( window_data->selected_dir_start + (N)E_mouse_Q_wheel_S_count < window_data->selected_dir_n )
@@ -509,7 +512,7 @@ E_window_files_I_wheel( I window_id
             X_A( gui, draw );
             X_F( gui, draw );
         }
-    }else
+    }else if( !E_keyboard_S_meta_set )
         if( ~window_data->selected_column )
             if( !window_data->selected_column )
             {   N selected_column_start;

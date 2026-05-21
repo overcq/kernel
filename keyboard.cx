@@ -315,6 +315,8 @@ E_keyboard_I_interrupt( void
       || v == 0x9d
     ))
         return;
+    N32 sched_i = E_flow_I_current_scheduler();
+    U_F( E_flow_S_scheduler[ sched_i ].state, inside_interrupt );
     X_A( keyboard, key );
     B up = !!( v & 0x80 );
     v &= ~0x80;
@@ -331,6 +333,7 @@ E_keyboard_I_interrupt( void
                 U_F( keyboard, key );
             }
             X_U( keyboard, key );
+            U_L( E_flow_S_scheduler[ sched_i ].state, inside_interrupt );
             return;
         }
         if( v == 0x45 )
@@ -343,6 +346,7 @@ E_keyboard_I_interrupt( void
                 U_F( keyboard, key );
             }
             X_U( keyboard, key );
+            U_L( E_flow_S_scheduler[ sched_i ].state, inside_interrupt );
             return;
         }
         if( v == 0x46 )
@@ -355,6 +359,7 @@ E_keyboard_I_interrupt( void
                 U_F( keyboard, key );
             }
             X_U( keyboard, key );
+            U_L( E_flow_S_scheduler[ sched_i ].state, inside_interrupt );
             return;
         }
     }
@@ -406,8 +411,6 @@ E_keyboard_I_interrupt( void
                 meta = no;
                 break;
         }
-    N32 sched_i = E_flow_I_current_scheduler();
-    U_F( E_flow_S_scheduler[ sched_i ].state, inside_interrupt );
     if( !meta )
     {   if( E_keyboard_S_queue_i == E_keyboard_S_queue_n )
             G( "keyboard queue full" );
