@@ -135,7 +135,6 @@ E_window_log_I_wheel( I window_id
         line = ~0;
     if( window_data->line != line )
     {   window_data->line = line;
-        X_A( gui, draw );
         X_F( gui, draw );
     }
 }
@@ -148,6 +147,7 @@ E_window_log_I_key( I window_id
     || E_keyboard_S_queue[ queue_i ].up
     )
         return;
+    X_A( gui, draw );
     struct E_window_log_Z_data *window_data = window->data;
     if( E_keyboard_S_queue[ queue_i ].code == 0x48
     || E_keyboard_S_queue[ queue_i ].code == 0x49
@@ -178,22 +178,20 @@ E_window_log_I_key( I window_id
             line = ~0;
         if( window_data->line != line )
         {   window_data->line = line;
-            X_A( gui, draw );
-            X_F( gui, draw );
+            U_F( gui, draw );
         }
     }else if( E_keyboard_S_queue[ queue_i ].code == 0x47 )
     {   if( window_data->line != 1 )
         {   window_data->line = 1;
-            X_A( gui, draw );
-            X_F( gui, draw );
+            U_F( gui, draw );
         }
     }else if( E_keyboard_S_queue[ queue_i ].code == 0x4f )
     {   if( window_data->line != ~0 )
         {   window_data->line = ~0;
-            X_A( gui, draw );
-            X_F( gui, draw );
+            U_F( gui, draw );
         }
     }
+    X_U( gui, draw );
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _internal

@@ -73,8 +73,7 @@ E_se_log_I_log( Pc scope
             goto End_1;
         r = E_emerg_print_I_print( s_2 );
     }else if( E_window_log_S_active )
-    {   X_A( gui, draw );
-        X_F( gui, draw );
+    {   X_F( gui, draw );
         r = 0;
     }else
         r = 0;
@@ -112,8 +111,7 @@ E_se_log_I_log_( Pc fmt
     if( E_emerg_print_S_active )
         r = E_emerg_print_I_print(s);
     else if( E_window_log_S_active )
-    {   X_A( gui, draw );
-        X_F( gui, draw );
+    {   X_F( gui, draw );
         r = 0;
     }else
         r = 0;

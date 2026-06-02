@@ -141,10 +141,7 @@ E_vga_I_draw_x_line(
 , N32 width
 , N32 video_color
 ){  for_n( x_i, width )
-    {   if( x + x_i == E_main_S_framebuffer.width )
-            break;
-        *( E_vga_S_framebuffer + y * E_main_S_framebuffer.width + x + x_i ) = video_color;
-    }
+        E_vga_P_pixel( x + x_i, y, video_color );
 }
 _private
 void
@@ -154,10 +151,7 @@ E_vga_I_draw_y_line(
 , N32 height
 , N32 video_color
 ){  for_n( y_i, height )
-    {   if( y + y_i == E_main_S_framebuffer.height )
-            break;
-        *( E_vga_S_framebuffer + ( y + y_i ) * E_main_S_framebuffer.width + x ) = video_color;
-    }
+        E_vga_P_pixel( x, y + y_i, video_color );
 }
 _private
 void
@@ -228,17 +222,17 @@ E_vga_I_draw_rect(
 , N32 video_color
 ){  for_n( x_i, width )
     {   for_n( i, thickness )
-            *( E_vga_S_framebuffer + ( y + i ) * E_main_S_framebuffer.width + x + x_i ) = video_color;
+            E_vga_P_pixel( x + x_i, y + i, video_color );
     }
     for_n( y_i, height - 2 * thickness )
     {   for_n( i, thickness )
-        {   *( E_vga_S_framebuffer + ( y + thickness + y_i ) * E_main_S_framebuffer.width + x + i ) = video_color;
-            *( E_vga_S_framebuffer + ( y + thickness + y_i ) * E_main_S_framebuffer.width + x + width - 1 - i ) = video_color;
+        {   E_vga_P_pixel( x + i, y + thickness + y_i, video_color );
+            E_vga_P_pixel( x + width - 1 - i, y + thickness + y_i, video_color );
         }
     }
     for_n_( x_i, width )
     {   for_n_rev( i, thickness )
-            *( E_vga_S_framebuffer + ( y + height - 1 - i ) * E_main_S_framebuffer.width + x + x_i ) = video_color;
+            E_vga_P_pixel( x + x_i, y + height - 1 - i, video_color );
     }
 }
 _private
@@ -251,7 +245,7 @@ E_vga_I_fill_rect(
 , N32 video_color
 ){  for_n( y_i, height )
     {   for_n( x_i, width )
-            *( E_vga_S_framebuffer + ( y + y_i ) * E_main_S_framebuffer.width + x + x_i ) = video_color;
+            E_vga_P_pixel( x + x_i, y + y_i, video_color );
     }
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

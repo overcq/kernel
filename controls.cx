@@ -501,7 +501,8 @@ E_controls_I_click( I window_id
 _private
 void
 E_controls_I_wheel( I window_id
-){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
+){  X_A( gui, draw );
+    struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
     struct E_controls_Z_data *data = window->data;
     if( E_keyboard_S_meta_set == E_keyboard_Z_meta_S_ctrl )
     {   N32 new_scroll_x;
@@ -521,8 +522,7 @@ E_controls_I_wheel( I window_id
         }
         if( data->scroll_x != new_scroll_x )
         {   data->scroll_x = new_scroll_x;
-            X_A( gui, draw );
-            X_F( gui, draw );
+            U_F( gui, draw );
         }
     }else if( !E_keyboard_S_meta_set )
     {   N32 new_scroll_y;
@@ -542,10 +542,10 @@ E_controls_I_wheel( I window_id
         }
         if( data->scroll_y != new_scroll_y )
         {   data->scroll_y = new_scroll_y;
-            X_A( gui, draw );
-            X_F( gui, draw );
+            U_F( gui, draw );
         }
     }
+    X_U( gui, draw );
 }
 _private
 void

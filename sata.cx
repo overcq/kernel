@@ -224,7 +224,6 @@ E_sata_I_interrupt( void
             break;
         }
     }
-    X_A( sata, interrupt );
     X_F( sata, interrupt );
     U_L( E_flow_S_scheduler[ sched_i ].state, inside_interrupt );
 }
