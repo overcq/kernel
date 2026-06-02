@@ -459,10 +459,10 @@ E_gui_Q_pointer_I_click( void
     )
     {   if( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons )
         {   if( E_gui_Q_bubble_S.draw
-            && E_gui_Q_pointer_S_coordinate[0] >= E_gui_Q_bubble_S.x
-            && E_gui_Q_pointer_S_coordinate[0] < E_gui_Q_bubble_S.x + E_gui_Q_bubble_S.width
-            && E_gui_Q_pointer_S_coordinate[1] >= E_gui_Q_bubble_S.y
-            && E_gui_Q_pointer_S_coordinate[1] < E_gui_Q_bubble_S.y + E_gui_Q_bubble_S.height
+            && E_mouse_Q_button_S_coordinate[0] >= E_gui_Q_bubble_S.x
+            && E_mouse_Q_button_S_coordinate[0] < E_gui_Q_bubble_S.x + E_gui_Q_bubble_S.width
+            && E_mouse_Q_button_S_coordinate[1] >= E_gui_Q_bubble_S.y
+            && E_mouse_Q_button_S_coordinate[1] < E_gui_Q_bubble_S.y + E_gui_Q_bubble_S.height
             )
             {   if( E_gui_Q_bubble_S.click )
                     E_gui_Q_bubble_S.click();

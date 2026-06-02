@@ -411,12 +411,15 @@ E_window_files_I_draw( I window_id
                 y_selected_row = height - 1;
             y_selected_row += y;
             for( ; row_i != window_data->disc_partition_n; row_i++ )
-            {   if( row_i == window_data->disc_partition_selected_row )
+            {   N32 clip_height = window_data->font_size + 1 + ( window_data->font_size + 1 ) * E_font_S_font.height + window_data->font_size + 1;
+                if( y_ - ( window_data->font_size + 1 ) + clip_height > y + height )
+                    clip_height = y + height - ( y_ - ( window_data->font_size + 1 ));
+                if( row_i == window_data->disc_partition_selected_row )
                     E_vga_I_fill_rect( x, y_ - ( window_data->font_size + 1 )
-                    , column_width, window_data->font_size + 1 + row_height
+                    , column_width, clip_height
                     , E_vga_R_video_color( 0xdfdfdf )
                     );
-                N32 clip_height = ( window_data->font_size + 1 ) * E_font_S_font.height;
+                clip_height = ( window_data->font_size + 1 ) * E_font_S_font.height;
                 if( y_ + clip_height > y + height )
                     clip_height = y + height - y_;
                 window_data->disc_partition[ row_i ].name_expand = no;
@@ -544,10 +547,8 @@ E_window_files_I_draw( I window_id
         ? window_data->selected_dir[ column_i - 1 ].row_start
         : window_data->disc_partition_row_start
         ) + window_data->pointer_row;
-        N32 y_0 = y + window_data->font_size + 1 + row_i * row_height;
-        if( row_i < ( column_i ? window_data->selected_dir[ column_i - 1 ].n : window_data->disc_partition_n ) // Jeśli po ewentualnym przewinięciu nie pozostało poza kolumnami.
-        && y_0 + row_height < E_main_S_framebuffer.height
-        )
+        N32 y_ = y + window_data->font_size + 1 + row_i * row_height;
+        if( row_i < ( column_i ? window_data->selected_dir[ column_i - 1 ].n : window_data->disc_partition_n )) // Jeśli po ewentualnym przewinięciu nie pozostało poza kolumnami.
         {   B expand = column_i
             ? window_data->selected_dir[ column_i - 1 ].name_expand[ row_i ]
             : window_data->disc_partition[ row_i ].name_expand;
@@ -555,7 +556,6 @@ E_window_files_I_draw( I window_id
             {   Pc s_0 = column_i
                 ? window_data->selected_dir[ column_i - 1 ].name[ row_i ]
                 : window_data->disc_partition[ row_i ].name;
-                N32 y_ = y_0;
                 N32 x_column = x + window_data->pointer_column * ( window_data->column_width + window_data->column_margin_width );
                 N32 bubble_width = E_main_S_framebuffer.width - x_column;
                 N32 x_ = x_column + window_data->thickness + 1;
@@ -586,20 +586,16 @@ E_window_files_I_draw( I window_id
                             break;
                         x_ += ( window_data->thickness + 1 ) * E_font_S_font.bitmap[ font_i ].width + window_data->thickness + 1;
                     }
-                    y_ += row_height;
-                    if( y_ > height )
-                    {   y_0 = height - ( row_height + window_data->font_size + 1 );
-                        y_ = height;
-                    }
                     E_gui_Q_bubble_S.x = E_main_S_framebuffer.width - x_;
                     E_gui_Q_bubble_S.width = E_main_S_framebuffer.width - E_gui_Q_bubble_S.x;
-                    E_gui_Q_bubble_S.height = y_ - y_0;
                 }else
                 {   E_gui_Q_bubble_S.x = x_column;
                     E_gui_Q_bubble_S.width = x_ - x_column;
-                    E_gui_Q_bubble_S.height = window_data->font_size + 1 + row_height;
                 }
-                E_gui_Q_bubble_S.y = y_0 - ( window_data->font_size + 1 );
+                if( y_ + row_height > y + height )
+                    y_ = y + height - row_height;
+                E_gui_Q_bubble_S.y = y_ - ( window_data->font_size + 1 );
+                E_gui_Q_bubble_S.height = window_data->font_size + 1 + row_height;
                 E_gui_Q_bubble_S.draw = &E_window_files_Q_bubble_I_draw;
                 E_gui_Q_bubble_S.click = &E_window_files_Q_bubble_I_click;
                 E_gui_Q_bubble_S.window_id = window_id;
