@@ -547,7 +547,7 @@ E_window_files_I_draw( I window_id
         ? window_data->selected_dir[ column_i - 1 ].row_start
         : window_data->disc_partition_row_start
         ) + window_data->pointer_row;
-        N32 y_ = y + window_data->font_size + 1 + row_i * row_height;
+        N32 y_ = y + window_data->font_size + 1 + window_data->pointer_row * row_height;
         if( row_i < ( column_i ? window_data->selected_dir[ column_i - 1 ].n : window_data->disc_partition_n )) // Jeśli po ewentualnym przewinięciu nie pozostało poza kolumnami.
         {   B expand = column_i
             ? window_data->selected_dir[ column_i - 1 ].name_expand[ row_i ]
