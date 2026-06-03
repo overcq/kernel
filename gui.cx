@@ -352,16 +352,10 @@ E_gui_Q_pointer_I_move( void
                 U_F( gui, draw );
             }
         }else if( E_gui_Q_pointer_S_coordinate[1] < E_gui_Q_taskbar_S_height )
-        {   if( E_gui_Q_bubble_S.draw
-            && ( E_gui_Q_pointer_S_coordinate[0] < E_gui_Q_bubble_S.x
-              || E_gui_Q_pointer_S_coordinate[0] >= E_gui_Q_bubble_S.x + E_gui_Q_bubble_S.width
-              || E_gui_Q_pointer_S_coordinate[1] < E_gui_Q_bubble_S.y
-              || E_gui_Q_pointer_S_coordinate[1] >= E_gui_Q_bubble_S.y + E_gui_Q_bubble_S.height
-            ))
+        {   if( E_gui_Q_bubble_S.draw )
             {   E_gui_Q_bubble_S.draw = 0;
                 U_F( gui, draw );
             }
-            E_gui_Q_pointer_S_over_taskbar = yes;
             I i = E_gui_Q_pointer_S_coordinate[0] / E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width;
             if( i < E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons )
             {   N32 panel_x_0 = i * E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width;
@@ -425,12 +419,8 @@ E_gui_Q_pointer_I_move( void
             I windows = E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window );
             struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ windows - 1 ] );
             if( window->mouse_move
-            && ( !E_gui_Q_bubble_S.draw
-              || E_gui_Q_pointer_S_coordinate[0] < E_gui_Q_bubble_S.x
-              || E_gui_Q_pointer_S_coordinate[0] >= E_gui_Q_bubble_S.x + E_gui_Q_bubble_S.width
-              || E_gui_Q_pointer_S_coordinate[1] < E_gui_Q_bubble_S.y
-              || E_gui_Q_pointer_S_coordinate[1] >= E_gui_Q_bubble_S.y + E_gui_Q_bubble_S.height
-            ))
+            && !E_gui_Q_bubble_S.draw
+            )
                 if( window->sized )
                 {   if( E_gui_Q_pointer_S_coordinate[0] >= window->x + E_gui_Q_desktop_S_window_border_thickness
                     && E_gui_Q_pointer_S_coordinate[0] < window->x + window->width - E_gui_Q_desktop_S_window_border_thickness
@@ -823,7 +813,7 @@ E_gui_Q_pointer_I_click( void
                     else
                         E_windows_Q_window_Q_stack_I_on_top( window_id );
                 }
-            }else // Przełączanie pulpitów z tworzeniem nowego, jeśli na krańcu.
+            }else // Przełączanie pulpitów, z tworzeniem nowego, jeśli na krańcu.
             {   if( !E_mouse_Q_button_S_coordinate[0] )
                 {   if( E_window_Q_desktop_S_current )
                         E_window_Q_desktop_S_current--;
@@ -839,7 +829,7 @@ E_gui_Q_pointer_I_click( void
                 E_gui_Q_taskbar_S_redraw = yes;
                 U_F( gui, draw );
             }
-        }else if( !~(S8)E_mouse_Q_button_S_click_count ) // Przełączanie pulpitów z usuwaniem, jeśli na krańcu.
+        }else if( !~(S8)E_mouse_Q_button_S_click_count ) // Przełączanie pulpitów, z usuwaniem, jeśli na krańcu.
         {   if( !E_mouse_Q_button_S_coordinate[0] )
             {   if( E_window_Q_desktop_S_current )
                 {   if( E_window_Q_desktop_S_current == E_windows_Q_desktop_S_n - 1 )
@@ -977,7 +967,7 @@ E_gui_Q_pointer_I_wheel( void
             if( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_button_start != start )
             {   E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_button_start = start;
                 E_gui_Q_taskbar_S_redraw = yes;
-                X_F( gui, draw );
+                U_F( gui, draw );
             }
         }
     }else
@@ -985,16 +975,21 @@ E_gui_Q_pointer_I_wheel( void
         if(windows)
         {   struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ windows - 1 ] );
             if( window->wheel ) //NDFN Czy ograniczyć do obszaru nad oknem?
-            {   E_gui_Q_bubble_S.draw = 0;
+            {   if( E_gui_Q_bubble_S.draw )
+                {   E_gui_Q_bubble_S.draw = 0;
+                    U_F( gui, draw );
+                }
                 window->wheel( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ windows - 1 ] );
             }
         }
     }
+    X_U( gui, draw );
 }
 _private
 void
 E_gui_Q_keyboard_I_key( void
-){  N queue_i = 0;
+){  X_A( gui, draw );
+    N queue_i = 0;
     do
     {   G( "code=%8x, ex_1=%8x, ex_2=%8x, up=%8x", E_keyboard_S_queue[ queue_i ].code, E_keyboard_S_queue[ queue_i ].ex_1, E_keyboard_S_queue[ queue_i ].ex_2, E_keyboard_S_queue[ queue_i ].up );
         if( E_keyboard_S_queue[ queue_i ].ex_1
@@ -1014,17 +1009,25 @@ E_gui_Q_keyboard_I_key( void
                     E_gui_Q_main_menu_M();
                 else
                     E_windows_Q_window_Q_stack_I_on_top( window_id );
+                E_gui_Q_bubble_S.draw = 0;
+                U_F( gui, draw );
             }
         }else
         {   I windows = E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window );
             if(windows)
             {   struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ windows - 1 ] );
                 if( window->key )
+                {   if( E_gui_Q_bubble_S.draw )
+                    {   E_gui_Q_bubble_S.draw = 0;
+                        U_F( gui, draw );
+                    }
                     window->key( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ windows - 1 ], queue_i );
+                }
             }
         }
     }while( ++queue_i != E_keyboard_S_queue_i );
     E_keyboard_S_queue_i = 0;
+    X_U( gui, draw );
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _internal
