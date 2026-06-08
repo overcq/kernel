@@ -21,11 +21,18 @@ enum E_gui_Q_desktop_Z_window_resizing_state
 , E_gui_Q_desktop_Z_window_resizing_state_S_w
 };
 struct E_gui_Q_bubble_Z
-{ void ( *draw )(void);
+{ union
+  { void ( *draw )(void);
+    struct
+    { Pc text;
+      N8 font_size, thickness;
+    };
+  };
   void ( *click )(void);
   N32 x, y;
   N32 width, height;
   I window_id;
+  B custom_draw;
 };
 //==============================================================================
 _private struct E_gui_Q_bubble_Z E_gui_Q_bubble_S;
@@ -284,7 +291,10 @@ E_gui_Q_pointer_I_move( void
         E_gui_Q_pointer_S_coordinate[0] = E_mouse_S_coordinate[0];
         E_gui_Q_pointer_S_coordinate[1] = E_mouse_S_coordinate[1];
     }
-    if( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons )
+    if( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons
+    && !E_gui_Q_desktop_S_window_moving
+    && E_gui_Q_desktop_S_window_resizing_state == E_gui_Q_desktop_Z_window_resizing_state_S_none
+    )
         if( ~E_gui_Q_taskbar_S_mouse_over_panel )
         {   N32 panel_x_0 = E_gui_Q_taskbar_S_mouse_over_panel * E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width;
             N32 panel_x_1 = panel_x_0 + E_gui_Q_taskbar_S_panel_width;
@@ -1511,7 +1521,31 @@ E_gui_Q_bubble_I_draw( void
     , E_gui_Q_bubble_S.width, E_gui_Q_bubble_S.height
     , E_vga_R_video_color( 0xffeff0 )
     );
-    E_gui_Q_bubble_S.draw();
+    if( E_gui_Q_bubble_S.custom_draw )
+        E_gui_Q_bubble_S.draw();
+    else
+    {   Pc s = E_gui_Q_bubble_S.text;
+        N32 y_ = E_gui_Q_bubble_S.y + E_gui_Q_bubble_S.font_size + 1;
+        N32 x_ = E_gui_Q_bubble_S.x + E_gui_Q_bubble_S.thickness + 1;
+        while( *s )
+        {   U u = ~0;
+            Pc s_ = E_text_Z_su_R_u( s, &u );
+            s = s_;
+            N32 font_i;
+            if( E_gui_Q_bubble_S.width <= x_ - E_gui_Q_bubble_S.x + E_gui_Q_bubble_S.thickness + 1
+            || !E_font_T_print_u( E_gui_Q_bubble_S.width - ( x_ - E_gui_Q_bubble_S.x + E_gui_Q_bubble_S.thickness + 1 ), E_gui_Q_bubble_S.thickness, &u, &font_i )
+            )
+                break;
+            E_font_I_draw_u( font_i
+            , x_, y_
+            , y_, ( E_gui_Q_bubble_S.font_size + 1 ) * E_font_S_font.height
+            , E_vga_S_text_color
+            , E_gui_Q_bubble_S.font_size
+            , E_gui_Q_bubble_S.thickness
+            );
+            x_ += ( E_gui_Q_bubble_S.thickness + 1 ) * E_font_S_font.bitmap[ font_i ].width + E_gui_Q_bubble_S.thickness + 1;
+        }
+    }
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 D( gui, draw )
