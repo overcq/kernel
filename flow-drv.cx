@@ -278,6 +278,21 @@ End:E_flow_I_sti();
     return report_id;
 }
 _export
+I
+E_flow_Q_report_M_srv( N uid
+){  N sched_i = E_flow_I_current_scheduler();
+    E_flow_I_cli();
+    for_each( report_id, E_flow_S_scheduler[ sched_i ].report, E_mem_Q_tab )
+    {   struct E_flow_Q_report_Z *report = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].report, report_id );
+        if( report->uid == uid )
+            break;
+    }
+    if( !~report_id )
+        E_main_I_error_fatal();
+End:E_flow_I_sti();
+    return report_id;
+}
+_export
 void
 E_flow_Q_report_W( I id
 ){  N sched_i = E_flow_I_current_scheduler();

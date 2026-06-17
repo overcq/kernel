@@ -47,16 +47,17 @@ E_windows_M( void
     if( !E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack )
         return ~2;
     E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_button_start = 0;
-    // Na razie nie potrzeba ustawiać, ponieważ za chwilę jest tworzone okno, które to robi.
-    //E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons = 0;
-    //E_windows_Q_desktop_S[ desktop_id ].button_width = E_main_S_framebuffer.width;
+    E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons = 0;
+    E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width = E_main_S_framebuffer.width;
     return 0;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _private
 N
 E_windows_Q_desktop_M( B on_end
-){  N8 desktop_id;
+){  if( (S8)( E_windows_Q_desktop_S_n + 1 ) < 0 )
+        return ~0;
+    N8 desktop_id;
     if( on_end )
     {   if( !E_mem_Q_blk_I_append( &E_windows_Q_desktop_S, 1 ))
             return ~0;
@@ -87,7 +88,7 @@ E_windows_Q_desktop_W( N8 desktop_id
 }
 //------------------------------------------------------------------------------
 _export
-N
+I
 E_windows_Q_window_M( N8 desktop_id
 , Pc title
 , Pc description
@@ -227,6 +228,79 @@ E_windows_Q_window_W( N8 desktop_id
     return 0;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_export
+void
+E_windows_Q_window_I_place_top_left( struct E_window_Q_window_Z *window
+){  window->x = 0;
+    window->y = E_gui_Q_taskbar_S_height;
+    window->width = E_main_S_framebuffer.width / 2;
+    window->height = ( E_main_S_framebuffer.height - E_gui_Q_taskbar_S_height ) / 2;
+    window->sized = yes;
+}
+_export
+void
+E_windows_Q_window_I_place_top_right( struct E_window_Q_window_Z *window
+){  window->x = E_main_S_framebuffer.width / 2;
+    window->y = E_gui_Q_taskbar_S_height;
+    window->width = E_main_S_framebuffer.width / 2;
+    window->height = ( E_main_S_framebuffer.height - E_gui_Q_taskbar_S_height ) / 2;
+    window->sized = yes;
+}
+_export
+void
+E_windows_Q_window_I_place_down_right( struct E_window_Q_window_Z *window
+){  window->x = E_main_S_framebuffer.width / 2;
+    window->y = E_gui_Q_taskbar_S_height + ( E_main_S_framebuffer.height - E_gui_Q_taskbar_S_height ) / 2 + ( E_main_S_framebuffer.height - E_gui_Q_taskbar_S_height ) % 2;
+    window->width = E_main_S_framebuffer.width / 2;
+    window->height = ( E_main_S_framebuffer.height - E_gui_Q_taskbar_S_height ) / 2;
+    window->sized = yes;
+}
+_export
+void
+E_windows_Q_window_I_place_down_left( struct E_window_Q_window_Z *window
+){  window->x = 0;
+    window->y = E_gui_Q_taskbar_S_height + ( E_main_S_framebuffer.height - E_gui_Q_taskbar_S_height ) / 2 + ( E_main_S_framebuffer.height - E_gui_Q_taskbar_S_height ) % 2;
+    window->width = E_main_S_framebuffer.width / 2;
+    window->height = ( E_main_S_framebuffer.height - E_gui_Q_taskbar_S_height ) / 2;
+    window->sized = yes;
+}
+_export
+void
+E_windows_Q_window_I_place_top( struct E_window_Q_window_Z *window
+){  window->x = 0;
+    window->y = E_gui_Q_taskbar_S_height;
+    window->width = E_main_S_framebuffer.width;
+    window->height = ( E_main_S_framebuffer.height - E_gui_Q_taskbar_S_height ) / 2;
+    window->sized = yes;
+}
+_export
+void
+E_windows_Q_window_I_place_right( struct E_window_Q_window_Z *window
+){  window->x = E_main_S_framebuffer.width / 2;
+    window->y = E_gui_Q_taskbar_S_height;
+    window->width = E_main_S_framebuffer.width / 2;
+    window->height = E_main_S_framebuffer.height - E_gui_Q_taskbar_S_height;
+    window->sized = yes;
+}
+_export
+void
+E_windows_Q_window_I_place_down( struct E_window_Q_window_Z *window
+){  window->x = 0;
+    window->y = E_gui_Q_taskbar_S_height + ( E_main_S_framebuffer.height - E_gui_Q_taskbar_S_height ) / 2 + ( E_main_S_framebuffer.height - E_gui_Q_taskbar_S_height ) % 2;
+    window->width = E_main_S_framebuffer.width;
+    window->height = ( E_main_S_framebuffer.height - E_gui_Q_taskbar_S_height ) / 2;
+    window->sized = yes;
+}
+_export
+void
+E_windows_Q_window_I_place_left( struct E_window_Q_window_Z *window
+){  window->x = 0;
+    window->y = E_gui_Q_taskbar_S_height;
+    window->width = E_main_S_framebuffer.width / 2;
+    window->height = E_main_S_framebuffer.height - E_gui_Q_taskbar_S_height;
+    window->sized = yes;
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _private
 N
 E_windows_Q_desktop_I_move_window( N8 desktop_dst_id
@@ -286,16 +360,16 @@ E_windows_Q_window_Q_stack_I_on_top( I window_id
 _private
 I
 E_windows_Q_window_R_on_pixel(
-  N32 x_
-, N32 y_
+  N32 x
+, N32 y
 ){  for_n_rev( stack_i, E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window ))
     {   I window_id = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ];
         struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
         if( !window->sized
-        || ( x_ >= window->x
-          && x_ < window->x + window->width
-          && y_ >= window->y
-          && y_ < window->y + window->height
+        || ( x >= window->x
+          && x < window->x + window->width
+          && y >= window->y
+          && y < window->y + window->height
         ))
             return window_id;
     }
