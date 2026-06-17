@@ -237,7 +237,9 @@ E_windows_Q_window_class_T_visible( void ( *draw )( I window_id, N32 x, N32 y, N
         if( !window->sized )
             break;
     }
-    for( ; stack_i != windows - 1; stack_i++ )
+    if( !~stack_i )
+        stack_i++;
+    for( ; stack_i != windows; stack_i++ )
     {   struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ] );
         if( window->draw == draw )
             return yes;
