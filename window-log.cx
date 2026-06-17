@@ -13,9 +13,7 @@ struct E_window_log_Z_data
 { N line;
 };
 //==============================================================================
-_private B E_window_log_S_active;
-//==============================================================================
-_internal
+_private
 void
 E_window_log_I_draw( I window_id
 , N32 x

@@ -72,11 +72,11 @@ E_se_log_I_log( Pc scope
         if(r)
             goto End_1;
         r = E_emerg_print_I_print( s_2 );
-    }else if( E_window_log_S_active )
-    {   X_F( gui, draw );
-        r = 0;
     }else
+    {   if( E_windows_Q_window_class_T_visible( &E_window_log_I_draw ))
+            X_F( gui, draw );
         r = 0;
+    }
 End_1:
     N r_ = W( s_2 );
     if( !r )
@@ -110,11 +110,11 @@ E_se_log_I_log_( Pc fmt
     E_se_log_S_buffer_l += E_text_Z_s0_R_l(s);
     if( E_emerg_print_S_active )
         r = E_emerg_print_I_print(s);
-    else if( E_window_log_S_active )
-    {   X_F( gui, draw );
+    else
+    {   if( E_windows_Q_window_class_T_visible( &E_window_log_I_draw ))
+            X_F( gui, draw );
         r = 0;
-    }else
-        r = 0;
+    }
 End_0:
     N r_ = W(s);
     if( !r )

@@ -83,7 +83,6 @@ E_gui_M( void
     E_emerg_print_S_active = no;
     D_M( gui, draw, 0 )
         return ~0;
-    E_window_log_S_active = yes; //TODO Ustawiać tę flagę tylko, jeśli okno logowania jest widoczne.
     I window_id = E_window_log_M( E_window_Q_desktop_S_current );
     if( window_id < 0 )
         return window_id;
@@ -1056,12 +1055,12 @@ void
 E_gui_Q_desktop_I_draw( void
 ){  I windows = E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window );
     struct E_window_Q_window_Z *window;
-    for_n_rev( stack_i, windows )
+    for_i_rev( stack_i, windows )
     {   window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ] );
         if( !window->sized )
             break;
     }
-    if( ~(S8)stack_i )
+    if( ~stack_i )
     {   E_vga_I_fill_rect( 0, E_gui_Q_taskbar_S_height, E_main_S_framebuffer.width, E_main_S_framebuffer.height - E_gui_Q_taskbar_S_height, E_vga_S_background_color );
         window->draw( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ]
         , 0
@@ -1073,7 +1072,6 @@ E_gui_Q_desktop_I_draw( void
         E_gui_Q_desktop_I_draw_background();
     if( ++stack_i == windows ) // Jest tylko jedno zmaksymalizowane okno lub nie ma żadnego.
         return;
-    //TODO Przerysowywać tylko okna, które zawierają co najmniej jeden obszar widoczny.
     for( ; stack_i != windows - 1; stack_i++ )
     {   window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ] );
         E_vga_I_draw_rect( window->x, window->y, window->width, window->height, E_gui_Q_desktop_S_window_border_thickness, E_vga_R_video_color( 0x908b8b ));
@@ -1556,7 +1554,7 @@ D( gui, draw )
         E_gui_Q_taskbar_I_draw();
         E_gui_Q_bubble_I_draw();
         E_gui_Q_taskbar_I_draw_expander();
-        E_vga_Q_buffer_I_draw( 0, 0, E_main_S_framebuffer.width, E_main_S_framebuffer.height ); //TODO Kopiować tylko obszary zmienione?
+        E_vga_Q_buffer_I_draw( 0, 0, E_main_S_framebuffer.width, E_main_S_framebuffer.height );
         E_gui_Q_pointer_I_move_1();
         E_gui_Q_pointer_S_move_blocked = no;
     }

@@ -229,6 +229,23 @@ E_windows_Q_window_W( N8 desktop_id
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _export
+B
+E_windows_Q_window_class_T_visible( void ( *draw )( I window_id, N32 x, N32 y, N32 width, N32 height )
+){  I windows = E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window );
+    for_i_rev( stack_i, windows )
+    {   struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ] );
+        if( !window->sized )
+            break;
+    }
+    for( ; stack_i != windows - 1; stack_i++ )
+    {   struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ] );
+        if( window->draw == draw )
+            return yes;
+    }
+    return no;
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_export
 void
 E_windows_Q_window_I_place_top_left( struct E_window_Q_window_Z *window
 ){  window->x = 0;
