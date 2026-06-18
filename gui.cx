@@ -28,7 +28,7 @@ struct E_gui_Q_bubble_Z
       N8 font_size, thickness;
     };
   };
-  void ( *click )(void);
+  void ( *click )( N32 x, N32 y );
   N32 x, y;
   N32 width, height;
   I window_id;
@@ -483,7 +483,10 @@ E_gui_Q_pointer_I_click( void
             )
             {   E_windows_Q_window_Q_stack_I_on_top( E_gui_Q_bubble_S.window_id );
                 if( E_gui_Q_bubble_S.click )
-                    E_gui_Q_bubble_S.click();
+                    E_gui_Q_bubble_S.click(
+                      E_mouse_Q_button_S_coordinate[0] - E_gui_Q_bubble_S.x
+                    , E_mouse_Q_button_S_coordinate[1] - E_gui_Q_bubble_S.y
+                    );
                 return;
             }
             if( E_mouse_Q_button_S_coordinate[1] < E_gui_Q_taskbar_S_height )
