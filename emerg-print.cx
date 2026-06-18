@@ -28,7 +28,7 @@ E_emerg_print_M( void
     E_emerg_print_S_x_pre_post = ( E_emerg_print_S_font_thickness + 1 + 2 ) / 3;
     E_emerg_print_S_y_pre_post = ( E_emerg_print_S_font_size + 1 + 2 ) / 3;
     E_emerg_print_S_color = E_vga_S_text_color;
-    E_emerg_print_S_background_color = 0xffeff0;
+    E_emerg_print_S_background_color = E_vga_R_video_color( 0xffeff0 );
     E_vga_I_fill_rect( 0, 0, E_main_S_framebuffer.width, E_main_S_framebuffer.height, E_vga_R_video_color( E_vga_S_background_color ));
     E_vga_I_fill_rect( E_main_S_framebuffer.width / 2 - 50, E_main_S_framebuffer.height / 2 - 10 - 13, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
     E_vga_I_fill_rect( E_main_S_framebuffer.width / 2 - 50, E_main_S_framebuffer.height / 2 - 10, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
@@ -67,7 +67,7 @@ E_emerg_print_I_print_nl( void
     , E_emerg_print_S_y - E_emerg_print_S_y_pre_post
     , E_emerg_print_S_x_pre_post
     , E_emerg_print_S_y_pre_post + ( E_emerg_print_S_font_size + 1 ) * E_font_S_font.height + E_emerg_print_S_y_pre_post
-    , E_vga_R_video_color( E_emerg_print_S_background_color )
+    , E_emerg_print_S_background_color
     );
 }
 _internal
@@ -85,7 +85,7 @@ E_emerg_print_I_print_u( U u
     , E_emerg_print_S_y - E_emerg_print_S_y_pre_post
     , E_emerg_print_S_x_pre_post + width + E_emerg_print_S_x_pre_post
     , E_emerg_print_S_y_pre_post + ( E_emerg_print_S_font_size + 1 ) * E_font_S_font.height + E_emerg_print_S_y_pre_post
-    , E_vga_R_video_color( E_emerg_print_S_background_color )
+    , E_emerg_print_S_background_color
     );
     E_font_I_draw_u( font_i
     , E_emerg_print_S_x, E_emerg_print_S_y
@@ -126,7 +126,7 @@ void
 E_emerg_print_I_set_panic( void
 ){  E_emerg_print_S_x = E_emerg_print_S_font_thickness + 1;
     E_emerg_print_S_y = E_emerg_print_S_font_size + 1;
-    E_emerg_print_S_background_color = 0x88;
+    E_emerg_print_S_background_color = E_vga_R_video_color( 0x88 );
     E_emerg_print_S_color = 0xffffff;
 }
 /******************************************************************************/
