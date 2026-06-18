@@ -13,9 +13,10 @@ struct E_font_Q_font_Z_bitmap
   N8 *bitmap;
 };
 struct E_font_Z_font
-{ N8 height;
+{ struct E_font_Q_font_Z_bitmap *bitmap;
+  N32 default_i;
   N32 bitmap_n;
-  struct E_font_Q_font_Z_bitmap *bitmap;
+  N8 height;
 };
 _private struct E_font_Z_font E_font_S_font;
 //==============================================================================
@@ -23,6 +24,7 @@ _private
 N
 E_font_M( void
 ){  E_font_S_font.height = 8;
+    E_font_S_font.default_i = 63;
     E_font_S_font.bitmap_n = 177;
     Mt_( E_font_S_font.bitmap, E_font_S_font.bitmap_n );
     if( !E_font_S_font.bitmap )
@@ -31,2473 +33,3368 @@ E_font_M( void
     {   N8 *bitmap;
         switch(i)
         { case 0:
-              E_font_S_font.bitmap[i].u = '_';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 3, 3, 3, 3
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = ' ';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 1:
-              E_font_S_font.bitmap[i].u = 'A';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 0, 3, 3, 0
-              , 3, 1, 1, 3
-              , 3, 0, 0, 3
-              , 3, 3, 3, 3
-              , 3, 0, 0, 3
-              , 3, 0, 0, 3
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = '!';
+                E_font_S_font.bitmap[i].width = 1;
+                N8 *bitmap_ = ( N8 [] )
+                { 3
+                , 3
+                , 3
+                , 3
+                , 0
+                , 3
+                , 0
+                , 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 2:
-              E_font_S_font.bitmap[i].u = L'Ą';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 0, 3, 3, 0
-              , 3, 1, 1, 3
-              , 3, 0, 0, 3
-              , 3, 3, 3, 3
-              , 3, 0, 0, 3
-              , 3, 0, 0, 3
-              , 0, 0, 1, 2
-              , 0, 0, 2, 1
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = '\"';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 0, 3
+                , 3, 0, 3
+                , 0, 0, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 3:
-              E_font_S_font.bitmap[i].u = 'B';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 3, 3, 3, 1
-              , 3, 0, 0, 3
-              , 3, 3, 3, 1
-              , 3, 0, 0, 3
-              , 3, 0, 0, 3
-              , 3, 3, 3, 1
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = '#';
+                E_font_S_font.bitmap[i].width = 5;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 3, 0, 3, 0
+                , 3, 3, 3, 3, 3
+                , 0, 3, 0, 3, 0
+                , 0, 3, 0, 3, 0
+                , 3, 3, 3, 3, 3
+                , 0, 3, 0, 3, 0
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 4:
-              E_font_S_font.bitmap[i].u = 'C';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 1, 3, 3, 3
-              , 3, 0, 0, 0
-              , 3, 0, 0, 0
-              , 3, 0, 0, 0
-              , 3, 0, 0, 0
-              , 1, 3, 3, 3
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = '$';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 3, 0
+                , 1, 3, 2
+                , 2, 0, 0
+                , 1, 3, 1
+                , 0, 0, 2
+                , 2, 3, 1
+                , 0, 3, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 5:
-              E_font_S_font.bitmap[i].u = L'Ć';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 1, 3, 3, 3
-              , 3, 0, 2, 0
-              , 3, 0, 2, 0
-              , 3, 0, 0, 0
-              , 3, 0, 0, 0
-              , 1, 3, 3, 3
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = '%';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 3, 0, 3
+                , 3, 0, 3, 1
+                , 2, 0, 3, 0
+                , 0, 3, 0, 2
+                , 1, 3, 0, 3
+                , 3, 0, 3, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 6:
-              E_font_S_font.bitmap[i].u = 'D';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 3, 3, 3, 1
-              , 3, 0, 0, 3
-              , 3, 0, 0, 3
-              , 3, 0, 0, 3
-              , 3, 0, 0, 3
-              , 3, 3, 3, 1
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = '&';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 1, 3, 1, 0
+                , 3, 0, 3, 0
+                , 1, 3, 1, 0
+                , 3, 0, 1, 3
+                , 3, 0, 0, 3
+                , 1, 3, 3, 1
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 7:
-              E_font_S_font.bitmap[i].u = 'E';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 3, 3, 3, 3
-              , 3, 0, 0, 0
-              , 3, 3, 3, 3
-              , 3, 0, 0, 0
-              , 3, 0, 0, 0
-              , 3, 3, 3, 3
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = '\'';
+                E_font_S_font.bitmap[i].width = 1;
+                N8 *bitmap_ = ( N8 [] )
+                { 3
+                , 3
+                , 0
+                , 0
+                , 0
+                , 0
+                , 0
+                , 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 8:
-              E_font_S_font.bitmap[i].u = L'Ę';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 3, 3, 3, 3
-              , 3, 0, 0, 0
-              , 3, 3, 3, 3
-              , 3, 0, 0, 0
-              , 3, 0, 0, 0
-              , 3, 3, 3, 3
-              , 0, 0, 1, 2
-              , 0, 0, 2, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = '(';
+                E_font_S_font.bitmap[i].width = 2;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 3
+                , 3, 0
+                , 3, 0
+                , 3, 0
+                , 3, 0
+                , 0, 3
+                , 0, 0
+                , 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 9:
-              E_font_S_font.bitmap[i].u = 'F';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 3, 3, 3, 3
-              , 3, 0, 0, 0
-              , 3, 3, 3, 3
-              , 3, 0, 0, 0
-              , 3, 0, 0, 0
-              , 3, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = ')';
+                E_font_S_font.bitmap[i].width = 2;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 0
+                , 0, 3
+                , 0, 3
+                , 0, 3
+                , 0, 3
+                , 3, 0
+                , 0, 0
+                , 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 10:
-              E_font_S_font.bitmap[i].u = 'G';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 1, 3, 3, 3
-              , 3, 0, 0, 0
-              , 3, 0, 3, 3
-              , 3, 0, 0, 3
-              , 3, 0, 0, 3
-              , 1, 3, 3, 2
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = '*';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0
+                , 1, 3, 1
+                , 3, 3, 3
+                , 1, 3, 1
+                , 0, 0, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 11:
-              E_font_S_font.bitmap[i].u = 'H';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 3, 0, 0, 3
-              , 3, 0, 0, 3
-              , 3, 3, 3, 3
-              , 3, 0, 0, 3
-              , 3, 0, 0, 3
-              , 3, 0, 0, 3
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = '+';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0
+                , 0, 3, 0
+                , 3, 3, 3
+                , 0, 3, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 12:
-              E_font_S_font.bitmap[i].u = 'I';
-              E_font_S_font.bitmap[i].width = 1;
-              bitmap = &((N8 [])
-              { 3
-              , 3
-              , 3
-              , 3
-              , 3
-              , 3
-              , 0
-              , 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = ',';
+                E_font_S_font.bitmap[i].width = 2;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0
+                , 0, 0
+                , 0, 0
+                , 0, 0
+                , 0, 0
+                , 0, 3
+                , 2, 1
+                , 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 13:
-              E_font_S_font.bitmap[i].u = 'J';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 0, 0, 3
-              , 0, 0, 3
-              , 0, 0, 3
-              , 0, 0, 3
-              , 3, 0, 3
-              , 2, 3, 2
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = '-';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                , 3, 3, 3
+                , 0, 0, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 14:
-              E_font_S_font.bitmap[i].u = 'K';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 3, 0, 0, 3
-              , 3, 0, 3, 0
-              , 3, 3, 0, 0
-              , 3, 3, 0, 0
-              , 3, 0, 3, 0
-              , 3, 0, 0, 3
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = '.';
+                E_font_S_font.bitmap[i].width = 1;
+                N8 *bitmap_ = ( N8 [] )
+                { 0
+                , 0
+                , 0
+                , 0
+                , 0
+                , 3
+                , 0
+                , 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 15:
-              E_font_S_font.bitmap[i].u = 'L';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 3, 0, 0
-              , 3, 0, 0
-              , 3, 0, 0
-              , 3, 0, 0
-              , 3, 0, 0
-              , 3, 3, 3
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = '/';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0, 3
+                , 0, 0, 2, 1
+                , 0, 0, 3, 0
+                , 0, 3, 0, 0
+                , 1, 2, 0, 0
+                , 3, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 16:
-              E_font_S_font.bitmap[i].u = L'Ł';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 3, 0, 0
-              , 3, 0, 3
-              , 2, 3, 0
-              , 3, 0, 0
-              , 3, 0, 0
-              , 3, 3, 3
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = '0';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 1, 3, 3, 1
+                , 3, 0, 0, 3
+                , 3, 1, 3, 3
+                , 3, 3, 1, 3
+                , 3, 0, 0, 3
+                , 1, 3, 3, 1
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 17:
-              E_font_S_font.bitmap[i].u = 'M';
-              E_font_S_font.bitmap[i].width = 5;
-              bitmap = &((N8 [])
-              { 3, 0, 0, 0, 3
-              , 3, 2, 0, 2, 3
-              , 3, 3, 1, 3, 3
-              , 3, 1, 3, 1, 3
-              , 3, 0, 3, 0, 3
-              , 3, 0, 0, 0, 3
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = '1';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 3
+                , 0, 3, 3
+                , 3, 1, 3
+                , 1, 0, 3
+                , 0, 0, 3
+                , 0, 0, 3
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 18:
-              E_font_S_font.bitmap[i].u = 'N';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 3, 0, 0, 3
-              , 3, 2, 0, 3
-              , 3, 3, 1, 3
-              , 3, 1, 3, 3
-              , 3, 0, 2, 3
-              , 3, 0, 0, 3
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = '2';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 1, 3, 3, 1
+                , 3, 0, 0, 3
+                , 0, 0, 0, 3
+                , 0, 0, 3, 0
+                , 0, 3, 0, 0
+                , 3, 3, 3, 3
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 19:
-              E_font_S_font.bitmap[i].u = L'Ń';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 3, 0, 3, 2
-              , 3, 2, 0, 3
-              , 3, 3, 1, 3
-              , 3, 1, 3, 3
-              , 3, 0, 2, 3
-              , 3, 0, 0, 3
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = '3';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 2, 3, 3, 2
+                , 0, 0, 0, 3
+                , 0, 3, 3, 2
+                , 0, 0, 0, 3
+                , 0, 0, 0, 3
+                , 2, 3, 3, 2
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 20:
-              E_font_S_font.bitmap[i].u = 'O';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 1, 3, 3, 1
-              , 3, 0, 0, 3
-              , 3, 0, 0, 3
-              , 3, 0, 0, 3
-              , 3, 0, 0, 3
-              , 1, 3, 3, 1
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = '4';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 3, 2
+                , 0, 3, 1, 3
+                , 3, 1, 0, 3
+                , 2, 3, 3, 3
+                , 0, 0, 0, 3
+                , 0, 0, 0, 3
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 21:
-              E_font_S_font.bitmap[i].u = L'Ó';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 1, 3, 3, 1
-              , 3, 0, 2, 3
-              , 3, 2, 0, 3
-              , 3, 0, 0, 3
-              , 3, 0, 0, 3
-              , 1, 3, 3, 1
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = '5';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 3, 3, 3
+                , 3, 0, 0, 0
+                , 2, 3, 3, 1
+                , 0, 0, 0, 3
+                , 0, 0, 0, 3
+                , 2, 3, 3, 1
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 22:
-              E_font_S_font.bitmap[i].u = 'P';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 3, 3, 3, 1
-              , 3, 0, 0, 3
-              , 3, 0, 0, 3
-              , 3, 3, 3, 1
-              , 3, 0, 0, 0
-              , 3, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = '6';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 1, 2, 3
+                , 2, 1, 0, 0
+                , 3, 3, 3, 1
+                , 3, 0, 0, 3
+                , 3, 0, 0, 3
+                , 1, 3, 3, 1
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 23:
-              E_font_S_font.bitmap[i].u = 'Q';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 1, 3, 3, 1
-              , 3, 0, 0, 3
-              , 3, 0, 0, 3
-              , 3, 0, 0, 3
-              , 3, 0, 0, 3
-              , 1, 3, 3, 1
-              , 0, 0, 2, 0
-              , 0, 0, 1, 2
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = '7';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 3, 3, 3
+                , 0, 0, 1, 2
+                , 0, 0, 3, 0
+                , 0, 1, 2, 0
+                , 0, 3, 0, 0
+                , 3, 1, 0, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 24:
-              E_font_S_font.bitmap[i].u = 'R';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 3, 3, 3, 1
-              , 3, 0, 0, 3
-              , 3, 0, 0, 3
-              , 3, 3, 3, 1
-              , 3, 0, 3, 0
-              , 3, 0, 1, 3
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = '8';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 1, 3, 3, 1
+                , 3, 0, 0, 3
+                , 1, 3, 3, 1
+                , 3, 0, 0, 3
+                , 3, 0, 0, 3
+                , 1, 3, 3, 1
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 25:
-              E_font_S_font.bitmap[i].u = 'S';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 1, 3, 3, 2
-              , 2, 0, 0, 0
-              , 1, 3, 0, 0
-              , 0, 0, 3, 1
-              , 0, 0, 0, 2
-              , 2, 3, 3, 1
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = '9';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 1, 3, 3, 1
+                , 3, 0, 0, 3
+                , 3, 0, 0, 3
+                , 1, 3, 3, 3
+                , 0, 0, 1, 2
+                , 3, 2, 1, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 26:
-              E_font_S_font.bitmap[i].u = L'Ś';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 1, 3, 3, 2
-              , 2, 0, 0, 3
-              , 1, 3, 1, 0
-              , 0, 0, 3, 1
-              , 0, 0, 0, 2
-              , 2, 3, 3, 1
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = ':';
+                E_font_S_font.bitmap[i].width = 1;
+                N8 *bitmap_ = ( N8 [] )
+                { 0
+                , 0
+                , 3
+                , 0
+                , 0
+                , 3
+                , 0
+                , 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 27:
-              E_font_S_font.bitmap[i].u = 'T';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 3, 3, 3
-              , 0, 3, 0
-              , 0, 3, 0
-              , 0, 3, 0
-              , 0, 3, 0
-              , 0, 3, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = ';';
+                E_font_S_font.bitmap[i].width = 2;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0
+                , 0, 0
+                , 0, 3
+                , 0, 0
+                , 0, 0
+                , 0, 3
+                , 2, 1
+                , 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 28:
-              E_font_S_font.bitmap[i].u = 'U';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 3, 0, 3
-              , 3, 0, 3
-              , 3, 0, 3
-              , 3, 0, 3
-              , 3, 0, 3
-              , 2, 3, 2
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = '<';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 3
+                , 0, 3, 0
+                , 3, 0, 0
+                , 3, 0, 0
+                , 0, 3, 0
+                , 0, 0, 3
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 29:
-              E_font_S_font.bitmap[i].u = 'V';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 3, 0, 3
-              , 3, 0, 3
-              , 3, 0, 3
-              , 3, 0, 3
-              , 2, 1, 2
-              , 0, 3, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = '=';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0
+                , 3, 3, 3
+                , 0, 0, 0
+                , 3, 3, 3
+                , 0, 0, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 30:
-              E_font_S_font.bitmap[i].u = 'W';
-              E_font_S_font.bitmap[i].width = 5;
-              bitmap = &((N8 [])
-              { 3, 0, 0, 0, 3
-              , 3, 0, 2, 0, 3
-              , 3, 0, 3, 0, 2
-              , 3, 0, 3, 0, 3
-              , 2, 1, 2, 1, 2
-              , 0, 3, 0, 3, 0
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = '>';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 0, 0
+                , 0, 3, 0
+                , 0, 0, 3
+                , 0, 0, 3
+                , 0, 3, 0
+                , 3, 0, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 31:
-              E_font_S_font.bitmap[i].u = 'X';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 3, 0, 3
-              , 3, 0, 3
-              , 0, 3, 0
-              , 0, 3, 0
-              , 3, 0, 3
-              , 3, 0, 3
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = '?';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 1, 3, 1
+                , 2, 0, 3
+                , 0, 0, 3
+                , 0, 3, 0
+                , 0, 0, 0
+                , 0, 3, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 32:
-              E_font_S_font.bitmap[i].u = 'Y';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 3, 0, 3
-              , 3, 0, 3
-              , 3, 1, 3
-              , 0, 3, 0
-              , 0, 3, 0
-              , 0, 3, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = '@';
+                E_font_S_font.bitmap[i].width = 5;
+                N8 *bitmap_ = ( N8 [] )
+                { 1, 3, 3, 3, 1
+                , 3, 0, 1, 1, 3
+                , 3, 0, 2, 2, 3
+                , 3, 0, 2, 2, 2
+                , 3, 0, 0, 0, 0
+                , 1, 3, 3, 3, 0
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 33:
-              E_font_S_font.bitmap[i].u = 'Z';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 3, 3, 3, 3
-              , 0, 0, 1, 2
-              , 0, 0, 3, 0
-              , 0, 3, 0, 0
-              , 2, 1, 0, 0
-              , 3, 3, 3, 3
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'A';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 3, 3, 0
+                , 3, 1, 1, 3
+                , 3, 0, 0, 3
+                , 3, 3, 3, 3
+                , 3, 0, 0, 3
+                , 3, 0, 0, 3
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 34:
-              E_font_S_font.bitmap[i].u = L'Ź';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 3, 3, 3, 3
-              , 3, 0, 0, 2
-              , 2, 0, 3, 0
-              , 0, 3, 0, 0
-              , 2, 1, 0, 0
-              , 3, 3, 3, 3
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'B';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 3, 3, 1
+                , 3, 0, 0, 3
+                , 3, 3, 3, 1
+                , 3, 0, 0, 3
+                , 3, 0, 0, 3
+                , 3, 3, 3, 1
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 35:
-              E_font_S_font.bitmap[i].u = L'Ż';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 3, 3, 3, 3
-              , 0, 0, 1, 2
-              , 2, 1, 3, 0
-              , 0, 3, 1, 2
-              , 2, 1, 0, 0
-              , 3, 3, 3, 3
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'C';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 1, 3, 3, 3
+                , 3, 0, 0, 0
+                , 3, 0, 0, 0
+                , 3, 0, 0, 0
+                , 3, 0, 0, 0
+                , 1, 3, 3, 3
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 36:
-              E_font_S_font.bitmap[i].u = 'a';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 0, 0, 0, 0
-              , 1, 3, 3, 1
-              , 0, 0, 0, 3
-              , 1, 3, 3, 3
-              , 3, 0, 0, 3
-              , 1, 3, 2, 3
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'D';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 3, 3, 1
+                , 3, 0, 0, 3
+                , 3, 0, 0, 3
+                , 3, 0, 0, 3
+                , 3, 0, 0, 3
+                , 3, 3, 3, 1
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 37:
-              E_font_S_font.bitmap[i].u = L'ą';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 0, 0, 0, 0
-              , 1, 3, 3, 1
-              , 0, 0, 0, 3
-              , 1, 3, 3, 3
-              , 3, 0, 0, 3
-              , 1, 3, 2, 3
-              , 0, 0, 3, 0
-              , 0, 0, 2, 3
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'E';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 3, 3, 3
+                , 3, 0, 0, 0
+                , 3, 3, 3, 3
+                , 3, 0, 0, 0
+                , 3, 0, 0, 0
+                , 3, 3, 3, 3
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 38:
-              E_font_S_font.bitmap[i].u = 'b';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 3, 0, 0, 0
-              , 3, 0, 0, 0
-              , 3, 2, 3, 1
-              , 3, 0, 0, 3
-              , 3, 0, 0, 3
-              , 3, 3, 3, 1
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'F';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 3, 3, 3
+                , 3, 0, 0, 0
+                , 3, 3, 3, 3
+                , 3, 0, 0, 0
+                , 3, 0, 0, 0
+                , 3, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 39:
-              E_font_S_font.bitmap[i].u = 'c';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 0, 0, 0
-              , 0, 0, 0
-              , 1, 3, 3
-              , 3, 0, 0
-              , 3, 0, 0
-              , 1, 3, 3
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'G';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 1, 3, 3, 3
+                , 3, 0, 0, 0
+                , 3, 0, 3, 3
+                , 3, 0, 0, 3
+                , 3, 0, 0, 3
+                , 1, 3, 3, 2
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 40:
-              E_font_S_font.bitmap[i].u = L'ć';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 0, 1, 3
-              , 0, 3, 0
-              , 1, 3, 3
-              , 3, 0, 0
-              , 3, 0, 0
-              , 1, 3, 3
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'H';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 0, 0, 3
+                , 3, 0, 0, 3
+                , 3, 3, 3, 3
+                , 3, 0, 0, 3
+                , 3, 0, 0, 3
+                , 3, 0, 0, 3
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 41:
-              E_font_S_font.bitmap[i].u = 'd';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 0, 0, 0, 3
-              , 0, 0, 0, 3
-              , 1, 3, 2, 3
-              , 3, 0, 0, 3
-              , 3, 0, 0, 3
-              , 1, 3, 3, 3
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'I';
+                E_font_S_font.bitmap[i].width = 1;
+                N8 *bitmap_ = ( N8 [] )
+                { 3
+                , 3
+                , 3
+                , 3
+                , 3
+                , 3
+                , 0
+                , 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 42:
-              E_font_S_font.bitmap[i].u = 'e';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 0, 0, 0, 0
-              , 1, 3, 3, 1
-              , 3, 0, 0, 3
-              , 2, 3, 3, 2
-              , 3, 0, 0, 0
-              , 1, 3, 3, 2
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'J';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 3
+                , 0, 0, 3
+                , 0, 0, 3
+                , 0, 0, 3
+                , 3, 0, 3
+                , 2, 3, 2
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 43:
-              E_font_S_font.bitmap[i].u = L'ę';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 0, 0, 0, 0
-              , 1, 3, 3, 1
-              , 3, 0, 0, 3
-              , 2, 3, 3, 2
-              , 3, 0, 0, 0
-              , 1, 3, 3, 2
-              , 0, 0, 3, 0
-              , 0, 0, 2, 3
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'K';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 0, 0, 3
+                , 3, 0, 3, 0
+                , 3, 3, 0, 0
+                , 3, 3, 0, 0
+                , 3, 0, 3, 0
+                , 3, 0, 0, 3
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 44:
-              E_font_S_font.bitmap[i].u = 'f';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 0, 2, 3
-              , 0, 3, 0
-              , 3, 3, 3
-              , 0, 3, 0
-              , 0, 3, 0
-              , 0, 3, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'L';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 0, 0
+                , 3, 0, 0
+                , 3, 0, 0
+                , 3, 0, 0
+                , 3, 0, 0
+                , 3, 3, 3
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 45:
-              E_font_S_font.bitmap[i].u = 'g';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 1, 3, 3, 2
-              , 3, 0, 0, 3
-              , 3, 0, 0, 3
-              , 1, 3, 3, 2
-              , 0, 0, 0, 3
-              , 2, 3, 3, 2
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'M';
+                E_font_S_font.bitmap[i].width = 5;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 0, 0, 0, 3
+                , 3, 2, 0, 2, 3
+                , 3, 3, 1, 3, 3
+                , 3, 1, 3, 1, 3
+                , 3, 0, 3, 0, 3
+                , 3, 0, 0, 0, 3
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 46:
-              E_font_S_font.bitmap[i].u = 'h';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 3, 0, 0, 0
-              , 3, 0, 0, 0
-              , 2, 3, 3, 1
-              , 3, 0, 0, 3
-              , 3, 0, 0, 3
-              , 3, 0, 0, 3
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'N';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 0, 0, 3
+                , 3, 2, 0, 3
+                , 3, 3, 1, 3
+                , 3, 1, 3, 3
+                , 3, 0, 2, 3
+                , 3, 0, 0, 3
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 47:
-              E_font_S_font.bitmap[i].u = 'i';
-              E_font_S_font.bitmap[i].width = 1;
-              bitmap = &((N8 [])
-              { 3
-              , 0
-              , 3
-              , 3
-              , 3
-              , 3
-              , 0
-              , 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'O';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 1, 3, 3, 1
+                , 3, 0, 0, 3
+                , 3, 0, 0, 3
+                , 3, 0, 0, 3
+                , 3, 0, 0, 3
+                , 1, 3, 3, 1
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 48:
-              E_font_S_font.bitmap[i].u = 'j';
-              E_font_S_font.bitmap[i].width = 2;
-              bitmap = &((N8 [])
-              { 0, 3
-              , 0, 0
-              , 0, 3
-              , 0, 3
-              , 0, 3
-              , 0, 3
-              , 0, 3
-              , 3, 2
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'P';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 3, 3, 1
+                , 3, 0, 0, 3
+                , 3, 0, 0, 3
+                , 3, 3, 3, 1
+                , 3, 0, 0, 0
+                , 3, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 49:
-              E_font_S_font.bitmap[i].u = 'k';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 3, 0, 0, 0
-              , 3, 0, 0, 3
-              , 3, 0, 3, 1
-              , 3, 3, 3, 0
-              , 3, 0, 1, 2
-              , 3, 0, 0, 3
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'Q';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 1, 3, 3, 1
+                , 3, 0, 0, 3
+                , 3, 0, 0, 3
+                , 3, 0, 0, 3
+                , 3, 0, 0, 3
+                , 1, 3, 3, 1
+                , 0, 0, 2, 0
+                , 0, 0, 1, 2
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 50:
-              E_font_S_font.bitmap[i].u = 'l';
-              E_font_S_font.bitmap[i].width = 2;
-              bitmap = &((N8 [])
-              { 3, 0
-              , 3, 0
-              , 3, 0
-              , 3, 0
-              , 3, 0
-              , 2, 3
-              , 0, 0
-              , 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'R';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 3, 3, 1
+                , 3, 0, 0, 3
+                , 3, 0, 0, 3
+                , 3, 3, 3, 1
+                , 3, 0, 3, 0
+                , 3, 0, 1, 3
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 51:
-              E_font_S_font.bitmap[i].u = L'ł';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 0, 3, 0
-              , 0, 3, 3
-              , 1, 3, 1
-              , 3, 3, 0
-              , 0, 3, 0
-              , 0, 2, 3
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'S';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 1, 3, 3, 2
+                , 2, 0, 0, 0
+                , 1, 3, 0, 0
+                , 0, 0, 3, 1
+                , 0, 0, 0, 2
+                , 2, 3, 3, 1
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 52:
-              E_font_S_font.bitmap[i].u = 'm';
-              E_font_S_font.bitmap[i].width = 5;
-              bitmap = &((N8 [])
-              { 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              , 3, 3, 2, 3, 2
-              , 3, 0, 3, 0, 3
-              , 3, 0, 3, 0, 3
-              , 3, 0, 3, 0, 3
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'T';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 3, 3
+                , 0, 3, 0
+                , 0, 3, 0
+                , 0, 3, 0
+                , 0, 3, 0
+                , 0, 3, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 53:
-              E_font_S_font.bitmap[i].u = 'n';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 0, 0, 0
-              , 0, 0, 0
-              , 3, 3, 2
-              , 3, 0, 3
-              , 3, 0, 3
-              , 3, 0, 3
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'U';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 0, 3
+                , 3, 0, 3
+                , 3, 0, 3
+                , 3, 0, 3
+                , 3, 0, 3
+                , 2, 3, 2
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 54:
-              E_font_S_font.bitmap[i].u = L'ń';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 0, 1, 3
-              , 0, 3, 0
-              , 3, 3, 2
-              , 3, 0, 3
-              , 3, 0, 3
-              , 3, 0, 3
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'V';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 0, 3
+                , 3, 0, 3
+                , 3, 0, 3
+                , 3, 0, 3
+                , 2, 1, 2
+                , 0, 3, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 55:
-              E_font_S_font.bitmap[i].u = 'o';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 0, 0, 0
-              , 0, 0, 0
-              , 2, 3, 2
-              , 3, 0, 3
-              , 3, 0, 3
-              , 2, 3, 2
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'W';
+                E_font_S_font.bitmap[i].width = 5;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 0, 0, 0, 3
+                , 3, 0, 2, 0, 3
+                , 3, 0, 3, 0, 2
+                , 3, 0, 3, 0, 3
+                , 2, 1, 2, 1, 2
+                , 0, 3, 0, 3, 0
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 56:
-              E_font_S_font.bitmap[i].u = L'ó';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 0, 1, 3
-              , 0, 3, 0
-              , 2, 3, 2
-              , 3, 0, 3
-              , 3, 0, 3
-              , 2, 3, 2
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'X';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 0, 3
+                , 3, 0, 3
+                , 0, 3, 0
+                , 0, 3, 0
+                , 3, 0, 3
+                , 3, 0, 3
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 57:
-              E_font_S_font.bitmap[i].u = 'p';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 3, 3, 3, 1
-              , 3, 0, 0, 3
-              , 3, 0, 0, 3
-              , 3, 2, 3, 1
-              , 3, 0, 0, 0
-              , 3, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'Y';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 0, 3
+                , 3, 0, 3
+                , 3, 1, 3
+                , 0, 3, 0
+                , 0, 3, 0
+                , 0, 3, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 58:
-              E_font_S_font.bitmap[i].u = 'q';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 1, 3, 3, 3
-              , 3, 0, 0, 3
-              , 3, 0, 0, 3
-              , 1, 3, 2, 3
-              , 0, 0, 0, 3
-              , 0, 0, 0, 3
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'Z';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 3, 3, 3
+                , 0, 0, 1, 2
+                , 0, 0, 3, 0
+                , 0, 3, 0, 0
+                , 2, 1, 0, 0
+                , 3, 3, 3, 3
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 59:
-              E_font_S_font.bitmap[i].u = 'r';
-              E_font_S_font.bitmap[i].width = 2;
-              bitmap = &((N8 [])
-              { 0, 0
-              , 0, 0
-              , 2, 3
-              , 3, 0
-              , 3, 0
-              , 3, 0
-              , 0, 0
-              , 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = '[';
+                E_font_S_font.bitmap[i].width = 2;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 3
+                , 3, 0
+                , 3, 0
+                , 3, 0
+                , 3, 0
+                , 3, 3
+                , 0, 0
+                , 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 60:
-              E_font_S_font.bitmap[i].u = 's';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 0, 0, 0
-              , 1, 3, 2
-              , 2, 0, 0
-              , 1, 3, 1
-              , 0, 0, 2
-              , 2, 3, 1
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = '\\';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 0, 0, 0
+                , 0, 2, 0, 0
+                , 0, 3, 0, 0
+                , 0, 0, 3, 0
+                , 0, 0, 2, 0
+                , 0, 0, 0, 3
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 61:
-              E_font_S_font.bitmap[i].u = L'ś';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 0, 0, 3
-              , 1, 3, 2
-              , 2, 0, 0
-              , 1, 3, 1
-              , 0, 0, 2
-              , 2, 3, 1
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = ']';
+                E_font_S_font.bitmap[i].width = 2;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 3
+                , 0, 3
+                , 0, 3
+                , 0, 3
+                , 0, 3
+                , 3, 3
+                , 0, 0
+                , 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 62:
-              E_font_S_font.bitmap[i].u = 't';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 0, 3, 0
-              , 0, 3, 0
-              , 3, 3, 3
-              , 0, 3, 0
-              , 0, 3, 0
-              , 0, 2, 3
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = '^';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 1, 3, 1
+                , 3, 0, 3
+                , 0, 0, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 63:
-              E_font_S_font.bitmap[i].u = 'u';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 0, 0, 0
-              , 0, 0, 0
-              , 3, 0, 3
-              , 3, 0, 3
-              , 3, 0, 3
-              , 2, 3, 3
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = '_';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 3, 3, 3, 3
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 64:
-              E_font_S_font.bitmap[i].u = 'v';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 0, 0, 0
-              , 0, 0, 0
-              , 3, 0, 3
-              , 3, 0, 3
-              , 2, 1, 2
-              , 0, 3, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = '`';
+                E_font_S_font.bitmap[i].width = 2;
+                N8 *bitmap_ = ( N8 [] )
+                { 2, 0
+                , 1, 3
+                , 0, 0
+                , 0, 0
+                , 0, 0
+                , 0, 0
+                , 0, 0
+                , 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 65:
-              E_font_S_font.bitmap[i].u = 'w';
-              E_font_S_font.bitmap[i].width = 5;
-              bitmap = &((N8 [])
-              { 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              , 3, 0, 2, 0, 2
-              , 3, 0, 3, 0, 3
-              , 2, 1, 2, 1, 2
-              , 0, 3, 0, 3, 0
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'a';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0, 0
+                , 1, 3, 3, 1
+                , 0, 0, 0, 3
+                , 1, 3, 3, 3
+                , 3, 0, 0, 3
+                , 1, 3, 2, 3
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 66:
-              E_font_S_font.bitmap[i].u = 'x';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 0, 0, 0
-              , 0, 0, 0
-              , 3, 0, 3
-              , 0, 3, 0
-              , 0, 3, 0
-              , 3, 0, 3
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'b';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 0, 0, 0
+                , 3, 0, 0, 0
+                , 3, 2, 3, 1
+                , 3, 0, 0, 3
+                , 3, 0, 0, 3
+                , 3, 3, 3, 1
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 67:
-              E_font_S_font.bitmap[i].u = 'y';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 0, 0, 0
-              , 0, 0, 0
-              , 3, 0, 3
-              , 3, 0, 3
-              , 2, 1, 2
-              , 0, 3, 0
-              , 1, 2, 0
-              , 3, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'c';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0
+                , 0, 0, 0
+                , 1, 3, 3
+                , 3, 0, 0
+                , 3, 0, 0
+                , 1, 3, 3
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 68:
-              E_font_S_font.bitmap[i].u = 'z';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 0, 0, 0
-              , 0, 0, 0
-              , 3, 3, 3
-              , 0, 2, 1
-              , 1, 2, 0
-              , 3, 3, 3
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'd';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0, 3
+                , 0, 0, 0, 3
+                , 1, 3, 2, 3
+                , 3, 0, 0, 3
+                , 3, 0, 0, 3
+                , 1, 3, 3, 3
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 69:
-              E_font_S_font.bitmap[i].u = L'ź';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 0, 1, 2
-              , 0, 2, 0
-              , 3, 3, 3
-              , 0, 2, 1
-              , 1, 2, 0
-              , 3, 3, 3
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'e';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0, 0
+                , 1, 3, 3, 1
+                , 3, 0, 0, 3
+                , 2, 3, 3, 2
+                , 3, 0, 0, 0
+                , 1, 3, 3, 2
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 70:
-              E_font_S_font.bitmap[i].u = L'ż';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 0, 3, 0
-              , 0, 0, 0
-              , 3, 3, 3
-              , 0, 2, 1
-              , 1, 2, 0
-              , 3, 3, 3
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'f';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 2, 3
+                , 0, 3, 0
+                , 3, 3, 3
+                , 0, 3, 0
+                , 0, 3, 0
+                , 0, 3, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 71:
-              E_font_S_font.bitmap[i].u = ' ';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 0, 0, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'g';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 1, 3, 3, 2
+                , 3, 0, 0, 3
+                , 3, 0, 0, 3
+                , 1, 3, 3, 2
+                , 0, 0, 0, 3
+                , 2, 3, 3, 2
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 72:
-              E_font_S_font.bitmap[i].u = '0';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 1, 3, 3, 1
-              , 3, 0, 0, 3
-              , 3, 1, 3, 3
-              , 3, 3, 1, 3
-              , 3, 0, 0, 3
-              , 1, 3, 3, 1
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'h';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 0, 0, 0
+                , 3, 0, 0, 0
+                , 2, 3, 3, 1
+                , 3, 0, 0, 3
+                , 3, 0, 0, 3
+                , 3, 0, 0, 3
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 73:
-              E_font_S_font.bitmap[i].u = '1';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 0, 0, 3
-              , 0, 3, 3
-              , 3, 1, 3
-              , 1, 0, 3
-              , 0, 0, 3
-              , 0, 0, 3
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'i';
+                E_font_S_font.bitmap[i].width = 1;
+                N8 *bitmap_ = ( N8 [] )
+                { 3
+                , 0
+                , 3
+                , 3
+                , 3
+                , 3
+                , 0
+                , 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 74:
-              E_font_S_font.bitmap[i].u = '2';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 1, 3, 3, 1
-              , 3, 0, 0, 3
-              , 0, 0, 0, 3
-              , 0, 0, 3, 0
-              , 0, 3, 0, 0
-              , 3, 3, 3, 3
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'j';
+                E_font_S_font.bitmap[i].width = 2;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 3
+                , 0, 0
+                , 0, 3
+                , 0, 3
+                , 0, 3
+                , 0, 3
+                , 0, 3
+                , 3, 2
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 75:
-              E_font_S_font.bitmap[i].u = '3';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 2, 3, 3, 2
-              , 0, 0, 0, 3
-              , 0, 3, 3, 2
-              , 0, 0, 0, 3
-              , 0, 0, 0, 3
-              , 2, 3, 3, 2
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'k';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 0, 0, 0
+                , 3, 0, 0, 3
+                , 3, 0, 3, 1
+                , 3, 3, 3, 0
+                , 3, 0, 1, 2
+                , 3, 0, 0, 3
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 76:
-              E_font_S_font.bitmap[i].u = '4';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 0, 0, 3, 2
-              , 0, 3, 1, 3
-              , 3, 1, 0, 3
-              , 2, 3, 3, 3
-              , 0, 0, 0, 3
-              , 0, 0, 0, 3
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'l';
+                E_font_S_font.bitmap[i].width = 2;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 0
+                , 3, 0
+                , 3, 0
+                , 3, 0
+                , 3, 0
+                , 2, 3
+                , 0, 0
+                , 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 77:
-              E_font_S_font.bitmap[i].u = '5';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 3, 3, 3, 3
-              , 3, 0, 0, 0
-              , 2, 3, 3, 1
-              , 0, 0, 0, 3
-              , 0, 0, 0, 3
-              , 2, 3, 3, 1
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'm';
+                E_font_S_font.bitmap[i].width = 5;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                , 3, 3, 2, 3, 2
+                , 3, 0, 3, 0, 3
+                , 3, 0, 3, 0, 3
+                , 3, 0, 3, 0, 3
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 78:
-              E_font_S_font.bitmap[i].u = '6';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 0, 1, 2, 3
-              , 2, 1, 0, 0
-              , 3, 3, 3, 1
-              , 3, 0, 0, 3
-              , 3, 0, 0, 3
-              , 1, 3, 3, 1
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'n';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0
+                , 0, 0, 0
+                , 3, 3, 2
+                , 3, 0, 3
+                , 3, 0, 3
+                , 3, 0, 3
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 79:
-              E_font_S_font.bitmap[i].u = '7';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 3, 3, 3, 3
-              , 0, 0, 1, 2
-              , 0, 0, 3, 0
-              , 0, 1, 2, 0
-              , 0, 3, 0, 0
-              , 3, 1, 0, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'o';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0
+                , 0, 0, 0
+                , 2, 3, 2
+                , 3, 0, 3
+                , 3, 0, 3
+                , 2, 3, 2
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 80:
-              E_font_S_font.bitmap[i].u = '8';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 1, 3, 3, 1
-              , 3, 0, 0, 3
-              , 1, 3, 3, 1
-              , 3, 0, 0, 3
-              , 3, 0, 0, 3
-              , 1, 3, 3, 1
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'p';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 3, 3, 3, 1
+                , 3, 0, 0, 3
+                , 3, 0, 0, 3
+                , 3, 2, 3, 1
+                , 3, 0, 0, 0
+                , 3, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 81:
-              E_font_S_font.bitmap[i].u = '9';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 1, 3, 3, 1
-              , 3, 0, 0, 3
-              , 3, 0, 0, 3
-              , 1, 3, 3, 3
-              , 0, 0, 1, 2
-              , 3, 2, 1, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'q';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 1, 3, 3, 3
+                , 3, 0, 0, 3
+                , 3, 0, 0, 3
+                , 1, 3, 2, 3
+                , 0, 0, 0, 3
+                , 0, 0, 0, 3
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 82:
-              E_font_S_font.bitmap[i].u = '!';
-              E_font_S_font.bitmap[i].width = 1;
-              bitmap = &((N8 [])
-              { 3
-              , 3
-              , 3
-              , 3
-              , 0
-              , 3
-              , 0
-              , 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'r';
+                E_font_S_font.bitmap[i].width = 2;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0
+                , 0, 0
+                , 2, 3
+                , 3, 0
+                , 3, 0
+                , 3, 0
+                , 0, 0
+                , 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 83:
-              E_font_S_font.bitmap[i].u = '\"';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 3, 0, 3
-              , 3, 0, 3
-              , 0, 0, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 's';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0
+                , 1, 3, 2
+                , 2, 0, 0
+                , 1, 3, 1
+                , 0, 0, 2
+                , 2, 3, 1
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 84:
-              E_font_S_font.bitmap[i].u = '#';
-              E_font_S_font.bitmap[i].width = 5;
-              bitmap = &((N8 [])
-              { 0, 3, 0, 3, 0
-              , 3, 3, 3, 3, 3
-              , 0, 3, 0, 3, 0
-              , 0, 3, 0, 3, 0
-              , 3, 3, 3, 3, 3
-              , 0, 3, 0, 3, 0
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 't';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 3, 0
+                , 0, 3, 0
+                , 3, 3, 3
+                , 0, 3, 0
+                , 0, 3, 0
+                , 0, 2, 3
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 85:
-              E_font_S_font.bitmap[i].u = '$';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 0, 3, 0
-              , 1, 3, 2
-              , 2, 0, 0
-              , 1, 3, 1
-              , 0, 0, 2
-              , 2, 3, 1
-              , 0, 3, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'u';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0
+                , 0, 0, 0
+                , 3, 0, 3
+                , 3, 0, 3
+                , 3, 0, 3
+                , 2, 3, 3
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 86:
-              E_font_S_font.bitmap[i].u = '%';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 0, 3, 0, 3
-              , 3, 0, 3, 1
-              , 2, 0, 3, 0
-              , 0, 3, 0, 2
-              , 1, 3, 0, 3
-              , 3, 0, 3, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'v';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0
+                , 0, 0, 0
+                , 3, 0, 3
+                , 3, 0, 3
+                , 2, 1, 2
+                , 0, 3, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 87:
-              E_font_S_font.bitmap[i].u = '&';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 1, 3, 1, 0
-              , 3, 0, 3, 0
-              , 1, 3, 1, 0
-              , 3, 0, 1, 3
-              , 3, 0, 0, 3
-              , 1, 3, 3, 1
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'w';
+                E_font_S_font.bitmap[i].width = 5;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                , 3, 0, 2, 0, 2
+                , 3, 0, 3, 0, 3
+                , 2, 1, 2, 1, 2
+                , 0, 3, 0, 3, 0
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 88:
-              E_font_S_font.bitmap[i].u = '\'';
-              E_font_S_font.bitmap[i].width = 1;
-              bitmap = &((N8 [])
-              { 3
-              , 3
-              , 0
-              , 0
-              , 0
-              , 0
-              , 0
-              , 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'x';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0
+                , 0, 0, 0
+                , 3, 0, 3
+                , 0, 3, 0
+                , 0, 3, 0
+                , 3, 0, 3
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 89:
-              E_font_S_font.bitmap[i].u = '(';
-              E_font_S_font.bitmap[i].width = 2;
-              bitmap = &((N8 [])
-              { 0, 3
-              , 3, 0
-              , 3, 0
-              , 3, 0
-              , 3, 0
-              , 0, 3
-              , 0, 0
-              , 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'y';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0
+                , 0, 0, 0
+                , 3, 0, 3
+                , 3, 0, 3
+                , 2, 1, 2
+                , 0, 3, 0
+                , 1, 2, 0
+                , 3, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 90:
-              E_font_S_font.bitmap[i].u = ')';
-              E_font_S_font.bitmap[i].width = 2;
-              bitmap = &((N8 [])
-              { 3, 0
-              , 0, 3
-              , 0, 3
-              , 0, 3
-              , 0, 3
-              , 3, 0
-              , 0, 0
-              , 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = 'z';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0
+                , 0, 0, 0
+                , 3, 3, 3
+                , 0, 2, 1
+                , 1, 2, 0
+                , 3, 3, 3
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 91:
-              E_font_S_font.bitmap[i].u = '*';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 0, 0, 0
-              , 1, 3, 1
-              , 3, 3, 3
-              , 1, 3, 1
-              , 0, 0, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = '{';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 2, 1
+                , 0, 3, 0
+                , 1, 2, 0
+                , 3, 2, 0
+                , 0, 3, 0
+                , 0, 2, 1
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 92:
-              E_font_S_font.bitmap[i].u = '+';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 0, 0, 0
-              , 0, 3, 0
-              , 3, 3, 3
-              , 0, 3, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = '|';
+                E_font_S_font.bitmap[i].width = 1;
+                N8 *bitmap_ = ( N8 [] )
+                { 3
+                , 3
+                , 3
+                , 3
+                , 3
+                , 3
+                , 3
+                , 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 93:
-              E_font_S_font.bitmap[i].u = ',';
-              E_font_S_font.bitmap[i].width = 2;
-              bitmap = &((N8 [])
-              { 0, 0
-              , 0, 0
-              , 0, 0
-              , 0, 0
-              , 0, 0
-              , 0, 3
-              , 2, 1
-              , 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = '}';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 1, 2, 0
+                , 0, 3, 0
+                , 0, 2, 1
+                , 0, 2, 3
+                , 0, 3, 0
+                , 1, 2, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 94:
-              E_font_S_font.bitmap[i].u = '-';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 0, 0, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              , 3, 3, 3
-              , 0, 0, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = '~';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 1, 3, 0, 3
+                , 3, 0, 3, 1
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 95:
-              E_font_S_font.bitmap[i].u = '.';
-              E_font_S_font.bitmap[i].width = 1;
-              bitmap = &((N8 [])
-              { 0
-              , 0
-              , 0
-              , 0
-              , 0
-              , 3
-              , 0
-              , 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'¡';
+                E_font_S_font.bitmap[i].width = 1;
+                N8 *bitmap_ = ( N8 [] )
+                { 0
+                , 3
+                , 0
+                , 3
+                , 3
+                , 3
+                , 3
+                , 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 96:
-              E_font_S_font.bitmap[i].u = '/';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 0, 0, 0, 3
-              , 0, 0, 2, 1
-              , 0, 0, 3, 0
-              , 0, 3, 0, 0
-              , 1, 2, 0, 0
-              , 3, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'¢';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 2, 0
+                , 0, 3, 3, 3
+                , 2, 1, 2, 0
+                , 3, 0, 2, 0
+                , 2, 1, 2, 0
+                , 0, 3, 3, 3
+                , 0, 0, 2, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 97:
-              E_font_S_font.bitmap[i].u = ':';
-              E_font_S_font.bitmap[i].width = 1;
-              bitmap = &((N8 [])
-              { 0
-              , 0
-              , 3
-              , 0
-              , 0
-              , 3
-              , 0
-              , 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'¦';
+                E_font_S_font.bitmap[i].width = 1;
+                N8 *bitmap_ = ( N8 [] )
+                { 3
+                , 3
+                , 1
+                , 1
+                , 3
+                , 3
+                , 0
+                , 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 98:
-              E_font_S_font.bitmap[i].u = ';';
-              E_font_S_font.bitmap[i].width = 2;
-              bitmap = &((N8 [])
-              { 0, 0
-              , 0, 0
-              , 0, 3
-              , 0, 0
-              , 0, 0
-              , 0, 3
-              , 2, 1
-              , 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'©';
+                E_font_S_font.bitmap[i].width = 5;
+                N8 *bitmap_ = ( N8 [] )
+                { 1, 3, 3, 3, 1
+                , 3, 1, 2, 0, 3
+                , 3, 2, 0, 0, 3
+                , 3, 1, 2, 0, 3
+                , 1, 3, 3, 3, 1
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 99:
-              E_font_S_font.bitmap[i].u = '<';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 0, 0, 3
-              , 0, 3, 0
-              , 3, 0, 0
-              , 3, 0, 0
-              , 0, 3, 0
-              , 0, 0, 3
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'«';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 3, 0, 3
+                , 3, 0, 3, 0
+                , 0, 3, 0, 3
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 100:
-              E_font_S_font.bitmap[i].u = '=';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 0, 0, 0
-              , 3, 3, 3
-              , 0, 0, 0
-              , 3, 3, 3
-              , 0, 0, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'®';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 1, 3, 3, 1
+                , 3, 1, 2, 3
+                , 3, 1, 2, 3
+                , 1, 3, 3, 1
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 101:
-              E_font_S_font.bitmap[i].u = '>';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 3, 0, 0
-              , 0, 3, 0
-              , 0, 0, 3
-              , 0, 0, 3
-              , 0, 3, 0
-              , 3, 0, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'°';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 1, 3, 1
+                , 3, 0, 3
+                , 1, 3, 1
+                , 0, 0, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 102:
-              E_font_S_font.bitmap[i].u = '?';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 1, 3, 1
-              , 2, 0, 3
-              , 0, 0, 3
-              , 0, 3, 0
-              , 0, 0, 0
-              , 0, 3, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'±';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0
+                , 0, 3, 0
+                , 3, 3, 3
+                , 0, 3, 0
+                , 3, 3, 3
+                , 0, 0, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 103:
-              E_font_S_font.bitmap[i].u = '@';
-              E_font_S_font.bitmap[i].width = 5;
-              bitmap = &((N8 [])
-              { 1, 3, 3, 3, 1
-              , 3, 0, 1, 1, 3
-              , 3, 0, 2, 2, 3
-              , 3, 0, 2, 2, 2
-              , 3, 0, 0, 0, 0
-              , 1, 3, 3, 3, 0
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'²';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 1, 3, 1
+                , 2, 0, 3
+                , 0, 3, 0
+                , 3, 2, 3
+                , 0, 0, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 104:
-              E_font_S_font.bitmap[i].u = '[';
-              E_font_S_font.bitmap[i].width = 2;
-              bitmap = &((N8 [])
-              { 3, 3
-              , 3, 0
-              , 3, 0
-              , 3, 0
-              , 3, 0
-              , 3, 3
-              , 0, 0
-              , 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'³';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 2, 3, 2
+                , 0, 0, 3
+                , 0, 3, 2
+                , 0, 0, 3
+                , 2, 3, 2
+                , 0, 0, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 105:
-              E_font_S_font.bitmap[i].u = '\\';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 3, 0, 0, 0
-              , 0, 2, 0, 0
-              , 0, 3, 0, 0
-              , 0, 0, 3, 0
-              , 0, 0, 2, 0
-              , 0, 0, 0, 3
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'µ';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0
+                , 0, 0, 0
+                , 3, 0, 3
+                , 3, 0, 3
+                , 3, 0, 3
+                , 2, 3, 3
+                , 3, 0, 0
+                , 3, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 106:
-              E_font_S_font.bitmap[i].u = ']';
-              E_font_S_font.bitmap[i].width = 2;
-              bitmap = &((N8 [])
-              { 3, 3
-              , 0, 3
-              , 0, 3
-              , 0, 3
-              , 0, 3
-              , 3, 3
-              , 0, 0
-              , 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'·';
+                E_font_S_font.bitmap[i].width = 1;
+                N8 *bitmap_ = ( N8 [] )
+                { 0
+                , 0
+                , 0
+                , 3
+                , 0
+                , 0
+                , 0
+                , 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 107:
-              E_font_S_font.bitmap[i].u = '^';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 1, 3, 1
-              , 3, 0, 3
-              , 0, 0, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'»';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 3, 0, 3, 0
+                , 0, 3, 0, 3
+                , 3, 0, 3, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 108:
-              E_font_S_font.bitmap[i].u = '`';
-              E_font_S_font.bitmap[i].width = 2;
-              bitmap = &((N8 [])
-              { 2, 0
-              , 1, 3
-              , 0, 0
-              , 0, 0
-              , 0, 0
-              , 0, 0
-              , 0, 0
-              , 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'¿';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0
+                , 0, 0, 0
+                , 0, 3, 0
+                , 0, 0, 0
+                , 0, 3, 0
+                , 3, 0, 0
+                , 3, 0, 2
+                , 1, 3, 1
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 109:
-              E_font_S_font.bitmap[i].u = '{';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 0, 2, 1
-              , 0, 3, 0
-              , 1, 2, 0
-              , 3, 2, 0
-              , 0, 3, 0
-              , 0, 2, 1
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'Ó';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 1, 3, 3, 1
+                , 3, 0, 2, 3
+                , 3, 2, 0, 3
+                , 3, 0, 0, 3
+                , 3, 0, 0, 3
+                , 1, 3, 3, 1
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 110:
-              E_font_S_font.bitmap[i].u = '|';
-              E_font_S_font.bitmap[i].width = 1;
-              bitmap = &((N8 [])
-              { 3
-              , 3
-              , 3
-              , 3
-              , 3
-              , 3
-              , 3
-              , 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'×';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0, 0
+                , 3, 0, 0, 3
+                , 0, 3, 3, 0
+                , 0, 3, 3, 0
+                , 3, 0, 0, 3
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 111:
-              E_font_S_font.bitmap[i].u = '}';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 1, 2, 0
-              , 0, 3, 0
-              , 0, 2, 1
-              , 0, 2, 3
-              , 0, 3, 0
-              , 1, 2, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'ó';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 1, 3
+                , 0, 3, 0
+                , 2, 3, 2
+                , 3, 0, 3
+                , 3, 0, 3
+                , 2, 3, 2
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 112:
-              E_font_S_font.bitmap[i].u = '~';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 1, 3, 0, 3
-              , 3, 0, 3, 1
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'÷';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0
+                , 0, 3, 0
+                , 0, 0, 0
+                , 3, 3, 3
+                , 0, 0, 0
+                , 0, 3, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 113:
-              E_font_S_font.bitmap[i].u = L'′';
-              E_font_S_font.bitmap[i].width = 2;
-              bitmap = &((N8 [])
-              { 0, 3
-              , 3, 0
-              , 0, 0
-              , 0, 0
-              , 0, 0
-              , 0, 0
-              , 0, 0
-              , 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'Ą';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 3, 3, 0
+                , 3, 1, 1, 3
+                , 3, 0, 0, 3
+                , 3, 3, 3, 3
+                , 3, 0, 0, 3
+                , 3, 0, 0, 3
+                , 0, 0, 1, 2
+                , 0, 0, 2, 1
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 114:
-              E_font_S_font.bitmap[i].u = L'−';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 0, 0, 0
-              , 0, 0, 0
-              , 3, 3, 3
-              , 0, 0, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'ą';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0, 0
+                , 1, 3, 3, 1
+                , 0, 0, 0, 3
+                , 1, 3, 3, 3
+                , 3, 0, 0, 3
+                , 1, 3, 2, 3
+                , 0, 0, 3, 0
+                , 0, 0, 2, 3
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 115:
-              E_font_S_font.bitmap[i].u = L'¡';
-              E_font_S_font.bitmap[i].width = 1;
-              bitmap = &((N8 [])
-              { 0
-              , 3
-              , 0
-              , 3
-              , 3
-              , 3
-              , 3
-              , 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'Ć';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 1, 3, 3, 3
+                , 3, 0, 2, 0
+                , 3, 0, 2, 0
+                , 3, 0, 0, 0
+                , 3, 0, 0, 0
+                , 1, 3, 3, 3
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 116:
-              E_font_S_font.bitmap[i].u = L'‽';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 1, 3, 1
-              , 2, 2, 3
-              , 0, 2, 3
-              , 0, 3, 0
-              , 0, 0, 0
-              , 0, 3, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'ć';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 1, 3
+                , 0, 3, 0
+                , 1, 3, 3
+                , 3, 0, 0
+                , 3, 0, 0
+                , 1, 3, 3
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 117:
-              E_font_S_font.bitmap[i].u = L'²';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 1, 3, 1
-              , 2, 0, 3
-              , 0, 3, 0
-              , 3, 2, 3
-              , 0, 0, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'Ę';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 3, 3, 3
+                , 3, 0, 0, 0
+                , 3, 3, 3, 3
+                , 3, 0, 0, 0
+                , 3, 0, 0, 0
+                , 3, 3, 3, 3
+                , 0, 0, 1, 2
+                , 0, 0, 2, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 118:
-              E_font_S_font.bitmap[i].u = L'➪';
-              E_font_S_font.bitmap[i].width = 5;
-              bitmap = &((N8 [])
-              { 0, 0, 0, 0, 0
-              , 0, 0, 3, 0, 0
-              , 3, 3, 3, 3, 0
-              , 3, 0, 0, 0, 3
-              , 3, 3, 3, 3, 0
-              , 0, 0, 3, 0, 0
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'ę';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0, 0
+                , 1, 3, 3, 1
+                , 3, 0, 0, 3
+                , 2, 3, 3, 2
+                , 3, 0, 0, 0
+                , 1, 3, 3, 2
+                , 0, 0, 3, 0
+                , 0, 0, 2, 3
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 119:
-              E_font_S_font.bitmap[i].u = L'³';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 2, 3, 2
-              , 0, 0, 3
-              , 0, 3, 2
-              , 0, 0, 3
-              , 2, 3, 2
-              , 0, 0, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'Ł';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 0, 0
+                , 3, 0, 3
+                , 2, 3, 0
+                , 3, 0, 0
+                , 3, 0, 0
+                , 3, 3, 3
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 120:
-              E_font_S_font.bitmap[i].u = L'№';
-              E_font_S_font.bitmap[i].width = 5;
-              bitmap = &((N8 [])
-              { 3, 0, 3, 0, 0
-              , 3, 1, 3, 0, 0
-              , 3, 3, 3, 2, 3
-              , 3, 2, 3, 2, 3
-              , 3, 1, 3, 0, 0
-              , 3, 0, 3, 2, 2
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'ł';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 3, 0
+                , 0, 3, 3
+                , 1, 3, 1
+                , 3, 3, 0
+                , 0, 3, 0
+                , 0, 2, 3
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 121:
-              E_font_S_font.bitmap[i].u = L' ';
-              E_font_S_font.bitmap[i].width = 1;
-              bitmap = &((N8 [])
-              { 0
-              , 0
-              , 0
-              , 0
-              , 0
-              , 0
-              , 0
-              , 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'Ń';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 0, 3, 2
+                , 3, 2, 0, 3
+                , 3, 3, 1, 3
+                , 3, 1, 3, 3
+                , 3, 0, 2, 3
+                , 3, 0, 0, 3
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 122:
-              E_font_S_font.bitmap[i].u = L'‒';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 3, 3, 3, 3
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'ń';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 1, 3
+                , 0, 3, 0
+                , 3, 3, 2
+                , 3, 0, 3
+                , 3, 0, 3
+                , 3, 0, 3
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 123:
-              E_font_S_font.bitmap[i].u = L'⁄';
-              E_font_S_font.bitmap[i].width = 5;
-              bitmap = &((N8 [])
-              { 0, 0, 0, 2, 3
-              , 0, 0, 0, 3, 0
-              , 0, 0, 3, 1, 0
-              , 0, 1, 3, 0, 0
-              , 0, 3, 0, 0, 0
-              , 3, 2, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'Ś';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 1, 3, 3, 2
+                , 2, 0, 0, 3
+                , 1, 3, 1, 0
+                , 0, 0, 3, 1
+                , 0, 0, 0, 2
+                , 2, 3, 3, 1
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 124:
-              E_font_S_font.bitmap[i].u = L'÷';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 0, 0, 0
-              , 0, 3, 0
-              , 0, 0, 0
-              , 3, 3, 3
-              , 0, 0, 0
-              , 0, 3, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'ś';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 3
+                , 1, 3, 2
+                , 2, 0, 0
+                , 1, 3, 1
+                , 0, 0, 2
+                , 2, 3, 1
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 125:
-              E_font_S_font.bitmap[i].u = L'°';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 1, 3, 1
-              , 3, 0, 3
-              , 1, 3, 1
-              , 0, 0, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'Ź';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 3, 3, 3
+                , 3, 0, 0, 2
+                , 2, 0, 3, 0
+                , 0, 3, 0, 0
+                , 2, 1, 0, 0
+                , 3, 3, 3, 3
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 126:
-              E_font_S_font.bitmap[i].u = L'〃';
-              E_font_S_font.bitmap[i].width = 5;
-              bitmap = &((N8 [])
-              { 0, 0, 0, 0, 0
-              , 0, 0, 3, 0, 3
-              , 0, 3, 0, 3, 0
-              , 0, 3, 0, 3, 0
-              , 3, 0, 3, 0, 0
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'ź';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 1, 2
+                , 0, 2, 0
+                , 3, 3, 3
+                , 0, 2, 1
+                , 1, 2, 0
+                , 3, 3, 3
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 127:
-              E_font_S_font.bitmap[i].u = L'⇢';
-              E_font_S_font.bitmap[i].width = 5;
-              bitmap = &((N8 [])
-              { 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 3, 0
-              , 3, 0, 3, 3, 3
-              , 0, 0, 0, 3, 0
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'Ż';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 3, 3, 3
+                , 0, 0, 1, 2
+                , 2, 1, 3, 0
+                , 0, 3, 1, 2
+                , 2, 1, 0, 0
+                , 3, 3, 3, 3
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 128:
-              E_font_S_font.bitmap[i].u = L'×';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 0, 0, 0, 0
-              , 3, 0, 0, 3
-              , 0, 3, 3, 0
-              , 0, 3, 3, 0
-              , 3, 0, 0, 3
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'ż';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 3, 0
+                , 0, 0, 0
+                , 3, 3, 3
+                , 0, 2, 1
+                , 1, 2, 0
+                , 3, 3, 3
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 129:
-              E_font_S_font.bitmap[i].u = L'⁑';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 1, 3, 1
-              , 3, 3, 3
-              , 1, 3, 1
-              , 1, 3, 1
-              , 3, 3, 3
-              , 1, 3, 1
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'՚';
+                E_font_S_font.bitmap[i].width = 1;
+                N8 *bitmap_ = ( N8 [] )
+                { 3
+                , 2
+                , 0
+                , 0
+                , 0
+                , 0
+                , 0
+                , 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 130:
-              E_font_S_font.bitmap[i].u = L'⁂';
-              E_font_S_font.bitmap[i].width = 5;
-              bitmap = &((N8 [])
-              { 0, 1, 3, 1, 0
-              , 0, 3, 3, 3, 0
-              , 0, 1, 3, 1, 0
-              , 1, 3, 1, 3, 1
-              , 3, 3, 3, 3, 3
-              , 1, 3, 1, 3, 1
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L' ';
+                E_font_S_font.bitmap[i].width = 5;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 131:
-              E_font_S_font.bitmap[i].u = L'–';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 3, 3, 3, 3
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L' ';
+                E_font_S_font.bitmap[i].width = 1;
+                N8 *bitmap_ = ( N8 [] )
+                { 0
+                , 0
+                , 0
+                , 0
+                , 0
+                , 0
+                , 0
+                , 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 132:
-              E_font_S_font.bitmap[i].u = L'—';
-              E_font_S_font.bitmap[i].width = 5;
-              bitmap = &((N8 [])
-              { 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              , 3, 3, 3, 3, 3
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'‐';
+                E_font_S_font.bitmap[i].width = 2;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0
+                , 0, 0
+                , 0, 0
+                , 3, 3
+                , 0, 0
+                , 0, 0
+                , 0, 0
+                , 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 133:
-              E_font_S_font.bitmap[i].u = L'≈';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 0, 0, 0, 0
-              , 1, 3, 1, 3
-              , 3, 1, 3, 1
-              , 0, 0, 0, 0
-              , 1, 3, 1, 3
-              , 3, 1, 3, 1
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'‒';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 3, 3, 3, 3
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 134:
-              E_font_S_font.bitmap[i].u = L'±';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 0, 0, 0
-              , 0, 3, 0
-              , 3, 3, 3
-              , 0, 3, 0
-              , 3, 3, 3
-              , 0, 0, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'–';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 3, 3, 3, 3
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 135:
-              E_font_S_font.bitmap[i].u = L'⁃';
-              E_font_S_font.bitmap[i].width = 2;
-              bitmap = &((N8 [])
-              { 0, 0
-              , 0, 0
-              , 2, 2
-              , 3, 3
-              , 0, 0
-              , 0, 0
-              , 0, 0
-              , 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'—';
+                E_font_S_font.bitmap[i].width = 5;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                , 3, 3, 3, 3, 3
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 136:
-              E_font_S_font.bitmap[i].u = L'―';
-              E_font_S_font.bitmap[i].width = 5;
-              bitmap = &((N8 [])
-              { 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              , 3, 3, 3, 3, 3
-              , 3, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'―';
+                E_font_S_font.bitmap[i].width = 5;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                , 3, 3, 3, 3, 3
+                , 3, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 137:
-              E_font_S_font.bitmap[i].u = L'‣';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 0, 0, 0
-              , 0, 0, 0
-              , 3, 2, 0
-              , 3, 3, 3
-              , 3, 2, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'‘';
+                E_font_S_font.bitmap[i].width = 2;
+                N8 *bitmap_ = ( N8 [] )
+                { 1, 2
+                , 3, 0
+                , 0, 0
+                , 0, 0
+                , 0, 0
+                , 0, 0
+                , 0, 0
+                , 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 138:
-              E_font_S_font.bitmap[i].u = L'•';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 0, 0, 0
-              , 0, 0, 0
-              , 2, 3, 2
-              , 3, 3, 3
-              , 2, 3, 2
-              , 0, 0, 0
-              , 0, 0, 0
-              , 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'’';
+                E_font_S_font.bitmap[i].width = 2;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 3
+                , 2, 1
+                , 0, 0
+                , 0, 0
+                , 0, 0
+                , 0, 0
+                , 0, 0
+                , 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 139:
-              E_font_S_font.bitmap[i].u = L'®';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 1, 3, 3, 1
-              , 3, 1, 2, 3
-              , 3, 1, 2, 3
-              , 1, 3, 3, 1
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'‚';
+                E_font_S_font.bitmap[i].width = 2;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0
+                , 0, 0
+                , 0, 0
+                , 0, 0
+                , 0, 0
+                , 0, 3
+                , 2, 1
+                , 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 140:
-              E_font_S_font.bitmap[i].u = L'℠';
-              E_font_S_font.bitmap[i].width = 5;
-              bitmap = &((N8 [])
-              { 0, 3, 2, 0, 3
-              , 3, 0, 3, 2, 3
-              , 0, 3, 2, 3, 3
-              , 3, 0, 3, 0, 3
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'‛';
+                E_font_S_font.bitmap[i].width = 2;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 0
+                , 1, 2
+                , 0, 0
+                , 0, 0
+                , 0, 0
+                , 0, 0
+                , 0, 0
+                , 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 141:
-              E_font_S_font.bitmap[i].u = L'©';
-              E_font_S_font.bitmap[i].width = 5;
-              bitmap = &((N8 [])
-              { 1, 3, 3, 3, 1
-              , 3, 1, 2, 0, 3
-              , 3, 2, 0, 0, 3
-              , 3, 1, 2, 0, 3
-              , 1, 3, 3, 3, 1
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'“';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 1, 2, 1, 2
+                , 3, 0, 3, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 142:
-              E_font_S_font.bitmap[i].u = L'™';
-              E_font_S_font.bitmap[i].width = 5;
-              bitmap = &((N8 [])
-              { 3, 3, 3, 0, 3
-              , 0, 3, 2, 2, 3
-              , 0, 3, 2, 3, 3
-              , 0, 3, 2, 0, 3
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'”';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 3, 0, 3
+                , 2, 1, 2, 1
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 143:
-              E_font_S_font.bitmap[i].u = L'µ';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 0, 0, 0
-              , 0, 0, 0
-              , 3, 0, 3
-              , 3, 0, 3
-              , 3, 0, 3
-              , 2, 3, 3
-              , 3, 0, 0
-              , 3, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'„';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 3, 0, 3
+                , 2, 1, 2, 1
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 144:
-              E_font_S_font.bitmap[i].u = L'❛';
-              E_font_S_font.bitmap[i].width = 2;
-              bitmap = &((N8 [])
-              { 1, 2
-              , 3, 0
-              , 3, 0
-              , 0, 0
-              , 0, 0
-              , 0, 0
-              , 0, 0
-              , 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'‟';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 0, 3, 0
+                , 1, 2, 1, 2
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 145:
-              E_font_S_font.bitmap[i].u = L'❝';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 1, 2, 1, 2
-              , 3, 0, 3, 0
-              , 3, 0, 3, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'•';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0
+                , 0, 0, 0
+                , 2, 3, 2
+                , 3, 3, 3
+                , 2, 3, 2
+                , 0, 0, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 146:
-              E_font_S_font.bitmap[i].u = L'❜';
-              E_font_S_font.bitmap[i].width = 2;
-              bitmap = &((N8 [])
-              { 0, 3
-              , 0, 3
-              , 2, 1
-              , 0, 0
-              , 0, 0
-              , 0, 0
-              , 0, 0
-              , 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'‣';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0
+                , 0, 0, 0
+                , 3, 2, 0
+                , 3, 3, 3
+                , 3, 2, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 147:
-              E_font_S_font.bitmap[i].u = L'❞';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 0, 3, 0, 3
-              , 0, 3, 0, 3
-              , 2, 1, 2, 1
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'…';
+                E_font_S_font.bitmap[i].width = 5;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                , 3, 0, 3, 0, 3
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 148:
-              E_font_S_font.bitmap[i].u = L'⁅';
-              E_font_S_font.bitmap[i].width = 2;
-              bitmap = &((N8 [])
-              { 3, 3
-              , 3, 0
-              , 3, 3
-              , 3, 0
-              , 3, 0
-              , 3, 3
-              , 0, 0
-              , 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'′';
+                E_font_S_font.bitmap[i].width = 2;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 3
+                , 3, 0
+                , 0, 0
+                , 0, 0
+                , 0, 0
+                , 0, 0
+                , 0, 0
+                , 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 149:
-              E_font_S_font.bitmap[i].u = L'〈';
-              E_font_S_font.bitmap[i].width = 2;
-              bitmap = &((N8 [])
-              { 0, 3
-              , 1, 1
-              , 3, 0
-              , 3, 0
-              , 1, 1
-              , 0, 3
-              , 0, 0
-              , 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'‹';
+                E_font_S_font.bitmap[i].width = 2;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0
+                , 0, 0
+                , 0, 3
+                , 3, 0
+                , 0, 3
+                , 0, 0
+                , 0, 0
+                , 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 150:
-              E_font_S_font.bitmap[i].u = L'⁆';
-              E_font_S_font.bitmap[i].width = 2;
-              bitmap = &((N8 [])
-              { 3, 3
-              , 0, 3
-              , 3, 3
-              , 0, 3
-              , 0, 3
-              , 3, 3
-              , 0, 0
-              , 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'›';
+                E_font_S_font.bitmap[i].width = 2;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0
+                , 0, 0
+                , 3, 0
+                , 0, 3
+                , 3, 0
+                , 0, 0
+                , 0, 0
+                , 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 151:
-              E_font_S_font.bitmap[i].u = L'〉';
-              E_font_S_font.bitmap[i].width = 2;
-              bitmap = &((N8 [])
-              { 3, 0
-              , 1, 1
-              , 0, 3
-              , 0, 3
-              , 1, 1
-              , 3, 0
-              , 0, 0
-              , 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'‽';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 1, 3, 1
+                , 2, 2, 3
+                , 0, 2, 3
+                , 0, 3, 0
+                , 0, 0, 0
+                , 0, 3, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 152:
-              E_font_S_font.bitmap[i].u = L' ';
-              E_font_S_font.bitmap[i].width = 0;
-              break;
+            {   E_font_S_font.bitmap[i].u = L'⁂';
+                E_font_S_font.bitmap[i].width = 5;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 1, 3, 1, 0
+                , 0, 3, 3, 3, 0
+                , 0, 1, 3, 1, 0
+                , 1, 3, 1, 3, 1
+                , 3, 3, 3, 3, 3
+                , 1, 3, 1, 3, 1
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 153:
-              E_font_S_font.bitmap[i].u = L'¦';
-              E_font_S_font.bitmap[i].width = 1;
-              bitmap = &((N8 [])
-              { 3
-              , 3
-              , 1
-              , 1
-              , 3
-              , 3
-              , 0
-              , 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'⁃';
+                E_font_S_font.bitmap[i].width = 2;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0
+                , 0, 0
+                , 2, 2
+                , 3, 3
+                , 0, 0
+                , 0, 0
+                , 0, 0
+                , 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 154:
-              E_font_S_font.bitmap[i].u = L'‐';
-              E_font_S_font.bitmap[i].width = 2;
-              bitmap = &((N8 [])
-              { 0, 0
-              , 0, 0
-              , 0, 0
-              , 3, 3
-              , 0, 0
-              , 0, 0
-              , 0, 0
-              , 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'⁄';
+                E_font_S_font.bitmap[i].width = 5;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0, 2, 3
+                , 0, 0, 0, 3, 0
+                , 0, 0, 3, 1, 0
+                , 0, 1, 3, 0, 0
+                , 0, 3, 0, 0, 0
+                , 3, 2, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 155:
-              E_font_S_font.bitmap[i].u = L'՚';
-              E_font_S_font.bitmap[i].width = 1;
-              bitmap = &((N8 [])
-              { 3
-              , 2
-              , 0
-              , 0
-              , 0
-              , 0
-              , 0
-              , 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'⁅';
+                E_font_S_font.bitmap[i].width = 2;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 3
+                , 3, 0
+                , 3, 3
+                , 3, 0
+                , 3, 0
+                , 3, 3
+                , 0, 0
+                , 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 156:
-              E_font_S_font.bitmap[i].u = L'‛';
-              E_font_S_font.bitmap[i].width = 2;
-              bitmap = &((N8 [])
-              { 3, 0
-              , 1, 2
-              , 0, 0
-              , 0, 0
-              , 0, 0
-              , 0, 0
-              , 0, 0
-              , 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'⁆';
+                E_font_S_font.bitmap[i].width = 2;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 3
+                , 0, 3
+                , 3, 3
+                , 0, 3
+                , 0, 3
+                , 3, 3
+                , 0, 0
+                , 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 157:
-              E_font_S_font.bitmap[i].u = L'‟';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 3, 0, 3, 0
-              , 1, 2, 1, 2
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'⁋';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 3, 3, 1
+                , 3, 0, 3, 3
+                , 3, 0, 3, 1
+                , 3, 0, 3, 0
+                , 3, 0, 3, 0
+                , 3, 0, 3, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 158:
-              E_font_S_font.bitmap[i].u = L'‚';
-              E_font_S_font.bitmap[i].width = 2;
-              bitmap = &((N8 [])
-              { 0, 0
-              , 0, 0
-              , 0, 0
-              , 0, 0
-              , 0, 0
-              , 0, 3
-              , 2, 1
-              , 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'⁑';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 1, 3, 1
+                , 3, 3, 3
+                , 1, 3, 1
+                , 1, 3, 1
+                , 3, 3, 3
+                , 1, 3, 1
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 159:
-              E_font_S_font.bitmap[i].u = L'„';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 3, 0, 3
-              , 2, 1, 2, 1
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L' ';
+                E_font_S_font.bitmap[i].width = 1;
+                N8 *bitmap_ = ( N8 [] )
+                { 0
+                , 0
+                , 0
+                , 0
+                , 0
+                , 0
+                , 0
+                , 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 160:
-              E_font_S_font.bitmap[i].u = L'‘';
-              E_font_S_font.bitmap[i].width = 2;
-              bitmap = &((N8 [])
-              { 1, 2
-              , 3, 0
-              , 0, 0
-              , 0, 0
-              , 0, 0
-              , 0, 0
-              , 0, 0
-              , 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'€';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 1, 3, 3
+                , 1, 3, 0, 0
+                , 3, 2, 2, 0
+                , 3, 2, 2, 0
+                , 1, 3, 0, 0
+                , 0, 1, 3, 3
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 161:
-              E_font_S_font.bitmap[i].u = L'“';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 1, 2, 1, 2
-              , 3, 0, 3, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'№';
+                E_font_S_font.bitmap[i].width = 5;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 0, 3, 0, 0
+                , 3, 1, 3, 0, 0
+                , 3, 3, 3, 2, 3
+                , 3, 2, 3, 2, 3
+                , 3, 1, 3, 0, 0
+                , 3, 0, 3, 2, 2
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 162:
-              E_font_S_font.bitmap[i].u = L'’';
-              E_font_S_font.bitmap[i].width = 2;
-              bitmap = &((N8 [])
-              { 0, 3
-              , 2, 1
-              , 0, 0
-              , 0, 0
-              , 0, 0
-              , 0, 0
-              , 0, 0
-              , 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'℠';
+                E_font_S_font.bitmap[i].width = 5;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 3, 2, 0, 3
+                , 3, 0, 3, 2, 3
+                , 0, 3, 2, 3, 3
+                , 3, 0, 3, 0, 3
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 163:
-              E_font_S_font.bitmap[i].u = L'”';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 0, 3, 0, 3
-              , 2, 1, 2, 1
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'™';
+                E_font_S_font.bitmap[i].width = 5;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 3, 3, 0, 3
+                , 0, 3, 2, 2, 3
+                , 0, 3, 2, 3, 3
+                , 0, 3, 2, 0, 3
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 164:
-              E_font_S_font.bitmap[i].u = L'⏎';
-              E_font_S_font.bitmap[i].width = 5;
-              bitmap = &((N8 [])
-              { 0, 0, 0, 3, 3
-              , 0, 3, 0, 3, 3
-              , 1, 3, 3, 3, 3
-              , 3, 0, 0, 0, 3
-              , 1, 3, 3, 3, 3
-              , 0, 3, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'⇢';
+                E_font_S_font.bitmap[i].width = 5;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 3, 0
+                , 3, 0, 3, 3, 3
+                , 0, 0, 0, 3, 0
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 165:
-              E_font_S_font.bitmap[i].u = L'⁋';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 3, 3, 3, 1
-              , 3, 0, 3, 3
-              , 3, 0, 3, 1
-              , 3, 0, 3, 0
-              , 3, 0, 3, 0
-              , 3, 0, 3, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'−';
+                E_font_S_font.bitmap[i].width = 3;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0
+                , 0, 0, 0
+                , 3, 3, 3
+                , 0, 0, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                , 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 166:
-              E_font_S_font.bitmap[i].u = L'✓';
-              E_font_S_font.bitmap[i].width = 5;
-              bitmap = &((N8 [])
-              { 0, 0, 0, 0, 3
-              , 0, 0, 0, 3, 0
-              , 0, 0, 0, 2, 0
-              , 0, 0, 3, 0, 0
-              , 3, 0, 2, 0, 0
-              , 0, 3, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'≈';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0, 0
+                , 1, 3, 1, 3
+                , 3, 1, 3, 1
+                , 0, 0, 0, 0
+                , 1, 3, 1, 3
+                , 3, 1, 3, 1
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 167:
-              E_font_S_font.bitmap[i].u = L'·';
-              E_font_S_font.bitmap[i].width = 1;
-              bitmap = &((N8 [])
-              { 0
-              , 0
-              , 0
-              , 3
-              , 0
-              , 0
-              , 0
-              , 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'〈';
+                E_font_S_font.bitmap[i].width = 2;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 3
+                , 1, 1
+                , 3, 0
+                , 3, 0
+                , 1, 1
+                , 0, 3
+                , 0, 0
+                , 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 168:
-              E_font_S_font.bitmap[i].u = L'…';
-              E_font_S_font.bitmap[i].width = 5;
-              bitmap = &((N8 [])
-              { 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              , 3, 0, 3, 0, 3
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'〉';
+                E_font_S_font.bitmap[i].width = 2;
+                N8 *bitmap_ = ( N8 [] )
+                { 3, 0
+                , 1, 1
+                , 0, 3
+                , 0, 3
+                , 1, 1
+                , 3, 0
+                , 0, 0
+                , 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 169:
-              E_font_S_font.bitmap[i].u = L'‹';
-              E_font_S_font.bitmap[i].width = 2;
-              bitmap = &((N8 [])
-              { 0, 0
-              , 0, 0
-              , 0, 3
-              , 3, 0
-              , 0, 3
-              , 0, 0
-              , 0, 0
-              , 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'⏎';
+                E_font_S_font.bitmap[i].width = 5;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0, 3, 3
+                , 0, 3, 0, 3, 3
+                , 1, 3, 3, 3, 3
+                , 3, 0, 0, 0, 3
+                , 1, 3, 3, 3, 3
+                , 0, 3, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 170:
-              E_font_S_font.bitmap[i].u = L'«';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 3, 0, 3
-              , 3, 0, 3, 0
-              , 0, 3, 0, 3
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'✓';
+                E_font_S_font.bitmap[i].width = 5;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0, 0, 3
+                , 0, 0, 0, 3, 0
+                , 0, 0, 0, 2, 0
+                , 0, 0, 3, 0, 0
+                , 3, 0, 2, 0, 0
+                , 0, 3, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 171:
-              E_font_S_font.bitmap[i].u = L'›';
-              E_font_S_font.bitmap[i].width = 2;
-              bitmap = &((N8 [])
-              { 0, 0
-              , 0, 0
-              , 3, 0
-              , 0, 3
-              , 3, 0
-              , 0, 0
-              , 0, 0
-              , 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'❛';
+                E_font_S_font.bitmap[i].width = 2;
+                N8 *bitmap_ = ( N8 [] )
+                { 1, 2
+                , 3, 0
+                , 3, 0
+                , 0, 0
+                , 0, 0
+                , 0, 0
+                , 0, 0
+                , 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 172:
-              E_font_S_font.bitmap[i].u = L'»';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 3, 0, 3, 0
-              , 0, 3, 0, 3
-              , 3, 0, 3, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'❜';
+                E_font_S_font.bitmap[i].width = 2;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 3
+                , 0, 3
+                , 2, 1
+                , 0, 0
+                , 0, 0
+                , 0, 0
+                , 0, 0
+                , 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 173:
-              E_font_S_font.bitmap[i].u = L' ';
-              E_font_S_font.bitmap[i].width = 5;
-              bitmap = &((N8 [])
-              { 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              , 0, 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'❝';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 1, 2, 1, 2
+                , 3, 0, 3, 0
+                , 3, 0, 3, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 174:
-              E_font_S_font.bitmap[i].u = L'¿';
-              E_font_S_font.bitmap[i].width = 3;
-              bitmap = &((N8 [])
-              { 0, 0, 0
-              , 0, 0, 0
-              , 0, 3, 0
-              , 0, 0, 0
-              , 0, 3, 0
-              , 3, 0, 0
-              , 3, 0, 2
-              , 1, 3, 1
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'❞';
+                E_font_S_font.bitmap[i].width = 4;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 3, 0, 3
+                , 0, 3, 0, 3
+                , 2, 1, 2, 1
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                , 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 175:
-              E_font_S_font.bitmap[i].u = L'€';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 0, 1, 3, 3
-              , 1, 3, 0, 0
-              , 3, 2, 2, 0
-              , 3, 2, 2, 0
-              , 1, 3, 0, 0
-              , 0, 1, 3, 3
-              , 0, 0, 0, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'➪';
+                E_font_S_font.bitmap[i].width = 5;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0, 0, 0
+                , 0, 0, 3, 0, 0
+                , 3, 3, 3, 3, 0
+                , 3, 0, 0, 0, 3
+                , 3, 3, 3, 3, 0
+                , 0, 0, 3, 0, 0
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
           case 176:
-              E_font_S_font.bitmap[i].u = L'¢';
-              E_font_S_font.bitmap[i].width = 4;
-              bitmap = &((N8 [])
-              { 0, 0, 2, 0
-              , 0, 3, 3, 3
-              , 2, 1, 2, 0
-              , 3, 0, 2, 0
-              , 2, 1, 2, 0
-              , 0, 3, 3, 3
-              , 0, 0, 2, 0
-              , 0, 0, 0, 0
-              })[0];
-              break;
+            {   E_font_S_font.bitmap[i].u = L'〃';
+                E_font_S_font.bitmap[i].width = 5;
+                N8 *bitmap_ = ( N8 [] )
+                { 0, 0, 0, 0, 0
+                , 0, 0, 3, 0, 3
+                , 0, 3, 0, 3, 0
+                , 0, 3, 0, 3, 0
+                , 3, 0, 3, 0, 0
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                , 0, 0, 0, 0, 0
+                };
+                bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                if( !bitmap )
+                    return ~2;
+                E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
+                break;
+            }
         }
         Mt_( E_font_S_font.bitmap[i].bitmap, E_font_S_font.bitmap[i].width * E_font_S_font.height / 4 + ( E_font_S_font.bitmap[i].width * E_font_S_font.height % 4 ? 1 : 0 ));
         if( !E_font_S_font.bitmap[i].bitmap )
@@ -2513,7 +3410,6 @@ E_font_M( void
         if( j % 4 == 1 || j % 4 == 2 || j % 4 == 3 )
             E_font_S_font.bitmap[i].bitmap[ j / 4 + 1 ] = c;
     }
-    //TODO Posortować i w innych procedurach wyszukiwać binarnie.
     return 0;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -2526,13 +3422,27 @@ E_font_T_print_u(
 , N32 *font_i
 ){  thickness++;
     N dx;
-    for_n( i, E_font_S_font.bitmap_n )
-        if( E_font_S_font.bitmap[i].u == *u )
-        {   dx = E_font_S_font.bitmap[i].width;
+    N32 min = 0;
+    N32 max = E_font_S_font.bitmap_n - 1;
+    N32 i = max / 2;
+    O{  if( E_font_S_font.bitmap[i].u == *u )
             break;
+        if( E_font_S_font.bitmap[i].u > *u )
+        {   if( i == min )
+                break;
+            max = i - 1;
+            i = max - ( i - min ) / 2;
+        }else
+        {   if( i == max )
+                break;
+            min = i + 1;
+            i = min + ( max - i ) / 2;
         }
-    if( i == E_font_S_font.bitmap_n )
-    {   i = 0;
+    }
+    if( E_font_S_font.bitmap[i].u == *u )
+        dx = E_font_S_font.bitmap[i].width;
+    else
+    {   i = E_font_S_font.default_i;
         *u = E_font_S_font.bitmap[i].u;
         dx = E_font_S_font.bitmap[i].width;
     }
