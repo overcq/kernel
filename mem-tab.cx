@@ -48,20 +48,26 @@ E_mem_Q_tab_M(
     return tab_;
 }
 _export
-void
+N
 E_mem_Q_tab_W( struct E_mem_Q_tab_Z *tab_
 ){  if( tab_->iterator )
     {   for_each( i, tab_->iterator, E_mem_Q_tab )
         {   struct E_mem_Q_tab_S_iterator_Z *iterator = (P)tab_->iterator->index[i];
-            W( iterator->index );
+            if( W( iterator->index ))
+                return ~1;
         }
-        W( tab_->iterator->data );
-        W( tab_->iterator->index );
-        W( tab_->iterator );
+        if( W( tab_->iterator->data )
+        || W( tab_->iterator->index )
+        || W( tab_->iterator )
+        )
+            return ~1;
     }
-    W( tab_->data );
-    W( tab_->index );
-    W(tab_);
+    if( W( tab_->data )
+    || W( tab_->index )
+    || W(tab_)
+    )
+        return ~1;
+    return 0;
 }
 //------------------------------------------------------------------------------
 _export

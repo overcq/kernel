@@ -1104,6 +1104,8 @@ E_window_files_M( N8 desktop_id
     data->column_margin_width = 20;
     data->font_size = 1;
     data->thickness = 1;
+    if( E_controls_M( desktop_id, window_id ))
+        return ~2;
     struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
     window->data = data;
     return window_id;

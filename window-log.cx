@@ -210,6 +210,7 @@ E_window_log_M( N8 desktop_id
     if( window_id < 0 )
         return window_id;
     struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
+    window->controls_data = 0;
     window->data = data;
     return window_id;
 }
