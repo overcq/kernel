@@ -9,21 +9,168 @@
 *******************************************************************************/
 // W przyszłości usunąć możliwość wypisywania z przerwań.
 //==============================================================================
-_private volatile Pc E_se_log_S_buffer;
-_private volatile N E_se_log_S_buffer_l;
+enum E_se_log_Z_element_Z_type
+{ E_se_log_Z_element_Z_type_S_format
+, E_se_log_Z_element_Z_type_S_nl
+, E_se_log_Z_element_Z_type_S_string
+, E_se_log_Z_element_Z_type_S_static_string
+, E_se_log_Z_element_Z_type_S_other
+};
+struct E_se_log_Z_element
+{ union
+  { Pc s;
+    N n;
+  };
+  enum E_se_log_Z_element_Z_type type;
+};
+//==============================================================================
+_private volatile struct E_se_log_Z_element *E_se_log_S_element;
+_private volatile N E_se_log_S_element_n;
 _private volatile N E_se_log_S_lines;
 //==============================================================================
 _private
 N
 E_se_log_M( void
-){  E_se_log_S_buffer_l = 0;
-    E_se_log_S_buffer = M( E_se_log_S_buffer_l );
-    if( !E_se_log_S_buffer )
+){  E_se_log_S_element_n = 0;
+    Mt_( E_se_log_S_element, E_se_log_S_element_n );
+    if( !E_se_log_S_element )
         return ~0;
     E_se_log_S_lines = 1;
     return 0;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_internal
+N
+E_se_log_I_vslog(
+  Pc fmt
+, va_list args
+){  N output_n = 1;
+    struct E_se_log_Z_element *Mt_( output, output_n );
+    if( !output )
+        return ~0;
+    output->s = fmt;
+    output->type = E_se_log_Z_element_Z_type_S_format;
+    N8 inside_arg = 0;
+    N8 size;
+    while( *fmt )
+    {   U u = ~0;
+        Pc s = E_text_Z_su_R_u( fmt, &u );
+        if( s == fmt )
+        {   W(output);
+            return ~0;
+        }
+        if( !~u )
+            break;
+        if( inside_arg )
+        {   if( inside_arg == 1
+            && u == '%'
+            )
+                inside_arg = 0;
+            else if( inside_arg == 1
+            && u == '8'
+            )
+                size = 1;
+            else if( inside_arg == 1
+            && ( u == '1'
+              || u == '3'
+            ))
+                size = u;
+            else if( inside_arg == 2
+            && size == '1'
+            && u == '6'
+            )
+                size = sizeof( N16 );
+            else if( inside_arg = 2
+            && size == '3'
+            && u == '2'
+            )
+                size = sizeof( N32 );
+            else
+            {   if( inside_arg > 1
+                && size != 1
+                && size != sizeof( N16 )
+                && size != sizeof( N32 )
+                )
+                {   W(output);
+                    return ~0;
+                }
+                switch(u)
+                { case 's':
+                  case 't':
+                  case 'z':
+                    {   if(size)
+                        {   W(output);
+                            return ~0;
+                        }
+                        Pc s = va_arg( args, Pc );
+                        struct E_se_log_Z_element *element = E_mem_Q_blk_I_append( &output, 1 );
+                        if( !element )
+                        {   W(output);
+                            return ~0;
+                        }
+                        output_n++;
+                        if( u == 't' )
+                        {   s = E_text_Z_s0_M_duplicate(s);
+                            if( !s )
+                            {   W(output);
+                                return ~0;
+                            }
+                        }
+                        element->s = s;
+                        element->type = u != 'z' ? E_se_log_Z_element_Z_type_S_string : E_se_log_Z_element_Z_type_S_static_string;
+                        inside_arg = 0;
+                        goto Cont;
+                    }
+                  case 'x':
+                    {   N n;
+                        switch(size)
+                        { case 0:
+                                n = va_arg( args, N );
+                                size = sizeof(N);
+                                break;
+                          case 1:
+                          case sizeof(N16):
+                                n = va_arg( args, int );
+                                break;
+                          case sizeof(N32):
+                                n = va_arg( args, N32 );
+                                break;
+                        }
+                        struct E_se_log_Z_element *element = E_mem_Q_blk_I_append( &output, 1 );
+                        if( !element )
+                        {   W(output);
+                            return ~0;
+                        }
+                        output_n++;
+                        element->n = n;
+                        element->type = E_se_log_Z_element_Z_type_S_other;
+                        inside_arg = 0;
+                        goto Cont;
+                    }
+                  default:
+                        W(output);
+                        return ~0;
+                }
+            }
+        }else if( u == '%' )
+        {   size = 0;
+            inside_arg++;
+            goto Cont;
+        }
+        if( inside_arg )
+            inside_arg++;
+Cont:   fmt = s;
+    }
+    struct E_se_log_Z_element *element = E_mem_Q_blk_I_append( &E_se_log_S_element, output_n );
+    if( !element )
+    {   N r = W(output);
+        return r ? ~1 : ~0;
+    }
+    E_mem_Q_blk_I_copy( element, output, output_n * sizeof( *output ));
+    E_se_log_S_element_n += output_n;
+    N r = W(output);
+    return r ? ~1 : 0;
+}
 _private
 N
 E_se_log_I_log( Pc scope
@@ -31,61 +178,30 @@ E_se_log_I_log( Pc scope
 , ...
 ){  E_flow_I_cli();
     N r;
-    Pc s_1 = M(1);
-    if( !s_1 )
-    {   E_flow_I_sti();
-        return ~0;
-    }
-    *s_1 = '\n';
-    r = E_text_Z_s_I_append_s0( &s_1, scope );
-    if( !r )
+    N element_i = E_se_log_S_element_n;
+    struct E_se_log_Z_element *element = E_mem_Q_blk_I_append( &E_se_log_S_element, 1 );
+    if( !element )
     {   r = ~0;
-        goto End_0;
+        goto End;
     }
-    r = E_text_Z_s_I_append_s0_0( &s_1, ": " );
-    if( !r )
-    {   r = ~0;
-        goto End_0;
-    }
-    r = E_text_Z_s_I_append_s0( &E_se_log_S_buffer, s_1 );
-    if( !r )
-    {   r = ~0;
-        goto End_0;
-    }
-    E_se_log_S_buffer_l += E_text_Z_s0_R_l( s_1 );
+    element->s = scope;
+    element->type = E_se_log_Z_element_Z_type_S_nl;
+    E_se_log_S_element_n++;
     E_se_log_S_lines++;
-    Pc s_2;
     va_list args;
     va_start( args, fmt );
-    r = E_text_I_vsprintf( &s_2, fmt, args );
+    r = E_se_log_I_vslog( fmt, args );
     va_end(args);
     if(r)
-        goto End_0;
-    r = E_text_Z_s_I_append_s0( &E_se_log_S_buffer, s_2 );
-    if( !r )
-    {   r = ~0;
-        goto End_1;
-    }
-    E_se_log_S_buffer_l += E_text_Z_s0_R_l( s_2 );
+        goto End;
     if( E_emerg_print_S_active )
-    {   r = E_emerg_print_I_print( s_1 );
-        if(r)
-            goto End_1;
-        r = E_emerg_print_I_print( s_2 );
-    }else
+        r = E_emerg_print_I_log_print( element_i );
+    else
     {   if( E_windows_Q_window_class_T_visible( &E_window_log_I_draw ))
             X_F( gui, draw );
         r = 0;
     }
-End_1:
-    N r_ = W( s_2 );
-    if( !r )
-        r = r_;
-End_0:
-    r_ = W( s_1 );
-    if( !r )
-        r = r_;
-    E_flow_I_sti();
+End:E_flow_I_sti();
     return r;
 }
 _private
@@ -93,33 +209,191 @@ N
 E_se_log_I_log_( Pc fmt
 , ...
 ){  E_flow_I_cli();
-    Pc s;
+    N element_i = E_se_log_S_element_n;
     va_list args;
     va_start( args, fmt );
-    N r = E_text_I_vsprintf( &s, fmt, args );
+    N r = E_se_log_I_vslog( fmt, args );
     va_end(args);
     if(r)
-    {   E_flow_I_sti();
-        return r;
-    }
-    r = E_text_Z_s_I_append_s0( &E_se_log_S_buffer, s );
-    if( !r )
-    {   r = ~0;
-        goto End_0;
-    }
-    E_se_log_S_buffer_l += E_text_Z_s0_R_l(s);
+        goto End;
     if( E_emerg_print_S_active )
-        r = E_emerg_print_I_print(s);
+        r = E_emerg_print_I_log_print( element_i );
     else
     {   if( E_windows_Q_window_class_T_visible( &E_window_log_I_draw ))
             X_F( gui, draw );
         r = 0;
     }
-End_0:
-    N r_ = W(s);
-    if( !r )
-        r = r_;
-    E_flow_I_sti();
+End:E_flow_I_sti();
     return r;
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Podaje tekst powstający z pojedynczego tekstu formatującego, na który wskazuje element, uwzględniając ewentualny znak końca wiersza w pierwszym elemencie.
+_private
+Pc
+E_se_log_Q_element_I_print( N *element_i
+){  Pc output = M(0);
+    if( !output )
+        return 0;
+    if( E_se_log_S_element[ *element_i ].type == E_se_log_Z_element_Z_type_S_nl )
+    {   Pc r = E_text_Z_s_I_append_c( &output, '\n' );
+        if( !r )
+        {   W(output);
+            return 0;
+        }
+        r = E_text_Z_s_I_append_s0( &output, E_se_log_S_element[ *element_i ].s );
+        if( !r )
+        {   W(output);
+            return 0;
+        }
+        r = E_text_Z_s_I_append_s0( &output, ": " );
+        if( !r )
+        {   W(output);
+            return 0;
+        }
+        ( *element_i )++;
+    }
+    N8 inside_arg = 0;
+    N8 size;
+    Pc fmt = E_se_log_S_element[ ( *element_i )++ ].s;
+    while( *fmt )
+    {   U u = ~0;
+        Pc s = E_text_Z_su_R_u( fmt, &u );
+        if( s == fmt )
+        {   W(output);
+            return 0;
+        }
+        if( !~u )
+            break;
+        if( inside_arg )
+        {   if( inside_arg == 1
+            && u == '%'
+            )
+                inside_arg = 0;
+            else if( inside_arg == 1
+            && u == '8'
+            )
+                size = 1;
+            else if( inside_arg == 1
+            && ( u == '1'
+              || u == '3'
+            ))
+                size = u;
+            else if( inside_arg == 2
+            && size == '1'
+            && u == '6'
+            )
+                size = sizeof( N16 );
+            else if( inside_arg = 2
+            && size == '3'
+            && u == '2'
+            )
+                size = sizeof( N32 );
+            else
+            {   if( inside_arg > 1
+                && size != 1
+                && size != sizeof( N16 )
+                && size != sizeof( N32 )
+                )
+                {   W(output);
+                    return 0;
+                }
+                switch(u)
+                { case 's':
+                  case 't':
+                  case 'z':
+                    {   if(size)
+                        {   W(output);
+                            return 0;
+                        }
+                        Pc s = E_se_log_S_element[ ( *element_i )++ ].s;
+                        while( *s )
+                        {   U u = ~0;
+                            Pc s_ = E_text_Z_su_R_u( s, &u );
+                            if( s_ == s )
+                            {   W(output);
+                                return 0;
+                            }
+                            if( !~u )
+                                break;
+                            Pc r = E_text_Z_s_I_append_s( &output, s, s_ );
+                            if( !r )
+                            {   W(output);
+                                return 0;
+                            }
+                            s = s_;
+                        }
+                        inside_arg = 0;
+                        goto Cont;
+                    }
+                  case 'x':
+                    {   N n = E_se_log_S_element[ ( *element_i )++ ].n;
+                        if( !size )
+                            size = sizeof(N);
+                        Pc r = E_text_Z_s_I_append_s0( &output, "0x" );
+                        if( !r )
+                        {   W(output);
+                            return 0;
+                        }
+                        for_n_rev( i, size * 2 )
+                        {   U u = ( n >> ( i * 4 )) & 0xf;
+                            if( u < 10 )
+                                u += '0';
+                            else
+                                u += 'a' - 10;
+                            r = E_text_Z_s_I_append_c( &output, u );
+                            if( !r )
+                            {   W(output);
+                                return 0;
+                            }
+                            if( i
+                            && i % 4 == 0
+                            )
+                            {   r = E_text_Z_s_I_append_c( &output, '\'' );
+                                if( !r )
+                                {   W(output);
+                                    return 0;
+                                }
+                            }
+                        }
+                        inside_arg = 0;
+                        goto Cont;
+                    }
+                  default:
+                        W(output);
+                        return 0;
+                }
+            }
+        }else if( u == '%' )
+        {   size = 0;
+            inside_arg++;
+            goto Cont;
+        }
+        if( inside_arg )
+            inside_arg++;
+        else
+        {   Pc r = E_text_Z_s_I_append_s( &output, fmt, s );
+            if( !r )
+            {   W(output);
+                return 0;
+            }
+        }
+Cont:   fmt = s;
+    }
+End:
+    Pc r = E_text_Z_s_I_append_c( &output, '\0' );
+    if( !r )
+    {   W(output);
+        return 0;
+    }
+    return output;
+}
+_private
+void
+E_se_log_Q_element_R_prev( N *element_i
+){  while( E_se_log_S_element[ --*element_i ].type != E_se_log_Z_element_Z_type_S_format ){}
+    if( *element_i
+    && E_se_log_S_element[ *element_i - 1 ].type == E_se_log_Z_element_Z_type_S_nl
+    )
+        ( *element_i )--;
 }
 /******************************************************************************/

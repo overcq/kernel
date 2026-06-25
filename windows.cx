@@ -111,17 +111,6 @@ E_windows_Q_desktop_W( N8 desktop_id
         {   E_flow_I_sti();
             return ~2;
         }
-        I windows = E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ desktop_id ].window );
-        E_windows_Q_desktop_S[ desktop_id ].button_width = windows ? E_main_S_framebuffer.width / windows : E_main_S_framebuffer.width;
-        if( E_windows_Q_desktop_S[ desktop_id ].button_width < E_gui_Q_taskbar_S_button_min_width )
-        {   E_windows_Q_desktop_S[ desktop_id ].button_width = E_gui_Q_taskbar_S_button_min_width;
-            E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons = E_main_S_framebuffer.width / E_windows_Q_desktop_S[ desktop_id ].button_width;
-            if( E_windows_Q_desktop_S[ desktop_id ].visible_button_start > windows - E_windows_Q_desktop_S[ desktop_id ].visible_buttons )
-                E_windows_Q_desktop_S[ desktop_id ].visible_button_start = windows - E_windows_Q_desktop_S[ desktop_id ].visible_buttons;
-        }else
-        {   E_windows_Q_desktop_S[ desktop_id ].visible_buttons = windows;
-            E_windows_Q_desktop_S[ desktop_id ].visible_button_start = 0;
-        }
     }
     if( W( E_windows_Q_desktop_S[ desktop_id ].stack ))
     {   E_flow_I_sti();

@@ -832,6 +832,7 @@ E_mem_Q_blk_Q_table_M_from_free( N *allocated_or_table_i
         {   n++;
             l_1 += u;
         }
+        //TODO Dla dużych bloków najpierw szukać wolnego bloku mającego ten sam adres na stronie początkowej jak blok źródłowy, by można było 'remapować' wewnętrzne strony pamięci.
         N l_ = ~0;
         N i_found;
         struct E_mem_Q_blk_Z_free *free_p = (P)E_mem_blk_S.allocated[ E_mem_blk_S.free_id ].p;

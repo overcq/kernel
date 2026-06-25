@@ -586,7 +586,7 @@ E_window_files_I_draw( I window_id
                         row_middle /= 2;
                     }else
                         row_middle = window_data->disc_partition_selected_row;
-                    window_data->disc_partition_row_start = row_i;
+                window_data->disc_partition_row_start = row_i;
             }else
             {   row_i = window_data->disc_partition_row_start;
                 if( window_data->disc_partition_selected_row < row_i )

@@ -29,7 +29,7 @@ E_emerg_print_M( void
     E_emerg_print_S_y_pre_post = ( E_emerg_print_S_font_size + 1 + 2 ) / 3;
     E_emerg_print_S_color = E_vga_S_text_color;
     E_emerg_print_S_background_color = E_vga_R_video_color( 0xffeff0 );
-    E_vga_I_fill_rect( 0, 0, E_main_S_framebuffer.width, E_main_S_framebuffer.height, E_vga_R_video_color( E_vga_S_background_color ));
+    E_vga_I_fill_rect( 0, 0, E_main_S_framebuffer.width, E_main_S_framebuffer.height, E_vga_S_background_color );
     E_vga_I_fill_rect( E_main_S_framebuffer.width / 2 - 50, E_main_S_framebuffer.height / 2 - 10 - 13, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
     E_vga_I_fill_rect( E_main_S_framebuffer.width / 2 - 50, E_main_S_framebuffer.height / 2 - 10, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
     E_vga_I_fill_rect( E_main_S_framebuffer.width / 2, E_main_S_framebuffer.height / 2 + 4, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
@@ -40,8 +40,9 @@ E_emerg_print_M( void
     E_vga_I_fill_rect( E_main_S_framebuffer.width / 2, E_main_S_framebuffer.height / 2 - 10 - 13, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
     E_vga_I_fill_rect( E_main_S_framebuffer.width / 2, E_main_S_framebuffer.height / 2 - 10, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
     E_vga_Q_buffer_I_draw( 0, 0, E_main_S_framebuffer.width, E_main_S_framebuffer.height );
-    return E_emerg_print_I_print( "OUX/C+ OS ©overcq <overcq@int.pl> https:/""/github.com/overcq" );
+    return G_( "OUX/C+ OS ©overcq <overcq@int.pl> https:/""/github.com/overcq" ); //DFN Musi być pierwszy wpis do loga z “G_”, by nie było na początku elementu nowej linii.
 }
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _internal
 void
 E_emerg_print_I_scroll_fwd( N dy
@@ -49,7 +50,7 @@ E_emerg_print_I_scroll_fwd( N dy
     , E_vga_S_framebuffer + dy * E_main_S_framebuffer.width
     , ( E_main_S_framebuffer.height - dy ) * E_main_S_framebuffer.width * sizeof( *E_vga_S_framebuffer )
     );
-    E_vga_I_fill_rect( 0, E_main_S_framebuffer.height - dy, E_main_S_framebuffer.width, dy, E_vga_R_video_color( E_vga_S_background_color ));
+    E_vga_I_fill_rect( 0, E_main_S_framebuffer.height - dy, E_main_S_framebuffer.width, dy, E_vga_S_background_color );
     E_vga_Q_buffer_I_draw( 0, 0, E_main_S_framebuffer.width, E_main_S_framebuffer.height );
 }
 _private
@@ -121,6 +122,19 @@ E_emerg_print_I_print( Pc s
     );
     return 0;
 }
+_private
+N
+E_emerg_print_I_log_print( N element_i
+){  Pc output = E_se_log_Q_element_I_print( &element_i );
+    if( !output )
+        return ~0;
+    N r = E_emerg_print_I_print(output);
+    N r_ = W(output);
+    if( r_ )
+        r = ~1;
+    return r;
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _private
 void
 E_emerg_print_I_set_panic( void

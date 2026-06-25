@@ -107,7 +107,6 @@ E_acpi_reader_I_child_print( N parent_object_i
         {   Pc name = M( 4 + 1 );
             E_text_Z_s_P_copy_sl_0( name, E_acpi_aml_S_object[ object_i ].name.s + ( E_acpi_aml_S_object[ object_i ].name.n - 1 ) * 4, 4 );
             G_( ",%s", name );
-            W(name);
         }
     }
 }
@@ -934,7 +933,6 @@ E_acpi_reader_M( void
         {   Pc name_ = M( E_acpi_aml_S_object[i].name.n * 4 + 1 );
             E_text_Z_s_P_copy_sl_0( name_, E_acpi_aml_S_object[i].name.s, E_acpi_aml_S_object[i].name.n * 4 );
             G( ",object with _PRT=%s", name_ );
-            W( name_ );
             struct E_acpi_aml_Z_value result;
             N ret = E_acpi_aml_I_procedure_( prt_i, &result, 0, 0 );
             if( !ret )
@@ -970,14 +968,13 @@ E_acpi_reader_M( void
             {   Pc name_ = M( E_acpi_aml_S_object[i].name.n * 4 + 1 );
                 E_text_Z_s_P_copy_sl_0( name_, E_acpi_aml_S_object[i].name.s, E_acpi_aml_S_object[i].name.n * 4 );
                 G( ",device=%s", name_ );
-                W( name_ );
                 G_( ",_HID=" );
                 switch( E_acpi_aml_S_object[ hid_i ].type )
                 { case E_acpi_aml_Z_object_Z_type_S_number:
                         G_( "%x", E_acpi_aml_S_object[ hid_i ].n );
                         break;
                   case E_acpi_aml_Z_object_Z_type_S_string:
-                        G_( "%s", E_acpi_aml_S_object[ hid_i ].data );
+                        G_( "%t", E_acpi_aml_S_object[ hid_i ].data );
                         break;
                   default:
                         G_( ",type=%x", (N)E_acpi_aml_S_object[ hid_i ].type );
@@ -991,7 +988,7 @@ E_acpi_reader_M( void
                             G_( "%x", E_acpi_aml_S_object[ cid_i ].n );
                             break;
                       case E_acpi_aml_Z_object_Z_type_S_string:
-                            G_( "%s", E_acpi_aml_S_object[ cid_i ].data );
+                            G_( "%t", E_acpi_aml_S_object[ cid_i ].data );
                             break;
                       case E_acpi_aml_Z_object_Z_type_S_package:
                         {   struct E_acpi_aml_Z_package *package = E_acpi_aml_S_object[ cid_i ].data;
@@ -1001,7 +998,7 @@ E_acpi_reader_M( void
                                         G_( "%x", package->value[j].n );
                                         break;
                                   case E_acpi_aml_Z_value_Z_type_S_string:
-                                        G_( "%s", package->value[j].p );
+                                        G_( "%t", package->value[j].p );
                                         break;
                                   default:
                                         G_( ",type=%x", (N)package->value[j].type );

@@ -522,7 +522,7 @@ E_gui_Q_pointer_I_click( void
             {   if( E_mouse_Q_button_S_button == 1
                 && E_mouse_Q_button_S_click_count == 2
                 ) // Kliknięto przycisk panelu.
-                {   N window_i = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_button_start + E_gui_Q_taskbar_S_mouse_over_panel;
+                {   I window_i = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_button_start + E_gui_Q_taskbar_S_mouse_over_panel;
                     I window_id = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].order[ window_i ];
                     N32 panel_x_0 = E_gui_Q_taskbar_S_mouse_over_panel * E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width;
                     N32 panel_x_1 = panel_x_0 + E_gui_Q_taskbar_S_panel_width - 1;
@@ -817,7 +817,7 @@ E_gui_Q_pointer_I_click( void
                     for_i( window_i, windows )
                     {   window_id = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].order[ window_i ];
                         struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
-                        if( window->draw == E_gui_Q_main_menu_I_draw )
+                        if( window->draw == &E_gui_Q_main_menu_I_draw )
                             break;
                     }
                     if( window_i == windows )
@@ -1021,7 +1021,7 @@ E_gui_Q_keyboard_I_key( void
                 for_i( window_i, windows )
                 {   window_id = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].order[ window_i ];
                     struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
-                    if( window->draw == E_gui_Q_main_menu_I_draw )
+                    if( window->draw == &E_gui_Q_main_menu_I_draw )
                         break;
                 }
                 if( window_i == windows )
@@ -1058,7 +1058,7 @@ E_gui_Q_keyboard_I_key( void
 _internal
 void
 E_gui_Q_desktop_I_draw_background( void
-){  E_vga_I_fill_rect( 0, E_gui_Q_taskbar_S_height, E_main_S_framebuffer.width, E_main_S_framebuffer.height - E_gui_Q_taskbar_S_height, E_vga_R_video_color( E_vga_S_background_color ));
+){  E_vga_I_fill_rect( 0, E_gui_Q_taskbar_S_height, E_main_S_framebuffer.width, E_main_S_framebuffer.height - E_gui_Q_taskbar_S_height, E_vga_S_background_color );
     E_vga_I_fill_rect( E_main_S_framebuffer.width / 2 - 50, E_main_S_framebuffer.height / 2 - 10 - 13, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
     E_vga_I_fill_rect( E_main_S_framebuffer.width / 2 - 50, E_main_S_framebuffer.height / 2 - 10, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
     E_vga_I_fill_rect( E_main_S_framebuffer.width / 2, E_main_S_framebuffer.height / 2 + 4, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
@@ -1281,7 +1281,8 @@ E_gui_Q_taskbar_I_draw( void
                 E_vga_I_draw_y_line(( i + 1 ) * E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width - 1, 0, E_gui_Q_taskbar_S_height, E_vga_R_video_color( 0x908b8b ));
         }
         for_i( i, E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons ) // Rysowanie tekstu przycisków.
-        {   I window_id = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].order[ E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_button_start + i ];
+        {   I window_i = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_button_start + i;
+            I window_id = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].order[ window_i ];
             N32 x_0 = i * E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width + E_gui_Q_taskbar_S_thickness + 1;
             N32 x = x_0;
             N32 button_real_width = ( i != E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons - 1
@@ -1415,7 +1416,7 @@ E_gui_Q_taskbar_I_draw_expander( void
     , 1
     , E_vga_R_video_color( 0x908b8b )
     );
-    N window_i = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_button_start + E_gui_Q_taskbar_S_mouse_over_panel;
+    I window_i = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_button_start + E_gui_Q_taskbar_S_mouse_over_panel;
     I window_id = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].order[ window_i ];
     struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
     if( window->sized )

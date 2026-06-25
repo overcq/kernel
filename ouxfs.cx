@@ -3253,7 +3253,7 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
     }
     /*G( "directories:" );
     for_n_( directory_i, disc->partition[ partition_i ].oux.directory_n )
-        G( "%x. uid: %x, parent: %x, name: %s", directory_i, disc->partition[ partition_i ].oux.directory[ directory_i ].uid, disc->partition[ partition_i ].oux.directory[ directory_i ].parent, disc->partition[ partition_i ].oux.directory[ directory_i ].name );*/
+        G( "%x. uid: %x, parent: %x, name: %t", directory_i, disc->partition[ partition_i ].oux.directory[ directory_i ].uid, disc->partition[ partition_i ].oux.directory[ directory_i ].parent, disc->partition[ partition_i ].oux.directory[ directory_i ].name );*/
     // Odczyt tablicy plików do pamięci operacyjnej.
     Mt_( disc->partition[ partition_i ].oux.file, 0 );
     if( !disc->partition[ partition_i ].oux.file )
@@ -3717,7 +3717,7 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
     }
     /*G( "files:" );
     for_n_( file_i, disc->partition[ partition_i ].oux.file_n )
-        G( "%x. uid: %x, parent: %x, name: %s, lock_write: %8x, lock_read: %8x", file_i, disc->partition[ partition_i ].oux.file[ file_i ].uid, disc->partition[ partition_i ].oux.file[ file_i ].parent, disc->partition[ partition_i ].oux.file[ file_i ].name, disc->partition[ partition_i ].oux.file[ file_i ].lock_write, disc->partition[ partition_i ].oux.file[ file_i ].lock_read );*/
+        G( "%x. uid: %x, parent: %x, name: %t, lock_write: %8x, lock_read: %8x", file_i, disc->partition[ partition_i ].oux.file[ file_i ].uid, disc->partition[ partition_i ].oux.file[ file_i ].parent, disc->partition[ partition_i ].oux.file[ file_i ].name, disc->partition[ partition_i ].oux.file[ file_i ].lock_write, disc->partition[ partition_i ].oux.file[ file_i ].lock_read );*/
     disc->partition[ partition_i ].oux.block_table_changed_from = ~0;
     disc->partition[ partition_i ].oux.file_table_changed_from = ~0;
     disc->partition[ partition_i ].oux.directory_table_changed_from = ~0;

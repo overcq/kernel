@@ -393,8 +393,8 @@ E_interrupt_I_print_hex( N v
         return;
     }
     C buf[ 16 + 1 ];
-    buf[16] = '\0';
-    N8 i = 16;
+    N8 i = sizeof(buf) - 1;
+    buf[i] = '\0';
     while(v)
     {   N8 v_ = v & 0xf;
         buf[ --i ] = v_ < 10 ? '0' + v_ : 'a' + v_ - 10;
@@ -408,7 +408,7 @@ void
 E_interrupt_I_panic( Pc message
 , N *stack_frame
 ){  E_emerg_print_I_set_panic();
-    E_emerg_print_I_print( "\nPANIC: " );
+    E_emerg_print_I_print( "PANIC: " );
     E_emerg_print_I_print(message);
     E_emerg_print_I_print( "\nKernel Base: " );
     E_interrupt_I_print_hex( (N)E_main_S_kernel );

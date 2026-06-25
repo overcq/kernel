@@ -20,7 +20,7 @@ E_window_log_I_draw( I window_id
 , N32 y
 , N32 width
 , N32 height
-){  if( !E_se_log_S_buffer_l )
+){  if( !E_se_log_S_element_n )
         return;
     struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
     struct E_window_log_Z_data *window_data = window->data;
@@ -30,37 +30,63 @@ E_window_log_I_draw( I window_id
     || height <= 2 * ( font_size + 1 )
     )
         return;
+    N element_i;
     N nl = 0;
-    Pc s_begin, s_end;
+    Pc s_0, s_begin;
     N32 y_ = 0;
     N32 x_;
     if( ~window_data->line )
     {   // Przesuń wskaźnik na początkową linię.
-        s_begin = E_se_log_S_buffer;
-        s_end = E_se_log_S_buffer + E_se_log_S_buffer_l;
-        while( nl != window_data->line )
-        {   nl++;
-            s_begin = E_text_Z_s_R_search_c( s_begin, s_end, '\n' );
-            if( s_begin == s_end )
-                break;
-            s_begin++;
-        }
-        if( s_begin == E_se_log_S_buffer )
-            s_begin++;
+        element_i = 0;
+        s_0 = E_se_log_Q_element_I_print( &element_i );
+        if( !s_0 )
+            return;
+        if( nl != window_data->line )
+            while( element_i != E_se_log_S_element_n )
+            {   if( W( s_0 ))
+                    return;
+                s_0 = E_se_log_Q_element_I_print( &element_i );
+                if( !s_0 )
+                    return;
+                if( *s_0 == '\n'
+                && ++nl == window_data->line
+                )
+                {   s_begin = s_0 + 1;
+                    break;
+                }
+            }
+        else
+            s_begin = s_0;
         x_ = thickness + 1;
     }else
-    {   // Sprawdź, ile byłoby linii wyświetlanych dla szerokości okna od ostatnich akapitów/znaków nowej linii/początków linii w tekście.
-        s_begin = E_se_log_S_buffer + E_se_log_S_buffer_l;
+    {   // Sprawdź, ile byłoby linii wyświetlanych dla szerokości okna od ostatnich początków linii w tekście.
+        s_0 = 0;
+        element_i = E_se_log_S_element_n;
+        N element_i_;
+        nl++;
         do
-        {   nl++;
-            s_end = s_begin;
-            Pc s = s_begin = E_text_Z_s_R_search_last_c( E_se_log_S_buffer, s_end, '\n' );
-            if( s != s_end )
-                s++;
+        {   if( s_0
+            && *s_0 == '\n'
+            )
+                nl++;
+            E_se_log_Q_element_R_prev( &element_i );
+            element_i_ = element_i;
+            if( s_0
+            && W( s_0 )
+            )
+                return;
+            s_0 = E_se_log_Q_element_I_print( &element_i_ );
+            if( !s_0 )
+                return;
+            Pc s = s_0 + 1;
             x_ = thickness + 1;
-            while( s != s_end )
+            while( *s )
             {   U u = ~0;
                 Pc s_ = E_text_Z_su_R_u( s, &u );
+                if( s_ == s )
+                {   W( s_0 );
+                    return;
+                }
                 s = s_;
                 N32 font_i;
                 if( width <= x_ + thickness + 1
@@ -71,14 +97,17 @@ E_window_log_I_draw( I window_id
                 }else
                     x_ += ( thickness + 1 ) * E_font_S_font.bitmap[ font_i ].width + thickness + 1;
             }
-        }while( s_begin != E_se_log_S_buffer
+        }while( element_i
         && height > font_size + 1 + nl * (( font_size + 1 ) * E_font_S_font.height + font_size + 1 )
         );
-        s_begin++;
+        element_i = element_i_;
+        s_begin = s_0;
+        if( *s_begin == '\n' )
+            s_begin++;
         // Przesuń wskaźnik tekstu do przodu, tak by pozostały tylko linie, które się zmieszczą w wysokości okna.
         x_ = thickness + 1;
         if( height < font_size + 1 + ( nl - 1 ) * (( font_size + 1 ) * E_font_S_font.height + font_size + 1 ) + 1 )
-            while( s_begin != s_end )
+            while( *s_begin )
             {   U u = ~0;
                 Pc s = E_text_Z_su_R_u( s_begin, &u );
                 N32 font_i;
@@ -98,9 +127,21 @@ E_window_log_I_draw( I window_id
     }
     y_ += y + font_size + 1;
     // Narysuj tekst.
-    while( s_begin != E_se_log_S_buffer + E_se_log_S_buffer_l )
-    {   U u = ~0;
+    O{  U u = ~0;
         Pc s = E_text_Z_su_R_u( s_begin, &u );
+        if( s == s_begin )
+        {   W( s_0 );
+            return;
+        }
+        if( !*s )
+        {   if( W( s_0 ))
+                return;
+            if( element_i == E_se_log_S_element_n )
+                break;
+            s_0 = s = E_se_log_Q_element_I_print( &element_i );
+            if( !s_0 )
+                return;
+        }
         s_begin = s;
         N32 font_i;
         if( u == '\n'
@@ -127,8 +168,8 @@ E_window_log_I_wheel( I window_id
     if( !~window_data->line )
         window_data->line = E_se_log_S_lines - 1;
     S line = (S)window_data->line + E_mouse_Q_wheel_S_count * E_window_log_S_scroll_count;
-    if( line < 1 )
-        line = 1;
+    if( line < 0 )
+        line = 0;
     else if( line > E_se_log_S_lines - 1 )
         line = ~0;
     if( window_data->line != line )
@@ -170,8 +211,8 @@ E_window_log_I_key( I window_id
                 break;
         }
         S line = (S)window_data->line + count;
-        if( line < 1 )
-            line = 1;
+        if( line < 0 )
+            line = 0;
         else if( line > E_se_log_S_lines - 1 )
             line = ~0;
         if( window_data->line != line )
@@ -179,8 +220,8 @@ E_window_log_I_key( I window_id
             U_F( gui, draw );
         }
     }else if( E_keyboard_S_queue[ queue_i ].code == 0x47 )
-    {   if( window_data->line != 1 )
-        {   window_data->line = 1;
+    {   if( window_data->line != 0 )
+        {   window_data->line = 0;
             U_F( gui, draw );
         }
     }else if( E_keyboard_S_queue[ queue_i ].code == 0x4f )
