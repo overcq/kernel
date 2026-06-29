@@ -73,19 +73,22 @@ E_controls_W( N8 desktop_id
     for_n( control_i, data->control_n )
         switch( data->control[ control_i ].type )
         { case E_controls_Z_type_S_label:
-                if( W( data->control[ control_i ].label.text ))
+            {   K( W( data->control[ control_i ].label.text ))
                     return ~1;
                 break;
+            }
           case E_controls_Z_type_S_button:
-                if( W( data->control[ control_i ].button.text ))
+            {   K( W( data->control[ control_i ].button.text ))
                     return ~1;
                 break;
+            }
           case E_controls_Z_type_S_textbox:
-                if( W( data->control[ control_i ].textbox.text ))
+            {   K( W( data->control[ control_i ].textbox.text ))
                     return ~1;
                 break;
+            }
         }
-    if( W( data->control ))
+    K( W( data->control ))
         return ~1;
     return W( data );
 }
@@ -100,7 +103,7 @@ E_controls_Q_label_I_add( N8 desktop_id
 , B new_row
 ){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
     struct E_controls_Z_data *data = window->controls_data;
-    if( !E_mem_Q_blk_I_append( &data->control, 1 ))
+    Kp( E_mem_Q_blk_I_append( &data->control, 1 ))
         return ~2;
     data->control[ data->control_n ].type = E_controls_Z_type_S_label;
     data->control[ data->control_n ].label.text = E_text_Z_s0_M_duplicate(text);
@@ -144,7 +147,7 @@ E_controls_Q_button_I_add( N8 desktop_id
 , B new_row
 ){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
     struct E_controls_Z_data *data = window->controls_data;
-    if( !E_mem_Q_blk_I_append( &data->control, 1 ))
+    Kp( E_mem_Q_blk_I_append( &data->control, 1 ))
         return ~2;
     data->control[ data->control_n ].type = E_controls_Z_type_S_button;
     data->control[ data->control_n ].button.text = E_text_Z_s0_M_duplicate(text);
@@ -189,7 +192,7 @@ E_controls_Q_textbox_I_add( N8 desktop_id
 , B new_row
 ){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
     struct E_controls_Z_data *data = window->controls_data;
-    if( !E_mem_Q_blk_I_append( &data->control, 1 ))
+    Kp( E_mem_Q_blk_I_append( &data->control, 1 ))
         return ~0;
     data->control[ data->control_n ].type = E_controls_Z_type_S_textbox;
     data->control[ data->control_n ].textbox.text = E_text_Z_s0_M_duplicate(text);
@@ -569,10 +572,10 @@ E_controls_I_key( I window_id
     X_A( gui, draw );
     switch( data->control[ data->control_cursor ].type )
     { case E_controls_Z_type_S_textbox:
-            if( !E_keyboard_S_meta_set )
-                if( E_keyboard_S_queue[ queue_i ].code == 0x4b
-                || E_keyboard_S_queue[ queue_i ].code == 0x4d
-                )
+                if( !E_keyboard_S_meta_set
+                && ( E_keyboard_S_queue[ queue_i ].code == 0x4b
+                  || E_keyboard_S_queue[ queue_i ].code == 0x4d
+                ))
                 {   if( E_keyboard_S_queue[ queue_i ].code == 0x4b // left
                     && data->control[ data->control_cursor ].textbox.visible_start == data->control[ data->control_cursor ].textbox.cursor
                     )
@@ -631,13 +634,17 @@ E_controls_I_key( I window_id
                     else
                         data->control[ data->control_cursor ].textbox.cursor++;
                     U_F( gui, draw );
-                }else if( E_keyboard_S_queue[ queue_i ].code == 0x47 ) // home
+                }else if( !E_keyboard_S_meta_set
+                && E_keyboard_S_queue[ queue_i ].code == 0x47 // home
+                )
                 {   if( data->control[ data->control_cursor ].textbox.cursor )
                     {   data->control[ data->control_cursor ].textbox.visible_start = 0;
                         data->control[ data->control_cursor ].textbox.cursor = 0;
                         U_F( gui, draw );
                     }
-                }else if( E_keyboard_S_queue[ queue_i ].code == 0x4f ) // end
+                }else if( !E_keyboard_S_meta_set
+                && E_keyboard_S_queue[ queue_i ].code == 0x4f // end
+                )
                 {   Pc s = data->control[ data->control_cursor ].textbox.text;
                     N u_i = 0;
                     while( *s )
@@ -665,7 +672,9 @@ E_controls_I_key( I window_id
                         data->control[ data->control_cursor ].textbox.visible_start = u_i;
                         U_F( gui, draw );
                     }
-                }else if( E_keyboard_S_queue[ queue_i ].code == 0xe ) // backspace
+                }else if( !E_keyboard_S_meta_set
+                && E_keyboard_S_queue[ queue_i ].code == 0xe // backspace
+                )
                 {   if( !data->control[ data->control_cursor ].textbox.cursor )
                         break;
                     Pc s = data->control[ data->control_cursor ].textbox.text, s_;
@@ -683,7 +692,9 @@ E_controls_I_key( I window_id
                     if( data->control[ data->control_cursor ].textbox.visible_start > data->control[ data->control_cursor ].textbox.cursor )
                         data->control[ data->control_cursor ].textbox.visible_start = data->control[ data->control_cursor ].textbox.cursor;
                     U_F( gui, draw );
-                }else if( E_keyboard_S_queue[ queue_i ].code == 0x53 ) // delete
+                }else if( !E_keyboard_S_meta_set
+                && E_keyboard_S_queue[ queue_i ].code == 0x53 // delete
+                )
                 {   Pc s = data->control[ data->control_cursor ].textbox.text;
                     N u_i = 0;
                     Pc s_start;

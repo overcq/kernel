@@ -3398,7 +3398,7 @@ E_font_M( void
         }
         Mt_( E_font_S_font.bitmap[i].bitmap, E_font_S_font.bitmap[i].width * E_font_S_font.height / 4 + ( E_font_S_font.bitmap[i].width * E_font_S_font.height % 4 ? 1 : 0 ));
         if( !E_font_S_font.bitmap[i].bitmap )
-            return ~0;
+            return ~2;
         N8 c;
         for_n( j, E_font_S_font.bitmap[i].width * E_font_S_font.height )
         {   if( j % 4 == 0 )
@@ -3409,6 +3409,7 @@ E_font_M( void
         }
         if( j % 4 == 1 || j % 4 == 2 || j % 4 == 3 )
             E_font_S_font.bitmap[i].bitmap[ j / 4 + 1 ] = c;
+        K_( ~2, W(bitmap) );
     }
     return 0;
 }

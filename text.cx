@@ -1240,9 +1240,16 @@ _export
 Pc
 E_text_Z_s_I_append_c( Pc *s
 , C c
-){  Pc p;
-    if( !( p = E_mem_Q_blk_I_append( s, 1 )))
+){  Pc p = E_mem_Q_blk_I_append( s, 1 );
+    if( !~(N)p
+    || !p
+    )
+    {   if( !~(N)p )
+        {   Gk(E_mem_Q_blk_I_append( s, 1 ));
+            return p;
+        }
         return 0;
+    }
     *p = c;
     return p;
 }
@@ -1251,9 +1258,17 @@ Pc
 E_text_Z_s_I_append_s( Pc *s
 , Pc t
 , Pc t_end
-){  Pc p;
-    if( p = E_mem_Q_blk_I_append( s, t_end - t ))
-        E_text_Z_s_P_copy_s( p, t, t_end );
+){  Pc p = E_mem_Q_blk_I_append( s, t_end - t );
+    if( !~(N)p
+    || !p
+    )
+    {   if( !~(N)p )
+        {   Gk(E_mem_Q_blk_I_append( s, t_end - t ));
+            return p;
+        }
+        return 0;
+    }
+    E_text_Z_s_P_copy_s( p, t, t_end );
     return p;
 }
 _export
@@ -1261,9 +1276,17 @@ Pc
 E_text_Z_s_I_s_append_0( Pc *s
 , Pc t
 , Pc t_end
-){  Pc p;
-    if( p = E_mem_Q_blk_I_append( s, t_end - t + 1 ))
-        E_text_Z_s_P_copy_s_0( p, t, t_end );
+){  Pc p = E_mem_Q_blk_I_append( s, t_end - t + 1 );
+    if( !~(N)p
+    || !p
+    )
+    {   if( !~(N)p )
+        {   Gk(E_mem_Q_blk_I_append( s, t_end - t + 1 ));
+            return p;
+        }
+        return 0;
+    }
+    E_text_Z_s_P_copy_s_0( p, t, t_end );
     return p;
 }
 _export
@@ -1271,9 +1294,17 @@ Pc
 E_text_Z_s_I_append_s0( Pc *s
 , Pc t
 ){  N l = E_text_Z_s0_R_l(t);
-    Pc p;
-    if( p = E_mem_Q_blk_I_append( s, l ))
-        E_mem_Q_blk_I_copy( p, t, l );
+    Pc p = E_mem_Q_blk_I_append( s, l );
+    if( !~(N)p
+    || !p
+    )
+    {   if( !~(N)p )
+        {   Gk(E_mem_Q_blk_I_append( s, l ));
+            return p;
+        }
+        return 0;
+    }
+    E_mem_Q_blk_I_copy( p, t, l );
     return p;
 }
 _export
@@ -1281,9 +1312,17 @@ Pc
 E_text_Z_s_I_append_s0_0( Pc *s
 , Pc t
 ){  N l = E_text_Z_s0_R_l(t);
-    Pc p;
-    if( p = E_mem_Q_blk_I_append( s, l + 1 ))
-        E_text_Z_s_P_copy_sl_0( p, t, l );
+    Pc p = E_mem_Q_blk_I_append( s, l + 1 );
+    if( !~(N)p
+    || !p
+    )
+    {   if( !~(N)p )
+        {   Gk(E_mem_Q_blk_I_append( s, l + 1 ));
+            return p;
+        }
+        return 0;
+    }
+    E_text_Z_s_P_copy_sl_0( p, t, l );
     return p;
 }
 //------------------------------------------------------------------------------
@@ -1292,9 +1331,16 @@ Pc
 E_text_Z_s_I_prepend_s( Pc *s
 , Pc t
 , Pc t_end
-){  Pc p;
-    if( !( p = E_mem_Q_blk_I_prepend( s, t_end - t )))
+){  Pc p = E_mem_Q_blk_I_prepend( s, t_end - t );
+    if( !~(N)p
+    || !p
+    )
+    {   if( !~(N)p )
+        {   Gk(E_mem_Q_blk_I_prepend( s, t_end - t ));
+            return p;
+        }
         return 0;
+    }
     E_text_Z_s_P_copy_s( *s, t, t_end );
     return *s + ( t_end - t );
 }
@@ -1303,9 +1349,16 @@ Pc
 E_text_Z_s_I_prepend_s0( Pc *s
 , Pc t
 ){  N l = E_text_Z_s0_R_l(t);
-    Pc p;
-    if( !( p = E_mem_Q_blk_I_prepend( s, l )))
+    Pc p = E_mem_Q_blk_I_prepend( s, l );
+    if( !~(N)p
+    || !p
+    )
+    {   if( !~(N)p )
+        {   Gk(E_mem_Q_blk_I_prepend( s, l ));
+            return p;
+        }
         return 0;
+    }
     E_mem_Q_blk_I_copy( *s, t, l );
     return p;
 }
@@ -1316,7 +1369,7 @@ E_text_Z_s0_I_clear( Pc *s
 ){  N l = E_text_Z_s0_R_l( *s );
     if( !l )
         return 0;
-    if( !E_mem_Q_blk_I_remove( s, 0, l ))
+    Kp( E_mem_Q_blk_I_remove( s, 0, l ))
         return ~0;
     return 0;
 }
@@ -1324,9 +1377,16 @@ _export
 Pc
 E_text_Z_s0_I_append_c( Pc *s
 , C c
-){  Pc p;
-    if( !( p = E_mem_Q_blk_I_append( s, 1 )))
+){  Pc p = E_mem_Q_blk_I_append( s, 1 );
+    if( !~(N)p
+    || !p
+    )
+    {   if( !~(N)p )
+        {   Gk(E_mem_Q_blk_I_append( s, 1 ));
+            return p;
+        }
         return 0;
+    }
     *( p - 1 ) = c;
     *p = '\0';
     return p - 1;
@@ -1338,9 +1398,16 @@ E_text_Z_s0_I_append_s0( Pc *s
 ){  N l = E_text_Z_s0_R_l(t);
     if( !l )
         return *s + l;
-    Pc p;
-    if( !( p = E_mem_Q_blk_I_append( s, l )))
+    Pc p = E_mem_Q_blk_I_append( s, l );
+    if( !~(N)p
+    || !p
+    )
+    {   if( !~(N)p )
+        {   Gk(E_mem_Q_blk_I_append( s, l ));
+            return p;
+        }
         return 0;
+    }
     E_text_Z_s_P_copy_sl_0( p - 1, t, l );
     return p - 1;
 }
@@ -1351,9 +1418,16 @@ E_text_Z_s0_I_append_s( Pc *s
 , Pc t_end
 ){  if( !( t_end - t ))
         return *s + ( t_end - t );
-    Pc p;
-    if( !( p = E_mem_Q_blk_I_append( s, t_end - t )))
+    Pc p = E_mem_Q_blk_I_append( s, t_end - t );
+    if( !~(N)p
+    || !p
+    )
+    {   if( !~(N)p )
+        {   Gk(E_mem_Q_blk_I_append( s, t_end - t ));
+            return p;
+        }
         return 0;
+    }
     E_text_Z_s_P_copy_s_0( p - 1, t, t_end );
     return p - 1;
 }
@@ -1890,7 +1964,7 @@ E_text_I_vsprintf( Pc *output
     {   U u = ~0;
         Pc s = E_text_Z_su_R_u( fmt, &u );
         if( s == fmt )
-        {   W( *output );
+        {   K_( ~1, W( *output ));
             return ~0;
         }
         if( !~u )
@@ -1925,13 +1999,13 @@ E_text_I_vsprintf( Pc *output
                 && size != sizeof( N16 )
                 && size != sizeof( N32 )
                 )
-                {   W( *output );
+                {   K_( ~1, W( *output ));
                     return ~0;
                 }
                 switch(u)
                 { case 's':
                     {   if(size)
-                        {   W( *output );
+                        {   K_( ~1, W( *output ));
                             return ~0;
                         }
                         Pc s = va_arg( args, Pc );
@@ -1939,14 +2013,14 @@ E_text_I_vsprintf( Pc *output
                         {   U u = ~0;
                             Pc s_ = E_text_Z_su_R_u( s, &u );
                             if( s_ == s )
-                            {   W( *output );
+                            {   K_( ~1, W( *output ));
                                 return ~0;
                             }
                             if( !~u )
                                 break;
                             Pc r = E_text_Z_s_I_append_s( output, s, s_ );
                             if( !r )
-                            {   W( *output );
+                            {   K_( ~1, W( *output ));
                                 return ~0;
                             }
                             s = s_;
@@ -1971,7 +2045,7 @@ E_text_I_vsprintf( Pc *output
                         }
                         Pc r = E_text_Z_s_I_append_s0( output, "0x" );
                         if( !r )
-                        {   W( *output );
+                        {   K_( ~1, W( *output ));
                             return ~0;
                         }
                         for_n_rev( i, size * 2 )
@@ -1982,7 +2056,7 @@ E_text_I_vsprintf( Pc *output
                                 u += 'a' - 10;
                             r = E_text_Z_s_I_append_c( output, u );
                             if( !r )
-                            {   W( *output );
+                            {   K_( ~1, W( *output ));
                                 return ~0;
                             }
                             if( i
@@ -1990,7 +2064,7 @@ E_text_I_vsprintf( Pc *output
                             )
                             {   r = E_text_Z_s_I_append_c( output, '\'' );
                                 if( !r )
-                                {   W( *output );
+                                {   K_( ~1, W( *output ));
                                     return ~0;
                                 }
                             }
@@ -2013,7 +2087,7 @@ E_text_I_vsprintf( Pc *output
         else
         {   Pc r = E_text_Z_s_I_append_s( output, fmt, s );
             if( !r )
-            {   W( *output );
+            {   K_( ~1, W( *output ));
                 return ~0;
             }
         }
@@ -2021,7 +2095,8 @@ Cont:   fmt = s;
     }
     P r = E_text_Z_s_I_append_c( output, '\0' );
     if( !r )
-        W( *output );
+    {   K_( ~1, W( *output ));
+    }
     return r ? 0 : ~0;
 }
 /******************************************************************************/

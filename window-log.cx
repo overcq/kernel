@@ -38,7 +38,7 @@ E_window_log_I_draw( I window_id
     if( ~window_data->line )
     {   // Przesuń wskaźnik na początkową linię.
         element_i = 0;
-        s_0 = E_se_log_Q_element_I_print( &element_i );
+        s_0 = s_begin = E_se_log_Q_element_I_print( &element_i );
         if( !s_0 )
             return;
         if( nl != window_data->line )
@@ -55,8 +55,6 @@ E_window_log_I_draw( I window_id
                     break;
                 }
             }
-        else
-            s_begin = s_0;
         x_ = thickness + 1;
     }else
     {   // Sprawdź, ile byłoby linii wyświetlanych dla szerokości okna od ostatnich początków linii w tekście.

@@ -306,7 +306,7 @@ E_sata_I_init( volatile struct E_sata_Z_memory *sata_memory
         sata_memory->port[port].sata_error = ~0;
         I disc_id;
         disc_id = E_mem_Q_tab_I_add( E_disc_S );
-        if( !~disc_id )
+        K( disc_id )
             return ~0;
         struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
         switch( sata_memory->port[port].signature )
@@ -431,11 +431,8 @@ E_sata_I_init( volatile struct E_sata_Z_memory *sata_memory
                 }
                 disc->sata_ahci.queue_n = ( *( N8 * )&identify[75] & 0x1f ) + 1;
             }
-            if( E_disc_I_init( disc_id ))
-                return ~2;
-End:        N r = W(identify);
-            if(r)
-                return ~2;
+            K_( ~2, E_disc_I_init( disc_id ));
+End:        K_( ~2, W(identify) );
         }
 Next_port:
         port_implemented >>= 1;

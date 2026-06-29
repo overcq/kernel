@@ -12,6 +12,8 @@
 #define yes                                 true
 #define _v(a,v)                             (( (a) ^ (a) ) | (v) )
 //------------------------------------------------------------------------------
+#define _J_s(a)                             #a
+#define J_s(a)                              _J_s(a)
 #define _J_ab(a,b)                          a##b
 #define J_ab(a,b)                           _J_ab(a,b)
 #define J_a_b(a,b)                          J_ab(J_ab(a,_),b)
@@ -85,8 +87,6 @@
 #define W(pointer_variable)                 E_mem_Q_blk_W( pointer_variable )
 #define M_(pointer_variable)                pointer_variable = M( sizeof( *( pointer_variable )))
 #define Mt_(pointer_variable,n)             pointer_variable = Mt( sizeof( *( pointer_variable )), (n) )
-#define W_(pointer_variable)                ( W( pointer_variable ), pointer_variable = 0 )
-#define W_tab_(pointer_variable)            ( E_mem_Q_tab_W( pointer_variable ), pointer_variable = 0 )
 //------------------------------------------------------------------------------
 // Instrukcja blokowa definicji ‹zadania›.
 #define D(module,task)                      _private _unused void _D_proc(module,task)(void)
@@ -159,6 +159,46 @@
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #define G(...)                              E_se_log_I_log( &__func__[0], __VA_ARGS__ )
 #define G_(...)                             E_se_log_I_log_( __VA_ARGS__ )
+#define Gk(statement)                       G( "late compile‐time error: %z", J_s(statement) )
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// ‹Zdarzenia› w procedurze — dla otaczania wywołań procedur, które zwracają kod błędu.
+#define K(statement) \
+  N J_autogen_line(r) = (statement); \
+  if( (S)J_autogen_line(r) < 0 \
+  && ~J_autogen_line(r) \
+  ) \
+      return J_autogen_line(r); \
+  if( ~J_autogen_line(r) ) \
+  { \
+  }else
+// ‹Zdarzenia› w procedurze — dla otaczania wywołań procedur, które zwracają adres.
+#define Kp(statement) \
+  N J_autogen_line(r) = (N)(statement); \
+  if( !~J_autogen_line(r) ) \
+  {   Gk(statement); \
+      return ~2; \
+  } \
+  if( J_autogen_line(r) ) \
+  { \
+  }else
+// ‹Zdarzenia› w bloku wyjścia procedury — dla otaczania wywołań procedur, które zwracają kod błędu.
+#define K_(error,statement) \
+  N J_autogen_line(r) = (statement); \
+  if( (S)J_autogen_line(r) >= 0 ) \
+  { \
+  }else \
+      return J_autogen_line(r) < (error) ? J_autogen_line(r) : (error)
+// ‹Zdarzenia› w bloku wyjścia procedury — dla otaczania wywołań procedur, które zwracają adres.
+#define Kp_(error,statement) \
+  N J_autogen_line(r) = (N)(statement); \
+  if( !~J_autogen_line(r) ) \
+  {   Gk(statement); \
+      return ~2; \
+  } \
+  if( J_autogen_line(r) ) \
+  { \
+  }else \
+      return (error)
 //==============================================================================
 #define _inline                             static __attribute__ (( __always_inline__, __unused__ ))
 #define _internal                           static

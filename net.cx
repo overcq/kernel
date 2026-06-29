@@ -234,10 +234,8 @@ E_net_Q_udp4_connection_state_M(
     }
     E_flow_I_cli();
     connection_id = E_mem_Q_tab_I_add( E_net_S_udp4_connection_state );
-    if( !~connection_id )
-    {   E_flow_I_sti();
-        return ~0;
-    }
+    if( connection_id < 0 )
+        goto End;
     struct E_net_Z_udp4_connection_state *connection_state = E_mem_Q_tab_R( E_net_S_udp4_connection_state, connection_id );
     connection_state->report_id = report_id;
     connection_state->ip4.local_address = local_address;
@@ -245,19 +243,16 @@ E_net_Q_udp4_connection_state_M(
     connection_state->ip4.remote_address = remote_address;
     connection_state->remote_port = remote_port;
     connection_state->buffer = 0;
-    E_flow_I_sti();
+End:E_flow_I_sti();
     return connection_id;
 }
 _private
 N
 E_net_Q_udp4_connection_state_W( I connection_id
 ){  E_flow_I_cli();
-    if( E_mem_Q_tab_I_remove( E_net_S_udp4_connection_state, connection_id ))
-    {   E_flow_I_sti();
-        return ~0;
-    }
+    N r = E_mem_Q_tab_I_remove( E_net_S_udp4_connection_state, connection_id );
     E_flow_I_sti();
-    return 0;
+    return r;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _private

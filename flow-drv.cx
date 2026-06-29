@@ -147,7 +147,7 @@ E_flow_M( P main_stack
 ){  N sched_i = E_flow_I_current_scheduler();
     E_flow_S_scheduler[ sched_i ].task = E_mem_Q_tab_M( sizeof( struct E_flow_Q_task_Z ), 1 );
     if( !E_flow_S_scheduler[ sched_i ].task )
-        return ~0;
+        return ~2;
     E_flow_S_scheduler[ sched_i ].current_task = 0;
     struct E_flow_Q_task_Z *task = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, E_flow_S_scheduler[ sched_i ].current_task );
     *task = ( struct E_flow_Q_task_Z )
@@ -160,27 +160,21 @@ E_flow_M( P main_stack
     E_mem_Q_stack_I_patch_page_table_add_guard( (N)main_stack, E_flow_S_scheduler[ sched_i ].current_task );
     E_flow_S_scheduler[ sched_i ].report = E_mem_Q_tab_M( sizeof( struct E_flow_Q_report_Z ), 0 );
     if( !E_flow_S_scheduler[ sched_i ].report )
-    {   N r = W( E_flow_S_scheduler[ sched_i ].task );
-        return r ? ~1 : ~0;
+    {   K_( ~2, W( E_flow_S_scheduler[ sched_i ].task ));
+        return ~2;
     }
     E_flow_S_scheduler[ sched_i ].report_timed = E_mem_Q_tab_M( sizeof( struct E_flow_Q_report_timed_Z ), 0 );
     if( !E_flow_S_scheduler[ sched_i ].report_timed )
-    {   N r = W( E_flow_S_scheduler[ sched_i ].report );
-        if(r)
-            return ~1;
-        r = W( E_flow_S_scheduler[ sched_i ].task );
-        return r ? ~1 : ~0;
+    {   K_( ~2, W( E_flow_S_scheduler[ sched_i ].report ));
+        K_( ~2, W( E_flow_S_scheduler[ sched_i ].task ));
+        return ~2;
     }
     E_flow_S_scheduler[ sched_i ].timer = E_mem_Q_tab_M( sizeof( struct E_flow_Q_timer_Z ), 0 );
     if( !E_flow_S_scheduler[ sched_i ].timer )
-    {   N r = W( E_flow_S_scheduler[ sched_i ].report_timed );
-        if(r)
-            return ~1;
-        r = W( E_flow_S_scheduler[ sched_i ].report );
-        if(r)
-            return ~1;
-        r = W( E_flow_S_scheduler[ sched_i ].task );
-        return r ? ~1 : ~0;
+    {   K_( ~2, W( E_flow_S_scheduler[ sched_i ].report_timed ));
+        K_( ~2, W( E_flow_S_scheduler[ sched_i ].report ));
+        K_( ~2, W( E_flow_S_scheduler[ sched_i ].task ));
+        return ~2;
     }
     E_flow_S_scheduler[ sched_i ].last_time = 0;
     E_flow_S_scheduler[ sched_i ].next_time = ~0;
@@ -240,7 +234,7 @@ E_flow_Q_task_M( I *uid
     return task_id;
 }
 _export
-void
+N
 E_flow_Q_task_W( I *uid
 ){  I id = *uid;
     *uid = ~0;
@@ -251,8 +245,9 @@ E_flow_Q_task_W( I *uid
     E_flow_Q_task_I_switch(id); // Przełącz tylko po to, by ‹zadanie› zwalniane zwolniło zasoby; również stosowo, hierarchicznie z powrotem przełączając przy zwalnianiu ‹zadań› przez siebie uruchomionych.
     task = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, id );
     E_mem_Q_stack_I_patch_page_table_remove_guard( (N)task->stack, id );
-    W( task->stack );
-    E_mem_Q_tab_I_remove( E_flow_S_scheduler[ sched_i ].task, id );
+    K_( ~2, W( task->stack ));
+    K_( ~2, E_mem_Q_tab_I_remove( E_flow_S_scheduler[ sched_i ].task, id ));
+    return 0;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //DFN “E_flow_Q_report_I_signal” może wystąpić w procedurze obsługi przerwania.

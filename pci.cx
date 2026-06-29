@@ -396,8 +396,8 @@ E_pci_I_check_device( N8 bus_i
         }
         P sata_ahci_address = (P)(N)E_pci_I_read( bus_i, device_i, function_i, 0x24 );
         N r = E_sata_I_init( E_main_Z_p_I_to_virtual( sata_ahci_address ));
-        if( ~r
-        && (S)r < 0
+        if( (S)r < 0
+        && ~r
         )
             return r;
     }
@@ -436,8 +436,8 @@ E_pci_I_check_device( N8 bus_i
             }
             eeprom_address &= ~0xf;
             N r = E_ethernet_I_init( E_main_Z_p_I_to_virtual( (P)ethernet_address ), E_main_Z_p_I_to_virtual( (P)eeprom_address ));
-            if( ~r
-            && (S)r < 0
+            if( (S)r < 0
+            && ~r
             )
                 return r;
             break;
@@ -460,7 +460,7 @@ E_pci_I_check_function( N8 bus_i
     {   N32 buses_latency = E_pci_I_read( bus_i, device_i, function_i, 0x18 );
         N8 secondary_bus = ( buses_latency >> 8 ) & 0xff;
         N r = E_pci_I_check_bus( secondary_bus, bus_mask );
-        if(r)
+        if( (S)r < 0 )
             return r;
     }
     return 0;
@@ -477,10 +477,10 @@ E_pci_I_check_bus( N8 bus_i
         if( !~ids )
             continue;
         N r = E_pci_I_check_device( bus_i, device_i, 0, ids );
-        if(r)
+        if( (S)r < 0 )
             return r;
         r = E_pci_I_check_function( bus_i, device_i, 0, bus_mask );
-        if(r)
+        if( (S)r < 0 )
             return r;
         N8 header_type = E_pci_I_read( bus_i, device_i, 0, 0xe );
         if( header_type & 0x80 )
@@ -488,10 +488,10 @@ E_pci_I_check_bus( N8 bus_i
             {   ids = E_pci_I_read( bus_i, device_i, 1 + function_i, 0 );
                 if( ~ids )
                 {   r = E_pci_I_check_device( bus_i, device_i, 1 + function_i, ids );
-                    if(r)
+                    if( (S)r < 0 )
                         return r;
                     r = E_pci_I_check_function( bus_i, device_i, 1 + function_i, bus_mask );
-                    if(r)
+                    if( (S)r < 0 )
                         return r;
                 }
             }
@@ -510,15 +510,13 @@ E_pci_I_check_buses( void
     if( header_type & 0x80 )
     {   for_n( function_i, 8 )
         {   r = E_pci_I_check_bus( function_i, bus_mask );
-            if(r)
+            if( (S)r < 0 )
                 goto End;
         }
     }else
         r = E_pci_I_check_bus( 0, bus_mask );
-End:if( !r )
-    {   r = W( bus_mask );
-        if(r)
-            r = ~1;
+End:if( (S)r >= 0 )
+    {   K_( ~1, W( bus_mask ));
     }
     return r;
 }

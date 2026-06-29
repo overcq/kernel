@@ -74,13 +74,22 @@ E_windows_Q_desktop_M( B on_end
     E_windows_Q_desktop_S_n++;
     E_windows_Q_desktop_S[ desktop_id ].window = E_mem_Q_tab_M( sizeof( struct E_window_Q_window_Z ), 0 );
     if( !E_windows_Q_desktop_S[ desktop_id ].window )
-        return ~2;
+    {   Kp_( ~2, E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S, desktop_id, 1 ));
+        return ~0;
+    }
     Mt_( E_windows_Q_desktop_S[ desktop_id ].order, 0 );
     if( !E_windows_Q_desktop_S[ desktop_id ].order )
-        return ~2;
+    {   K_( ~2, E_mem_Q_tab_W( E_windows_Q_desktop_S[ desktop_id ].window ));
+        Kp_( ~2, E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S, desktop_id, 1 ));
+        return ~0;
+    }
     Mt_( E_windows_Q_desktop_S[ desktop_id ].stack, 0 );
     if( !E_windows_Q_desktop_S[ desktop_id ].stack )
-        return ~2;
+    {   K_( ~2, W( E_windows_Q_desktop_S[ desktop_id ].order ));
+        K_( ~2, E_mem_Q_tab_W( E_windows_Q_desktop_S[ desktop_id ].window ));
+        Kp_( ~2, E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S, desktop_id, 1 ));
+        return ~0;
+    }
     E_windows_Q_desktop_S[ desktop_id ].visible_button_start = 0;
     E_windows_Q_desktop_S[ desktop_id ].visible_buttons = 0;
     return 0;
@@ -94,43 +103,58 @@ E_windows_Q_desktop_W( N8 desktop_id
     for_each( window_id, E_windows_Q_desktop_S[ desktop_id ].window, E_mem_Q_tab )
     {   struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
         if( window->controls_data )
-            if( E_controls_W( desktop_id, window_id ))
+        {   N r = E_controls_W( desktop_id, window_id );
+            if( (S)r < 0 )
             {   E_flow_I_sti();
-                return ~2;
+                return r < ~2 ? r : ~2;
             }
+        }
         if( window->destroy )
-            if( window->destroy( desktop_id, window_id ))
+        {   N r = window->destroy( desktop_id, window_id );
+            if( (S)r < 0 )
             {   E_flow_I_sti();
-                return ~2;
+                return r < ~2 ? r : ~2;
             }
-        if( W( window->description ))
-        {   E_flow_I_sti();
-            return ~2;
         }
-        if( W( window->title ))
+        N r = W( window->description );
+        if( (S)r < 0 )
         {   E_flow_I_sti();
-            return ~2;
+            return r < ~2 ? r : ~2;
+        }
+        r = W( window->title );
+        if( (S)r < 0 )
+        {   E_flow_I_sti();
+            return r < ~2 ? r : ~2;
         }
     }
-    if( W( E_windows_Q_desktop_S[ desktop_id ].stack ))
+    N r = W( E_windows_Q_desktop_S[ desktop_id ].stack );
+    if( (S)r < 0 )
     {   E_flow_I_sti();
-        return ~2;
+        return r < ~2 ? r : ~2;
     }
-    if( W( E_windows_Q_desktop_S[ desktop_id ].order ))
+    r = W( E_windows_Q_desktop_S[ desktop_id ].order );
+    if( (S)r < 0 )
     {   E_flow_I_sti();
-        return ~2;
+        return r < ~2 ? r : ~2;
     }
     if( desktop_id == E_window_Q_desktop_S_current )
     {   E_gui_Q_desktop_S_window_moving = no;
         E_gui_Q_desktop_S_window_resizing_state = E_gui_Q_desktop_Z_window_resizing_state_S_none;
     }
-    N r = E_mem_Q_tab_W( E_windows_Q_desktop_S[ desktop_id ].window );
-    if(r)
+    r = E_mem_Q_tab_W( E_windows_Q_desktop_S[ desktop_id ].window );
+    if( (S)r < 0 )
     {   E_flow_I_sti();
+        return r < ~2 ? r : ~2;
+    }
+    r = (N)E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S, desktop_id, 1 );
+    if( !~r
+    || !r
+    )
+    {   if( !~r )
+            Gk(E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S, desktop_id, 1 ));
+        E_flow_I_sti();
         return ~2;
     }
-    if( !E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S, desktop_id, 1 ))
-        return ~0;
     E_windows_Q_desktop_S_n--;
     E_flow_I_sti();
     if( desktop_id == E_window_Q_desktop_S_current )
@@ -159,42 +183,91 @@ E_windows_Q_window_M( N8 desktop_id
     }
     I *order = E_mem_Q_blk_I_append( &E_windows_Q_desktop_S[ desktop_id ].order, 1 );
     if( !order )
-    {   N r = E_mem_Q_tab_I_remove( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
+    {   if( !~(N)order )
+        {   Gk(E_mem_Q_blk_I_append( &E_windows_Q_desktop_S[ desktop_id ].order, 1 ));
+            E_flow_I_sti();
+            return ~2;
+        }
+        N r = E_mem_Q_tab_I_remove( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
         E_flow_I_sti();
-        return r ? r : ~0;
+        return r ? ( r < ~2 ? r : ~2 ) : ~0;
     }
     *order = window_id;
+    I windows = E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ desktop_id ].window );
     I *stack = E_mem_Q_blk_I_append( &E_windows_Q_desktop_S[ desktop_id ].stack, 1 );
     if( !stack )
-    {   N r = E_mem_Q_tab_I_remove( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
+    {   if( !~(N)stack )
+        {   Gk(E_mem_Q_blk_I_append( &E_windows_Q_desktop_S[ desktop_id ].stack, 1 ));
+            E_flow_I_sti();
+            return ~2;
+        }
+        N r = (N)E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S[ desktop_id ].order, windows - 1, 1 );
+        if( !~r
+        || !r
+        )
+        {   if( !~(N)r )
+                Gk(E_mem_Q_blk_I_append( &E_windows_Q_desktop_S[ desktop_id ].order, 1 ));
+            E_flow_I_sti();
+            return ~2;
+        }
+        r = E_mem_Q_tab_I_remove( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
         E_flow_I_sti();
-        return r ? r : ~0;
+        return r ? ( r < ~2 ? r : ~2 ) : ~0;
     }
     *stack = window_id;
     struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
     window->title = E_text_Z_s0_M_duplicate(title);
     if( !window->title )
-    {   if( !E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S[ desktop_id ].stack, window_id, 1 ))
-        {   E_flow_I_sti();
+    {   N r = (N)E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S[ desktop_id ].stack, window_id, 1 );
+        if( !~r
+        || !r
+        )
+        {   if( !~(N)r )
+                Gk(E_mem_Q_blk_I_append( &E_windows_Q_desktop_S[ desktop_id ].stack, 1 ));
+            E_flow_I_sti();
             return ~2;
         }
-        N r = E_mem_Q_tab_I_remove( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
+        r = (N)E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S[ desktop_id ].order, windows - 1, 1 );
+        if( !~r
+        || !r
+        )
+        {   if( !~(N)order )
+                Gk(E_mem_Q_blk_I_append( &E_windows_Q_desktop_S[ desktop_id ].order, 1 ));
+            E_flow_I_sti();
+            return ~2;
+        }
+        r = E_mem_Q_tab_I_remove( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
         E_flow_I_sti();
-        return r ? r : ~0;
+        return r ? ( r < ~2 ? r : ~2 ) : ~0;
     }
     window->description = E_text_Z_s0_M_duplicate(description);
     if( !window->description )
-    {   if( W( window->title ))
+    {   N r = W( window->title );
+        if( (S)r < 0 )
         {   E_flow_I_sti();
+            return r < ~2 ? r : ~2;
+        }
+        r = (N)E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S[ desktop_id ].stack, window_id, 1 );
+        if( !~r
+        || !r
+        )
+        {   if( !~(N)stack )
+                Gk(E_mem_Q_blk_I_append( &E_windows_Q_desktop_S[ desktop_id ].stack, 1 ));
+            E_flow_I_sti();
             return ~2;
         }
-        if( !E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S[ desktop_id ].stack, window_id, 1 ))
-        {   E_flow_I_sti();
+        r = (N)E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S[ desktop_id ].order, windows - 1, 1 );
+        if( !~r
+        || !r
+        )
+        {   if( !~(N)order )
+                Gk(E_mem_Q_blk_I_append( &E_windows_Q_desktop_S[ desktop_id ].order, 1 ));
+            E_flow_I_sti();
             return ~2;
         }
-        N r = E_mem_Q_tab_I_remove( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
+        r = E_mem_Q_tab_I_remove( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
         E_flow_I_sti();
-        return r ? r : ~0;
+        return r ? ( r < ~2 ? r : ~2 ) : ~0;
     }
     window->sized = no;
     window->width = E_main_S_framebuffer.width / 2;
@@ -207,7 +280,6 @@ E_windows_Q_window_M( N8 desktop_id
     window->wheel = wheel;
     window->key = key;
     window->destroy = destroy;
-    I windows = E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ desktop_id ].window );
     E_windows_Q_desktop_S[ desktop_id ].button_width = E_main_S_framebuffer.width / windows;
     if( E_windows_Q_desktop_S[ desktop_id ].button_width < E_gui_Q_taskbar_S_button_min_width )
     {   E_windows_Q_desktop_S[ desktop_id ].button_width = E_gui_Q_taskbar_S_button_min_width;
@@ -237,35 +309,51 @@ E_windows_Q_window_W( N8 desktop_id
     struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
     E_flow_I_cli();
     if( window->controls_data )
-        if( E_controls_W( desktop_id, window_id ))
+    {   N r = E_controls_W( desktop_id, window_id );
+        if( (S)r < 0 )
         {   E_flow_I_sti();
-            return ~2;
+            return r;
         }
-    if( window->destroy )
-        if( window->destroy( desktop_id, window_id ))
-        {   E_flow_I_sti();
-            return ~2;
-        }
-    if( W( window->description ))
-    {   E_flow_I_sti();
-        return ~2;
     }
-    if( W( window->title ))
+    if( window->destroy )
+    {   N r = window->destroy( desktop_id, window_id );
+        if( (S)r < 0 )
+        {   E_flow_I_sti();
+            return window->controls_data ? ( r < ~2 ? r : ~2 ) : r;
+        }
+    }
+    N r = W( window->description );
+    if( (S)r < 0 )
     {   E_flow_I_sti();
-        return ~2;
+        return window->controls_data || window->destroy ? ( r < ~2 ? r : ~2 ) : r;
+    }
+    r = W( window->title );
+    if( (S)r < 0 )
+    {   E_flow_I_sti();
+        return r < ~2 ? r : ~2;
     }
     for_n( stack_i, E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ desktop_id ].window ))
         if( E_windows_Q_desktop_S[ desktop_id ].stack[ stack_i ] == window_id )
             break;
-    if( !E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S[ desktop_id ].stack, stack_i, 1 ))
-    {   E_flow_I_sti();
+    r = (N)E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S[ desktop_id ].stack, stack_i, 1 );
+    if( !~r
+    || !r
+    )
+    {   if( !~r )
+            Gk(E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S[ desktop_id ].stack, stack_i, 1 ));
+        E_flow_I_sti();
         return ~2;
     }
     for_n( order_i, E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ desktop_id ].window ))
         if( E_windows_Q_desktop_S[ desktop_id ].order[ order_i ] == window_id )
             break;
-    if( !E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S[ desktop_id ].order, order_i, 1 ))
-    {   E_flow_I_sti();
+    r = (N)E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S[ desktop_id ].order, order_i, 1 );
+    if( !~r
+    || !r
+    )
+    {   if( !~r )
+            Gk(E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S[ desktop_id ].order, order_i, 1 ));
+        E_flow_I_sti();
         return ~2;
     }
     if( desktop_id == E_window_Q_desktop_S_current
@@ -274,10 +362,10 @@ E_windows_Q_window_W( N8 desktop_id
     {   E_gui_Q_desktop_S_window_moving = no;
         E_gui_Q_desktop_S_window_resizing_state = E_gui_Q_desktop_Z_window_resizing_state_S_none;
     }
-    N r = E_mem_Q_tab_I_remove( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
-    if(r)
+    r = E_mem_Q_tab_I_remove( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
+    if( (S)r < 0 )
     {   E_flow_I_sti();
-        return ~2;
+        return r < ~2 ? r : ~2;
     }
     I windows = E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ desktop_id ].window );
     E_windows_Q_desktop_S[ desktop_id ].button_width = windows ? E_main_S_framebuffer.width / windows : E_main_S_framebuffer.width;
@@ -300,6 +388,15 @@ E_windows_Q_window_W( N8 desktop_id
     return 0;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_private
+I
+E_windows_Q_window_R_order_i( N8 desktop_id
+, I window_id
+){  for_i( window_i, E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ desktop_id ].window ))
+        if( E_windows_Q_desktop_S[ desktop_id ].order[ window_i ] == window_id )
+            return window_i;
+    E_main_I_error_fatal();
+}
 _export
 B
 E_windows_Q_window_class_T_visible( void ( *draw )( I window_id, N32 x, N32 y, N32 width, N32 height )
@@ -398,30 +495,60 @@ E_windows_Q_desktop_I_move_window( N8 desktop_dst_id
 , N8 desktop_src_id
 , I window_src_id
 ){  I window_dst_id = E_mem_Q_tab_I_add( E_windows_Q_desktop_S[ desktop_dst_id ].window );
-    if( window_dst_id < 0 )
+    K( window_dst_id )
         return window_dst_id;
     I *order = E_mem_Q_blk_I_append( &E_windows_Q_desktop_S[ desktop_dst_id ].order, 1 );
-    if( !order )
-        return ~2;
+    Kp(order)
+    {   K_( ~2, E_mem_Q_tab_I_remove( E_windows_Q_desktop_S[ desktop_dst_id ].window, window_dst_id ));
+        return ~0;
+    }
     *order = window_dst_id;
+    I windows = E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ desktop_dst_id ].window );
     for_n( order_i, E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ desktop_src_id ].window ))
         if( E_windows_Q_desktop_S[ desktop_src_id ].order[ order_i ] == window_src_id )
             break;
-    if( !E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S[ desktop_src_id ].order, order_i, 1 ))
-        return ~2;
+    Kp( E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S[ desktop_src_id ].order, order_i, 1 ))
+    {   Kp_( ~2, E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S[ desktop_dst_id ].order, windows - 1, 1 ));
+        K_( ~2, E_mem_Q_tab_I_remove( E_windows_Q_desktop_S[ desktop_dst_id ].window, window_dst_id ));
+        return ~0;
+    }
     I *stack = E_mem_Q_blk_I_append( &E_windows_Q_desktop_S[ desktop_dst_id ].stack, 1 );
-    if( !stack )
-        return ~2;
+    Kp(stack)
+    {   I *order = E_mem_Q_blk_I_insert( &E_windows_Q_desktop_S[ desktop_src_id ].order, order_i, 1 );
+        Kp_( ~2, order );
+        *order = window_src_id;
+        Kp_( ~2, E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S[ desktop_dst_id ].order, windows - 1, 1 ));
+        K_( ~2, E_mem_Q_tab_I_remove( E_windows_Q_desktop_S[ desktop_dst_id ].window, window_dst_id ));
+        return ~0;
+    }
     for_n( stack_i, E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ desktop_src_id ].window ))
         if( E_windows_Q_desktop_S[ desktop_src_id ].stack[ stack_i ] == window_src_id )
             break;
-    if( !E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S[ desktop_src_id ].stack, stack_i, 1 ))
-        return ~2;
+    Kp( E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S[ desktop_src_id ].stack, stack_i, 1 ))
+    {   Kp_( ~2, E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S[ desktop_dst_id ].stack, windows - 1, 1 ));
+        I *order = E_mem_Q_blk_I_insert( &E_windows_Q_desktop_S[ desktop_src_id ].order, order_i, 1 );
+        Kp_( ~2, order );
+        *order = window_src_id;
+        Kp_( ~2, E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S[ desktop_dst_id ].order, windows - 1, 1 ));
+        K_( ~2, E_mem_Q_tab_I_remove( E_windows_Q_desktop_S[ desktop_dst_id ].window, window_dst_id ));
+        return ~0;
+    }
     *stack = window_dst_id;
     struct E_window_Q_window_Z *window_dst = E_mem_Q_tab_R( E_windows_Q_desktop_S[ desktop_dst_id ].window, window_dst_id );
     struct E_window_Q_window_Z *window_src = E_mem_Q_tab_R( E_windows_Q_desktop_S[ desktop_src_id ].window, window_src_id );
     *window_dst = *window_src;
-    I windows = E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ desktop_dst_id ].window );
+    K( E_mem_Q_tab_I_remove( E_windows_Q_desktop_S[ desktop_src_id ].window, window_src_id ))
+    {   I *stack = E_mem_Q_blk_I_insert( &E_windows_Q_desktop_S[ desktop_src_id ].stack, stack_i, 1 );
+        Kp_( ~2, stack );
+        *stack = window_src_id;
+        Kp_( ~2, E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S[ desktop_dst_id ].stack, windows - 1, 1 ));
+        I *order = E_mem_Q_blk_I_insert( &E_windows_Q_desktop_S[ desktop_src_id ].order, order_i, 1 );
+        Kp_( ~2, order );
+        *order = window_src_id;
+        Kp_( ~2, E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S[ desktop_dst_id ].order, windows - 1, 1 ));
+        K_( ~2, E_mem_Q_tab_I_remove( E_windows_Q_desktop_S[ desktop_dst_id ].window, window_dst_id ));
+        return ~0;
+    }
     E_windows_Q_desktop_S[ desktop_dst_id ].button_width = E_main_S_framebuffer.width / windows;
     if( E_windows_Q_desktop_S[ desktop_dst_id ].button_width < E_gui_Q_taskbar_S_button_min_width )
     {   E_windows_Q_desktop_S[ desktop_dst_id ].button_width = E_gui_Q_taskbar_S_button_min_width;
@@ -429,9 +556,6 @@ E_windows_Q_desktop_I_move_window( N8 desktop_dst_id
         E_windows_Q_desktop_S[ desktop_dst_id ].visible_button_start = windows - E_windows_Q_desktop_S[ desktop_dst_id ].visible_buttons;
     }else
         E_windows_Q_desktop_S[ desktop_dst_id ].visible_buttons = windows;
-    N r = E_mem_Q_tab_I_remove( E_windows_Q_desktop_S[ desktop_src_id ].window, window_src_id );
-    if(r)
-        return ~2;
     windows = E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ desktop_src_id ].window );
     E_windows_Q_desktop_S[ desktop_src_id ].button_width = windows ? E_main_S_framebuffer.width / windows : E_main_S_framebuffer.width;
     if( E_windows_Q_desktop_S[ desktop_src_id ].button_width < E_gui_Q_taskbar_S_button_min_width )

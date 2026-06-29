@@ -415,7 +415,7 @@ E_interrupt_I_panic( Pc message
     if( stack_frame )
     {   E_emerg_print_I_print( "\nStack dump (RBP):" );
         for_n( i, 20 )
-        {   if( !( i % 4 ) )
+        {   if( !( i % 4 ))
                 E_emerg_print_I_print_nl();
             else
                 E_emerg_print_I_print( " " );
@@ -462,8 +462,8 @@ E_interrupt_M( void
         E_interrupt_S_idt[ i * 2 ] = 0;
     Mt_( E_interrupt_S_external, E_interrupt_S_gsi_n );
     if( !E_interrupt_S_external )
-    {   N r = W( E_interrupt_S_idt );
-        return r ? ~1 : ~0;
+    {   K_( ~1, W( E_interrupt_S_idt ));
+        return ~0;
     }
     _0t_( E_interrupt_S_external, E_interrupt_S_gsi_n );
     for( N i = 32; i != 32 + E_interrupt_S_gsi_n; i++ )

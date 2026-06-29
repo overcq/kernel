@@ -2,8 +2,8 @@
 /*******************************************************************************
 *   ___   publicplace
 *  ¦OUX¦  C+
-*  ¦/C+¦  component
-*   ---   base
+*  ¦/C+¦  OUX/C+ OS
+*   ---   kernel
 *         variable length mask
 * ©overcq                on ‟Gentoo Linux 23.0” “x86_64”            2024‒11‒13 L
 *******************************************************************************/
@@ -74,12 +74,13 @@ E_mem_Q_mask_I_resize( Pc *mask
     }
     if( bytes_old < bytes_new )
     {   Pc p = E_mem_Q_blk_I_append( mask, bytes_new - bytes_old );
-        if( !p )
+        Kp(p)
             return ~0;
         _0( p, bytes_new - bytes_old );
     }else
-        if( !E_mem_Q_blk_I_remove( mask, bytes_new, bytes_old - bytes_new ))
+    {   Kp( E_mem_Q_blk_I_remove( mask, bytes_new, bytes_old - bytes_new ))
             return ~0;
+    }
     return 0;
 }
 /******************************************************************************/

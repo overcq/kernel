@@ -126,12 +126,12 @@ _private
 N
 E_emerg_print_I_log_print( N element_i
 ){  Pc output = E_se_log_Q_element_I_print( &element_i );
-    if( !output )
-        return ~0;
+    if( !~(N)output
+    || !output
+    )
+        return !~(N)output ? ~2 : ~0;
     N r = E_emerg_print_I_print(output);
-    N r_ = W(output);
-    if( r_ )
-        r = ~1;
+    K_( ~1, W(output) );
     return r;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
