@@ -401,13 +401,8 @@ main( struct E_main_Z_kernel_args *kernel_args
             goto End;
         _0_(tss);
         P interrupt_stack = E_mem_Q_blk_M_align_tab( E_mem_S_page_size, 2, E_mem_S_page_size );
-        if( !~(N)interrupt_stack
-        || !interrupt_stack
-        )
-        {   if( !~(N)interrupt_stack )
-                Gk(interrupt_stack);
+        if( !interrupt_stack )
             goto End;
-        }
         tss->ist[1] = (N)interrupt_stack + 2 * E_mem_S_page_size;
         tss->io_map_base_address = ~0;
         E_main_S_gdt[ 5 + i * 2 ] = E_main_J_task_descriptor_low( (N)tss, sizeof( *tss ));
@@ -440,7 +435,7 @@ main( struct E_main_Z_kernel_args *kernel_args
     : "rax"
     );
     E_flow_S_inited = no;
-    if( E_interrupt_M() )
+    if( (S)E_interrupt_M() < 0 )
         goto End;
     E_interrupt_S_external[ E_interrupt_S_gsi_ipi ] = &E_main_I_ipi_test;
     O{  for_n( i, kernel_args->processor_n - 1 )

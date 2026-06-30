@@ -254,13 +254,15 @@ E_ssd_cache_R( I disc_id
             {   cache_start = disc->sata_ahci.ssd_cache[ cache_i + 1 ].pba;
                 cache_end = disc->sata_ahci.ssd_cache[ cache_i + 1 ].pba + disc->sata_ahci.ssd_cache[ cache_i + 1 ].count;
                 N read_count = cache_start - ( disc->sata_ahci.ssd_cache[ cache_i ].pba + disc->sata_ahci.ssd_cache[ cache_i ].count );
-                K( E_sata_Q_sata_ahci_I_read( disc_id
+                *r = E_sata_Q_sata_ahci_I_read( disc_id
                 , disc->sata_ahci.logical_sector_shift + pba * disc->sata_ahci.physical_sector_size / disc->sata_ahci.logical_sector_size
                 , read_count * disc->sata_ahci.physical_sector_size / disc->sata_ahci.logical_sector_size
                 , disc->sata_ahci.ssd_cache[ cache_i_0 ].data + disc->sata_ahci.ssd_cache[ cache_i_0 ].count * disc->sata_ahci.physical_sector_size
                 , &slot_mask
-                ))
-                {   *r = ~2;
+                );
+                if( (S)*r < 0 )
+                {   if( *r > ~2 )
+                        *r = ~2;
                     goto End;
                 }
                 disc = E_mem_Q_tab_R( E_disc_S, disc_id );
@@ -271,21 +273,25 @@ E_ssd_cache_R( I disc_id
                 , copy_count * disc->sata_ahci.physical_sector_size
                 );
                 disc->sata_ahci.ssd_cache[ cache_i_0 ].count += copy_count;
-                K( W( disc->sata_ahci.ssd_cache[ cache_i + 1 ].data ))
-                {   *r = ~2;
+                *r = W( disc->sata_ahci.ssd_cache[ cache_i + 1 ].data );
+                if( (S)*r < 0 )
+                {   if( *r > ~2 )
+                        *r = ~2;
                     goto End;
                 }
                 cache_i++;
             }while( cache_i != cache_i_last );
             if( cache_end < pba + count )
             {   N read_count = pba + count - cache_end;
-                K( E_sata_Q_sata_ahci_I_read( disc_id
+                *r = E_sata_Q_sata_ahci_I_read( disc_id
                 , disc->sata_ahci.logical_sector_shift + pba * disc->sata_ahci.physical_sector_size / disc->sata_ahci.logical_sector_size
                 , read_count * disc->sata_ahci.physical_sector_size / disc->sata_ahci.logical_sector_size
                 , disc->sata_ahci.ssd_cache[ cache_i_0 ].data + disc->sata_ahci.ssd_cache[ cache_i_0 ].count * disc->sata_ahci.physical_sector_size
                 , &slot_mask
-                ))
-                {   *r = ~2;
+                );
+                if( (S)*r < 0 )
+                {   if( *r > ~2 )
+                        *r = ~2;
                     goto End;
                 }
                 disc = E_mem_Q_tab_R( E_disc_S, disc_id );
@@ -318,13 +324,15 @@ E_ssd_cache_R( I disc_id
                     goto End;
                 }
                 N read_count = pba + count - cache_end;
-                K( E_sata_Q_sata_ahci_I_read( disc_id
+                *r = E_sata_Q_sata_ahci_I_read( disc_id
                 , disc->sata_ahci.logical_sector_shift + pba * disc->sata_ahci.physical_sector_size / disc->sata_ahci.logical_sector_size
                 , read_count * disc->sata_ahci.physical_sector_size / disc->sata_ahci.logical_sector_size
                 , disc->sata_ahci.ssd_cache[ cache_i ].data + disc->sata_ahci.ssd_cache[ cache_i ].count * disc->sata_ahci.physical_sector_size
                 , &slot_mask
-                ))
-                {   *r = ~2;
+                );
+                if( (S)*r < 0 )
+                {   if( *r > ~2 )
+                        *r = ~2;
                     goto End;
                 }
                 disc = E_mem_Q_tab_R( E_disc_S, disc_id );
@@ -357,13 +365,15 @@ E_ssd_cache_R( I disc_id
                 *r = ~0;
             goto End;
         }
-        K( E_sata_Q_sata_ahci_I_read( disc_id
+        *r = E_sata_Q_sata_ahci_I_read( disc_id
         , disc->sata_ahci.logical_sector_shift + pba * disc->sata_ahci.physical_sector_size / disc->sata_ahci.logical_sector_size
         , count * disc->sata_ahci.physical_sector_size / disc->sata_ahci.logical_sector_size
         , disc->sata_ahci.ssd_cache[0].data
         , &slot_mask
-        ))
-        {   *r = ~2;
+        );
+        if( (S)*r < 0 )
+        {   if( *r > ~2 )
+                *r = ~2;
             goto End;
         }
         disc = E_mem_Q_tab_R( E_disc_S, disc_id );
@@ -501,8 +511,10 @@ E_ssd_cache_P( I disc_id
                 , copy_count * disc->sata_ahci.physical_sector_size
                 );
                 disc->sata_ahci.ssd_cache[ cache_i_0 ].count += copy_count;
-                K( W( disc->sata_ahci.ssd_cache[ cache_i + 1 ].data ))
-                {   *r = ~2;
+                *r = W( disc->sata_ahci.ssd_cache[ cache_i + 1 ].data );
+                if( (S)*r < 0 )
+                {   if( *r > ~2 )
+                        *r = ~2;
                     goto End;
                 }
                 cache_i++;
@@ -643,17 +655,21 @@ End_1:
     disc->sata_ahci.trim_list_n++;
     if( disc->sata_ahci.trim_list_n == E_ssd_cache_Q_trim_S_list_max )
     {   N32 slot_mask = 0;
-        K( E_sata_Q_sata_ahci_I_trim( disc_id
+        r = E_sata_Q_sata_ahci_I_trim( disc_id
         , disc->sata_ahci.trim_list
         , E_ssd_cache_Q_trim_S_list_max * sizeof( *disc->sata_ahci.trim_list ) / disc->sata_ahci.logical_sector_size
         , &slot_mask
-        ))
-        {   r = ~2;
+        );
+        if( (S)r < 0 )
+        {   if( r > ~2 )
+                r = ~2;
             goto End;
         }
         disc->sata_ahci.trim_list_n = 0;
-        K( E_sata_Q_sata_ahci_I_wait_on_completion( disc, slot_mask ))
-        {   r = ~2;
+        r = E_sata_Q_sata_ahci_I_wait_on_completion( disc, slot_mask );
+        if( (S)r < 0 )
+        {   if( r > ~2 )
+                r = ~2;
             goto End;
         }
         _0( disc->sata_ahci.trim_list, E_ssd_cache_Q_trim_S_list_max * sizeof( *disc->sata_ahci.trim_list ));
@@ -675,17 +691,21 @@ E_ssd_cache_I_sync_and_free( void
             return ~0;
         if( disc->sata_ahci.trim_list_n )
         {   N32 slot_mask = 0;
-            K( E_sata_Q_sata_ahci_I_trim( disc_id
+            r = E_sata_Q_sata_ahci_I_trim( disc_id
             , disc->sata_ahci.trim_list
             , E_ssd_cache_Q_trim_S_list_max * sizeof( *disc->sata_ahci.trim_list ) / disc->sata_ahci.logical_sector_size
             , &slot_mask
-            ))
-            {   r = ~2;
+            );
+            if( (S)r < 0 )
+            {   if( r > ~2 )
+                    r = ~2;
                 goto End;
             }
             disc->sata_ahci.trim_list_n = 0;
-            K( E_sata_Q_sata_ahci_I_wait_on_completion( disc, slot_mask ))
-            {   r = ~2;
+            r = E_sata_Q_sata_ahci_I_wait_on_completion( disc, slot_mask );
+            if( (S)r < 0 )
+            {   if( r > ~2 )
+                    r = ~2;
                 goto End;
             }
             _0( disc->sata_ahci.trim_list, E_ssd_cache_Q_trim_S_list_max * sizeof( *disc->sata_ahci.trim_list ));
@@ -713,18 +733,22 @@ E_ssd_cache_I_sync_and_free( void
                     cache_i = min + ( max - cache_i ) / 2;
                 }
             }
-            K( E_sata_Q_sata_ahci_I_write( disc_id
+            r = E_sata_Q_sata_ahci_I_write( disc_id
             , disc->sata_ahci.logical_sector_shift + disc->sata_ahci.dirty[ dirty_i ].pba * disc->sata_ahci.physical_sector_size / disc->sata_ahci.logical_sector_size
             , disc->sata_ahci.dirty[ dirty_i ].count * disc->sata_ahci.physical_sector_size / disc->sata_ahci.logical_sector_size
             , disc->sata_ahci.ssd_cache[ cache_i ].data + ( disc->sata_ahci.dirty[ dirty_i ].pba - disc->sata_ahci.ssd_cache[ cache_i ].pba ) * disc->sata_ahci.physical_sector_size
             , &slot_mask
-            ))
-            {   r = ~2;
+            );
+            if( (S)r < 0 )
+            {   if( r > ~2 )
+                    r = ~2;
                 goto End;
             }
         }
-        K( E_sata_Q_sata_ahci_I_wait_on_completion( disc, slot_mask ))
-        {   r = ~2;
+        r = E_sata_Q_sata_ahci_I_wait_on_completion( disc, slot_mask );
+        if( (S)r < 0 )
+        {   if( r > ~2 )
+                r = ~2;
             goto End;
         }
         N r_ = (N)E_mem_Q_blk_I_remove( &disc->sata_ahci.dirty, 0, disc->sata_ahci.dirty_n );
@@ -738,8 +762,10 @@ E_ssd_cache_I_sync_and_free( void
         }
         disc->sata_ahci.dirty_n = 0;
         for_n( cache_i, disc->sata_ahci.ssd_cache_n )
-        {   K( W( disc->sata_ahci.ssd_cache[ cache_i ].data ))
-            {   r = ~2;
+        {   r = W( disc->sata_ahci.ssd_cache[ cache_i ].data );
+            if( (S)r < 0 )
+            {   if( r > ~2 )
+                    r = ~2;
                 goto End;
             }
         }

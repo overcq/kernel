@@ -236,7 +236,8 @@ N
 E_window_log_W( N8 desktop_id
 , I window_id
 ){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
-    return W( window->data );
+    K_( ~1, W( window->data ));
+    return 0;
 }
 _private
 I
@@ -246,8 +247,8 @@ E_window_log_M( N8 desktop_id
         return ~0;
     data->line = ~0;
     I window_id = E_windows_Q_window_M( desktop_id, "System log", "In memory system log window", &E_window_log_I_draw, 0, 0, &E_window_log_I_wheel, &E_window_log_I_key, &E_window_log_W );
-    if( window_id < 0 )
-        return window_id;
+    K( window_id )
+        return ~0;
     struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
     window->controls_data = 0;
     window->data = data;

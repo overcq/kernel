@@ -281,7 +281,7 @@ E_flow_I_unlock( B *lock
 _inline
 N
 E_flow_I_lock_r( B *lock
-, N *r
+, volatile N *r
 ){  E_flow_I_lock(lock);
     return *r;
 }

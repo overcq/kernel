@@ -8983,6 +8983,8 @@ E_acpi_aml_M( Pc dsdt
     || ret == ~10
     )
         goto Error;
+    if( (S)ret < 0 )
+        return ret;
     struct
     { P address;
       N l;
@@ -9004,6 +9006,8 @@ E_acpi_aml_M( Pc dsdt
         || ret == ~10
         )
             goto Error;
+        if( (S)ret < 0 )
+            return ret;
     }
     K_( ~2, W( E_acpi_aml_S_parse_stack ));
     K_( ~2, W( E_acpi_aml_S_procedure_invocation_stack ));
@@ -9011,10 +9015,10 @@ E_acpi_aml_M( Pc dsdt
     E_acpi_aml_Q_procedure_invocation_stack_S_invoking = yes;
     struct E_acpi_aml_Z_value result;
     ret = E_acpi_aml_I_procedure(( struct E_acpi_aml_Z_pathname ){ "_SB__INI", 2 }, &result, 0, 0 );
-    if( !~ret
-    || ret == ~10
+    if( (S)ret < 0
+    && ret != ~11
     )
-        return ~0;
+        return ret;
     if( ret != ~11 )
     {   K_( ~1, E_acpi_aml_Q_value_W( &result ));
     }
