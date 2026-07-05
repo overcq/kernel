@@ -65,7 +65,7 @@ N
 E_flow_I_current_time( void
 ){  N32 high, low;
     __asm__ volatile (
-    "\n"    "rdtsc"
+    "\n" "rdtsc"
     : "=d" (high), "=a" (low)
     );
     return ( (N)high << 32 ) | low;
@@ -91,28 +91,32 @@ void
 E_flow_I_sleep( N microseconds
 ){  N acpi_timer_ticks = E_interrupt_S_apic_timer_freq * microseconds / 1000000;
     if( acpi_timer_ticks )
-    {   __asm__ volatile (
-        "\n"    "cli"
-        );
-        E_main_Q_msr_P( 0x838, acpi_timer_ticks );
-        __asm__ volatile (
-        "\n"    "sti"
-        "\n"    "hlt"
-        );
-        O{  __asm__ volatile (
-            "\n"    "cli"
+    {   N32 acpi_timer_ticks_ = acpi_timer_ticks > 0xffffffff ? 0xffffffff : acpi_timer_ticks;
+        acpi_timer_ticks -= acpi_timer_ticks_;
+        do
+        {   __asm__ volatile (
+            "\n" "cli"
             );
-            if( !E_main_Q_msr_R( 0x839 ))
-            {   __asm__ volatile (
-                "\n"    "sti"
-                );
-                break;
-            }
+            E_main_Q_msr_P( 0x838, acpi_timer_ticks_ );
             __asm__ volatile (
-            "\n"    "sti"
-            "\n"    "hlt"
+            "\n" "sti"
+            "\n" "hlt"
             );
-        }
+            O{  __asm__ volatile (
+                "\n" "cli"
+                );
+                if( !E_main_Q_msr_R( 0x839 ))
+                {   __asm__ volatile (
+                    "\n" "sti"
+                    );
+                    break;
+                }
+                __asm__ volatile (
+                "\n" "sti"
+                "\n" "hlt"
+                );
+            }
+        }while( acpi_timer_ticks );
     }
 }
 //------------------------------------------------------------------------------
@@ -124,7 +128,7 @@ E_flow_I_cli( void
     N sched_i = E_flow_I_current_scheduler();
     E_flow_S_scheduler[ sched_i ].cli_count++;
     __asm__ volatile (
-    "\n"    "cli"
+    "\n" "cli"
     );
 }
 _private
@@ -137,8 +141,18 @@ E_flow_I_sti( void
     && !U_R( E_flow_S_scheduler[ sched_i ].state, inside_interrupt )
     )
         __asm__ volatile (
-        "\n"    "sti"
+        "\n" "sti"
         );
+}
+_export
+P
+E_flow_R_rip( void
+){  P rip;
+    __asm__ volatile (
+    "\n" "mov   (%%rsp),%0"
+    : "=r" (rip)
+    );
+    return rip;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _private
@@ -284,7 +298,7 @@ E_flow_Q_report_M_srv( N uid
     }
     if( !~report_id )
         E_main_I_error_fatal();
-End:E_flow_I_sti();
+    E_flow_I_sti();
     return report_id;
 }
 _export
@@ -671,7 +685,7 @@ E_flow_Q_task_I_schedule( void
             return task->run_state == E_flow_Z_run_state_S_stopping_by_task;
         }
         __asm__ volatile (
-        "\n"    "cli"
+        "\n" "cli"
         );
         N time = E_flow_I_current_time();
         if( time >= E_flow_S_scheduler[ sched_i ].next_time ) // Czy trzeba uaktualnić kolejne czasy ‹cyklerów›.
@@ -765,7 +779,7 @@ E_flow_Q_task_I_schedule( void
             }
         }
         __asm__ volatile (
-        "\n"    "sti"
+        "\n" "sti"
         );
         for_each_out( E_flow_S_scheduler[ sched_i ].current_task, task_id, E_flow_S_scheduler[ sched_i ].task, E_mem_Q_tab )
         {   B task_skip = no;
@@ -805,11 +819,11 @@ E_flow_Q_task_I_schedule( void
         if( U_R( E_flow_S_scheduler[ sched_i ].signal, exit ))
             continue;
         __asm__ volatile (
-        "\n"    "cli"
+        "\n" "cli"
         );
         if( U_E( E_flow_S_scheduler[ sched_i ].signal, wake ))
         {   __asm__ volatile (
-            "\n"    "sti"
+            "\n" "sti"
             );
             continue;
         }
@@ -822,44 +836,48 @@ E_flow_Q_task_I_schedule( void
             if( U_has_suspend_time )
             {   N acpi_timer_ticks = ( E_flow_S_scheduler[ sched_i ].next_time - time ) / E_interrupt_S_apic_timer_tick_time;
                 if( acpi_timer_ticks )
-                {   E_main_Q_msr_P( 0x838, acpi_timer_ticks );
-                    __asm__ volatile (
-                    "\n"    "sti"
-                    "\n"    "hlt"
-                    );
-                    O{  __asm__ volatile (
-                        "\n"    "cli"
-                        );
-                        if( U_E( E_flow_S_scheduler[ sched_i ].signal, wake ))
-                        {   E_main_Q_msr_P( 0x838, 0 );
-                            __asm__ volatile (
-                            "\n"    "sti"
-                            );
-                            break;
-                        }
-                        if( !E_main_Q_msr_R( 0x839 ))
-                        {   __asm__ volatile (
-                            "\n"    "sti"
-                            );
-                            break;
-                        }
+                {   N32 acpi_timer_ticks_ = acpi_timer_ticks > 0xffffffff ? 0xffffffff : acpi_timer_ticks;
+                    acpi_timer_ticks -= acpi_timer_ticks_;
+                    do
+                    {   E_main_Q_msr_P( 0x838, acpi_timer_ticks_ );
                         __asm__ volatile (
-                        "\n"    "sti"
-                        "\n"    "hlt"
+                        "\n" "sti"
+                        "\n" "hlt"
                         );
-                    }
+                        O{  __asm__ volatile (
+                            "\n" "cli"
+                            );
+                            if( U_E( E_flow_S_scheduler[ sched_i ].signal, wake ))
+                            {   E_main_Q_msr_P( 0x838, 0 );
+                                __asm__ volatile (
+                                "\n" "sti"
+                                );
+                                break;
+                            }
+                            if( !E_main_Q_msr_R( 0x839 ))
+                            {   __asm__ volatile (
+                                "\n" "sti"
+                                );
+                                break;
+                            }
+                            __asm__ volatile (
+                            "\n" "sti"
+                            "\n" "hlt"
+                            );
+                        }
+                    }while( acpi_timer_ticks );
                 }else
                     __asm__ volatile (
-                    "\n"    "sti"
+                    "\n" "sti"
                     );
             }else
                 __asm__ volatile (
-                "\n"    "sti"
-                "\n"    "hlt"
+                "\n" "sti"
+                "\n" "hlt"
                 );
         else
             __asm__ volatile (
-            "\n"    "sti"
+            "\n" "sti"
             );
     }
 }
@@ -891,7 +909,7 @@ __attribute__ (( __noreturn__ ))
 void
 E_flow_I_main_task( void
 ){  O{  __asm__ volatile (
-        "\n"    "hlt"
+        "\n" "hlt"
         );
     }
 }

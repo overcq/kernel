@@ -172,7 +172,7 @@ N8
 E_main_I_in_8( N16 port
 ){  N8 v;
     __asm__ volatile (
-    "\n"    "in     %1,%0"
+    "\n" "in    %1,%0"
     : "=a" (v)
     : "d" (port)
     );
@@ -183,7 +183,7 @@ void
 E_main_I_out_8( N16 port
 , N8 v
 ){  __asm__ volatile (
-    "\n"    "out    %0,%1"
+    "\n" "out   %0,%1"
     :
     : "a" (v), "d" (port)
     );
@@ -193,7 +193,7 @@ N32
 E_main_I_in_32( N16 port
 ){  N32 v;
     __asm__ volatile (
-    "\n"    "in     %1,%0"
+    "\n" "in    %1,%0"
     : "=a" (v)
     : "d" (port)
     );
@@ -204,7 +204,7 @@ void
 E_main_I_out_32( N16 port
 , N32 v
 ){  __asm__ volatile (
-    "\n"    "out    %0,%1"
+    "\n" "out   %0,%1"
     :
     : "a" (v), "d" (port)
     );
@@ -215,7 +215,7 @@ N64
 E_main_Q_msr_R( N32 i
 ){  N32 h, l;
     __asm__ volatile (
-    "\n"    "rdmsr"
+    "\n" "rdmsr"
     : "=d" (h), "=a" (l)
     : "c" (i)
     );
@@ -226,7 +226,7 @@ void
 E_main_Q_msr_P( N32 i
 , N64 v
 ){  __asm__ volatile (
-    "\n"    "wrmsr"
+    "\n" "wrmsr"
     :
     : "c" (i), "d" ( v >> 32 ), "a" ( v & 0xffffffff )
     );
@@ -271,10 +271,10 @@ __attribute__ (( __noreturn__ ))
 void
 E_main_I_error_fatal( void
 ){  __asm__ volatile (
-    "\n"    "cli"
+    "\n" "cli"
     );
     O{  __asm__ volatile (
-        "\n"    "hlt"
+        "\n" "hlt"
         );
     }
     __builtin_unreachable();
@@ -284,68 +284,68 @@ __attribute__ (( __naked__ ))
 void
 E_main_I_processor_start( void
 ){  __asm__ volatile (
-    "\n"    "mov    %%cr0,%%rax"
-    "\n"    "and    %0,%%rax"
-    "\n"    "or     %1,%%rax"
-    "\n"    "mov    %%rax,%%cr0"
-    "\n"    "mov    %%cr3,%%rax"
-    "\n"    "and    %2,%%rax"
-    "\n"    "mov    %%rax,%%cr3"
-    "\n"    "mov    %%cr4,%%rax"
-    "\n"    "and    %3,%%rax"
-    "\n"    "or     %4,%%rax"
-    "\n"    "mov    %%rax,%%cr4"
-    "\n"    "mov    %%cr8,%%rax"
-    "\n"    "and    $~0xf,%%rax"
-    "\n"    "mov    %%rax,%%cr8"
-    "\n"    "mov    $0x802,%%ecx"
-    "\n"    "rdmsr"
-    "\n"    "dec    %%eax"
-    "\n"    "mov    %%eax,%%ebx"
-    "\n"    "mov    %5,%%rbp"
-    "\n"    "mov    (%%rbp,%%rbx,8),%%rdi"
-    "\n"    "lea    (%%rdi,%6),%%rsp"
-    "\n"    "lgdt   %7"
-    "\n"    "mov    $3 << 3,%%ax"
-    "\n"    "lldt   %%ax"
-    "\n"    "mov    $2 << 3,%%ax"
-    "\n"    "mov    %%ax,%%ds"
-    "\n"    "mov    %%ax,%%es"
-    "\n"    "mov    %%ax,%%ss"
-    "\n"    "xor    %%ax,%%ax"
-    "\n"    "mov    %%ax,%%fs"
-    "\n"    "mov    %%ax,%%gs"
-    "\n"    "movw   $1 << 3,-8(%%rsp)"
-    "\n"    "lea    0f(%%rip),%%rax"
-    "\n"    "mov    %%rax,-16(%%rsp)"
-    "\n"    ".byte  0x48"
-    "\n"    "ljmp   *-16(%%rsp)"
-    "\n0:"  "lea    7(%%rbx,%%rbx),%%rax"
-    "\n"    "shl    $3,%%rax"
-    "\n"    "ltr    %%ax"
-    "\n"    "lidt   %8"
-    "\n"    "mov    $0x80f,%%ecx"
-    "\n"    "rdmsr"
-    "\n"    "or     $0x100,%%eax"
-    "\n"    "mov    %9,%%al"
-    "\n"    "lea    32(%%eax),%%eax"
-    "\n"    "wrmsr"
-    "\n"    "movzbq %10,%%rax"
-    "\n"    "lea    32(%%rax),%%rax"
-    "\n"    "mov    $0x832,%%ecx"
-    "\n"    "wrmsr"
-    "\n"    "mov    $0x83e,%%ecx"
-    "\n"    "rdmsr"
-    "\n"    "and    $~0xf,%%eax"
-    "\n"    "or     $0xb,%%eax"
-    "\n"    "wrmsr"
-    "\n"    "sti"
-    "\n"    "call   E_flow_M"
-    "\n"    "test   %%rax,%%rax"
-    "\n"    "jns    0f"
-    "\n"    "jmp    E_main_I_error_fatal"
-    "\n0:"  "mov    %%rax,(%%rbp,%%rbx,8)"
-    "\n"    "jmp    E_flow_I_main_task"
+    "\n" "mov       %%cr0,%%rax"
+    "\n" "and       %0,%%rax"
+    "\n" "or        %1,%%rax"
+    "\n" "mov       %%rax,%%cr0"
+    "\n" "mov       %%cr3,%%rax"
+    "\n" "and       %2,%%rax"
+    "\n" "mov       %%rax,%%cr3"
+    "\n" "mov       %%cr4,%%rax"
+    "\n" "and       %3,%%rax"
+    "\n" "or        %4,%%rax"
+    "\n" "mov       %%rax,%%cr4"
+    "\n" "mov       %%cr8,%%rax"
+    "\n" "and       $~0xf,%%rax"
+    "\n" "mov       %%rax,%%cr8"
+    "\n" "mov       $0x802,%%ecx"
+    "\n" "rdmsr"
+    "\n" "dec       %%eax"
+    "\n" "mov       %%eax,%%ebx"
+    "\n" "mov       %5,%%rbp"
+    "\n" "mov       (%%rbp,%%rbx,8),%%rdi"
+    "\n" "lea       (%%rdi,%6),%%rsp"
+    "\n" "lgdt      %7"
+    "\n" "mov       $3 << 3,%%ax"
+    "\n" "lldt      %%ax"
+    "\n" "mov       $2 << 3,%%ax"
+    "\n" "mov       %%ax,%%ds"
+    "\n" "mov       %%ax,%%es"
+    "\n" "mov       %%ax,%%ss"
+    "\n" "xor       %%ax,%%ax"
+    "\n" "mov       %%ax,%%fs"
+    "\n" "mov       %%ax,%%gs"
+    "\n" "movw      $1 << 3,-8(%%rsp)"
+    "\n" "lea       0f(%%rip),%%rax"
+    "\n" "mov       %%rax,-16(%%rsp)"
+    "\n" ".byte     0x48"
+    "\n" "ljmp      *-16(%%rsp)"
+    "\n0: lea       7(%%rbx,%%rbx),%%rax"
+    "\n" "shl       $3,%%rax"
+    "\n" "ltr       %%ax"
+    "\n" "lidt      %8"
+    "\n" "mov       $0x80f,%%ecx"
+    "\n" "rdmsr"
+    "\n" "or        $0x100,%%eax"
+    "\n" "mov       %9,%%al"
+    "\n" "lea       32(%%eax),%%eax"
+    "\n" "wrmsr"
+    "\n" "movzbq    %10,%%rax"
+    "\n" "lea       32(%%rax),%%rax"
+    "\n" "mov       $0x832,%%ecx"
+    "\n" "wrmsr"
+    "\n" "mov       $0x83e,%%ecx"
+    "\n" "rdmsr"
+    "\n" "and       $~0xf,%%eax"
+    "\n" "or        $0xb,%%eax"
+    "\n" "wrmsr"
+    "\n" "sti"
+    "\n" "call      E_flow_M"
+    "\n" "test      %%rax,%%rax"
+    "\n" "jns       0f"
+    "\n" "jmp       E_main_I_error_fatal"
+    "\n0: mov       %%rax,(%%rbp,%%rbx,8)"
+    "\n"  "jmp      E_flow_I_main_task"
     :
     : "i" ( ~( E_cpu_Z_cr0_S_em | E_cpu_Z_cr0_S_ts | E_cpu_Z_cr0_S_nw | E_cpu_Z_cr0_S_cd ))
     , "i" ( E_cpu_Z_cr0_S_mp | E_cpu_Z_cr0_S_ne | E_cpu_Z_cr0_S_wp )
@@ -381,6 +381,7 @@ main( struct E_main_Z_kernel_args *kernel_args
     E_interrupt_S_gsi = kernel_args->gsi;
     E_interrupt_S_gsi_n = kernel_args->gsi_n;
     E_mem_blk_S_lock = no;
+    E_mem_blk_S_context_rip = 0;
     Mt_( E_vga_S_framebuffer, E_main_S_framebuffer.height * E_main_S_framebuffer.width );
     if( !E_vga_S_framebuffer
     || (S)E_font_M() < 0
@@ -413,23 +414,23 @@ main( struct E_main_Z_kernel_args *kernel_args
     E_main_S_gd.base = (N)&E_main_S_gdt[0];
     E_main_S_gd.limit = ( 5 + kernel_args->processor_n * 2 ) * sizeof( *E_main_S_gdt ) - 1;
     __asm__ volatile (
-    "\n"    "lgdt   %0"
-    "\n"    "mov    $3 << 3,%%ax"
-    "\n"    "lldt   %%ax"
-    "\n"    "mov    $2 << 3,%%ax"
-    "\n"    "mov    %%ax,%%ds"
-    "\n"    "mov    %%ax,%%es"
-    "\n"    "mov    %%ax,%%ss"
-    "\n"    "xor    %%ax,%%ax"
-    "\n"    "mov    %%ax,%%fs"
-    "\n"    "mov    %%ax,%%gs"
-    "\n"    "movw   $1 << 3,-8(%%rsp)"
-    "\n"    "lea    0f(%%rip),%%rax"
-    "\n"    "mov    %%rax,-16(%%rsp)"
-    "\n"    ".byte  0x48"
-    "\n"    "ljmp   *-16(%%rsp)"
-    "\n0:"  "mov    $5 << 3,%%ax"
-    "\n"    "ltr    %%ax"
+    "\n" "lgdt  %0"
+    "\n" "mov   $3 << 3,%%ax"
+    "\n" "lldt  %%ax"
+    "\n" "mov   $2 << 3,%%ax"
+    "\n" "mov   %%ax,%%ds"
+    "\n" "mov   %%ax,%%es"
+    "\n" "mov   %%ax,%%ss"
+    "\n" "xor   %%ax,%%ax"
+    "\n" "mov   %%ax,%%fs"
+    "\n" "mov   %%ax,%%gs"
+    "\n" "movw  $1 << 3,-8(%%rsp)"
+    "\n" "lea   0f(%%rip),%%rax"
+    "\n" "mov   %%rax,-16(%%rsp)"
+    "\n" ".byte 0x48"
+    "\n" "ljmp  *-16(%%rsp)"
+    "\n0: mov   $5 << 3,%%ax"
+    "\n" "ltr   %%ax"
     :
     : "p" ( &E_main_S_gd.limit )
     : "rax"
@@ -470,7 +471,7 @@ main( struct E_main_Z_kernel_args *kernel_args
         if( i == kernel_args->processor_n - 1 )
             break;
         __asm__ volatile (
-        "\n"    "pause"
+        "\n" "pause"
         );
     }
     E_flow_S_inited = yes;

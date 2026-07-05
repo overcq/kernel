@@ -283,7 +283,7 @@ E_ethernet_I_eeprom_read( struct E_net_Z_interface *interface
     && !E_flow_Q_spin_time_T( &time )
     )
         __asm__ volatile (
-        "\n"    "pause"
+        "\n" "pause"
         );
     if( *( N32 * )(( Pc )interface->register_memory + 0x14 ) & 1 ) //TEST
         G( "EEPROM still reading" );
@@ -312,7 +312,7 @@ E_ethernet_I_init( volatile P register_address
     && !E_flow_Q_spin_time_T( &time )
     )
         __asm__ volatile (
-        "\n"    "pause"
+        "\n" "pause"
         );
     if( *( N32 * )interface->register_memory & ( 1 << 26 ))
         return ~1;

@@ -1,4 +1,4 @@
-    //-*-C-*-
+//-*-C-*-
 /*******************************************************************************
 *   ___   public
 *  ¦OUX¦  C+
@@ -21,6 +21,7 @@ struct E_mem_Q_blk_Z_allocated
 { Pc p;
   N n;
   N u;
+  P context_rip;
 };
 _private
 struct E_mem_blk_Z
@@ -35,6 +36,7 @@ struct E_mem_blk_Z
 }E_mem_blk_S;
 //------------------------------------------------------------------------------
 _private B E_mem_blk_S_lock;
+_export P E_mem_blk_S_context_rip;
 //==============================================================================
 _internal void E_mem_Q_blk_Q_sys_table_f_I_move_empty_entry(N);
 _internal N E_mem_Q_blk_Q_sys_table_R_last( N, N );
@@ -68,15 +70,15 @@ E_mem_Q_blk_I_copy_fwd( P dst
     {   N l_1 = ( l - l_0 ) / sizeof(N128);
         N l_2 = ( l - l_0 ) % sizeof(N128);
         __asm__ volatile (
-        "\n"    "rep movsb"
+        "\n" "rep movsb"
         : "+D" (dst), "+S" (src), "+c" ( l_0 )
         :
         : "memory"
         );
         for_n( i, l_1 )
             __asm__ volatile (
-            "\n"    "movaps %1,%%xmm0"
-            "\n"    "movaps %%xmm0,%0"
+            "\n" "movaps    %1,%%xmm0"
+            "\n" "movaps    %%xmm0,%0"
             :
             : "p" ( dst_x++ ), "p" ( src_x++ )
             : "xmm0", "memory"
@@ -86,7 +88,7 @@ E_mem_Q_blk_I_copy_fwd( P dst
         l = l_2;
     }
     __asm__ volatile (
-    "\n"    "rep movsb"
+    "\n" "rep movsb"
     : "+D" (dst), "+S" (src), "+c" (l)
     :
     : "memory"
@@ -98,7 +100,7 @@ E_mem_Q_blk_I_copy_rev( P dst
 , P src
 , N l
 ){  __asm__ volatile (
-    "\n"    "std"
+    "\n" "std"
     );
     N128 *dst_x = (P)E_simple_Z_p_I_align_down_to_v2( dst + l, sizeof(N128) );
     N128 *src_x = (P)E_simple_Z_p_I_align_down_to_v2( src + l, sizeof(N128) );
@@ -113,15 +115,15 @@ E_mem_Q_blk_I_copy_rev( P dst
         N l_1 = ( l - l_0 ) / sizeof(N128);
         N l_2 = ( l - l_0 ) % sizeof(N128);
         __asm__ volatile (
-        "\n"    "rep movsb"
+        "\n" "rep movsb"
         : "+D" (dst), "+S" (src), "+c" ( l_0 )
         :
         : "memory"
         );
         for_n( i, l_1 )
             __asm__ volatile (
-            "\n"    "movaps %1,%%xmm0"
-            "\n"    "movaps %%xmm0,%0"
+            "\n" "movaps    %1,%%xmm0"
+            "\n" "movaps    %%xmm0,%0"
             :
             : "p" ( --dst_x ), "p" ( --src_x )
             : "xmm0", "memory"
@@ -134,8 +136,8 @@ E_mem_Q_blk_I_copy_rev( P dst
         src = (Pc)src + l - 1;
     }
     __asm__ volatile (
-    "\n"    "rep movsb"
-    "\n"    "cld"
+    "\n" "rep movsb"
+    "\n" "cld"
     : "+D" (dst), "+S" (src), "+c" (l)
     :
     : "memory"
@@ -183,7 +185,7 @@ E_mem_Q_blk_P_fill_c( P p
     {   N l_1 = ( l - l_0 ) / sizeof(N128);
         N l_2 = ( l - l_0 ) % sizeof(N128);
         __asm__ volatile (
-        "\n"    "rep stosb"
+        "\n" "rep stosb"
         : "+D" (p), "+c" ( l_0 )
         : "a" (c)
         : "memory"
@@ -192,15 +194,15 @@ E_mem_Q_blk_P_fill_c( P p
         p = &x;
         N cx = sizeof(N128);
         __asm__ volatile (
-        "\n"    "rep stosb"
-        "\n"    "movaps %3,%%xmm0"
+        "\n" "rep stosb"
+        "\n" "movaps    %3,%%xmm0"
         : "+D" (p), "+c" (cx)
         : "a" (c), "m" (x)
         : "xmm0", "memory"
         );
         for_n( i, l_1 )
             __asm__ volatile (
-            "\n"    "movdqa %%xmm0,%0"
+            "\n" "movdqa    %%xmm0,%0"
             :
             : "p" ( p_x++ )
             : "memory"
@@ -210,7 +212,7 @@ E_mem_Q_blk_P_fill_c( P p
     }
         #endif
     __asm__ volatile (
-    "\n"    "rep stosb"
+    "\n" "rep stosb"
     : "+D" (p), "+c" (l)
     : "a" (c)
     : "memory"
@@ -892,7 +894,12 @@ E_mem_Q_blk_Q_table_M_from_free( N *allocated_or_table_i
         E_mem_Q_blk_Q_table_I_put_begin( allocated_or_table_i );
     }
     if( !p ) //NDFN Rozpoznanie niebezpośrednie, mimo że jednoznaczne w obecnej implementacji.
-        E_mem_blk_S.allocated[ *allocated_or_table_i ].u = u;
+    {   E_mem_blk_S.allocated[ *allocated_or_table_i ].u = u;
+        E_mem_blk_S.allocated[ *allocated_or_table_i ].context_rip = *allocated_or_table_i != E_mem_blk_S.free_id
+        && *allocated_or_table_i != E_mem_blk_S.allocated_id
+        ? E_mem_blk_S_context_rip
+        : 0;
+    }
     if(p)
         if( *allocated_or_table_i == E_mem_blk_S.free_id )
         {   struct E_mem_Q_blk_Z_free *free_p = (P)p_1;

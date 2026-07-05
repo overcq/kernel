@@ -261,12 +261,12 @@ _inline
 void
 E_flow_I_lock( B *lock
 ){  __asm__ volatile (
-    "\n"    "mov    $1,%%cl"
-    "\n0:"  "xor    %%al,%%al"
-    "\n"    "lock cmpxchg %%cl,%0"
-    "\n"    "je     0f"
-    "\n"    "pause"
-    "\n"    "jmp    0b"
+    "\n" "mov           $1,%%cl"
+    "\n0: xor           %%al,%%al"
+    "\n" "lock cmpxchg  %%cl,%0"
+    "\n" "je            0f"
+    "\n" "pause"
+    "\n" "jmp           0b"
     "\n0:"
     : "+m" ( *lock )
     :
@@ -291,7 +291,7 @@ E_flow_I_unlock_r( B *lock
 , N *r
 , N r_
 ){  __asm__ volatile (
-    "\n"    "lock xchg %1,%0"
+    "\n" "lock xchg %1,%0"
     : "+m" ( *r ), "+r" ( r_ )
     );
     E_flow_I_unlock(lock);

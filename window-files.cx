@@ -1074,6 +1074,12 @@ E_window_files_M( N8 desktop_id
     I window_id = E_windows_Q_window_M( desktop_id, "File browser", "OUX filesystem window", &E_window_files_I_draw, &E_window_files_I_mouse_move, &E_window_files_I_click, &E_window_files_I_wheel, &E_window_files_I_key, &E_window_files_W );
     K( window_id )
         return ~0;
+    K( E_controls_M( desktop_id, window_id ))
+    {   K_( ~2, E_windows_Q_window_W( desktop_id, window_id ));
+        K_( ~1, W( data->disc_partition ));
+        K_( ~1, W(data));
+        return ~0;
+    }
     for_each( disc_id, E_disc_S, E_mem_Q_tab )
     {   struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
         for_n( partition_i, disc->partition_n )
@@ -1110,15 +1116,6 @@ E_window_files_M( N8 desktop_id
     data->column_margin_width = 20;
     data->font_size = 1;
     data->thickness = 1;
-    K( E_controls_M( desktop_id, window_id ))
-    {   K_( ~2, E_windows_Q_window_W( desktop_id, window_id ));
-        for_n( i, data->disc_partition_n )
-        {   K_( ~1, W( data->disc_partition[ data->disc_partition_n ].name ));
-        }
-        K_( ~1, W( data->disc_partition ));
-        K_( ~1, W(data));
-        return ~2;
-    }
     struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
     window->data = data;
     return window_id;

@@ -245,7 +245,7 @@ E_keyboard_I_wait_read( void
         if( E_flow_Q_spin_time_T( &time ))
             return ~0;
         __asm__ volatile (
-        "\n"    "pause"
+        "\n" "pause"
         );
     }
     return 0;
@@ -261,7 +261,7 @@ E_keyboard_I_wait_write( void
         if( E_flow_Q_spin_time_T( &time ))
             return ~0;
         __asm__ volatile (
-        "\n"    "pause"
+        "\n" "pause"
         );
     }
     return 0;

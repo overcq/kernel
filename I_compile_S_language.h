@@ -161,7 +161,10 @@
 #define G_(...)                             E_se_log_I_log_( __VA_ARGS__ )
 #define Gk(statement)                       G( "late compile‐time error: %z", J_s(statement) )
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// ‹Zdarzenia› w procedurze — dla otaczania wywołań procedur, które zwracają kod błędu.
+// Obsługa ‹zdarzenia›.
+#define K_A()                               E_mem_blk_S_context_rip = E_flow_R_rip()
+//------------------------------------------------------------------------------
+// Emisja ‹zdarzenia› w procedurze — dla otaczania wywołań procedur, które zwracają kod błędu.
 #define K(statement) \
   N J_autogen_line(r) = (statement); \
   if( (S)J_autogen_line(r) < 0 \
@@ -171,7 +174,7 @@
   if( ~J_autogen_line(r) ) \
   { \
   }else
-// ‹Zdarzenia› w procedurze — dla otaczania wywołań procedur, które zwracają adres.
+// Emisja ‹zdarzenia› w procedurze — dla otaczania wywołań procedur, które zwracają adres.
 #define Kp(statement) \
   N J_autogen_line(r) = (N)(statement); \
   if( !~J_autogen_line(r) ) \
@@ -181,14 +184,14 @@
   if( J_autogen_line(r) ) \
   { \
   }else
-// ‹Zdarzenia› w bloku wyjścia procedury — dla otaczania wywołań procedur, które zwracają kod błędu.
+// Emisja ‹zdarzenia› w bloku wyjścia procedury — dla otaczania wywołań procedur, które zwracają kod błędu.
 #define K_(error,statement) \
   N J_autogen_line(r) = (statement); \
   if( (S)J_autogen_line(r) >= 0 ) \
   { \
   }else \
       return J_autogen_line(r) < (error) ? J_autogen_line(r) : (error)
-// ‹Zdarzenia› w bloku wyjścia procedury — dla otaczania wywołań procedur, które zwracają adres.
+// Emisja ‹zdarzenia› w bloku wyjścia procedury — dla otaczania wywołań procedur, które zwracają adres.
 #define Kp_(error,statement) \
   N J_autogen_line(r) = (N)(statement); \
   if( !~J_autogen_line(r) ) \

@@ -279,7 +279,7 @@ _private volatile N E_interrupt_S_cpu_freq;
 _private N E_interrupt_S_apic_timer_tick_time;
 _private volatile N E_interrupt_S_apic_timer_freq;
 _internal volatile N E_interrupt_S_apic_timer_freq_;
-_internal volatile N E_interrupt_S_apic_timer_div;
+_internal volatile N32 E_interrupt_S_apic_timer_div;
 _internal volatile N E_interrupt_S_rtc_ticks;
 //==============================================================================
 _internal
@@ -423,7 +423,7 @@ E_interrupt_I_panic( Pc message
         }
     }
     O{  __asm__ volatile (
-        "\n"    "hlt"
+        "\n" "hlt"
         );
     }
 }
@@ -1142,7 +1142,7 @@ E_interrupt_M( void
     E_interrupt_S_id.base = (N)&E_interrupt_S_idt[0];
     E_interrupt_S_id.limit = idt_n * 2 * sizeof( *E_interrupt_S_idt ) - 1;
     __asm__ volatile (
-    "\n"    "lidt   %0"
+    "\n" "lidt  %0"
     :
     : "p" ( &E_interrupt_S_id.limit )
     );
@@ -1172,30 +1172,31 @@ E_interrupt_M( void
     E_main_I_out_8( 0x71, v | 0x40 );
     E_main_I_out_8( 0x70, 0xc );
     E_main_I_in_8( 0x71 );
-    E_interrupt_S_apic_timer_ticks = E_interrupt_S_rtc_ticks = 0;
+    E_interrupt_S_rtc_ticks = 0;
     __asm__ volatile (
-    "\n"    "sti"
+    "\n" "sti"
     );
     while( E_interrupt_S_rtc_ticks < 1 + 1 )
         __asm__ volatile (
-        "\n"    "pause"
+        "\n" "pause"
         );
     __asm__ volatile (
-    "\n"    "cli"
+    "\n" "cli"
     );
     E_interrupt_P( 8, &E_interrupt_I_rtc_interrupt_2 );
     E_interrupt_S_apic_timer_freq = 0;
-    E_interrupt_S_apic_timer_div = 1ULL << E_asm_I_bsr( E_interrupt_S_cpu_freq );
+    N8 div_i = E_asm_I_bsr( E_interrupt_S_cpu_freq );
+    E_interrupt_S_apic_timer_div = 1ULL << ( div_i > 31 ? 31 : div_i );
     O{  E_interrupt_S_apic_timer_ticks = E_interrupt_S_rtc_ticks = 0;
         __asm__ volatile (
-        "\n"    "sti"
+        "\n" "sti"
         );
         while( E_interrupt_S_rtc_ticks < 1 + 1 )
             __asm__ volatile (
-            "\n"    "pause"
+            "\n" "pause"
             );
         __asm__ volatile (
-        "\n"    "cli"
+        "\n" "cli"
         );
         E_main_Q_msr_P( 0x838, 0 );
         if(( E_interrupt_S_apic_timer_freq << 1 ) > E_interrupt_S_apic_timer_freq_ ) // Czy nie nadąża obsługiwać przerwań zliczających?
@@ -1217,7 +1218,7 @@ E_interrupt_M( void
     E_interrupt_P( 8, 0 );
     E_interrupt_S_external[16] = 0;
     __asm__ volatile (
-    "\n"    "sti"
+    "\n" "sti"
     );
     E_interrupt_S_cpu_freq *= 2;
     E_interrupt_S_apic_timer_freq *= E_interrupt_S_apic_timer_div * 2;

@@ -446,7 +446,6 @@ E_se_log_Q_element_I_print( N *element_i
         }
 Cont:   fmt = s;
     }
-End:
     Pc r = E_text_Z_s_I_append_c( &output, '\0' );
     if( !r )
     {   N r = W(output);

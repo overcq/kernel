@@ -48,6 +48,7 @@ N
 E_controls_M( N8 desktop_id
 , I window_id
 ){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
+    window->controls_data = 0;
     struct E_controls_Z_data *M_(data);
     if( !data )
         return ~0;
@@ -73,24 +74,21 @@ E_controls_W( N8 desktop_id
     for_n( control_i, data->control_n )
         switch( data->control[ control_i ].type )
         { case E_controls_Z_type_S_label:
-            {   K( W( data->control[ control_i ].label.text ))
-                    return ~1;
+            {   K_( ~1, W( data->control[ control_i ].label.text ));
                 break;
             }
           case E_controls_Z_type_S_button:
-            {   K( W( data->control[ control_i ].button.text ))
-                    return ~1;
+            {   K_( ~1, W( data->control[ control_i ].button.text ));
                 break;
             }
           case E_controls_Z_type_S_textbox:
-            {   K( W( data->control[ control_i ].textbox.text ))
-                    return ~1;
+            {   K_( ~1, W( data->control[ control_i ].textbox.text ));
                 break;
             }
         }
-    K( W( data->control ))
-        return ~1;
-    return W( data );
+    K_( ~1, W( data->control ));
+    K_( ~1, W( data ));
+    return 0;
 }
 //------------------------------------------------------------------------------
 _private

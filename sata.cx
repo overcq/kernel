@@ -204,9 +204,9 @@ E_sata_I_interrupt( void
     {   struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
         if( !( disc->sata_ahci.memory->interrupt_status & ( 1 << disc->sata_ahci.port )))
             continue;
-        disc->sata_ahci.memory->interrupt_status = 1 << disc->sata_ahci.port;
         if( disc->type == E_disc_Z_type_S_sata_ahci )
-        {   if( disc->sata_ahci.memory->port[ disc->sata_ahci.port ].interrupt_status & ~0x2 )
+        {   disc->sata_ahci.memory->interrupt_status = 1 << disc->sata_ahci.port;
+            if( disc->sata_ahci.memory->port[ disc->sata_ahci.port ].interrupt_status & ~0x2 )
             {   G( "is: %32x", disc->sata_ahci.memory->port[ disc->sata_ahci.port ].interrupt_status );
                 G( "serr: %32x", disc->sata_ahci.memory->port[ disc->sata_ahci.port ].sata_error );
                 G( "tfd: %32x", disc->sata_ahci.memory->port[ disc->sata_ahci.port ].task_file_data );
@@ -215,7 +215,8 @@ E_sata_I_interrupt( void
             break;
         }
         if( disc->type == E_disc_Z_type_S_satapi_ahci )
-        {   if( disc->sata_ahci.memory->port[ disc->satapi_ahci.port ].interrupt_status & ~0x2 )
+        {   disc->satapi_ahci.memory->interrupt_status = 1 << disc->satapi_ahci.port;
+            if( disc->satapi_ahci.memory->port[ disc->satapi_ahci.port ].interrupt_status & ~0x2 )
             {   G( "is: %32x", disc->satapi_ahci.memory->port[ disc->satapi_ahci.port ].interrupt_status );
                 G( "serr: %32x", disc->satapi_ahci.memory->port[ disc->satapi_ahci.port ].sata_error );
                 G( "tfd: %32x", disc->satapi_ahci.memory->port[ disc->satapi_ahci.port ].task_file_data );
@@ -249,7 +250,7 @@ E_sata_I_init( volatile struct E_sata_Z_memory *sata_memory
         && !E_flow_Q_spin_time_T( &time )
         )
             __asm__ volatile (
-            "\n"    "pause"
+            "\n" "pause"
             );
         if( sata_memory->bios_os_handoff_control_status & ( 1 << 4 )) // BIOS busy
         {   E_flow_Q_spin_time_M( &time, 2000000 );
@@ -257,7 +258,7 @@ E_sata_I_init( volatile struct E_sata_Z_memory *sata_memory
             && !E_flow_Q_spin_time_T( &time )
             )
                 __asm__ volatile (
-                "\n"    "pause"
+                "\n" "pause"
                 );
         }
     }
@@ -267,7 +268,7 @@ E_sata_I_init( volatile struct E_sata_Z_memory *sata_memory
     {   if( E_flow_Q_spin_time_T( &time ))
             return ~0;
         __asm__ volatile (
-        "\n"    "pause"
+        "\n" "pause"
         );
     }
     if( !( sata_memory->global_host_control & ( 1 << 31 )))
@@ -300,7 +301,7 @@ E_sata_I_init( volatile struct E_sata_Z_memory *sata_memory
                 goto Next_port;
             }
             __asm__ volatile (
-            "\n"    "pause"
+            "\n" "pause"
             );
         }
         sata_memory->port[port].sata_error = ~0;
@@ -371,7 +372,7 @@ E_sata_I_init( volatile struct E_sata_Z_memory *sata_memory
         {   if( E_flow_Q_spin_time_T( &time ))
                 goto Next_port;
             __asm__ volatile (
-            "\n"    "pause"
+            "\n" "pause"
             );
         }
         sata_memory->port[port].command_status |= 1; // start
@@ -394,7 +395,7 @@ E_sata_I_init( volatile struct E_sata_Z_memory *sata_memory
             {   if( E_flow_Q_spin_time_T( &time ))
                     goto End;
                 __asm__ volatile (
-                "\n"    "pause"
+                "\n" "pause"
                 );
             }
             sata_memory->port[port].command_issue = 1;
@@ -473,14 +474,14 @@ E_sata_Q_sata_ahci_I_read( I disc_id
     if( E_flow_I_lock_r( &disc->sata_ahci.sata_lock, &r ))
         return ~0;
     do
-    {   N8 command_slot_i = E_sata_Q_disc_device_R_free_command_slot( disc );
+    {   N8 command_slot_i = E_sata_Q_disc_device_R_free_command_slot(disc);
         while( !~command_slot_i )
         {   X_B( sata, interrupt, 0 )
             {   r = ~0;
                 goto End;
             }
             disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-            command_slot_i = E_sata_Q_disc_device_R_free_command_slot( disc );
+            command_slot_i = E_sata_Q_disc_device_R_free_command_slot(disc);
         }
         disc->sata_ahci.memory->port[ disc->sata_ahci.port ].interrupt_status = E_sata_S_interrupt_status_clear_mask;
         struct E_sata_Z_command_header *command_list = E_main_Z_p_I_to_virtual( (P)disc->sata_ahci.memory->port[ disc->sata_ahci.port ].command_list_base );
@@ -508,7 +509,7 @@ E_sata_Q_sata_ahci_I_read( I disc_id
                 goto End;
             }
             __asm__ volatile (
-            "\n"    "pause"
+            "\n" "pause"
             );
         }
         disc->sata_ahci.memory->port[ disc->sata_ahci.port ].sata_active = 1 << command_slot_i;
@@ -539,14 +540,14 @@ E_sata_Q_sata_ahci_I_write( I disc_id
     if( E_flow_I_lock_r( &disc->sata_ahci.sata_lock, &r ))
         return ~0;
     do
-    {   N8 command_slot_i = E_sata_Q_disc_device_R_free_command_slot( disc );
+    {   N8 command_slot_i = E_sata_Q_disc_device_R_free_command_slot(disc);
         while( !~command_slot_i )
         {   X_B( sata, interrupt, 0 )
             {   r = ~0;
                 goto End;
             }
             disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-            command_slot_i = E_sata_Q_disc_device_R_free_command_slot( disc );
+            command_slot_i = E_sata_Q_disc_device_R_free_command_slot(disc);
         }
         disc->sata_ahci.memory->port[ disc->sata_ahci.port ].interrupt_status = E_sata_S_interrupt_status_clear_mask;
         struct E_sata_Z_command_header *command_list = E_main_Z_p_I_to_virtual( (P)disc->sata_ahci.memory->port[ disc->sata_ahci.port ].command_list_base );
@@ -574,7 +575,7 @@ E_sata_Q_sata_ahci_I_write( I disc_id
                 goto End;
             }
             __asm__ volatile (
-            "\n"    "pause"
+            "\n" "pause"
             );
         }
         disc->sata_ahci.memory->port[ disc->sata_ahci.port ].sata_active = 1 << command_slot_i;
@@ -603,14 +604,14 @@ E_sata_Q_sata_ahci_I_trim( I disc_id
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
     if( E_flow_I_lock_r( &disc->sata_ahci.sata_lock, &r ))
         return ~0;
-    N8 command_slot_i = E_sata_Q_disc_device_R_free_command_slot( disc );
+    N8 command_slot_i = E_sata_Q_disc_device_R_free_command_slot(disc);
     while( !~command_slot_i )
     {   X_B( sata, interrupt, 0 )
         {   r = ~0;
             goto End;
         }
         disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-        command_slot_i = E_sata_Q_disc_device_R_free_command_slot( disc );
+        command_slot_i = E_sata_Q_disc_device_R_free_command_slot(disc);
     }
     disc->sata_ahci.memory->port[ disc->sata_ahci.port ].interrupt_status = E_sata_S_interrupt_status_clear_mask;
     struct E_sata_Z_command_header *command_list = E_main_Z_p_I_to_virtual( (P)disc->sata_ahci.memory->port[ disc->sata_ahci.port ].command_list_base );
@@ -630,7 +631,7 @@ E_sata_Q_sata_ahci_I_trim( I disc_id
             goto End;
         }
         __asm__ volatile (
-        "\n"    "pause"
+        "\n" "pause"
         );
     }
     disc->sata_ahci.memory->port[ disc->sata_ahci.port ].sata_active = 1 << command_slot_i;

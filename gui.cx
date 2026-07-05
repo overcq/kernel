@@ -229,7 +229,7 @@ E_gui_Q_pointer_I_draw( N32 x
         }
     }
     __asm__ volatile (
-    "\n"    "sfence"
+    "\n" "sfence"
     );
 }
 _internal
