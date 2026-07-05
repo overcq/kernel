@@ -22,13 +22,13 @@ enum E_gui_Q_desktop_Z_window_resizing_state
 };
 struct E_gui_Q_bubble_Z
 { union
-  { void ( *draw )(void);
+  { N ( *draw )(void);
     struct
     { Pc text;
       N8 font_size, thickness;
     };
   };
-  void ( *click )( N32 x, N32 y );
+  N ( *click )( N32 x, N32 y );
   N32 x, y;
   N32 width, height;
   I window_id;
@@ -114,13 +114,13 @@ E_gui_Q_main_menu_I_browse_files( I window_id
     E_windows_Q_window_Q_stack_I_on_top( window_id );
 }
 _internal
-void
+N
 E_gui_Q_main_menu_I_draw( I window_id
 , N32 x
 , N32 y
 , N32 width
 , N32 height
-){
+){  return 0;
 }
 _internal
 I
@@ -1003,6 +1003,7 @@ E_gui_Q_keyboard_I_key( void
         if( E_keyboard_S_queue[ queue_i ].ex_1
         && !E_keyboard_S_queue[ queue_i ].ex_2
         && E_keyboard_S_queue[ queue_i ].code == 0x5b
+        && !E_keyboard_S_meta_set
         ) // logo
         {   if( E_keyboard_S_queue[ queue_i ].up )
             {   I windows = E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window );
@@ -1074,12 +1075,14 @@ E_gui_Q_desktop_I_draw( void
     }
     if( ~stack_i )
     {   E_vga_I_fill_rect( 0, E_gui_Q_taskbar_S_height, E_main_S_framebuffer.width, E_main_S_framebuffer.height - E_gui_Q_taskbar_S_height, E_vga_S_background_color );
-        window->draw( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ]
+        K_V( window->draw( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ]
         , 0
         , E_gui_Q_taskbar_S_height
         , E_main_S_framebuffer.width
         , E_main_S_framebuffer.height - E_gui_Q_taskbar_S_height
-        );
+        ))
+        {
+        }
         if( window->controls_data )
             E_controls_I_draw( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ]
             , 0
@@ -1100,12 +1103,14 @@ E_gui_Q_desktop_I_draw( void
         , window->height - 2 * E_gui_Q_desktop_S_window_border_thickness
         , E_vga_S_background_color
         );
-        window->draw( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ]
+        K_V( window->draw( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ]
         , window->x + E_gui_Q_desktop_S_window_border_thickness
         , window->y + E_gui_Q_desktop_S_window_border_thickness
         , window->width - 2 * E_gui_Q_desktop_S_window_border_thickness
         , window->height - 2 * E_gui_Q_desktop_S_window_border_thickness
-        );
+        ))
+        {
+        }
         if( window->controls_data )
             E_controls_I_draw( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ]
             , window->x + E_gui_Q_desktop_S_window_border_thickness
@@ -1148,12 +1153,14 @@ E_gui_Q_desktop_I_draw( void
         , height - 2 * E_gui_Q_desktop_S_window_border_thickness
         , E_vga_S_background_color
         );
-        window->draw( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ]
+        K_V( window->draw( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ]
         , x + E_gui_Q_desktop_S_window_border_thickness
         , y + E_gui_Q_desktop_S_window_border_thickness
         , width - 2 * E_gui_Q_desktop_S_window_border_thickness
         , height - 2 * E_gui_Q_desktop_S_window_border_thickness
-        );
+        ))
+        {
+        }
         if( window->controls_data )
             E_controls_I_draw( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ]
             , x + E_gui_Q_desktop_S_window_border_thickness
@@ -1217,12 +1224,14 @@ E_gui_Q_desktop_I_draw( void
         , height - 2 * E_gui_Q_desktop_S_window_border_thickness
         , E_vga_S_background_color
         );
-        window->draw( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ]
+        K_V( window->draw( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ]
         , x + E_gui_Q_desktop_S_window_border_thickness
         , y + E_gui_Q_desktop_S_window_border_thickness
         , width - 2 * E_gui_Q_desktop_S_window_border_thickness
         , height - 2 * E_gui_Q_desktop_S_window_border_thickness
-        );
+        ))
+        {
+        }
         if( window->controls_data )
             E_controls_I_draw( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ]
             , x + E_gui_Q_desktop_S_window_border_thickness
@@ -1246,12 +1255,14 @@ E_gui_Q_desktop_I_draw( void
         , window->height - 2 * E_gui_Q_desktop_S_window_border_thickness
         , E_vga_S_background_color
         );
-        window->draw( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ]
+        K_V( window->draw( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ]
         , window->x + E_gui_Q_desktop_S_window_border_thickness
         , window->y + E_gui_Q_desktop_S_window_border_thickness
         , window->width - 2 * E_gui_Q_desktop_S_window_border_thickness
         , window->height - 2 * E_gui_Q_desktop_S_window_border_thickness
-        );
+        ))
+        {
+        }
         if( window->controls_data )
             E_controls_I_draw( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ]
             , window->x + E_gui_Q_desktop_S_window_border_thickness
@@ -1285,7 +1296,7 @@ E_gui_Q_taskbar_I_draw( void
             struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
             Pc s = window->title;
             while( *s )
-            {   U u = ~0;
+            {   U u;
                 Pc s_ = E_text_Z_su_R_u( s, &u );
                 s = s_;
                 N32 font_i;
@@ -1308,7 +1319,7 @@ E_gui_Q_taskbar_I_draw( void
             if( i == E_gui_Q_taskbar_S_mouse_over_panel )
                 E_gui_Q_taskbar_S_expand_description = no;
             while( *s )
-            {   U u = ~0;
+            {   U u;
                 Pc s_ = E_text_Z_su_R_u( s, &u );
                 s = s_;
                 N32 font_i;
@@ -1456,7 +1467,7 @@ E_gui_Q_taskbar_I_draw_expander( void
     N32 x = x_0;
     Pc s = window->title;
     while( *s )
-    {   U u = ~0;
+    {   U u;
         Pc s_ = E_text_Z_su_R_u( s, &u );
         s = s_;
         N32 font_i;
@@ -1473,7 +1484,7 @@ E_gui_Q_taskbar_I_draw_expander( void
         x = x_0;
         s = window->description;
         while( *s )
-        {   U u = ~0;
+        {   U u;
             Pc s_ = E_text_Z_su_R_u( s, &u );
             s = s_;
             N32 font_i;
@@ -1510,7 +1521,7 @@ E_gui_Q_taskbar_I_draw_expander( void
     x = x_0;
     s = window->title;
     while( *s )
-    {   U u = ~0;
+    {   U u;
         Pc s_ = E_text_Z_su_R_u( s, &u );
         s = s_;
         N32 font_i;
@@ -1532,7 +1543,7 @@ E_gui_Q_taskbar_I_draw_expander( void
         y = E_gui_Q_taskbar_S_height + E_gui_Q_taskbar_S_panel_height + E_gui_Q_taskbar_S_font_size + 1 + ( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height + E_gui_Q_taskbar_S_font_size + 1;
         s = window->description;
         while( *s )
-        {   U u = ~0;
+        {   U u;
             Pc s_ = E_text_Z_su_R_u( s, &u );
             s = s_;
             N32 font_i;
@@ -1566,13 +1577,15 @@ E_gui_Q_bubble_I_draw( void
     , E_vga_R_video_color( 0xffeff0 )
     );
     if( E_gui_Q_bubble_S.custom_draw )
-        E_gui_Q_bubble_S.draw();
-    else
+    {   K_V( E_gui_Q_bubble_S.draw() )
+        {
+        }
+    }else
     {   Pc s = E_gui_Q_bubble_S.text;
         N32 y_ = E_gui_Q_bubble_S.y + E_gui_Q_bubble_S.font_size + 1;
         N32 x_ = E_gui_Q_bubble_S.x + E_gui_Q_bubble_S.thickness + 1;
         while( *s )
-        {   U u = ~0;
+        {   U u;
             Pc s_ = E_text_Z_su_R_u( s, &u );
             s = s_;
             N32 font_i;

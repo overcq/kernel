@@ -157,17 +157,27 @@
 // Wyjście z ‹zadania› po procedurze zawierającej instrukcję przełączenia.
 #define I_V()                               if( !E_flow_Q_task_R_exit() ){} else
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#define G(...)                              E_se_log_I_log( &__func__[0], __VA_ARGS__ )
+#define G(...)                              E_se_log_I_log( __FILE__, __LINE__, __VA_ARGS__ )
 #define G_(...)                             E_se_log_I_log_( __VA_ARGS__ )
 #define Gk(statement)                       G( "late compile‐time error: %z", J_s(statement) )
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Obsługa ‹zdarzenia›.
-#define K_A()                               E_mem_blk_S_context_rip = E_flow_R_rip()
+#define K_V(statement) \
+  E_mem_blk_S_context_ip = E_flow_R_ip(); \
+  N J_autogen_line(r) = (statement); \
+  E_mem_blk_S_context_ip = 0; \
+  if( !K_error( J_autogen_line(r) )) \
+  { \
+  }else
 //------------------------------------------------------------------------------
+#define K_error(error) \
+  ( (S)(error) < 0 \
+  && (S)(error) > ~5 \
+  )
 // Emisja ‹zdarzenia› w procedurze — dla otaczania wywołań procedur, które zwracają kod błędu.
 #define K(statement) \
   N J_autogen_line(r) = (statement); \
-  if( (S)J_autogen_line(r) < 0 \
+  if( K_error( J_autogen_line(r) ) \
   && ~J_autogen_line(r) \
   ) \
       return J_autogen_line(r); \
@@ -177,9 +187,9 @@
 // Emisja ‹zdarzenia› w procedurze — dla otaczania wywołań procedur, które zwracają adres.
 #define Kp(statement) \
   N J_autogen_line(r) = (N)(statement); \
-  if( !~J_autogen_line(r) ) \
+  if( K_error( J_autogen_line(r) )) \
   {   Gk(statement); \
-      return ~2; \
+      return J_autogen_line(r); \
   } \
   if( J_autogen_line(r) ) \
   { \
@@ -187,21 +197,60 @@
 // Emisja ‹zdarzenia› w bloku wyjścia procedury — dla otaczania wywołań procedur, które zwracają kod błędu.
 #define K_(error,statement) \
   N J_autogen_line(r) = (statement); \
-  if( (S)J_autogen_line(r) >= 0 ) \
+  if( !K_error( J_autogen_line(r) )) \
   { \
   }else \
       return J_autogen_line(r) < (error) ? J_autogen_line(r) : (error)
 // Emisja ‹zdarzenia› w bloku wyjścia procedury — dla otaczania wywołań procedur, które zwracają adres.
 #define Kp_(error,statement) \
   N J_autogen_line(r) = (N)(statement); \
-  if( !~J_autogen_line(r) ) \
+  if( K_error( J_autogen_line(r) )) \
   {   Gk(statement); \
-      return ~2; \
+      return J_autogen_line(r); \
   } \
   if( J_autogen_line(r) ) \
   { \
   }else \
       return (error)
+//------------------------------------------------------------------------------
+// Emisja ‹zdarzenia› w procedurze zwracającej adres — dla otaczania wywołań procedur, które zwracają kod błędu.
+#define KP(statement) \
+  N J_autogen_line(r) = (statement); \
+  if( K_error( J_autogen_line(r) ) \
+  && ~J_autogen_line(r) \
+  ) \
+      return (P)J_autogen_line(r); \
+  if( ~J_autogen_line(r) ) \
+  { \
+  }else
+// Emisja ‹zdarzenia› w procedurze zwracającej adres — dla otaczania wywołań procedur, które zwracają adres.
+#define KPp(statement) \
+  N J_autogen_line(r) = (N)(statement); \
+  if( K_error( J_autogen_line(r) )) \
+  {   Gk(statement); \
+      return (P)J_autogen_line(r); \
+  } \
+  if( J_autogen_line(r) ) \
+  { \
+  }else
+// Emisja ‹zdarzenia› w bloku wyjścia procedury zwracającej adres — dla otaczania wywołań procedur, które zwracają kod błędu.
+#define KP_(error,statement) \
+  N J_autogen_line(r) = (statement); \
+  if( !K_error( J_autogen_line(r) )) \
+  { \
+  }else \
+      return (P)( J_autogen_line(r) < (error) ? J_autogen_line(r) : (error) )
+// Emisja ‹zdarzenia› w bloku wyjścia procedury zwracającej adres — dla otaczania wywołań procedur, które zwracają adres.
+#define KPp_(error,statement) \
+  N J_autogen_line(r) = (N)(statement); \
+  if( K_error( J_autogen_line(r) )) \
+  {   Gk(statement); \
+      return (P)J_autogen_line(r); \
+  } \
+  if( J_autogen_line(r) ) \
+  { \
+  }else \
+      return (P)(error)
 //==============================================================================
 #define _inline                             static __attribute__ (( __always_inline__, __unused__ ))
 #define _internal                           static

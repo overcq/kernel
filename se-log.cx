@@ -17,10 +17,8 @@ enum E_se_log_Z_element_Z_type
 , E_se_log_Z_element_Z_type_S_other
 };
 struct E_se_log_Z_element
-{ union
-  { Pc s;
-    N n;
-  };
+{ Pc s;
+  N n;
   enum E_se_log_Z_element_Z_type type;
 };
 //==============================================================================
@@ -53,7 +51,7 @@ E_se_log_I_vslog(
     N8 inside_arg = 0;
     N8 size;
     while( *fmt )
-    {   U u = ~0;
+    {   U u;
         Pc s = E_text_Z_su_R_u( fmt, &u );
         if( s == fmt )
         {   K_( ~1, W(output) );
@@ -104,14 +102,8 @@ E_se_log_I_vslog(
                         }
                         Pc s = va_arg( args, Pc );
                         struct E_se_log_Z_element *element = E_mem_Q_blk_I_append( &output, 1 );
-                        if( !~(N)element
-                        || !element
-                        )
-                        {   if( !~(N)element )
-                            {   Gk(E_mem_Q_blk_I_append( &output, 1 ));
-                                return ~2;
-                            }
-                            K_( ~1, W(output) );
+                        Kp(element)
+                        {   K_( ~1, W(output) );
                             return ~0;
                         }
                         output_n++;
@@ -143,14 +135,8 @@ E_se_log_I_vslog(
                                 break;
                         }
                         struct E_se_log_Z_element *element = E_mem_Q_blk_I_append( &output, 1 );
-                        if( !~(N)element
-                        || !element
-                        )
-                        {   if( !~(N)element )
-                            {   Gk(E_mem_Q_blk_I_append( &output, 1 ));
-                                return ~2;
-                            }
-                            K_( ~1, W(output) );
+                        Kp(element)
+                        {   K_( ~1, W(output) );
                             return ~0;
                         }
                         output_n++;
@@ -174,7 +160,7 @@ E_se_log_I_vslog(
 Cont:   fmt = s;
     }
     struct E_se_log_Z_element *element = E_mem_Q_blk_I_append( &E_se_log_S_element, output_n );
-    if( !element )
+    Kp(element)
     {   K_( ~1, W(output) );
         return ~0;
     }
@@ -185,24 +171,26 @@ Cont:   fmt = s;
 }
 _private
 N
-E_se_log_I_log( Pc scope
+E_se_log_I_log( Pc file
+, N line
 , Pc fmt
 , ...
 ){  E_flow_I_cli();
     N r;
     N element_i = E_se_log_S_element_n;
     struct E_se_log_Z_element *element = E_mem_Q_blk_I_append( &E_se_log_S_element, 1 );
-    if( !~(N)element
+    if( K_error(element)
     || !element
     )
-    {   if( !~(N)element )
+    {   if( K_error(element) )
         {   Gk(E_mem_Q_blk_I_append( &E_se_log_S_element, 1 ));
             r = ~2;
         }
         r = ~0;
         goto End;
     }
-    element->s = scope;
+    element->s = file;
+    element->n = line;
     element->type = E_se_log_Z_element_Z_type_S_nl;
     E_se_log_S_element_n++;
     E_se_log_S_lines++;
@@ -253,38 +241,28 @@ E_se_log_Q_element_I_print( N *element_i
     if( !output )
         return 0;
     if( E_se_log_S_element[ *element_i ].type == E_se_log_Z_element_Z_type_S_nl )
-    {   N r = (N)E_text_Z_s_I_append_c( &output, '\n' );
-        if( !~r
-        || !r
-        )
-        {   if( !~r )
-            {   Gk(E_text_Z_s_I_append_c( &output, '\n' ));
-                return (P)r;
-            }
-            r = W(output);
-            return (S)r < 0 ? (P)r : 0;
+    {   KPp( E_text_Z_s_I_append_c( &output, '\n' ))
+        {   KP_( ~1, W(output) );
+            return 0;
         }
-        r = (N)E_text_Z_s_I_append_s0( &output, E_se_log_S_element[ *element_i ].s );
-        if( !~r
-        || !r
-        )
-        {   if( !~r )
-            {   Gk(E_text_Z_s_I_append_s0( &output, E_se_log_S_element[ *element_i ].s ));
-                return (P)r;
-            }
-            r = W(output);
-            return (S)r < 0 ? (P)r : 0;
+        KPp( E_text_Z_s_I_append_s0( &output, E_se_log_S_element[ *element_i ].s ))
+        {   KP_( ~1, W(output) );
+            return 0;
         }
-        r = (N)E_text_Z_s_I_append_s0( &output, ": " );
-        if( !~r
-        || !r
-        )
-        {   if( !~r )
-            {   Gk(E_text_Z_s_I_append_s0( &output, ": " ));
-                return (P)r;
-            }
-            r = W(output);
-            return (S)r < 0 ? (P)r : 0;
+        KPp( E_text_Z_s_I_append_c( &output, '|' ))
+        {   KP_( ~1, W(output) );
+            return 0;
+        }
+        N l = E_text_Z_n_N_s_G( E_se_log_S_element[ *element_i ].n, 10 );
+        Pc s = E_mem_Q_blk_I_append( &output, l );
+        KPp(s)
+        {   KP_( ~1, W(output) );
+            return 0;
+        }
+        E_text_Z_n_N_s( s + l, E_se_log_S_element[ *element_i ].n, 10 );
+        KPp( E_text_Z_s_I_append_s0( &output, ": " ))
+        {   KP_( ~1, W(output) );
+            return 0;
         }
         ( *element_i )++;
     }
@@ -292,11 +270,11 @@ E_se_log_Q_element_I_print( N *element_i
     N8 size;
     Pc fmt = E_se_log_S_element[ ( *element_i )++ ].s;
     while( *fmt )
-    {   U u = ~0;
+    {   U u;
         Pc s = E_text_Z_su_R_u( fmt, &u );
         if( s == fmt )
-        {   N r = W(output);
-            return (S)r < 0 ? (P)r : 0;
+        {   KP_( ~1, W(output) );
+            return 0;
         }
         if( !~u )
             break;
@@ -330,37 +308,30 @@ E_se_log_Q_element_I_print( N *element_i
                 && size != sizeof( N16 )
                 && size != sizeof( N32 )
                 )
-                {   N r = W(output);
-                    return (S)r < 0 ? (P)r : 0;
+                {   KP_( ~1, W(output) );
+                    return 0;
                 }
                 switch(u)
                 { case 's':
                   case 't':
                   case 'z':
                     {   if(size)
-                        {   N r = W(output);
-                            return (S)r < 0 ? (P)r : 0;
+                        {   KP_( ~1, W(output) );
+                            return 0;
                         }
                         Pc s = E_se_log_S_element[ ( *element_i )++ ].s;
                         while( *s )
-                        {   U u = ~0;
+                        {   U u;
                             Pc s_ = E_text_Z_su_R_u( s, &u );
                             if( s_ == s )
-                            {   N r = W(output);
-                                return (S)r < 0 ? (P)r : 0;
+                            {   KP_( ~1, W(output) );
+                                return 0;
                             }
                             if( !~u )
                                 break;
-                            N r = (N)E_text_Z_s_I_append_s( &output, s, s_ );
-                            if( !~r
-                            || !r
-                            )
-                            {   if( !~r )
-                                {   Gk(E_text_Z_s_I_append_s( &output, s, s_ ));
-                                    return (P)r;
-                                }
-                                r = W(output);
-                                return (S)r < 0 ? (P)r : 0;
+                            KPp( E_text_Z_s_I_append_s( &output, s, s_ ))
+                            {   KP_( ~1, W(output) );
+                                return 0;
                             }
                             s = s_;
                         }
@@ -371,16 +342,9 @@ E_se_log_Q_element_I_print( N *element_i
                     {   N n = E_se_log_S_element[ ( *element_i )++ ].n;
                         if( !size )
                             size = sizeof(N);
-                        N r = (N)E_text_Z_s_I_append_s0( &output, "0x" );
-                        if( !~r
-                        || !r
-                        )
-                        {   if( !~r )
-                            {   Gk(E_text_Z_s_I_append_s0( &output, "0x" ));
-                                return (P)r;
-                            }
-                            r = W(output);
-                            return (S)r < 0 ? (P)r : 0;
+                        KPp( E_text_Z_s_I_append_s0( &output, "0x" ))
+                        {   KP_( ~1, W(output) );
+                            return 0;
                         }
                         for_n_rev( i, size * 2 )
                         {   U u = ( n >> ( i * 4 )) & 0xf;
@@ -388,30 +352,16 @@ E_se_log_Q_element_I_print( N *element_i
                                 u += '0';
                             else
                                 u += 'a' - 10;
-                            r = (N)E_text_Z_s_I_append_c( &output, u );
-                            if( !~r
-                            || !r
-                            )
-                            {   if( !~r )
-                                {   Gk(E_text_Z_s_I_append_c( &output, u ));
-                                    return (P)r;
-                                }
-                                r = W(output);
-                                return (S)r < 0 ? (P)r : 0;
+                            KPp( E_text_Z_s_I_append_c( &output, u ))
+                            {   KP_( ~1, W(output) );
+                                return 0;
                             }
                             if( i
                             && i % 4 == 0
                             )
-                            {   r = (N)E_text_Z_s_I_append_c( &output, '\'' );
-                                if( !~r
-                                || !r
-                                )
-                                {   if( !~r )
-                                    {   Gk(E_text_Z_s_I_append_c( &output, '\'' ));
-                                        return (P)r;
-                                    }
-                                    r = W(output);
-                                    return (S)r < 0 ? (P)r : 0;
+                            {   KPp( E_text_Z_s_I_append_c( &output, '\'' ))
+                                {   KP_( ~1, W(output) );
+                                    return 0;
                                 }
                             }
                         }
@@ -419,8 +369,8 @@ E_se_log_Q_element_I_print( N *element_i
                         goto Cont;
                     }
                   default:
-                    {   N r = W(output);
-                        return (S)r < 0 ? (P)r : 0;
+                    {   KP_( ~1, W(output) );
+                        return 0;
                     }
                 }
             }
@@ -432,24 +382,16 @@ E_se_log_Q_element_I_print( N *element_i
         if( inside_arg )
             inside_arg++;
         else
-        {   N r = (N)E_text_Z_s_I_append_s( &output, fmt, s );
-            if( !~r
-            || !r
-            )
-            {   if( !~r )
-                {   Gk(E_text_Z_s_I_append_s( &output, fmt, s ));
-                    return (P)r;
-                }
-                r = W(output);
-                return (S)r < 0 ? (P)r : 0;
+        {   KPp( E_text_Z_s_I_append_s( &output, fmt, s ))
+            {   KP_( ~1, W(output) );
+                return 0;
             }
         }
 Cont:   fmt = s;
     }
-    Pc r = E_text_Z_s_I_append_c( &output, '\0' );
-    if( !r )
-    {   N r = W(output);
-        return (S)r < 0 ? (P)r : 0;
+    KPp( E_text_Z_s_I_append_c( &output, '\0' ))
+    {   KP_( ~1, W(output) );
+        return 0;
     }
     return output;
 }

@@ -35,13 +35,13 @@ struct E_window_files_Z_data
 };
 //==============================================================================
 _internal
-void
+N
 E_window_files_I_click_(
   struct E_window_Q_window_Z *window
 ){  if( E_mouse_Q_button_S_button != 1
     || E_mouse_Q_button_S_click_count != 2
     )
-        return;
+        return 0;
     struct E_window_files_Z_data *window_data = window->data;
     N32 row_height = ( window_data->font_size + 1 ) * E_font_S_font.height + window_data->font_size + 1;
     N column_i = window_data->dir_start + 1 + window_data->pointer_column;
@@ -53,151 +53,148 @@ E_window_files_I_click_(
               || ( window_data->selected_dir_n == column_i
                 && row_i >= window_data->selected_dir[ column_i - 1 ].file_start_row
             )))
-                return;
+                return 0;
             if( row_i < window_data->selected_dir[ column_i - 1 ].file_start_row )
             {   if( column_i != window_data->selected_dir_n )
                 {   for( N i = window_data->selected_dir_n - 1; i != column_i - 1; i-- )
-                    {   N r = W( window_data->selected_dir[i].uid );
-                        if( (S)r < 0 )
-                        {   E_mem_Q_blk_I_remove( &window_data->selected_dir, i + 1, window_data->selected_dir_n - ( i + 1 ));
+                    {   K( W( window_data->selected_dir[i].uid ))
+                        {   Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, i + 1, window_data->selected_dir_n - ( i + 1 )));
                             window_data->selected_dir_n = i + 1;
-                            return;
+                            return ~0;
                         }
                         for_n( j, window_data->selected_dir[i].n )
-                        {   r = W( window_data->selected_dir[i].name[j] );
-                            if( (S)r < 0 )
-                            {   E_mem_Q_blk_I_remove( &window_data->selected_dir, i, window_data->selected_dir_n - i );
+                        {   K( W( window_data->selected_dir[i].name[j] ))
+                            {   Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, i, window_data->selected_dir_n - i ));
                                 window_data->selected_dir_n = i;
-                                return;
+                                return ~1;
                             }
                         }
-                        r = W( window_data->selected_dir[i].name );
-                        if( (S)r < 0 )
-                        {   E_mem_Q_blk_I_remove( &window_data->selected_dir, i, window_data->selected_dir_n - i );
+                        K( W( window_data->selected_dir[i].name ))
+                        {   Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, i, window_data->selected_dir_n - i ));
                             window_data->selected_dir_n = i;
-                            return;
+                            return ~1;
                         }
-                        r = W( window_data->selected_dir[i].name_expand );
-                        if( (S)r < 0 )
-                        {   E_mem_Q_blk_I_remove( &window_data->selected_dir, i, window_data->selected_dir_n - i );
+                        K( W( window_data->selected_dir[i].name_expand ))
+                        {   Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, i, window_data->selected_dir_n - i ));
                             window_data->selected_dir_n = i;
-                            return;
+                            return ~1;
                         }
                     }
-                    N r = (N)E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i + 1, window_data->selected_dir_n - ( column_i + 1 ));
-                    if( !~r
-                    || !r
-                    )
-                    {   window_data->selected_dir_n = column_i;
-                        return;
-                    }
+                    Kp( E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i + 1, window_data->selected_dir_n - ( column_i + 1 )))
+                        return ~2;
                 }else
-                {   N r = (N)E_mem_Q_blk_I_append( &window_data->selected_dir, 1 );
-                    if( !~r
-                    || !r
-                    )
-                        return;
+                {   Kp( E_mem_Q_blk_I_append( &window_data->selected_dir, 1 ))
+                    {   window_data->selected_dir_n = column_i;
+                        return ~0;
+                    }
                 }
                 N n_dir;
                 N64 *list_dir;
-                if( (S)E_ouxfs_Q_directory_I_list_directory( window_data->disc_partition[ window_data->disc_partition_selected_row ].disc
+                K( E_ouxfs_Q_directory_I_list_directory( window_data->disc_partition[ window_data->disc_partition_selected_row ].disc
                 , window_data->disc_partition[ window_data->disc_partition_selected_row ].partition
                 , window_data->selected_dir[ column_i - 1 ].uid[ row_i ]
                 , &n_dir
                 , &list_dir
-                ) < 0 )
-                {   E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 );
+                ))
+                {   Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 ));
                     window_data->selected_dir_n = column_i;
-                    return;
+                    return ~0;
                 }
                 N n_file;
                 N64 *list_file;
-                if( (S)E_ouxfs_Q_directory_I_list_file( window_data->disc_partition[ window_data->disc_partition_selected_row ].disc
+                K( E_ouxfs_Q_directory_I_list_file( window_data->disc_partition[ window_data->disc_partition_selected_row ].disc
                 , window_data->disc_partition[ window_data->disc_partition_selected_row ].partition
                 , window_data->selected_dir[ column_i - 1 ].uid[ row_i ]
                 , &n_file
                 , &list_file
-                ) < 0 )
-                {   W( list_dir );
-                    E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 );
+                ))
+                {   K_( ~2, W( list_dir ));
+                    Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 ));
                     window_data->selected_dir_n = column_i;
-                    return;
+                    return ~0;
                 }
                 Mt_( window_data->selected_dir[ column_i ].name, n_dir + n_file );
                 if( !window_data->selected_dir[ column_i ].name )
-                {   W( list_file );
-                    W( list_dir );
-                    E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 );
+                {   K_( ~2, W( list_file ));
+                    K_( ~2, W( list_dir ));
+                    Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 ));
                     window_data->selected_dir_n = column_i;
-                    return;
+                    return ~0;
                 }
                 for_n( i, n_dir )
-                    if( (S)E_ouxfs_Q_directory_R_name( window_data->disc_partition[ window_data->disc_partition_selected_row ].disc
+                {   K( E_ouxfs_Q_directory_R_name( window_data->disc_partition[ window_data->disc_partition_selected_row ].disc
                     , window_data->disc_partition[ window_data->disc_partition_selected_row ].partition
                     , list_dir[i]
                     , &window_data->selected_dir[ column_i ].name[i]
-                    ) < 0 )
+                    ))
                     {   for_n( i_, i )
-                            W( window_data->selected_dir[ column_i ].name[ i_ ] );
-                        W( window_data->selected_dir[ column_i ].name );
-                        W( list_file );
-                        W( list_dir );
-                        E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 );
+                        {   K_( ~2, W( window_data->selected_dir[ column_i ].name[ i_ ] ));
+                        }
+                        K_( ~2, W( window_data->selected_dir[ column_i ].name ));
+                        K_( ~2, W( list_file ));
+                        K_( ~2, W( list_dir ));
+                        Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 ));
                         window_data->selected_dir_n = column_i;
-                        return;
+                        return ~0;
                     }
+                }
                 for_n_( i, n_file )
-                    if( (S)E_ouxfs_Q_file_R_name( window_data->disc_partition[ window_data->disc_partition_selected_row ].disc
+                {   K( E_ouxfs_Q_file_R_name( window_data->disc_partition[ window_data->disc_partition_selected_row ].disc
                     , window_data->disc_partition[ window_data->disc_partition_selected_row ].partition
                     , list_file[i]
                     , &window_data->selected_dir[ column_i ].name[ n_dir + i ]
-                    ) < 0 )
+                    ))
                     {   for_n( i_, n_dir + i )
-                            W( window_data->selected_dir[ column_i ].name[ i_ ] );
-                        W( window_data->selected_dir[ column_i ].name );
-                        W( list_file );
-                        W( list_dir );
-                        E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 );
+                        {   K_( ~2, W( window_data->selected_dir[ column_i ].name[ i_ ] ));
+                        }
+                        K_( ~2, W( window_data->selected_dir[ column_i ].name ));
+                        K_( ~2, W( list_file ));
+                        K_( ~2, W( list_dir ));
+                        Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 ));
                         window_data->selected_dir_n = column_i;
-                        return;
+                        return ~0;
                     }
+                }
                 Mt_( window_data->selected_dir[ column_i ].uid, n_dir + n_file );
                 if( !window_data->selected_dir[ column_i ].uid )
                 {   for_n( i, n_dir + n_file )
-                        W( window_data->selected_dir[ column_i ].name[i] );
-                    W( window_data->selected_dir[ column_i ].name );
-                    W( list_file );
-                    W( list_dir );
-                    E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 );
+                    {   K_( ~2, W( window_data->selected_dir[ column_i ].name[i] ));
+                    }
+                    K_( ~2, W( window_data->selected_dir[ column_i ].name ));
+                    K_( ~2, W( list_file ));
+                    K_( ~2, W( list_dir ));
+                    Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 ));
                     window_data->selected_dir_n = column_i;
-                    return;
+                    return ~0;
                 }
                 for_n_( i, n_dir )
                     window_data->selected_dir[ column_i ].uid[i] = list_dir[i];
-                W( list_dir );
+                K_( ~2, W( list_dir ));
                 for_n_( i, n_file )
                     window_data->selected_dir[ column_i ].uid[ n_dir + i ] = list_file[i];
-                W( list_file );
+                K_( ~2, W( list_file ));
                 N64 *uid;
                 Mt_( uid, n_dir + n_file );
                 if( !uid )
                 {   for_n( i, n_dir + n_file )
-                        W( window_data->selected_dir[ column_i ].name[i] );
-                    W( window_data->selected_dir[ column_i ].name );
-                    E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 );
+                    {   K_( ~2, W( window_data->selected_dir[ column_i ].name[i] ));
+                    }
+                    K_( ~2, W( window_data->selected_dir[ column_i ].name ));
+                    Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 ));
                     window_data->selected_dir_n = column_i;
-                    return;
+                    return ~0;
                 }
                 Pc *name;
                 Mt_( name, n_dir + n_file );
                 if( !name )
-                {   W(uid);
+                {   K_( ~2, W(uid) );
                     for_n( i, n_dir + n_file )
-                        W( window_data->selected_dir[ column_i ].name[i] );
-                    W( window_data->selected_dir[ column_i ].name );
-                    E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 );
+                    {   K_( ~2, W( window_data->selected_dir[ column_i ].name[i] ));
+                    }
+                    K_( ~2, W( window_data->selected_dir[ column_i ].name ));
+                    Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 ));
                     window_data->selected_dir_n = column_i;
-                    return;
+                    return ~0;
                 }
                 if( n_dir + n_file )
                 {   if( n_dir )
@@ -258,19 +255,20 @@ E_window_files_I_click_(
                             }
                         }
                     }
-                    W( window_data->selected_dir[ column_i ].name );
+                    K_( ~2, W( window_data->selected_dir[ column_i ].name ));
                     window_data->selected_dir[ column_i ].name = name;
-                    W( window_data->selected_dir[ column_i ].uid );
+                    K_( ~2, W( window_data->selected_dir[ column_i ].uid ));
                     window_data->selected_dir[ column_i ].uid = uid;
                 }
                 Mt_( window_data->selected_dir[ column_i ].name_expand, n_dir + n_file );
                 if( !window_data->selected_dir[ column_i ].name_expand )
                 {   for_n( i, n_dir + n_file )
-                        W( window_data->selected_dir[ column_i ].name[i] );
-                    W( window_data->selected_dir[ column_i ].name );
-                    E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 );
+                    {   K_( ~2, W( window_data->selected_dir[ column_i ].name[i] ));
+                    }
+                    K_( ~2, W( window_data->selected_dir[ column_i ].name ));
+                    Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 ));
                     window_data->selected_dir_n = column_i;
-                    return;
+                    return ~0;
                 }
                 _0t_( window_data->selected_dir[ column_i ].name_expand, n_dir + n_file );
                 window_data->selected_dir[ column_i ].file_start_row = n_dir;
@@ -282,189 +280,172 @@ E_window_files_I_click_(
             }else if( row_i < window_data->selected_dir[ column_i - 1 ].n )
             {   if( column_i != window_data->selected_dir_n )
                 {   for( N i = window_data->selected_dir_n - 1; i != column_i - 1; i-- )
-                    {   N r = W( window_data->selected_dir[i].uid );
-                        if( (S)r < 0 )
-                        {   E_mem_Q_blk_I_remove( &window_data->selected_dir, i + 1, window_data->selected_dir_n - ( i + 1 ));
-                            window_data->selected_dir_n = i + 1;
-                            return;
+                    {   K( W( window_data->selected_dir[i].uid ))
+                        {   Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, i + 1, window_data->selected_dir_n - ( i + 1 )));
+                            return ~2;
                         }
                         for_n( j, window_data->selected_dir[i].n )
-                        {   r = W( window_data->selected_dir[i].name[j] );
-                            if( (S)r < 0 )
-                            {   E_mem_Q_blk_I_remove( &window_data->selected_dir, i, window_data->selected_dir_n - i );
-                                window_data->selected_dir_n = i;
-                                return;
+                        {   K( W( window_data->selected_dir[i].name[j] ))
+                            {   Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, i, window_data->selected_dir_n - i ));
+                                return ~2;
                             }
                         }
-                        r = W( window_data->selected_dir[i].name );
-                        if( (S)r < 0 )
-                        {   E_mem_Q_blk_I_remove( &window_data->selected_dir, i, window_data->selected_dir_n - i );
-                            window_data->selected_dir_n = i;
-                            return;
+                        K( W( window_data->selected_dir[i].name ))
+                        {   Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, i, window_data->selected_dir_n - i ));
+                            return ~2;
                         }
-                        r = W( window_data->selected_dir[i].name_expand );
-                        if( (S)r < 0 )
-                        {   E_mem_Q_blk_I_remove( &window_data->selected_dir, i, window_data->selected_dir_n - i );
-                            window_data->selected_dir_n = i;
-                            return;
+                        K( W( window_data->selected_dir[i].name_expand ))
+                        {   Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, i, window_data->selected_dir_n - i ));
+                            return ~2;
                         }
                     }
-                    N r = (N)E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, window_data->selected_dir_n - column_i );
-                    if( !~r
-                    || !r
-                    )
-                    {   window_data->selected_dir_n = column_i;
-                        return;
-                    }
+                    Kp( E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, window_data->selected_dir_n - column_i ))
+                        return ~2;
                     window_data->selected_dir_n = column_i;
                 }
                 window_data->selected_dir[ column_i - 1 ].selected_row = row_i;
             }else
-                return;
+                return 0;
         }else
-            return;
+            return 0;
     else
     {   N row_i = window_data->disc_partition_row_start + window_data->pointer_row;
         if( row_i < window_data->disc_partition_n )
         {   if( row_i == window_data->disc_partition_selected_row
             && window_data->selected_dir_n == 1
             )
-                return;
+                return 0;
             for_n_rev( i, window_data->selected_dir_n )
-            {   N r = W( window_data->selected_dir[i].uid );
-                if( (S)r < 0 )
-                {   E_mem_Q_blk_I_remove( &window_data->selected_dir, i + 1, window_data->selected_dir_n - ( i + 1 ));
+            {   K( W( window_data->selected_dir[i].uid ))
+                {   Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, i + 1, window_data->selected_dir_n - ( i + 1 )));
                     window_data->selected_dir_n = i + 1;
-                    return;
+                    return ~0;
                 }
                 for_n( j, window_data->selected_dir[i].n )
-                {   r = W( window_data->selected_dir[i].name[j] );
-                    if( (S)r < 0 )
-                    {   E_mem_Q_blk_I_remove( &window_data->selected_dir, i, window_data->selected_dir_n - i );
+                {   K( W( window_data->selected_dir[i].name[j] ))
+                    {   Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, i, window_data->selected_dir_n - i ));
                         window_data->selected_dir_n = i;
-                        return;
+                        return ~1;
                     }
                 }
-                r = W( window_data->selected_dir[i].name );
-                if( (S)r < 0 )
-                {   E_mem_Q_blk_I_remove( &window_data->selected_dir, i, window_data->selected_dir_n - i );
+                K( W( window_data->selected_dir[i].name ))
+                {   Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, i, window_data->selected_dir_n - i ));
                     window_data->selected_dir_n = i;
-                    return;
+                    return ~1;
                 }
             }
             struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, window_data->disc_partition[ row_i ].disc );
             if( disc->partition[ window_data->disc_partition[ row_i ].partition ].file_system == E_disc_Z_file_system_S_oux )
             {   if( window_data->selected_dir_n )
-                {   N r = (N)E_mem_Q_blk_I_remove( &window_data->selected_dir, 1, window_data->selected_dir_n - 1 );
-                    if( !~r
-                    || !r
-                    )
-                    {   window_data->selected_dir_n = column_i;
-                        return;
-                    }
+                {   Kp( E_mem_Q_blk_I_remove( &window_data->selected_dir, 1, window_data->selected_dir_n - 1 ))
+                        return ~2;
                 }else
-                {   N r = (N)E_mem_Q_blk_I_append( &window_data->selected_dir, 1 );
-                    if( !~r
-                    || !r
-                    )
-                        return;
+                {   Kp( E_mem_Q_blk_I_append( &window_data->selected_dir, 1 ))
+                        return ~0;
                 }
                 N n_dir;
                 N64 *list_dir;
-                if( (S)E_ouxfs_Q_directory_I_list_directory( window_data->disc_partition[ row_i ].disc, window_data->disc_partition[ row_i ].partition
+                K( E_ouxfs_Q_directory_I_list_directory( window_data->disc_partition[ row_i ].disc, window_data->disc_partition[ row_i ].partition
                 , ~0
                 , &n_dir
                 , &list_dir
-                ) < 0 )
-                {   E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 );
+                ))
+                {   Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 ));
                     window_data->selected_dir_n = column_i;
-                    return;
+                    return ~0;
                 }
                 N n_file;
                 N64 *list_file;
-                if( (S)E_ouxfs_Q_directory_I_list_file( window_data->disc_partition[ row_i ].disc, window_data->disc_partition[ row_i ].partition
+                K( E_ouxfs_Q_directory_I_list_file( window_data->disc_partition[ row_i ].disc, window_data->disc_partition[ row_i ].partition
                 , ~0
                 , &n_file
                 , &list_file
-                ) < 0 )
-                {   W( list_dir );
-                    E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 );
+                ))
+                {   K_( ~2, W( list_dir ));
+                    Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 ));
                     window_data->selected_dir_n = column_i;
-                    return;
+                    return ~0;
                 }
                 Mt_( window_data->selected_dir[ column_i ].name, n_dir + n_file );
                 if( !window_data->selected_dir[ column_i ].name )
-                {   W( list_file );
-                    W( list_dir );
-                    E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 );
+                {   K_( ~2, W( list_file ));
+                    K_( ~2, W( list_dir ));
+                    Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 ));
                     window_data->selected_dir_n = column_i;
-                    return;
+                    return ~0;
                 }
                 for_n_( i, n_dir )
-                    if( (S)E_ouxfs_Q_directory_R_name( window_data->disc_partition[ row_i ].disc, window_data->disc_partition[ row_i ].partition
+                {   K( E_ouxfs_Q_directory_R_name( window_data->disc_partition[ row_i ].disc, window_data->disc_partition[ row_i ].partition
                     , list_dir[i]
                     , &window_data->selected_dir[ column_i ].name[i]
-                    ) < 0 )
+                    ))
                     {   for_n( i_, i )
-                            W( window_data->selected_dir[ column_i ].name[ i_ ] );
-                        W( window_data->selected_dir[ column_i ].name );
-                        W( list_file );
-                        W( list_dir );
-                        E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 );
+                        {   K_( ~2, W( window_data->selected_dir[ column_i ].name[ i_ ] ));
+                        }
+                        K_( ~2, W( window_data->selected_dir[ column_i ].name ));
+                        K_( ~2, W( list_file ));
+                        K_( ~2, W( list_dir ));
+                        Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 ));
                         window_data->selected_dir_n = column_i;
-                        return;
+                        return ~0;
                     }
+                }
                 for_n_( i, n_file )
-                    if( (S)E_ouxfs_Q_file_R_name( window_data->disc_partition[ row_i ].disc, window_data->disc_partition[ row_i ].partition
+                {   K( E_ouxfs_Q_file_R_name( window_data->disc_partition[ row_i ].disc, window_data->disc_partition[ row_i ].partition
                     , list_file[i]
                     , &window_data->selected_dir[ column_i ].name[ n_dir + i ]
-                    ) < 0 )
+                    ))
                     {   for_n( i_, n_dir + i )
-                            W( window_data->selected_dir[ column_i ].name[ i_ ] );
-                        W( window_data->selected_dir[ column_i ].name );
-                        W( list_file );
-                        W( list_dir );
-                        E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 );
+                        {   K_( ~2, W( window_data->selected_dir[ column_i ].name[ i_ ] ));
+                        }
+                        K_( ~2, W( window_data->selected_dir[ column_i ].name ));
+                        K_( ~2, W( list_file ));
+                        K_( ~2, W( list_dir ));
+                        Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 ));
                         window_data->selected_dir_n = column_i;
-                        return;
+                        return ~0;
                     }
+                }
                 Mt_( window_data->selected_dir[ column_i ].uid, n_dir + n_file );
                 if( !window_data->selected_dir[ column_i ].uid )
                 {   for_n( i, n_dir + n_file )
-                        W( window_data->selected_dir[ column_i ].name[i] );
-                    W( window_data->selected_dir[ column_i ].name );
-                    W( list_file );
-                    W( list_dir );
-                    E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 );
+                    {   K_( ~2, W( window_data->selected_dir[ column_i ].name[i] ));
+                    }
+                    K_( ~2, W( window_data->selected_dir[ column_i ].name ));
+                    K_( ~2, W( list_file ));
+                    K_( ~2, W( list_dir ));
+                    Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 ));
                     window_data->selected_dir_n = column_i;
-                    return;
+                    return ~0;
                 }
                 for_n_( i, n_dir )
                     window_data->selected_dir[ column_i ].uid[i] = list_dir[i];
-                W( list_dir );
+                K_( ~2, W( list_dir ));
                 for_n_( i, n_file )
                     window_data->selected_dir[ column_i ].uid[ n_dir + i ] = list_file[i];
-                W( list_file );
+                K_( ~2, W( list_file ));
                 N64 *uid;
                 Mt_( uid, n_dir + n_file );
                 if( !uid )
                 {   for_n( i, n_dir + n_file )
-                        W( window_data->selected_dir[ column_i ].name[i] );
-                    W( window_data->selected_dir[ column_i ].name );
-                    E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 );
+                    {   K_( ~2, W( window_data->selected_dir[ column_i ].name[i] ));
+                    }
+                    K_( ~2, W( window_data->selected_dir[ column_i ].name ));
+                    Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 ));
                     window_data->selected_dir_n = column_i;
-                    return;
+                    return ~0;
                 }
                 Pc *name;
                 Mt_( name, n_dir + n_file );
                 if( !name )
-                {   W(uid);
+                {   K_( ~2, W(uid) );
                     for_n( i, n_dir + n_file )
-                        W( window_data->selected_dir[ column_i ].name[i] );
-                    W( window_data->selected_dir[ column_i ].name );
-                    E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 );
+                    {   K_( ~2, W( window_data->selected_dir[ column_i ].name[i] ));
+                    }
+                    K_( ~2, W( window_data->selected_dir[ column_i ].name ));
+                    Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 ));
                     window_data->selected_dir_n = column_i;
-                    return;
+                    return ~0;
                 }
                 if( n_dir + n_file )
                 {   if( n_dir )
@@ -525,19 +506,20 @@ E_window_files_I_click_(
                             }
                         }
                     }
-                    W( window_data->selected_dir[ column_i ].name );
+                    K_( ~2, W( window_data->selected_dir[ column_i ].name ));
                     window_data->selected_dir[ column_i ].name = name;
-                    W( window_data->selected_dir[ column_i ].uid );
+                    K_( ~2, W( window_data->selected_dir[ column_i ].uid ));
                     window_data->selected_dir[ column_i ].uid = uid;
                 }
                 Mt_( window_data->selected_dir[ column_i ].name_expand, n_dir + n_file );
                 if( !window_data->selected_dir[ column_i ].name_expand )
                 {   for_n( i, n_dir + n_file )
-                        W( window_data->selected_dir[ column_i ].name[i] );
-                    W( window_data->selected_dir[ column_i ].name );
-                    E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 );
+                    {   K_( ~2, W( window_data->selected_dir[ column_i ].name[i] ));
+                    }
+                    K_( ~2, W( window_data->selected_dir[ column_i ].name ));
+                    Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 ));
                     window_data->selected_dir_n = column_i;
-                    return;
+                    return ~0;
                 }
                 _0t_( window_data->selected_dir[ column_i ].name_expand, n_dir + n_file );
                 window_data->selected_dir[ column_i ].file_start_row = n_dir;
@@ -547,29 +529,33 @@ E_window_files_I_click_(
                 window_data->disc_partition_selected_row = row_i;
                 window_data->selected_dir_n = column_i + 1;
             }else
-            {   E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, window_data->selected_dir_n );
+            {   Kp( E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, window_data->selected_dir_n ))
+                    return ~2;
                 window_data->selected_dir_n = column_i;
                 window_data->disc_partition_selected_row = row_i;
             }
         }else
-            return;
+            return 0;
     }
     X_F( gui, draw );
+    return 0;
 }
 _internal
-void
+N
 E_window_files_Q_bubble_I_click(
   N32 x
 , N32 y
 ){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, E_gui_Q_bubble_S.window_id );
-    E_window_files_I_click_(window);
+    N r = E_window_files_I_click_(window);
     if( E_gui_Q_bubble_S.draw )
     {   E_gui_Q_bubble_S.draw = 0;
         X_F( gui, draw );
     }
+    if( K_error(r) )
+        return r;
 }
 _internal
-void
+N
 E_window_files_I_draw( I window_id
 , N32 x
 , N32 y
@@ -578,7 +564,7 @@ E_window_files_I_draw( I window_id
 ){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
     struct E_window_files_Z_data *window_data = window->data;
     if( height <= window_data->font_size + 1 )
-        return;
+        return 0;
     N32 row_height = ( window_data->font_size + 1 ) * E_font_S_font.height + window_data->font_size + 1;
     N32 x_column = x;
     N32 y_selected_row = ~0;
@@ -632,7 +618,7 @@ E_window_files_I_draw( I window_id
                 N32 x_ = x + window_data->thickness + 1;
                 Pc s = window_data->disc_partition[ row_i ].name;
                 while( *s )
-                {   U u = ~0;
+                {   U u;
                     Pc s_ = E_text_Z_su_R_u( s, &u );
                     s = s_;
                     N32 font_i;
@@ -722,7 +708,7 @@ E_window_files_I_draw( I window_id
             N32 x_ = x_column + window_data->thickness + 1;
             Pc s = window_data->selected_dir[ column_i ].name[ row_i ];
             while( *s )
-            {   U u = ~0;
+            {   U u;
                 Pc s_ = E_text_Z_su_R_u( s, &u );
                 s = s_;
                 N32 font_i;
@@ -774,7 +760,7 @@ E_window_files_I_draw( I window_id
                     clip_height = y + height - y_;
                 N32 x_ = x + width - column_width + window_data->thickness + 1;
                 while( *s )
-                {   U u = ~0;
+                {   U u;
                     Pc s_ = E_text_Z_su_R_u( s, &u );
                     N32 font_i;
                     if( column_width <= x_ - ( x + width - column_width ) + window_data->thickness + 1
@@ -805,7 +791,7 @@ E_window_files_I_draw( I window_id
                 clip_height = y + height - y_;
             N32 x_ = x_column + window_data->thickness + 1;
             while( *s )
-            {   U u = ~0;
+            {   U u;
                 Pc s_ = E_text_Z_su_R_u( s, &u );
                 N32 font_i;
                 if( column_width <= x_ - x_column + window_data->thickness + 1
@@ -827,6 +813,7 @@ E_window_files_I_draw( I window_id
         && y_ < y + height
         );
     }
+    return 0;
 }
 _internal
 void
@@ -897,7 +884,7 @@ E_window_files_I_mouse_move( I window_id
                 N32 x_ = x_column + window_data->thickness + 1;
                 Pc s = s_0;
                 while( *s )
-                {   U u = ~0;
+                {   U u;
                     Pc s_ = E_text_Z_su_R_u( s, &u );
                     s = s_;
                     N32 font_i;
@@ -912,7 +899,7 @@ E_window_files_I_mouse_move( I window_id
                     x_ = window_data->thickness + 1;
                     s = s_0;
                     while( *s )
-                    {   U u = ~0;
+                    {   U u;
                         Pc s_ = E_text_Z_su_R_u( s, &u );
                         s = s_;
                         N32 font_i;
@@ -952,15 +939,15 @@ E_window_files_I_mouse_move( I window_id
     X_U( gui, draw );
 }
 _internal
-void
+N
 E_window_files_I_click( I window_id
 , N32 x
 , N32 y
 ){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
     struct E_window_files_Z_data *window_data = window->data;
     if( !~window_data->pointer_column )
-        return;
-    E_window_files_I_click_(window);
+        return 0;
+    return E_window_files_I_click_(window);
 }
 _internal
 void
@@ -1068,7 +1055,7 @@ E_window_files_M( N8 desktop_id
     Mt_( data->selected_dir, data->selected_dir_n );
     if( !data->selected_dir )
     {   K_( ~1, W( data->disc_partition ));
-        K_( ~1, W(data));
+        K_( ~1, W(data) );
         return ~0;
     }
     I window_id = E_windows_Q_window_M( desktop_id, "File browser", "OUX filesystem window", &E_window_files_I_draw, &E_window_files_I_mouse_move, &E_window_files_I_click, &E_window_files_I_wheel, &E_window_files_I_key, &E_window_files_W );
@@ -1086,7 +1073,7 @@ E_window_files_M( N8 desktop_id
         {   Kp( E_mem_Q_blk_I_append( &data->disc_partition, 1 ))
             {   K_( ~2, E_windows_Q_window_W( desktop_id, window_id ));
                 K_( ~1, W( data->disc_partition ));
-                K_( ~1, W(data));
+                K_( ~1, W(data) );
                 return ~0;
             }
             data->disc_partition[ data->disc_partition_n ].disc = disc_id;
@@ -1097,7 +1084,7 @@ E_window_files_M( N8 desktop_id
             if( !s )
             {   K_( ~2, E_windows_Q_window_W( desktop_id, window_id ));
                 K_( ~1, W( data->disc_partition ));
-                K_( ~1, W(data));
+                K_( ~1, W(data) );
                 return ~0;
             }
             s[ l_1 + 1 + l_2 ] = '\0';

@@ -78,9 +78,21 @@ E_emerg_print_I_print_u( U u
     {   E_emerg_print_I_print_nl();
         return;
     }
-    N32 font_i;
-    if( !E_font_T_print_u( E_main_S_framebuffer.width - E_emerg_print_S_x, E_emerg_print_S_font_thickness, &u, &font_i ))
-        E_emerg_print_I_print_nl();
+    N32 font_i = ~0;
+    if( E_main_S_framebuffer.width <= E_emerg_print_S_x + E_emerg_print_S_font_thickness + 1
+    || !E_font_T_print_u( E_main_S_framebuffer.width - ( E_emerg_print_S_x + E_emerg_print_S_font_thickness + 1 )
+    , E_emerg_print_S_font_thickness
+    , &u
+    , &font_i
+    ))
+    {   E_emerg_print_I_print_nl();
+        if( !~font_i )
+            E_font_T_print_u( E_main_S_framebuffer.width - ( E_emerg_print_S_x + E_emerg_print_S_font_thickness + 1 )
+            , E_emerg_print_S_font_thickness
+            , &u
+            , &font_i
+            );
+    }
     N width = ( E_emerg_print_S_font_thickness + 1 ) * E_font_S_font.bitmap[ font_i ].width;
     E_vga_I_fill_rect( E_emerg_print_S_x - E_emerg_print_S_x_pre_post
     , E_emerg_print_S_y - E_emerg_print_S_y_pre_post
@@ -104,13 +116,10 @@ E_emerg_print_I_print( Pc s
 ){  E_emerg_print_S_x_min = E_emerg_print_S_x_max = E_emerg_print_S_x - E_emerg_print_S_x_pre_post;
     E_emerg_print_S_y_min = E_emerg_print_S_y - E_emerg_print_S_y_pre_post;
     while( *s )
-    {   U u = ~0;
+    {   U u;
         Pc s_ = E_text_Z_su_R_u( s, &u );
-        if( s_ == s )
-            return ~0;
         s = s_;
-        if( ~u )
-            E_emerg_print_I_print_u(u);
+        E_emerg_print_I_print_u(u);
     }
     E_vga_Q_buffer_I_draw( E_emerg_print_S_x_min
     , E_emerg_print_S_y_min
@@ -126,10 +135,8 @@ _private
 N
 E_emerg_print_I_log_print( N element_i
 ){  Pc output = E_se_log_Q_element_I_print( &element_i );
-    if( !~(N)output
-    || !output
-    )
-        return !~(N)output ? ~2 : ~0;
+    Kp(output)
+        return ~0;
     N r = E_emerg_print_I_print(output);
     K_( ~1, W(output) );
     return r;

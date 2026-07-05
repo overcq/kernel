@@ -639,9 +639,11 @@ E_acpi_aml_Q_current_path_I_push( struct E_acpi_aml_Z_pathname pathname
         return ~0;
     E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n ] = pathname;
     E_acpi_aml_S_current_path_n++;
-    //Pc name_ = M( pathname.n * 4 + 1 );
-    //E_text_Z_s_P_copy_sl_0( name_, pathname.s, pathname.n * 4 );
-    //G( "push=%s", name_ );
+    //Pc name = M( pathname.n * 4 + 1 );
+    //if( !name )
+        //return ~0;
+    //E_text_Z_s_P_copy_sl_0( name, pathname.s, pathname.n * 4 );
+    //G( "push=%s", name );
     return 0;
 }
 _internal
@@ -650,9 +652,11 @@ E_acpi_aml_Q_current_path_I_pop( void
 ){  K_( ~0, W( E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n - 1 ].s ));
     Kp_( ~1, E_mem_Q_blk_I_remove( &E_acpi_aml_S_current_path, --E_acpi_aml_S_current_path_n, 1 ));
     //if( E_acpi_aml_S_current_path_n )
-    //{   Pc name_ = M( E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n - 1 ].n * 4 + 1 );
-        //E_text_Z_s_P_copy_sl_0( name_, E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n - 1 ].s, E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n - 1 ].n * 4 );
-        //G( ",pop=%s", name_ );
+    //{   Pc name = M( E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n - 1 ].n * 4 + 1 );
+        //if( !name )
+            //return ~0;
+        //E_text_Z_s_P_copy_sl_0( name, E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n - 1 ].s, E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n - 1 ].n * 4 );
+        //G( ",pop=%s", name );
     //}else
         //G( "\\" );
     return 0;
@@ -1842,6 +1846,8 @@ E_acpi_aml_I_term( void
                 return (S8)n;
             K_( ~1, W(name) );
             Pc name_ = M( n * 4 + 1 );
+            if( !name_ )
+                return ~0;
             E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
             G_( ",external=%s", name_ );
             if( E_acpi_aml_S_parse_data + 2 > E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end )
@@ -1968,6 +1974,10 @@ E_acpi_aml_I_object( void
                 return ~0;
             }
             Pc name_ = M( name_n * 4 + 1 );
+            if( !name_ )
+            {   K_( ~1, W(name) );
+                return ~0;
+            }
             E_text_Z_s_P_copy_sl_0( name_, name, name_n * 4 );
             G_( ",alias=%s", name_ );
             K_( ~1, W(name) );
@@ -1976,6 +1986,10 @@ E_acpi_aml_I_object( void
             if( !alias )
                 return (S8)alias_n;
             name_ = M( alias_n * 4 + 1 );
+            if( !name_ )
+            {   K_( ~1, W(alias) );
+                return ~0;
+            }
             E_text_Z_s_P_copy_sl_0( name_, alias, alias_n * 4 );
             G_( ":%s", name_ );
             if( E_acpi_aml_S_precompilation )
@@ -2003,6 +2017,10 @@ E_acpi_aml_I_object( void
             if( !name )
                 return (S8)n;
             Pc name_ = M( n * 4 + 1 );
+            if( !name_ )
+            {   K_( ~1, W(name) );
+                return ~0;
+            }
             E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
             G( ",object=%s", name_ );
             if( n > 1
@@ -2046,6 +2064,10 @@ E_acpi_aml_I_object( void
             if( !name )
                 return (S8)n;
             Pc name_ = M( n * 4 + 1 );
+            if( !name_ )
+            {   K_( ~1, W(name) );
+                return ~0;
+            }
             E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
             G( ",scope=%s", name_ );
             if( E_acpi_aml_S_precompilation )
@@ -2092,6 +2114,10 @@ E_acpi_aml_I_object( void
                     if( !region_name )
                         return (S8)n;
                     Pc name_ = M( n * 4 + 1 );
+                    if( !name_ )
+                    {   K_( ~1, W( region_name ));
+                        return ~0;
+                    }
                     E_text_Z_s_P_copy_sl_0( name_, region_name, n * 4 );
                     G_( ",region=%s", name_ );
                     if( !~object_i
@@ -2107,6 +2133,10 @@ E_acpi_aml_I_object( void
                     )
                         return (N)bank_name;
                     name_ = M( n * 4 + 1 );
+                    if( !name_ )
+                    {   K_( ~1, W( bank_name ));
+                        return ~0;
+                    }
                     E_text_Z_s_P_copy_sl_0( name_, bank_name, n * 4 );
                     G_( ",bank=%s", name_ );
                     if( E_acpi_aml_S_precompilation )
@@ -2141,6 +2171,10 @@ E_acpi_aml_I_object( void
                         return ~0;
                     }
                     Pc name_ = M( n * 4 + 1 );
+                    if( !name_ )
+                    {   K_( ~1, W(name) );
+                        return ~0;
+                    }
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
                     G_( ",mutex=%s", name_ );
                     if( E_acpi_aml_S_parse_data == E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end )
@@ -2176,6 +2210,10 @@ E_acpi_aml_I_object( void
                         return ~0;
                     }
                     Pc name_ = M( n * 4 + 1 );
+                    if( !name_ )
+                    {   K_( ~1, W(name) );
+                        return ~0;
+                    }
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
                     G_( ",data dsdt region=%s", name_ );
                     if( E_acpi_aml_S_precompilation )
@@ -2203,6 +2241,10 @@ E_acpi_aml_I_object( void
                         return ~0;
                     }
                     Pc name_ = M( n * 4 + 1 );
+                    if( !name_ )
+                    {   K_( ~1, W(name) );
+                        return ~0;
+                    }
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
                     G_( ",op region=%s", name_ );
                     if( E_acpi_aml_S_parse_data == E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end )
@@ -2258,6 +2300,10 @@ E_acpi_aml_I_object( void
                     if( !name )
                         return (S8)n;
                     Pc name_ = M( n * 4 + 1 );
+                    if( !name_ )
+                    {   K_( ~1, W(name) );
+                        return ~0;
+                    }
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
                     G_( ",field op=%s", name_ );
                     K_( ~1, W(name) );
@@ -2326,6 +2372,10 @@ E_acpi_aml_I_object( void
                                     )
                                         return (N)name_;
                                     Pc name__ = M( 4 + 1 );
+                                    if( !name__ )
+                                    {   K_( ~1, W( name_ ));
+                                        return ~0;
+                                    }
                                     E_text_Z_s_P_copy_sl_0( name__, name_, 4 );
                                     G_( ",name=%s", name__ );
                                     N depth = E_acpi_aml_S_current_path_n ? E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n - 1 ].n : 0;
@@ -2381,6 +2431,10 @@ E_acpi_aml_I_object( void
                     if( !name )
                         return (S8)n;
                     Pc name_ = M( n * 4 + 1 );
+                    if( !name_ )
+                    {   K_( ~1, W(name) );
+                        return ~0;
+                    }
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
                     G_( ",index field=%s", name_ );
                     K_( ~1, W(name) );
@@ -2391,6 +2445,10 @@ E_acpi_aml_I_object( void
                         if( !name )
                             return (S8)n;
                         name_ = M( n * 4 + 1 );
+                        if( !name_ )
+                        {   K_( ~1, W(name) );
+                            return ~0;
+                        }
                         E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
                         G_( ",=%s", name_ );
                         K_( ~1, W(name) );
@@ -2450,6 +2508,10 @@ E_acpi_aml_I_object( void
                                     )
                                         return (N)name_;
                                     Pc name__ = M( 4 + 1 );
+                                    if( !name__ )
+                                    {   K_( ~1, W( name_ ));
+                                        return ~0;
+                                    }
                                     E_text_Z_s_P_copy_sl_0( name__, name_, 4 );
                                     G_( ",name=%s", name__ );
                                     N depth = E_acpi_aml_S_current_path_n ? E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n - 1 ].n : 0;
@@ -2505,6 +2567,10 @@ E_acpi_aml_I_object( void
                     if( !name )
                         return (S8)n;
                     Pc name_ = M( n * 4 + 1 );
+                    if( !name_ )
+                    {   K_( ~1, W(name) );
+                        return ~0;
+                    }
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
                     G_( ",device=%s", name_ );
                     if( n > 1
@@ -2554,6 +2620,10 @@ E_acpi_aml_I_object( void
                         return ~0;
                     }
                     Pc name_ = M( n * 4 + 1 );
+                    if( !name_ )
+                    {   K_( ~1, W(name) );
+                        return ~0;
+                    }
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
                     G_( ",event=%s", name_ );
                     if( E_acpi_aml_S_precompilation )
@@ -2587,6 +2657,10 @@ E_acpi_aml_I_object( void
                         return ~0;
                     }
                     Pc name_ = M( n * 4 + 1 );
+                    if( !name_ )
+                    {   K_( ~1, W(name) );
+                        return ~0;
+                    }
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
                     G_( ",power res=%s", name_ );
                     if( E_acpi_aml_S_precompilation )
@@ -2636,6 +2710,10 @@ E_acpi_aml_I_object( void
                         return ~0;
                     }
                     Pc name_ = M( n * 4 + 1 );
+                    if( !name_ )
+                    {   K_( ~1, W(name) );
+                        return ~0;
+                    }
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
                     G_( ",thermal zone=%s", name_ );
                     if( E_acpi_aml_S_precompilation )
@@ -2680,6 +2758,10 @@ E_acpi_aml_I_object( void
                         return ~0;
                     }
                     Pc name_ = M( n * 4 + 1 );
+                    if( !name_ )
+                    {   K_( ~1, W(name) );
+                        return ~0;
+                    }
                     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
                     G_( ",processor=%s", name_ );
                     if( ++E_acpi_aml_S_parse_data > pkg_end )
@@ -2762,6 +2844,10 @@ E_acpi_aml_I_object( void
             if( !name )
                 return (S8)n;
             Pc name_ = M( n * 4 + 1 );
+            if( !name_ )
+            {   K_( ~1, W(name) );
+                return ~0;
+            }
             E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
             G( ",procedure=%s", name_ );
             if( n > 1
@@ -3162,6 +3248,10 @@ E_acpi_aml_I_expression( void
                 if( !name )
                     return (S8)n;
                 Pc name_ = M( n * 4 + 1 );
+                if( !name_ )
+                {   K_( ~1, W(name) );
+                    return ~0;
+                }
                 E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
                 G_( ",expr string=%s", name_ );
                 if( !~object_i )
@@ -3338,6 +3428,10 @@ E_acpi_aml_I_supername( void
             if( !name )
                 return (S8)n;
             Pc name_ = M( n * 4 + 1 );
+            if( !name_ )
+            {   K_( ~1, W(name) );
+                return ~0;
+            }
             E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
             G_( ",supername=%s", name_ );
             if( E_acpi_aml_S_precompilation )
@@ -3531,6 +3625,10 @@ E_acpi_aml_M_field_finish_2( N bytes
     if( !name )
         return (S8)n;
     Pc name_ = M( n * 4 + 1 );
+    if( !name_ )
+    {   K_( ~1, W(name) );
+        return ~0;
+    }
     E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
     G_( ",bytes field=%s", name_ );
     if( E_acpi_aml_S_precompilation )
@@ -3687,6 +3785,7 @@ E_acpi_aml_M_res1( void
                         E_acpi_aml_S_current_path_n -= E_acpi_aml_S_current_path_n - current_path_i;
                         if( E_acpi_aml_S_current_path_n )
                         {   Pc name_ = M( E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n - 1 ].n * 4 + 1 );
+                            Kp_( ~2, name_ );
                             E_text_Z_s_P_copy_sl_0( name_, E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n - 1 ].s, E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n - 1 ].n * 4 );
                             G( ",go over to=%s", name_ );
                         }else
@@ -4207,6 +4306,11 @@ Loop:
                                         return (N)name_;
                                     }
                                     Pc name__ = M( 4 + 1 );
+                                    if( !name__ )
+                                    {   K_( ~1, W( name_ ));
+                                        K_( ~1, W( bank_name ));
+                                        return ~0;
+                                    }
                                     E_text_Z_s_P_copy_sl_0( name__, name_, 4 );
                                     G_( ",name=%s", name__ );
                                     Pc field_name = M(( depth + 1 ) * 4 );
@@ -4323,6 +4427,10 @@ Loop:
                     break;
                 }
                 Pc name_ = M( n * 4 + 1 );
+                if( !name_ )
+                {   K_( ~1, W(name) );
+                    return ~0;
+                }
                 E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
                 G_( ",bit field=%s", name_ );
                 if( E_acpi_aml_S_precompilation )
@@ -4493,6 +4601,10 @@ Loop:
                     break;
                 }
                 Pc name_ = M( n * 4 + 1 );
+                if( !name_ )
+                {   K_( ~1, W(name) );
+                    return ~0;
+                }
                 E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
                 G_( ",bytes field=%s", name_ );
                 if( E_acpi_aml_S_precompilation )
@@ -8853,6 +8965,11 @@ E_acpi_aml_I_procedure_( N object_i
     E_acpi_aml_S_procedure_invocation_stack[ E_acpi_aml_S_procedure_invocation_stack_n - 1 ].computing_arg = no;
     E_acpi_aml_S_procedure_invocation_stack[ E_acpi_aml_S_procedure_invocation_stack_n - 1 ].result.type = E_acpi_aml_Z_value_Z_type_S_uninitialized;
     name = M( E_acpi_aml_S_procedure_invocation_stack[ E_acpi_aml_S_procedure_invocation_stack_n - 1 ].name.n * 4 + 1 );
+    if( !name )
+    {   K_( ~2, W( E_acpi_aml_S_procedure_invocation_stack ));
+        K_( ~2, E_acpi_aml_W_current_path() );
+        return ~0;
+    }
     E_text_Z_s_P_copy_sl_0( name
     , E_acpi_aml_S_procedure_invocation_stack[ E_acpi_aml_S_procedure_invocation_stack_n - 1 ].name.s
     , E_acpi_aml_S_procedure_invocation_stack[ E_acpi_aml_S_procedure_invocation_stack_n - 1 ].name.n * 4

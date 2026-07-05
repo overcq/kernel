@@ -23,7 +23,6 @@ struct E_flow_Q_task_Z
   I run_state_object;
   enum E_flow_Z_run_state run_state;
 };
-_private
 struct E_flow_Z_scheduler
 { struct E_mem_Q_tab_Z *task;
   struct E_mem_Q_tab_Z *report;
@@ -36,7 +35,8 @@ struct E_flow_Z_scheduler
   unsigned U_R( state, inside_interrupt )   :1;
   unsigned U_R( signal, exit )              :1;
   unsigned U_R( signal, wake )              :1;
-} *E_flow_S_scheduler;
+};
+_private volatile struct E_flow_Z_scheduler *E_flow_S_scheduler;
 _private N E_flow_S_scheduler_n;
 _private B E_flow_S_inited;
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -146,13 +146,13 @@ E_flow_I_sti( void
 }
 _export
 P
-E_flow_R_rip( void
-){  P rip;
+E_flow_R_ip( void
+){  P ip;
     __asm__ volatile (
     "\n" "mov   (%%rsp),%0"
-    : "=r" (rip)
+    : "=r" (ip)
     );
-    return rip;
+    return ip;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _private
