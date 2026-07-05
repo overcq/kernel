@@ -91,10 +91,10 @@ void
 E_flow_I_sleep( N microseconds
 ){  N acpi_timer_ticks = E_interrupt_S_apic_timer_freq * microseconds / 1000000;
     if( acpi_timer_ticks )
-    {   N32 acpi_timer_ticks_ = acpi_timer_ticks > 0xffffffff ? 0xffffffff : acpi_timer_ticks;
-        acpi_timer_ticks -= acpi_timer_ticks_;
-        do
-        {   __asm__ volatile (
+    {   do
+        {   N32 acpi_timer_ticks_ = acpi_timer_ticks > 0xffffffff ? 0xffffffff : acpi_timer_ticks;
+            acpi_timer_ticks -= acpi_timer_ticks_;
+            __asm__ volatile (
             "\n" "cli"
             );
             E_main_Q_msr_P( 0x838, acpi_timer_ticks_ );
@@ -836,10 +836,10 @@ E_flow_Q_task_I_schedule( void
             if( U_has_suspend_time )
             {   N acpi_timer_ticks = ( E_flow_S_scheduler[ sched_i ].next_time - time ) / E_interrupt_S_apic_timer_tick_time;
                 if( acpi_timer_ticks )
-                {   N32 acpi_timer_ticks_ = acpi_timer_ticks > 0xffffffff ? 0xffffffff : acpi_timer_ticks;
-                    acpi_timer_ticks -= acpi_timer_ticks_;
-                    do
-                    {   E_main_Q_msr_P( 0x838, acpi_timer_ticks_ );
+                {   do
+                    {   N32 acpi_timer_ticks_ = acpi_timer_ticks > 0xffffffff ? 0xffffffff : acpi_timer_ticks;
+                        acpi_timer_ticks -= acpi_timer_ticks_;
+                        E_main_Q_msr_P( 0x838, acpi_timer_ticks_ );
                         __asm__ volatile (
                         "\n" "sti"
                         "\n" "hlt"
