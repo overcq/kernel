@@ -934,7 +934,7 @@ Loop_end:
         block_delete_start++;
     }
     for( N64 block_table_i = block_delete_start; block_table_i != *block_n; block_table_i++ )
-    {   if( (S)r < 0 )
+    {   if( K_error(r) )
             break;
         r = E_ouxfs_Q_free_table_I_unite( disc_id, partition_i, &disc->partition[ partition_i ].oux.block_table[ block_start + block_table_i ] );
         *block_table_diff -= sizeof( N64 ) + 1
@@ -943,7 +943,7 @@ Loop_end:
           : sizeof( N16 ) + sizeof( N16 )
         );
     }
-    if( (S)r < 0 )
+    if( K_error(r) )
     {   if( ~r )
             return r;
         G( "some free blocks not counted: disc_id=%x, partition_i=%x", disc_id, partition_i );
@@ -1008,7 +1008,7 @@ E_ouxfs_Z_start_n_I_block_append( N disc_id
         }
         if( ~lowest_size )
         {   for_n( block_table_i, *block_n )
-            {   if( (S)r < 0 )
+            {   if( K_error(r) )
                     break;
                 r = E_ouxfs_Q_free_table_I_unite( disc_id, partition_i, &disc->partition[ partition_i ].oux.block_table[ block_start_ + block_table_i ] );
                 *block_table_diff -= sizeof( N64 ) + 1
@@ -1017,7 +1017,7 @@ E_ouxfs_Z_start_n_I_block_append( N disc_id
                   : sizeof( N16 ) + sizeof( N16 )
                 );
             }
-            if( (S)r < 0 )
+            if( K_error(r) )
             {   if( ~r )
                     return r;
                 G( "some free blocks not counted: disc_id=%x, partition_i=%x", disc_id, partition_i );
@@ -1574,15 +1574,15 @@ _private
 N
 E_ouxfs_Q_device_M( I disc_id
 , N partition_i
-){  N r = 0;
+){  N r;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
     if( E_flow_I_lock_r( &disc->partition[ partition_i ].lock, &r ))
         return ~0;
     N r_;
     Pc sector;
-    if( E_disc_R( disc_id, partition_i, 0, 1, &sector, &r_ ))
+    r = E_disc_R( disc_id, partition_i, 0, 1, &sector, &r_ );
+    if( K_error(r) )
     {   G( "read sector: 0" );
-        r = ~0;
         goto End;
     }
     if( !E_text_Z_sl_T_eq( sector, E_ouxfs_Q_device_S_ident, J_s0_R_l( E_ouxfs_Q_device_S_ident )))
@@ -1748,7 +1748,7 @@ End_loop:
         if( disc->partition[ partition_i ].oux.block_table[ block_table_i_read ].location_type == E_ouxfs_Z_block_Z_location_S_sectors )
         {   if( disc->partition[ partition_i ].oux.block_table[ block_table_i_read ].location.sectors.pre )
             {   r = E_disc_R( disc_id, partition_i, disc->partition[ partition_i ].oux.block_table[ block_table_i_read ].sector - 1, 1, &sector, &r_ );
-                if( (S)r < 0 )
+                if( K_error(r) )
                 {   if( ~r )
                         goto End;
                     disc = E_mem_Q_tab_R( E_disc_S, disc_id );
@@ -1865,7 +1865,7 @@ End_loop:
             , disc->partition[ partition_i ].oux.block_table[ block_table_i_read ].location.sectors.n
             , &sector, &r_
             );
-            if( (S)r < 0 )
+            if( K_error(r) )
             {   if( ~r )
                     goto End;
                 disc = E_mem_Q_tab_R( E_disc_S, disc_id );
@@ -1984,7 +1984,7 @@ End_loop:
                 , disc->partition[ partition_i ].oux.block_table[ block_table_i_read ].sector + disc->partition[ partition_i ].oux.block_table[ block_table_i_read ].location.sectors.n
                 , 1, &sector, &r_
                 );
-                if( (S)r < 0 )
+                if( K_error(r) )
                 {   if( ~r )
                         goto End;
                     disc = E_mem_Q_tab_R( E_disc_S, disc_id );
@@ -2098,7 +2098,7 @@ End_loop:
             }
         }else
         {   r = E_disc_R( disc_id, partition_i, disc->partition[ partition_i ].oux.block_table[ block_table_i_read ].sector, 1, &sector, &r_ );
-            if( (S)r < 0 )
+            if( K_error(r) )
             {   if( ~r )
                     goto End;
                 disc = E_mem_Q_tab_R( E_disc_S, disc_id );
@@ -2325,12 +2325,13 @@ End_loop:
                     goto End_2;
                 }
                 r_ = (N)E_mem_Q_blk_I_insert( &disc->partition[ partition_i ].oux.free_table, i + 1, 1 );
-                if( !~r_
+                if( K_error( r_ )
                 || !r_
                 )
-                {   if( !~r_ )
-                    {   Gk(E_mem_Q_blk_I_insert( &disc->partition[ partition_i ].oux.free_table, i + 1, 1 ));
-                        r = ~2;
+                {   if( K_error( r_ ))
+                    {   if( r_ == ~4 )
+                            Gk(E_mem_Q_blk_I_insert( &disc->partition[ partition_i ].oux.free_table, i + 1, 1 ));
+                        r = r_ < ~2 ? r_ : ~2;
                         goto End;
                     }
                     r = ~0;
@@ -2475,12 +2476,13 @@ End_loop:
                 }
             }else
             {   r_ = (N)E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.free_table, i, 1 );
-                if( !~r_
+                if( K_error( r_ )
                 || !r_
                 )
-                {   if( !~r_ )
-                    {   Gk(E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.free_table, i, 1 ));
-                        r = ~2;
+                {   if( K_error( r_ ))
+                    {   if( r_ = ~4 )
+                            Gk(E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.free_table, i, 1 ));
+                        r = r_ < ~2 ? r_ : ~2;
                         goto End;
                     }
                     r = ~0;
@@ -2515,12 +2517,13 @@ End_loop:
                       || disc->partition[ partition_i ].oux.free_table[i].location.sectors.post
                     )) // Początkowy oraz końcowy fragment pozostają.
                     {   r_ = (N)E_mem_Q_blk_I_insert( &disc->partition[ partition_i ].oux.free_table, i + 1, 1 );
-                        if( !~r_
+                        if( K_error( r_ )
                         || !r_
                         )
-                        {   if( !~r_ )
-                            {   Gk(E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.free_table, i, 1 ));
-                                r = ~2;
+                        {   if( K_error( r_ ))
+                            {   if( r_ == ~4 )
+                                    Gk(E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.free_table, i, 1 ));
+                                r = r_ < ~2 ? r_ : ~2;
                                 goto End;
                             }
                             r = ~0;
@@ -2668,12 +2671,13 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
                       && disc->sata_ahci.physical_sector_size - disc->partition[ partition_i ].oux.free_table[i].location.sectors.pre != disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.in_sector.start
                     )) // Początkowy oraz końcowy fragment pozostają.
                     {   r_ = (N)E_mem_Q_blk_I_insert( &disc->partition[ partition_i ].oux.free_table, i + 1, 1 );
-                        if( !~r_
+                        if( K_error( r_ )
                         || !r_
                         )
-                        {   if( !~r_ )
-                            {   Gk(E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.free_table, i, 1 ));
-                                r = ~2;
+                        {   if( K_error( r_ ))
+                            {   if( r_ == ~4 )
+                                    Gk(E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.free_table, i, 1 ));
+                                r = r_ < ~2 ? r_ : ~2;
                                 goto End;
                             }
                             r = ~0;
@@ -2835,12 +2839,13 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
                         }
                     }else // Cały wolny blok znika.
                     {   r_ = (N)E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.free_table, i, 1 );
-                        if( !~r_
+                        if( K_error( r_ )
                         || !r_
                         )
-                        {   if( !~r_ )
-                            {   Gk(E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.free_table, i, 1 ));
-                                r = ~2;
+                        {   if( K_error( r_ ))
+                            {   if( r_ == ~4 )
+                                    Gk(E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.free_table, i, 1 ));
+                                r = r_ < ~2 ? r_ : ~2;
                                 goto End;
                             }
                             r = ~0;
@@ -2886,12 +2891,13 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
               > disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.in_sector.start + disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.in_sector.size
             ) // Początkowy oraz końcowy fragment pozostają.
             {   r_ = (N)E_mem_Q_blk_I_insert( &disc->partition[ partition_i ].oux.free_table, i + 1, 1 );
-                if( !~r_
+                if( K_error( r_ )
                 || !r_
                 )
-                {   if( !~r_ )
-                    {   Gk(E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.free_table, i, 1 ));
-                        r = ~2;
+                {   if( K_error( r_ ))
+                    {   if( r_ == ~4 )
+                            Gk(E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.free_table, i, 1 ));
+                        r = r_ < ~2 ? r_ : ~2;
                         goto End;
                     }
                     r = ~0;
@@ -2918,12 +2924,13 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
                 disc->partition[ partition_i ].oux.free_table[i].location.in_sector.size = free_start + disc->partition[ partition_i ].oux.free_table[i].location.in_sector.size - ( disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.in_sector.start + disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.in_sector.size );
             }else // Cały wolny blok znika.
             {   r_ = (N)E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.free_table, i, 1 );
-                if( !~r_
+                if( K_error( r_ )
                 || !r_
                 )
-                {   if( !~r_ )
-                    {   Gk(E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.free_table, i, 1 ));
-                        r = ~2;
+                {   if( K_error( r_ ))
+                    {   if( r_ == ~4 )
+                            Gk(E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.free_table, i, 1 ));
+                        r = r_ < ~2 ? r_ : ~2;
                         goto End;
                     }
                     r = ~0;
@@ -2975,7 +2982,7 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
                 , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].sector - 1
                 , 1, &sector, &r_
                 );
-                if( (S)r < 0 )
+                if( K_error(r) )
                 {   if( ~r )
                         goto End;
                     disc = E_mem_Q_tab_R( E_disc_S, disc_id );
@@ -2987,13 +2994,14 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
                 {   switch( continue_from )
                     { case ~0:
                         {   N r__ = (N)E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory, 1 );
-                            if( !~r__
+                            if( K_error( r__ )
                             || !r__
                             )
                             {   E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
-                                if( !~r__ )
-                                {   Gk(E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory, 1 ));
-                                    r = ~2;
+                                if( K_error( r__ ))
+                                {   if( r__ == ~4 )
+                                        Gk(E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory, 1 ));
+                                    r = r__ < ~2 ? r__ : ~2;
                                     goto End;
                                 }
                                 r = ~0;
@@ -3040,18 +3048,19 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
                             {   disc->partition[ partition_i ].oux.directory[ directory_i ].name[ char_i++ ] = *data;
                                 if( !*data )
                                 {   N r__ = (N)E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, char_i, char_n - char_i );
-                                    if( !~r__
+                                    if( K_error( r__ )
                                     || !r__
                                     )
                                     {   E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
-                                        if( !~r__ )
-                                        {   Gk(E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, char_i, char_n - char_i ));
-                                            r = ~2;
+                                        if( K_error( r__ ))
+                                        {   if( r__ == ~4 )
+                                                Gk(E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, char_i, char_n - char_i ));
+                                            r = r__ < ~2 ? r__ : ~2;
                                             goto End;
                                         }
                                         r__ = W( disc->partition[ partition_i ].oux.directory[ directory_i ].name );
-                                        if( (S)r__ < 0 )
-                                        {   r = r__ < ~1 ? r__ : ~1;
+                                        if( K_error( r__ ))
+                                        {   r = r__ < ~2 ? r__ : ~2;
                                             goto End;
                                         }
                                         r = ~0;
@@ -3063,18 +3072,19 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
                             }
                             if( data == sector + disc->sata_ahci.physical_sector_size )
                             {   N r__ = (N)E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, disc->sata_ahci.physical_sector_size );
-                                if( !~r__
+                                if( K_error( r__ )
                                 || !r__
                                 )
                                 {   E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
-                                    if( !~r__ )
-                                    {   Gk(E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, disc->sata_ahci.physical_sector_size ));
-                                        r = ~2;
+                                    if( K_error( r__ ))
+                                    {   if( r__ == ~4 )
+                                            Gk(E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, disc->sata_ahci.physical_sector_size ));
+                                        r = r__ < ~2 ? r__ : ~2;
                                         goto End;
                                     }
                                     r__ = W( disc->partition[ partition_i ].oux.directory[ directory_i ].name );
-                                    if( (S)r__ < 0 )
-                                    {   r = r__ < ~1 ? r__ : ~1;
+                                    if( K_error( r__ ))
+                                    {   r = r__ < ~2 ? r__ : ~2;
                                         goto End;
                                     }
                                     r = ~0;
@@ -3094,7 +3104,7 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
             , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].location.sectors.n
             , &sector, &r_
             );
-            if( (S)r < 0 )
+            if( K_error(r) )
             {   if( ~r )
                     goto End;
                 disc = E_mem_Q_tab_R( E_disc_S, disc_id );
@@ -3107,13 +3117,14 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
                 {   switch( continue_from )
                     { case ~0:
                         {   N r__ = (N)E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory, 1 );
-                            if( !~r__
+                            if( K_error( r__ )
                             || !r__
                             )
                             {   E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
-                                if( !~r__ )
-                                {   Gk(E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory, 1 ));
-                                    r = ~2;
+                                if( K_error( r__ ))
+                                {   if( r__ == ~4 )
+                                        Gk(E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory, 1 ));
+                                    r = r__ < ~2 ? r__ : ~2;
                                     goto End;
                                 }
                                 r = ~0;
@@ -3159,18 +3170,19 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
                             {   disc->partition[ partition_i ].oux.directory[ directory_i ].name[ char_i++ ] = *data;
                                 if( !*data )
                                 {   N r__ = (N)E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, char_i, char_n - char_i );
-                                    if( !~r__
+                                    if( K_error( r__ )
                                     || !r__
                                     )
                                     {   E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
-                                        if( !~r__ )
-                                        {   Gk(E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, char_i, char_n - char_i ));
-                                            r = ~2;
+                                        if( K_error( r__ ))
+                                        {   if( r__ == ~4 )
+                                                Gk(E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, char_i, char_n - char_i ));
+                                            r = r__ < ~2 ? r__ : ~2;
                                             goto End;
                                         }
                                         r__ = W( disc->partition[ partition_i ].oux.directory[ directory_i ].name );
-                                        if( (S)r__ < 0 )
-                                        {   r = r__ < ~1 ? r__ : ~1;
+                                        if( K_error( r__ ))
+                                        {   r = r__ < ~2 ? r__ : ~2;
                                             goto End;
                                         }
                                         r = ~0;
@@ -3182,18 +3194,19 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
                             }
                             if( data == sector + disc->sata_ahci.physical_sector_size )
                             {   N r__ = (N)E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, disc->sata_ahci.physical_sector_size );
-                                if( !~r__
+                                if( K_error( r__ )
                                 || !r__
                                 )
                                 {   E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
-                                    if( !~r__ )
-                                    {   Gk(E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, disc->sata_ahci.physical_sector_size ));
-                                        r = ~2;
+                                    if( K_error( r__ ))
+                                    {   if( r__ == ~4 )
+                                            Gk(E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, disc->sata_ahci.physical_sector_size ));
+                                        r = r__ < ~2 ? r__ : ~2;
                                         goto End;
                                     }
                                     r__ = W( disc->partition[ partition_i ].oux.directory[ directory_i ].name );
-                                    if( (S)r__ < 0 )
-                                    {   r = r__ < ~1 ? r__ : ~1;
+                                    if( K_error( r__ ))
+                                    {   r = r__ < ~2 ? r__ : ~2;
                                         goto End;
                                     }
                                     r = ~0;
@@ -3215,7 +3228,7 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
                   + disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].location.sectors.n
                 , 1, &sector, &r_
                 );
-                if( (S)r < 0 )
+                if( K_error(r) )
                 {   if( ~r )
                         goto End;
                     disc = E_mem_Q_tab_R( E_disc_S, disc_id );
@@ -3227,13 +3240,14 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
                 {   switch( continue_from )
                     { case ~0:
                         {   N r__ = (N)E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory, 1 );
-                            if( !~r__
+                            if( K_error( r__ )
                             || !r__
                             )
                             {   E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
-                                if( !~r__ )
-                                {   Gk(E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory, 1 ));
-                                    r = ~2;
+                                if( K_error( r__ ))
+                                {   if( r__ == ~4 )
+                                        Gk(E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory, 1 ));
+                                    r = r__ < ~2 ? r__ : ~2;
                                     goto End;
                                 }
                                 r = ~0;
@@ -3280,18 +3294,19 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
                             {   disc->partition[ partition_i ].oux.directory[ directory_i ].name[ char_i++ ] = *data;
                                 if( !*data )
                                 {   N r__ = (N)E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, char_i, char_n - char_i );
-                                    if( !~r__
+                                    if( K_error( r__ )
                                     || !r__
                                     )
                                     {   E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
-                                        if( !~r__ )
-                                        {   Gk(E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, char_i, char_n - char_i ));
-                                            r = ~2;
+                                        if( K_error( r__ ))
+                                        {   if( r__ == ~4 )
+                                                Gk(E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, char_i, char_n - char_i ));
+                                            r = r__ < ~2 ? r__ : ~2;
                                             goto End;
                                         }
                                         r__ = W( disc->partition[ partition_i ].oux.directory[ directory_i ].name );
-                                        if( (S)r__ < 0 )
-                                        {   r = r__ < ~1 ? r__ : ~1;
+                                        if( K_error( r__ ))
+                                        {   r = r__ < ~2 ? r__ : ~2;
                                             goto End;
                                         }
                                         r = ~0;
@@ -3303,18 +3318,19 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
                             }
                             if( data == sector + disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].location.sectors.post )
                             {   N r__ = (N)E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, disc->sata_ahci.physical_sector_size );
-                                if( !~r__
+                                if( K_error( r__ )
                                 || !r__
                                 )
                                 {   E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
-                                    if( !~r__ )
-                                    {   Gk(E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, disc->sata_ahci.physical_sector_size ));
-                                        r = ~2;
+                                    if( K_error( r__ ))
+                                    {   if( r__ == ~4 )
+                                            Gk(E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, disc->sata_ahci.physical_sector_size ));
+                                        r = r__ < ~2 ? r__ : ~2;
                                         goto End;
                                     }
                                     r__ = W( disc->partition[ partition_i ].oux.directory[ directory_i ].name );
-                                    if( (S)r__ < 0 )
-                                    {   r = r__ < ~1 ? r__ : ~1;
+                                    if( K_error( r__ ))
+                                    {   r = r__ < ~2 ? r__ : ~2;
                                         goto End;
                                     }
                                     r = ~0;
@@ -3334,7 +3350,7 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
             , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].sector
             , 1, &sector, &r_
             );
-            if( (S)r < 0 )
+            if( K_error(r) )
             {   if( ~r )
                     goto End;
                 disc = E_mem_Q_tab_R( E_disc_S, disc_id );
@@ -3346,13 +3362,14 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
             {   switch( continue_from )
                 { case ~0:
                     {   N r__ = (N)E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory, 1 );
-                        if( !~r__
+                        if( K_error( r__ )
                         || !r__
                         )
                         {   E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
-                            if( !~r__ )
-                            {   Gk(E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory, 1 ));
-                                r = ~2;
+                            if( K_error( r__ ))
+                            {   if( r__ = ~4 )
+                                    Gk(E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory, 1 ));
+                                r = r__ < ~2 ? r__ : ~2;
                                 goto End;
                             }
                             r = ~0;
@@ -3408,18 +3425,19 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
                         {   disc->partition[ partition_i ].oux.directory[ directory_i ].name[ char_i++ ] = *data;
                             if( !*data )
                             {   N r__ = (N)E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, char_i, char_n - char_i );
-                                if( !~r__
+                                if( K_error( r__ )
                                 || !r__
                                 )
                                 {   E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
-                                    if( !~r__ )
-                                    {   Gk(E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, char_i, char_n - char_i ));
-                                        r = ~2;
+                                    if( K_error( r__ ))
+                                    {   if( r__ == ~4 )
+                                            Gk(E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, char_i, char_n - char_i ));
+                                        r = r__ < ~2 ? r__ : ~2;
                                         goto End;
                                     }
                                     r__ = W( disc->partition[ partition_i ].oux.directory[ directory_i ].name );
-                                    if( (S)r__ < 0 )
-                                    {   r = r__ < ~1 ? r__ : ~1;
+                                    if( K_error( r__ ))
+                                    {   r = r__ < ~2 ? r__ : ~2;
                                         goto End;
                                     }
                                     r = ~0;
@@ -3434,18 +3452,19 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
                           + disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].location.in_sector.size
                         )
                         {   N r__ = (N)E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, disc->sata_ahci.physical_sector_size );
-                            if( !~r__
+                            if( K_error( r__ )
                             || !r__
                             )
                             {   E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
-                                if( !~r__ )
-                                {   Gk(E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, disc->sata_ahci.physical_sector_size ));
-                                    r = ~2;
+                                if( K_error( r__ ))
+                                {   if( r__ == ~4 )
+                                        Gk(E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, disc->sata_ahci.physical_sector_size ));
+                                    r = r__ < ~2 ? r__ : ~2;
                                     goto End;
                                 }
                                 r__ = W( disc->partition[ partition_i ].oux.directory[ directory_i ].name );
-                                if( (S)r__ < 0 )
-                                {   r = r__ < ~1 ? r__ : ~1;
+                                if( K_error( r__ ))
+                                {   r = r__ < ~2 ? r__ : ~2;
                                     goto End;
                                 }
                                 r = ~0;
@@ -3495,7 +3514,7 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
                 , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].sector - 1
                 , 1, &sector, &r_
                 );
-                if( (S)r < 0 )
+                if( K_error(r) )
                 {   if( ~r )
                         goto End;
                     disc = E_mem_Q_tab_R( E_disc_S, disc_id );
@@ -3507,13 +3526,14 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
                 {   switch( continue_from )
                     { case ~0:
                         {   N r__ = (N)E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.file, 1 );
-                            if( !~r__
+                            if( K_error( r__ )
                             || !r__
                             )
                             {   E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
-                                if( !~r__ )
-                                {   Gk(E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, disc->sata_ahci.physical_sector_size ));
-                                    r = ~2;
+                                if( K_error( r__ ))
+                                {   if( r__ == ~4 )
+                                        Gk(E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, disc->sata_ahci.physical_sector_size ));
+                                    r = r__ < ~2 ? r__ : ~2;
                                     goto End;
                                 }
                                 r = ~0;
@@ -3582,18 +3602,19 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
                             {   disc->partition[ partition_i ].oux.file[ file_i ].name[ char_i++ ] = *data;
                                 if( !*data )
                                 {   N r__ = (N)E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.file[ file_i ].name, char_i, char_n - char_i );
-                                    if( !~r__
+                                    if( K_error( r__ )
                                     || !r__
                                     )
                                     {   E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
-                                        if( !~r__ )
-                                        {   Gk(E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, disc->sata_ahci.physical_sector_size ));
-                                            r = ~2;
+                                        if( K_error( r__ ))
+                                        {   if( r__ == ~4 )
+                                                Gk(E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, disc->sata_ahci.physical_sector_size ));
+                                            r = r__ < ~2 ? r__ : ~2;
                                             goto End;
                                         }
                                         r__ = W( disc->partition[ partition_i ].oux.file[ file_i ].name );
-                                        if( (S)r__ < 0 )
-                                        {   r = r__ < ~1 ? r__ : ~1;
+                                        if( K_error( r__ ))
+                                        {   r = r__ < ~2 ? r__ : ~2;
                                             goto End;
                                         }
                                         r = ~0;
@@ -3605,18 +3626,19 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
                             }
                             if( data == sector + disc->sata_ahci.physical_sector_size )
                             {   N r__ = (N)E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.file[ file_i ].name, disc->sata_ahci.physical_sector_size );
-                                if( !~r__
+                                if( K_error( r__ )
                                 || !r__
                                 )
                                 {   E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
-                                    if( !~r__ )
-                                    {   Gk(E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, disc->sata_ahci.physical_sector_size ));
-                                        r = ~2;
+                                    if( K_error( r__ ))
+                                    {   if( r__ == ~4 )
+                                            Gk(E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, disc->sata_ahci.physical_sector_size ));
+                                        r = r__ < ~2 ? r__ : ~2;
                                         goto End;
                                     }
                                     r__ = W( disc->partition[ partition_i ].oux.file[ file_i ].name );
-                                    if( (S)r__ < 0 )
-                                    {   r = r__ < ~1 ? r__ : ~1;
+                                    if( K_error( r__ ))
+                                    {   r = r__ < ~2 ? r__ : ~2;
                                         goto End;
                                     }
                                     r = ~0;
@@ -3638,7 +3660,7 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
             , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].location.sectors.n
             , &sector, &r_
             );
-            if( (S)r < 0 )
+            if( K_error(r) )
             {   if( ~r )
                     goto End;
                 disc = E_mem_Q_tab_R( E_disc_S, disc_id );
@@ -3651,13 +3673,14 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
                 {   switch( continue_from )
                     { case ~0:
                         {   N r__ = (N)E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.file, 1 );
-                            if( !~r__
+                            if( K_error( r__ )
                             || !r__
                             )
                             {   E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
-                                if( !~r__ )
-                                {   Gk(E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, disc->sata_ahci.physical_sector_size ));
-                                    r = ~2;
+                                if( K_error( r__ ))
+                                {   if( r__ == ~4 )
+                                        Gk(E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, disc->sata_ahci.physical_sector_size ));
+                                    r = r__ < ~2 ? r__ : ~2;
                                     goto End;
                                 }
                                 r = ~0;
@@ -3726,18 +3749,19 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
                             {   disc->partition[ partition_i ].oux.file[ file_i ].name[ char_i++ ] = *data;
                                 if( !*data )
                                 {   N r__ = (N)E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.file[ file_i ].name, char_i, char_n - char_i );
-                                    if( !~r__
+                                    if( K_error( r__ )
                                     || !r__
                                     )
                                     {   E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
-                                        if( !~r__ )
-                                        {   Gk(E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, disc->sata_ahci.physical_sector_size ));
-                                            r = ~2;
+                                        if( K_error( r__ ))
+                                        {   if( r__ == ~4 )
+                                                Gk(E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, disc->sata_ahci.physical_sector_size ));
+                                            r = r__ < ~2 ? r__ : ~2;
                                             goto End;
                                         }
                                         r__ = W( disc->partition[ partition_i ].oux.file[ file_i ].name );
-                                        if( (S)r__ < 0 )
-                                        {   r = r__ < ~1 ? r__ : ~1;
+                                        if( K_error( r__ ))
+                                        {   r = r__ < ~2 ? r__ : ~2;
                                             goto End;
                                         }
                                         r = ~0;
@@ -3748,9 +3772,22 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
                                 data++;
                             }
                             if( data == sector + disc->sata_ahci.physical_sector_size )
-                            {   if( !E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.file[ file_i ].name, disc->sata_ahci.physical_sector_size ))
+                            {   N r__ = (N)E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.file[ file_i ].name, disc->sata_ahci.physical_sector_size );
+                                if( K_error( r__ )
+                                || !r__
+                                )
                                 {   E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
-                                    W( disc->partition[ partition_i ].oux.file[ file_i ].name );
+                                    if( K_error( r__ ))
+                                    {   if( r__ == ~4 )
+                                            Gk(E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.file[ file_i ].name, disc->sata_ahci.physical_sector_size ));
+                                        r = r__ < ~2 ? r__ : ~2;
+                                        goto End;
+                                    }
+                                    r__ = W( disc->partition[ partition_i ].oux.file[ file_i ].name );
+                                    if( K_error( r__ ))
+                                    {   r = r__ < ~2 ? r__ : ~2;
+                                        goto End;
+                                    }
                                     r = ~0;
                                     goto End_4;
                                 }
@@ -3772,7 +3809,7 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
                   + disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].location.sectors.n
                 , 1, &sector, &r_
                 );
-                if( (S)r < 0 )
+                if( K_error(r) )
                 {   if( ~r )
                         goto End;
                     disc = E_mem_Q_tab_R( E_disc_S, disc_id );
@@ -3784,13 +3821,14 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
                 {   switch( continue_from )
                     { case ~0:
                         {   N r__ = (N)E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.file, 1 );
-                            if( !~r__
+                            if( K_error( r__ )
                             || !r__
                             )
                             {   E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
-                                if( !~r__ )
-                                {   Gk(E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, disc->sata_ahci.physical_sector_size ));
-                                    r = ~2;
+                                if( K_error( r__ ))
+                                {   if( r__ == ~4 )
+                                        Gk(E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, disc->sata_ahci.physical_sector_size ));
+                                    r = r__ < ~2 ? r__ : ~2;
                                     goto End;
                                 }
                                 r = ~0;
@@ -3861,18 +3899,19 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
                             {   disc->partition[ partition_i ].oux.file[ file_i ].name[ char_i++ ] = *data;
                                 if( !*data )
                                 {   N r__ = (N)E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.file[ file_i ].name, char_i, char_n - char_i );
-                                    if( !~r__
+                                    if( K_error( r__ )
                                     || !r__
                                     )
                                     {   E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
-                                        if( !~r__ )
-                                        {   Gk(E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, disc->sata_ahci.physical_sector_size ));
-                                            r = ~2;
+                                        if( K_error( r__ ))
+                                        {   if( r__ == ~4 )
+                                                Gk(E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, disc->sata_ahci.physical_sector_size ));
+                                            r = r__ < ~2 ? r__ : ~2;
                                             goto End;
                                         }
                                         r__ = W( disc->partition[ partition_i ].oux.file[ file_i ].name );
-                                        if( (S)r__ < 0 )
-                                        {   r = r__ < ~1 ? r__ : ~1;
+                                        if( K_error( r__ ))
+                                        {   r = r__ < ~2 ? r__ : ~2;
                                             goto End;
                                         }
                                         r = ~0;
@@ -3884,18 +3923,19 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
                             }
                             if( data == sector + disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].location.sectors.post )
                             {   N r__ = (N)E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.file[ file_i ].name, disc->sata_ahci.physical_sector_size );
-                                if( !~r__
+                                if( K_error( r__ )
                                 || !r__
                                 )
                                 {   E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
-                                    if( !~r__ )
-                                    {   Gk(E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, disc->sata_ahci.physical_sector_size ));
-                                        r = ~2;
+                                    if( K_error( r__ ))
+                                    {   if( r__ == ~4 )
+                                            Gk(E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, disc->sata_ahci.physical_sector_size ));
+                                        r = r__ < ~2 ? r__ : ~2;
                                         goto End;
                                     }
                                     r__ = W( disc->partition[ partition_i ].oux.file[ file_i ].name );
-                                    if( (S)r__ < 0 )
-                                    {   r = r__ < ~1 ? r__ : ~1;
+                                    if( K_error( r__ ))
+                                    {   r = r__ < ~2 ? r__ : ~2;
                                         goto End;
                                     }
                                     r = ~0;
@@ -3917,7 +3957,7 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
             , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].sector
             , 1, &sector, &r_
             );
-            if( (S)r < 0 )
+            if( K_error(r) )
             {   if( ~r )
                     goto End;
                 disc = E_mem_Q_tab_R( E_disc_S, disc_id );
@@ -3929,13 +3969,14 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
             {   switch( continue_from )
                 { case ~0:
                     {   N r__ = (N)E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.file, 1 );
-                        if( !~r__
+                        if( K_error( r__ )
                         || !r__
                         )
                         {   E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
-                            if( !~r__ )
-                            {   Gk(E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, disc->sata_ahci.physical_sector_size ));
-                                r = ~2;
+                            if( K_error( r__ ))
+                            {   if( r__ == ~4 )
+                                    Gk(E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, disc->sata_ahci.physical_sector_size ));
+                                r = r__ < ~2 ? r__ : ~2;
                                 goto End;
                             }
                             r = ~0;
@@ -4011,18 +4052,19 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
                         {   disc->partition[ partition_i ].oux.file[ file_i ].name[ char_i++ ] = *data;
                             if( !*data )
                             {   N r__ = (N)E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.file[ file_i ].name, char_i, char_n - char_i );
-                                if( !~r__
+                                if( K_error( r__ )
                                 || !r__
                                 )
                                 {   E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
-                                    if( !~r__ )
-                                    {   Gk(E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, disc->sata_ahci.physical_sector_size ));
-                                        r = ~2;
+                                    if( K_error( r__ ))
+                                    {   if( r__ == ~4 )
+                                            Gk(E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, disc->sata_ahci.physical_sector_size ));
+                                        r = r__ < ~2 ? r__ : ~2;
                                         goto End;
                                     }
                                     r__ = W( disc->partition[ partition_i ].oux.file[ file_i ].name );
-                                    if( (S)r__ < 0 )
-                                    {   r = r__ < ~1 ? r__ : ~1;
+                                    if( K_error( r__ ))
+                                    {   r = r__ < ~2 ? r__ : ~2;
                                         goto End;
                                     }
                                     r = ~0;
@@ -4037,18 +4079,19 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
                           + disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].location.in_sector.size
                         )
                         {   N r__ = (N)E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.file[ file_i ].name, disc->sata_ahci.physical_sector_size );
-                            if( !~r__
+                            if( K_error( r__ )
                             || !r__
                             )
                             {   E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
-                                if( !~r__ )
-                                {   Gk(E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, disc->sata_ahci.physical_sector_size ));
-                                    r = ~2;
+                                if( K_error( r__ ))
+                                {   if( r__ == ~4 )
+                                        Gk(E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, disc->sata_ahci.physical_sector_size ));
+                                    r = r__ < ~2 ? r__ : ~2;
                                     goto End;
                                 }
                                 r__ = W( disc->partition[ partition_i ].oux.file[ file_i ].name );
-                                if( (S)r__ < 0 )
-                                {   r = r__ < ~1 ? r__ : ~1;
+                                if( K_error( r__ ))
+                                {   r = r__ < ~2 ? r__ : ~2;
                                     goto End;
                                 }
                                 r = ~0;
@@ -4085,14 +4128,14 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
 End_4:
     for_n( file_i_, file_i )
     {   r_ = W( disc->partition[ partition_i ].oux.file[ file_i_ ].name );
-        if( (S)r_ < 0 )
+        if( K_error( r_ ))
         {   if( r_ < r )
                 r = r_;
             goto End;
         }
     }
     r_ = W( disc->partition[ partition_i ].oux.file );
-    if( (S)r_ < 0 )
+    if( K_error( r_ ))
     {   if( r_ < r )
             r = r_;
         goto End;
@@ -4100,28 +4143,28 @@ End_4:
 End_3:
     for_n( directory_i_, directory_i )
     {   r_ = W( disc->partition[ partition_i ].oux.directory[ directory_i_ ].name );
-        if( (S)r_ < 0 )
+        if( K_error( r_ ))
         {   if( r_ < r )
                 r = r_;
             goto End;
         }
     }
     r_ = W( disc->partition[ partition_i ].oux.directory );
-    if( (S)r_ < 0 )
+    if( K_error( r_ ))
     {   if( r_ < r )
             r = r_;
         goto End;
     }
 End_2:
     r_ = W( disc->partition[ partition_i ].oux.free_table );
-    if( (S)r_ < 0 )
+    if( K_error( r_ ))
     {   if( r_ < r )
             r = r_;
         goto End;
     }
 End_1:
     r_ = W( disc->partition[ partition_i ].oux.block_table );
-    if( (S)r_ < 0 )
+    if( K_error( r_ ))
     {   if( r_ < r )
             r = r_;
         goto End;
@@ -5006,34 +5049,34 @@ E_ouxfs_Q_device_W( I disc_id
     // Wyrzucenie z pamięci operacyjnej struktur systemu plików.
     for_n_( file_i, disc->partition[ partition_i ].oux.file_n )
     {   r = W( disc->partition[ partition_i ].oux.file[ file_i ].name );
-        if( (S)r < 0 )
+        if( K_error(r) )
         {   if( r > ~1 )
                 r = ~1;
             goto End;
         }
     }
     r = W( disc->partition[ partition_i ].oux.file );
-    if( (S)r < 0 )
+    if( K_error(r) )
     {   if( r > ~1 )
             r = ~1;
         goto End;
     }
     for_n( directory_i, disc->partition[ partition_i ].oux.directory_n )
     {   r = W( disc->partition[ partition_i ].oux.directory[ directory_i ].name );
-        if( (S)r < 0 )
+        if( K_error(r) )
         {   if( r > ~1 )
                 r = ~1;
             goto End;
         }
     }
     r = W( disc->partition[ partition_i ].oux.directory );
-    if( (S)r < 0 )
+    if( K_error(r) )
     {   if( r > ~1 )
             r = ~1;
         goto End;
     }
     r = W( disc->partition[ partition_i ].oux.block_table );
-    if( (S)r < 0 )
+    if( K_error(r) )
     {   if( r > ~1 )
             r = ~1;
         goto End;
@@ -5068,17 +5111,21 @@ E_ouxfs_Q_directory_I_list_directory( N disc_id
     for_n( directory_i, disc->partition[ partition_i ].oux.directory_n )
         if( disc->partition[ partition_i ].oux.directory[ directory_i ].parent == uid )
         {   N r_ = (N)E_mem_Q_blk_I_append( list, 1 );
-            if( !~r_
+            if( K_error( r_ )
             || !r_
             )
-            {   if( !~r_ )
-                {   Gk(E_mem_Q_blk_I_append( list, 1 ));
-                    r = ~2;
+            {   if( K_error( r_ ))
+                {   if( r_ == ~4 )
+                        Gk(E_mem_Q_blk_I_append( list, 1 ));
+                    r = r_ < ~2 ? r_ : ~2;
                     goto End;
                 }
-                r = W( *list );
-                if( (S)r < 0 )
-                    r = r < ~1 ? r : ~1;
+                r_ = W( *list );
+                if( K_error( r_ ))
+                {   r = r_ < ~2 ? r_ : ~2;
+                    goto End;
+                }
+                r = ~0;
                 goto End;
             }
             (*list)[ *n ] = disc->partition[ partition_i ].oux.directory[ directory_i ].uid;
@@ -5113,16 +5160,21 @@ E_ouxfs_Q_directory_I_list_file( N disc_id
     for_n( file_i, disc->partition[ partition_i ].oux.file_n )
         if( disc->partition[ partition_i ].oux.file[ file_i ].parent == uid )
         {   N r_ = (N)E_mem_Q_blk_I_append( list, 1 );
-            if( !~r_
+            if( K_error( r_ )
             || !r_
             )
-            {   if( !~r_ )
-                {   Gk(E_mem_Q_blk_I_append( list, 1 ));
-                    r = ~2;
+            {   if( K_error( r_ ))
+                {   if( r_ == ~4 )
+                        Gk(E_mem_Q_blk_I_append( list, 1 ));
+                    r = r_ < ~2 ? r_ : ~2;
                     goto End;
                 }
-                r = W( *list );
-                r = (S)r < 0 ? ( r < ~1 ? r : ~1 ) : ~0;
+                r_ = W( *list );
+                if( K_error( r_ ))
+                {   r = r_ < ~2 ? r_ : ~2;
+                    goto End;
+                }
+                r = ~0;
                 goto End;
             }
             (*list)[ *n ] = disc->partition[ partition_i ].oux.file[ file_i ].uid;
@@ -5188,15 +5240,16 @@ E_ouxfs_Q_directory_P_name( N disc_id
     , &disc->partition[ partition_i ].oux.block_table_directory_table_n
     , &disc->partition[ partition_i ].oux.directory_table_changed_from
     );
-    if( (S)r < 0 )
+    if( K_error(r) )
         goto End;
     N r_ = (N)E_mem_Q_blk_M_replace( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, E_text_Z_s0_R_l_0(name) );
-    if( !~r_
+    if( K_error( r_ )
     || !r_
     )
-    {   if( !~r_ )
-        {   Gk(E_mem_Q_blk_M_replace( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, E_text_Z_s0_R_l_0(name) ));
-            r = ~2;
+    {   if( K_error( r_ ))
+        {   if( r_ == ~4 )
+                Gk(E_mem_Q_blk_M_replace( &disc->partition[ partition_i ].oux.directory[ directory_i ].name, E_text_Z_s0_R_l_0(name) ));
+            r = r_ < ~2 ? r_ : ~2;
             goto End;
         }
         r = ~0;
@@ -5267,12 +5320,13 @@ E_ouxfs_Q_file_P_name( N disc_id
     if(r)
         goto End;
     N r_ = (N)E_mem_Q_blk_M_replace( &disc->partition[ partition_i ].oux.file[ file_i ].name, E_text_Z_s0_R_l_0(name) );
-    if( !~r_
+    if( K_error( r_ )
     || !r_
     )
-    {   if( !~r_ )
-        {   Gk(E_mem_Q_blk_M_replace( &disc->partition[ partition_i ].oux.file[ file_i ].name, E_text_Z_s0_R_l_0(name) ));
-            r = ~2;
+    {   if( K_error( r_ ))
+        {   if( r_ == ~4 )
+                Gk(E_mem_Q_blk_M_replace( &disc->partition[ partition_i ].oux.file[ file_i ].name, E_text_Z_s0_R_l_0(name) ));
+            r = r_ < ~2 ? r_ : ~2;
             goto End;
         }
         r = ~0;
@@ -5422,7 +5476,7 @@ E_ouxfs_Q_file_I_truncate( N disc_id
         , disc->partition[ partition_i ].oux.file[ file_i ].block_table.start, &disc->partition[ partition_i ].oux.file[ file_i ].block_table.n
         , &block_table_diff__
         );
-        if( (S)r < 0 )
+        if( K_error(r) )
         {   r = r < ~2 ? r : ~2;
             goto End;
         }
@@ -5437,7 +5491,7 @@ E_ouxfs_Q_file_I_truncate( N disc_id
             , 0, &disc->partition[ partition_i ].oux.block_table_block_table_n
             , &block_table_diff__
             );
-            if( (S)r < 0 )
+            if( K_error(r) )
             {   r = r < ~2 ? r : ~2;
                 goto End;
             }
@@ -5465,7 +5519,7 @@ E_ouxfs_Q_directory_M( N disc_id
     if( ~parent )
     {   N64 parent_directory_i;
         r = E_ouxfs_Q_directory_R( disc_id, partition_i, parent, &parent_directory_i );
-        if( (S)r < 0 )
+        if( K_error(r) )
             goto End;
     }
     for_n( directory_i, disc->partition[ partition_i ].oux.directory_n )
@@ -5487,7 +5541,7 @@ E_ouxfs_Q_directory_M( N disc_id
     , &disc->partition[ partition_i ].oux.block_table_directory_table_n
     , &disc->partition[ partition_i ].oux.directory_table_changed_from
     );
-    if( (S)r < 0 )
+    if( K_error(r) )
         goto End;
     if( disc->partition[ partition_i ].oux.directory_n )
     {   *uid = disc->partition[ partition_i ].oux.directory[ disc->partition[ partition_i ].oux.directory_n - 1 ].uid + 1;
@@ -5512,16 +5566,21 @@ E_ouxfs_Q_directory_M( N disc_id
         goto End;
     }
     N r_ = (N)E_mem_Q_blk_I_insert( &disc->partition[ partition_i ].oux.directory, directory_i, 1 );
-    if( !~r_
+    if( K_error( r_ )
     || !r_
     )
-    {   if( !~r_ )
-        {   Gk(E_mem_Q_blk_I_insert( &disc->partition[ partition_i ].oux.directory, directory_i, 1 ));
-            r = ~2;
+    {   if( K_error( r_ ))
+        {   if( r_ == ~4 )
+                Gk(E_mem_Q_blk_I_insert( &disc->partition[ partition_i ].oux.directory, directory_i, 1 ));
+            r = r_ < ~1 ? r_ : ~1;
             goto End;
         }
-        r = W( name_ );
-        r = (S)r < 0 ? ( r < ~1 ? r : ~1 ) : ~0;
+        r_ = W( name_ );
+        if( K_error( r_ ))
+        {   r = r_ < ~1 ? r_ : ~1;
+            goto End;
+        }
+        r = ~0;
         goto End;
     }
     disc->partition[ partition_i ].oux.directory_n++;
@@ -5544,20 +5603,18 @@ E_ouxfs_Q_directory_W( N disc_id
         return ~0;
     N64 directory_i;
     r = E_ouxfs_Q_directory_R( disc_id, partition_i, uid, &directory_i );
-    if( (S)r < 0 )
+    if( K_error(r) )
         goto End;
     r = W( disc->partition[ partition_i ].oux.directory[ directory_i ].name );
-    if( (S)r < 0 )
-    {   r = ~0;
+    if( K_error(r) )
         goto End;
-    }
     N r_ = (N)E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.directory, directory_i, 1 );
-    if( !~r_
+    if( K_error( r_ )
     || !r_
     )
-    {   if( !~r_ )
+    {   if( r_ == ~4 )
             Gk(E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.directory, directory_i, 1 ));
-        r = ~2;
+        r = (S)r_ < ~2 ? r_ : ~2;
         goto End;
     }
     disc->partition[ partition_i ].oux.directory_n--;
@@ -5605,7 +5662,7 @@ E_ouxfs_Q_file_M( N disc_id
     , &disc->partition[ partition_i ].oux.block_table_file_table_n
     , &disc->partition[ partition_i ].oux.file_table_changed_from
     );
-    if( (S)r < 0 )
+    if( K_error(r) )
         goto End;
     if( disc->partition[ partition_i ].oux.file_n )
     {   *uid = disc->partition[ partition_i ].oux.file[ disc->partition[ partition_i ].oux.file_n - 1 ].uid + 1;
@@ -5629,16 +5686,21 @@ E_ouxfs_Q_file_M( N disc_id
         goto End;
     }
     N r_ = (N)E_mem_Q_blk_I_insert( &disc->partition[ partition_i ].oux.file, file_i, 1 );
-    if( !~r_
+    if( K_error( r_ )
     || !r_
     )
-    {   if( !~r_ )
-        {   Gk(E_mem_Q_blk_I_insert( &disc->partition[ partition_i ].oux.file, file_i, 1 ));
-            r = ~2;
+    {   if( K_error( r_ ))
+        {   if( r_ == ~4 )
+                Gk(E_mem_Q_blk_I_insert( &disc->partition[ partition_i ].oux.file, file_i, 1 ));
+            r = r_ < ~1 ? r_ : ~1;
             goto End;
         }
-        r = W( name_ );
-        r = (S)r < 0 ? ( r < ~1 ? r : ~1 ) : ~0;
+        r_ = W( name_ );
+        if( K_error( r_ ))
+        {   r = r_ < ~1 ? r_ : ~1;
+            goto End;
+        }
+        r = ~0;
         goto End;
     }
     disc->partition[ partition_i ].oux.file_n++;
@@ -5664,7 +5726,7 @@ E_ouxfs_Q_file_W( N disc_id
         return ~0;
     N64 file_i;
     r = E_ouxfs_Q_file_R( disc_id, partition_i, uid, &file_i );
-    if( (S)r < 0 )
+    if( K_error(r) )
         goto End;
     if( disc->partition[ partition_i ].oux.file[ file_i ].lock_write
     || disc->partition[ partition_i ].oux.file[ file_i ].lock_read
@@ -5677,7 +5739,7 @@ E_ouxfs_Q_file_W( N disc_id
             disc->partition[ partition_i ].oux.block_table_changed_from = disc->partition[ partition_i ].oux.file[ file_i ].block_table.start;
         for_n( block_table_i, disc->partition[ partition_i ].oux.file[ file_i ].block_table.n )
         {   r = E_ouxfs_Q_free_table_I_unite( disc_id, partition_i, &disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.file[ file_i ].block_table.start + block_table_i ] );
-            if( (S)r < 0 )
+            if( K_error(r) )
                 goto End;
         }
         if( disc->partition[ partition_i ].oux.block_table_directory_table_start > disc->partition[ partition_i ].oux.file[ file_i ].block_table.start )
@@ -5693,29 +5755,29 @@ E_ouxfs_Q_file_W( N disc_id
         , disc->partition[ partition_i ].oux.file[ file_i ].block_table.start
         , disc->partition[ partition_i ].oux.block_table_n - ( disc->partition[ partition_i ].oux.file[ file_i ].block_table.start + disc->partition[ partition_i ].oux.file[ file_i ].block_table.n )
         );
-        if( !~r_
+        if( K_error( r_ )
         || !r_
         )
-        {   if( !~r_ )
+        {   if( r_ == ~4 )
                 Gk(E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.block_table, disc->partition[ partition_i ].oux.file[ file_i ].block_table.start, disc->partition[ partition_i ].oux.block_table_n - ( disc->partition[ partition_i ].oux.file[ file_i ].block_table.start + disc->partition[ partition_i ].oux.file[ file_i ].block_table.n )));
-            r = ~2;
+            r = (S)r_ < ~2 ? r_ : ~2;
             goto End;
         }
         disc->partition[ partition_i ].oux.block_table_n -= disc->partition[ partition_i ].oux.file[ file_i ].block_table.n;
     }
     r = W( disc->partition[ partition_i ].oux.file[ file_i ].name );
-    if( (S)r < 0 )
+    if( K_error(r) )
     {   if( r > ~2 )
             r = ~2;
         goto End;
     }
     N r_ = (N)E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.file, file_i, 1 );
-    if( !~r_
+    if( K_error( r_ )
     || !r_
     )
-    {   if( !~r_ )
+    {   if( r_ == ~4 )
             Gk(E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.file, file_i, 1 ));
-        r = ~2;
+        r = (S)r_ < ~2 ? r_ : ~2;
         goto End;
     }
     disc->partition[ partition_i ].oux.file_n--;
@@ -5735,7 +5797,7 @@ E_ouxfs_Q_file_I_lock( N disc_id
         return ~0;
     N64 file_i;
     r = E_ouxfs_Q_file_R( disc_id, partition_i, uid, &file_i );
-    if( (S)r < 0 )
+    if( K_error(r) )
         goto End;
     switch(operation)
     { case E_ouxfs_Z_file_Z_lock_S_unlock:
@@ -5787,7 +5849,7 @@ E_ouxfs_Q_file_I_read( N disc_id
         return ~0;
     N64 file_i;
     r = E_ouxfs_Q_file_R( disc_id, partition_i, uid, &file_i );
-    if( (S)r < 0 )
+    if( K_error(r) )
         goto End;
     if( disc->partition[ partition_i ].oux.file[ file_i ].lock_read )
     {   r = ~0;
@@ -5801,7 +5863,7 @@ E_ouxfs_Q_file_I_read( N disc_id
         {   if( pos < block->location.sectors.pre )
             {   N r_;
                 r = E_disc_R( disc_id, partition_i, block->sector - 1, 1, &sector, &r_ );
-                if( (S)r < 0 )
+                if( K_error(r) )
                     goto End;
                 disc = E_mem_Q_tab_R( E_disc_S, disc_id );
                 N64 n_ = J_min( *n, block->location.sectors.pre );
@@ -5820,7 +5882,7 @@ E_ouxfs_Q_file_I_read( N disc_id
             {   if( pos < disc->sata_ahci.physical_sector_size )
                 {   N r_;
                     r = E_disc_R( disc_id, partition_i, block->sector + sector_i, 1, &sector, &r_ );
-                    if( (S)r < 0 )
+                    if( K_error(r) )
                         goto End;
                     disc = E_mem_Q_tab_R( E_disc_S, disc_id );
                     N64 n_ = J_min( *n, disc->sata_ahci.physical_sector_size );
@@ -5839,7 +5901,7 @@ E_ouxfs_Q_file_I_read( N disc_id
             if( pos < block->location.sectors.post )
             {   N r_;
                 r = E_disc_R( disc_id, partition_i, block->sector + block->location.sectors.n, 1, &sector, &r_ );
-                if( (S)r < 0 )
+                if( K_error(r) )
                     goto End;
                 disc = E_mem_Q_tab_R( E_disc_S, disc_id );
                 N64 n_ = J_min( *n, block->location.sectors.post );
@@ -5858,7 +5920,7 @@ E_ouxfs_Q_file_I_read( N disc_id
             if( pos < block->location.in_sector.size )
             {   N r_;
                 r = E_disc_R( disc_id, partition_i, block->sector, 1, &sector, &r_ );
-                if( (S)r < 0 )
+                if( K_error(r) )
                     goto End;
                 disc = E_mem_Q_tab_R( E_disc_S, disc_id );
                 N64 n_ = J_min( *n, block->location.in_sector.size );
@@ -5895,7 +5957,7 @@ E_ouxfs_Q_file_I_write( I disc_id
         return ~0;
     N64 file_i;
     r = E_ouxfs_Q_file_R( disc_id, partition_i, uid, &file_i );
-    if( (S)r < 0 )
+    if( K_error(r) )
         goto End;
     if( disc->partition[ partition_i ].oux.file[ file_i ].lock_write )
     {   r = ~0;
@@ -5909,14 +5971,14 @@ E_ouxfs_Q_file_I_write( I disc_id
         {   if( pos < block->location.sectors.pre )
             {   N r_;
                 r = E_disc_R( disc_id, partition_i, block->sector - 1, 1, &sector, &r_ );
-                if( (S)r < 0 )
+                if( K_error(r) )
                     goto End;
                 disc = E_mem_Q_tab_R( E_disc_S, disc_id );
                 N64 n_ = J_min( n, block->location.sectors.pre - pos );
                 E_mem_Q_blk_I_copy( sector + ( disc->sata_ahci.physical_sector_size - block->location.sectors.pre ) + pos, data + data_p, n_ );
                 E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                 r = E_disc_P_dirty( disc_id, partition_i, block->sector - 1, 1 );
-                if( (S)r < 0 )
+                if( K_error(r) )
                     goto End;
                 data_p += n_;
                 n -= n_;
@@ -5929,14 +5991,14 @@ E_ouxfs_Q_file_I_write( I disc_id
             {   if( pos < disc->sata_ahci.physical_sector_size )
                 {   N r_;
                     r = E_disc_R( disc_id, partition_i, block->sector + sector_i, 1, &sector, &r_ );
-                    if( (S)r < 0 )
+                    if( K_error(r) )
                         goto End;
                     disc = E_mem_Q_tab_R( E_disc_S, disc_id );
                     N64 n_ = J_min( n, disc->sata_ahci.physical_sector_size - pos );
                     E_mem_Q_blk_I_copy( sector + pos, data + data_p, n_ );
                     E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                     r = E_disc_P_dirty( disc_id, partition_i, block->sector + sector_i, 1 );
-                    if( (S)r < 0 )
+                    if( K_error(r) )
                         goto End;
                     data_p += n_;
                     n -= n_;
@@ -5950,13 +6012,13 @@ E_ouxfs_Q_file_I_write( I disc_id
             {   N r_;
                 r = E_disc_R( disc_id, partition_i, block->sector + block->location.sectors.n, 1, &sector, &r_ );
                 disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-                if( (S)r < 0 )
+                if( K_error(r) )
                     goto End;
                 N64 n_ = J_min( n, block->location.sectors.post - pos );
                 E_mem_Q_blk_I_copy( sector + pos, data + data_p, n_ );
                 E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                 r = E_disc_P_dirty( disc_id, partition_i, block->sector + block->location.sectors.n, 1 );
-                if( (S)r < 0 )
+                if( K_error(r) )
                     goto End;
                 data_p += n_;
                 n -= n_;
@@ -5970,13 +6032,13 @@ E_ouxfs_Q_file_I_write( I disc_id
             {   N r_;
                 r = E_disc_R( disc_id, partition_i, block->sector, 1, &sector, &r_ );
                 disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-                if( (S)r < 0 )
+                if( K_error(r) )
                     goto End;
                 N64 n_ = J_min( n, block->location.in_sector.size - pos );
                 E_mem_Q_blk_I_copy( sector + block->location.in_sector.start + pos, data + data_p, n_ );
                 E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                 r = E_disc_P_dirty( disc_id, partition_i, block->sector, 1 );
-                if( (S)r < 0 )
+                if( K_error(r) )
                     goto End;
                 data_p += n_;
                 n -= n_;
@@ -6165,12 +6227,12 @@ Write:      N64 n_;
                     N r_;
                     r = E_disc_R( disc_id, partition_i, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector - 1, 1, &sector, &r_ );
                     disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-                    if( (S)r < 0 )
+                    if( K_error(r) )
                         goto End;
                     E_mem_Q_blk_I_copy( sector + ( disc->sata_ahci.physical_sector_size - disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.pre ), data + data_p, n_ );
                     E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                     r = E_disc_P_dirty( disc_id, partition_i, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector - 1, 1 );
-                    if( (S)r < 0 )
+                    if( K_error(r) )
                         goto End;
                     data_p += n_;
                     n -= n_;
@@ -6201,10 +6263,10 @@ Write:      N64 n_;
                             , &disc->partition[ partition_i ].oux.file[ file_i ].block_table.n
                             , &block_table_diff
                             );
-                            if( (S)r_ < 0 )
-                                r = ~2;
+                            if( K_error(r) )
+                                r = r_ < ~2 ? r_ : ~2;
                         }
-                        if( (S)r < 0 )
+                        if( K_error(r) )
                             goto End;
                         break;
                     }
@@ -6213,12 +6275,12 @@ Write:      N64 n_;
                 N r_;
                 r = E_disc_P( disc_id, partition_i, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector, sector_i, &sector, &r_ );
                 disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-                if( (S)r < 0 )
+                if( K_error(r) )
                     goto End;
                 E_mem_Q_blk_I_copy( sector, data + data_p, sector_i * disc->sata_ahci.physical_sector_size );
                 E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                 r = E_disc_P_dirty( disc_id, partition_i, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector, sector_i );
-                if( (S)r < 0 )
+                if( K_error(r) )
                     goto End;
                 data_p += sector_i * disc->sata_ahci.physical_sector_size;
                 n -= sector_i * disc->sata_ahci.physical_sector_size;
@@ -6227,12 +6289,12 @@ Write:      N64 n_;
                 {   N r_;
                     r = E_disc_R( disc_id, partition_i, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector + sector_i, 1, &sector, &r_ );
                     disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-                    if( (S)r < 0 )
+                    if( K_error(r) )
                         goto End;
                     E_mem_Q_blk_I_copy( sector, data + data_p, n );
                     E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                     r = E_disc_P_dirty( disc_id, partition_i, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector + sector_i, 1 );
-                    if( (S)r < 0 )
+                    if( K_error(r) )
                         goto End;
                     data_p += n;
                     n_ = n;
@@ -6281,10 +6343,10 @@ Write:      N64 n_;
                         , &disc->partition[ partition_i ].oux.file[ file_i ].block_table.n
                         , &block_table_diff
                         );
-                        if( (S)r_ < 0 )
-                            r = ~2;
+                        if( K_error(r) )
+                            r = r_ < ~2 ? r_ : ~2;
                     }
-                    if( (S)r < 0 )
+                    if( K_error(r) )
                         goto End;
                     goto Loop_end;
                 }
@@ -6298,7 +6360,7 @@ Write:      N64 n_;
                     , 1, &sector, &r_
                     );
                     disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-                    if( (S)r < 0 )
+                    if( K_error(r) )
                         goto End;
                     E_mem_Q_blk_I_copy( sector, data + data_p, n_ );
                     E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
@@ -6307,7 +6369,7 @@ Write:      N64 n_;
                       + disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.n
                     , 1
                     );
-                    if( (S)r < 0 )
+                    if( K_error(r) )
                         goto End;
                     data_p += n_;
                     n -= n_;
@@ -6335,10 +6397,10 @@ Write:      N64 n_;
                             , &disc->partition[ partition_i ].oux.file[ file_i ].block_table.n
                             , &block_table_diff
                             );
-                            if( (S)r_ < 0 )
-                                r = ~2;
+                            if( K_error(r) )
+                                r = r_ < ~2 ? r_ : ~2;
                         }
-                        if( (S)r < 0 )
+                        if( K_error(r) )
                             goto End;
                         break;
                     }
@@ -6348,12 +6410,12 @@ Write:      N64 n_;
                 N r_;
                 r = E_disc_R( disc_id, partition_i, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector, 1, &sector, &r_ );
                 disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-                if( (S)r < 0 )
+                if( K_error(r) )
                     goto End;
                 E_mem_Q_blk_I_copy( sector + disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.in_sector.start, data + data_p, n_ );
                 E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );
                 r = E_disc_P_dirty( disc_id, partition_i, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector, 1 );
-                if( (S)r < 0 )
+                if( K_error(r) )
                     goto End;
                 data_p += n_;
                 n -= n_;
@@ -6379,10 +6441,10 @@ Write:      N64 n_;
                         , &disc->partition[ partition_i ].oux.file[ file_i ].block_table.n
                         , &block_table_diff
                         );
-                        if( (S)r_ < 0 )
-                            r = ~2;
+                        if( K_error(r) )
+                            r = r_ < ~2 ? r_ : ~2;
                     }
-                    if( (S)r < 0 )
+                    if( K_error(r) )
                         goto End;
                     break;
                 }
@@ -6399,16 +6461,17 @@ Write:      N64 n_;
                 , &disc->partition[ partition_i ].oux.file[ file_i ].block_table.n
                 , &block_table_diff
                 );
-                if( (S)r_ < 0 )
-                    r = ~2;
+                if( K_error(r) )
+                    r = r_ < ~2 ? r_ : ~2;
             }
-            if( (S)r < 0 )
+            if( K_error(r) )
                 goto End;
         }
 Loop_end:
         r = E_ouxfs_Q_block_table_I_append_truncate( disc_id, partition_i, block_table_diff );
-        if( (S)r < 0 )
-            r = ~2;
+        if( K_error(r) )
+            if( r > ~2 )
+                r = ~2;
     }
 End:E_flow_I_unlock_r( &disc->partition[ partition_i ].lock, &r, r );
     return r;

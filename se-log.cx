@@ -184,7 +184,7 @@ E_se_log_I_log( Pc file
     )
     {   if( K_error(element) )
         {   Gk(E_mem_Q_blk_I_append( &E_se_log_S_element, 1 ));
-            r = ~2;
+            r = (N)element < ~2 ? (N)element : ~2;
         }
         r = ~0;
         goto End;

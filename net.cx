@@ -234,7 +234,7 @@ E_net_Q_udp4_connection_state_M(
     }
     E_flow_I_cli();
     connection_id = E_mem_Q_tab_I_add( E_net_S_udp4_connection_state );
-    if( connection_id < 0 )
+    if( K_error( connection_id ))
         goto End;
     struct E_net_Z_udp4_connection_state *connection_state = E_mem_Q_tab_R( E_net_S_udp4_connection_state, connection_id );
     connection_state->report_id = report_id;
@@ -278,10 +278,10 @@ E_net_M( void
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 D( net, dhcp )
 {   Yi_M( net, dhcp );
-    if( _Yi_var( net, dhcp ) < 0 )
+    if( !~_Yi_var( net, dhcp ))
         E_main_I_error_fatal();
     Xi_M( net, dhcp );
-    if( _Xi_var( net, dhcp ) < 0 )
+    if( !~_Xi_var( net, dhcp ))
         E_main_I_error_fatal();
     Yi_B( net, dhcp )
         goto End;

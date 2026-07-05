@@ -383,11 +383,16 @@ main( struct E_main_Z_kernel_args *kernel_args
     E_mem_blk_S_lock = no;
     E_mem_blk_S_context_ip = 0;
     Mt_( E_vga_S_framebuffer, E_main_S_framebuffer.height * E_main_S_framebuffer.width );
-    if( !E_vga_S_framebuffer
-    || (S)E_font_M() < 0
-    || (S)E_se_log_M() < 0
-    || (S)E_emerg_print_M() < 0
-    )
+    if( !E_vga_S_framebuffer )
+        E_main_I_error_fatal();
+    N r = E_font_M();
+    if( K_error(r) )
+        E_main_I_error_fatal();
+    r = E_se_log_M();
+    if( K_error(r) )
+        E_main_I_error_fatal();
+    r = E_emerg_print_M();
+    if( K_error(r) )
         E_main_I_error_fatal();
     Mt_( E_main_S_gdt, 5 + kernel_args->processor_n * 2 );
     if( !E_main_S_gdt )
@@ -436,7 +441,8 @@ main( struct E_main_Z_kernel_args *kernel_args
     : "rax"
     );
     E_flow_S_inited = no;
-    if( (S)E_interrupt_M() < 0 )
+    r = E_interrupt_M();
+    if( K_error(r) )
         goto End;
     E_interrupt_S_external[ E_interrupt_S_gsi_ipi ] = &E_main_I_ipi_test;
     O{  for_n( i, kernel_args->processor_n - 1 )
@@ -451,9 +457,10 @@ main( struct E_main_Z_kernel_args *kernel_args
     }
     E_flow_S_scheduler_n = kernel_args->processor_n;
     Mt_( E_flow_S_scheduler, E_flow_S_scheduler_n );
-    if( !E_flow_S_scheduler
-    || (S)E_flow_M( kernel_args->kernel_stack ) < 0
-    )
+    if( !E_flow_S_scheduler )
+        goto End;
+    r = E_flow_M( kernel_args->kernel_stack );
+    if( K_error(r) )
         goto End;
     Mt_( E_main_S_stack, kernel_args->processor_n - 1 );
     if( !E_main_S_stack )
@@ -475,25 +482,44 @@ main( struct E_main_Z_kernel_args *kernel_args
         );
     }
     E_flow_S_inited = yes;
-    if( (S)W( E_main_S_stack ) < 0 )
+    r = W( E_main_S_stack );
+    if( K_error(r) )
         goto End;
     E_flow_I_lock( &E_mem_blk_S_lock );
     struct E_mem_Q_blk_Z_free free_p_;
-    if( (S)E_mem_Q_blk_Q_sys_table_f_P_put( E_mem_blk_S.free_id, (Pc)&free_p_.p - (Pc)&free_p_, (Pc)&free_p_.l - (Pc)&free_p_, (P)(N)kernel_args->processor_start_page, E_mem_S_page_size ) < 0 )
+    r = E_mem_Q_blk_Q_sys_table_f_P_put( E_mem_blk_S.free_id, (Pc)&free_p_.p - (Pc)&free_p_, (Pc)&free_p_.l - (Pc)&free_p_, (P)(N)kernel_args->processor_start_page, E_mem_S_page_size );
+    if( K_error(r) )
         goto End;
     E_flow_I_unlock( &E_mem_blk_S_lock );
-    if( (S)W( kernel_args->processor_proc ) < 0 )
+    r = W( kernel_args->processor_proc );
+    if( K_error(r) )
         goto End;
-    if( (S)E_acpi_aml_M( kernel_args->acpi.dsdt_content, kernel_args->acpi.dsdt_content_l, &kernel_args->acpi.ssdt_contents[0], kernel_args->acpi.ssdt_contents_n ) < 0
-    || (S)E_acpi_reader_M() < 0
-    || (S)W( kernel_args->bootloader ) < 0
-    || (S)E_disc_M() < 0
-    || (S)E_net_M() < 0
-    || (S)E_pci_I_check_buses() < 0
-    || (S)E_gui_M() < 0
-    || (S)E_keyboard_M() < 0
-    || (S)E_mouse_M() < 0
-    )
+    r = E_acpi_aml_M( kernel_args->acpi.dsdt_content, kernel_args->acpi.dsdt_content_l, &kernel_args->acpi.ssdt_contents[0], kernel_args->acpi.ssdt_contents_n );
+    if( K_error(r) )
+        goto End;
+    r = E_acpi_reader_M();
+    if( K_error(r) )
+        goto End;
+    r = W( kernel_args->bootloader );
+    if( K_error(r) )
+        goto End;
+    r = E_disc_M();
+    if( K_error(r) )
+        goto End;
+    r = E_net_M();
+    if( K_error(r) )
+        goto End;
+    r = E_pci_I_check_buses();
+    if( K_error(r) )
+        goto End;
+    r = E_gui_M();
+    if( K_error(r) )
+        goto End;
+    r = E_keyboard_M();
+    if( K_error(r) )
+        goto End;
+    r = E_mouse_M();
+    if( K_error(r) )
         goto End;
     D_M( main, test, 0 );
     X_M( main, test );
@@ -506,7 +532,7 @@ End:G( "end loop" );
 }
 D( main, test )
 {   I timer = Y_M(10000);
-    if( timer < 0 )
+    if( K_error(timer) )
         E_main_I_error_fatal();
     O{  Y_B( timer, 0 )
             break;

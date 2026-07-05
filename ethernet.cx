@@ -295,7 +295,7 @@ E_ethernet_I_init( volatile P register_address
 , volatile P eeprom_address
 ){  G( "Ethernet" );
     I interface_id = E_mem_Q_tab_I_add( E_net_S_interface );
-    if( interface_id < 0 )
+    if( K_error( interface_id ))
         return interface_id;
     struct E_net_Z_interface *interface = E_mem_Q_tab_R( E_net_S_interface, interface_id );
     interface->register_memory = register_address;
@@ -383,11 +383,11 @@ E_ethernet_I_transmit( struct E_net_Z_interface *interface
       && part_count > count - 1 - tail + head
     ))
     {   N r = (N)E_mem_Q_blk_I_append( &E_ethernet_S_transmit_queue, 1 );
-        if( !~r
+        if( K_error(r)
         || !r
         )
         {   E_flow_I_sti();
-            if( !~r )
+            if( r == ~4 )
             {   Gk(E_mem_Q_blk_I_append( &E_ethernet_S_transmit_queue, 1 ));
                 return ~2;
             }

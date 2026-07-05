@@ -100,14 +100,14 @@ E_gui_Q_main_menu_I_browse_files( I window_id
 ){  window_id = E_window_files_M( E_window_Q_desktop_S_current );
     if( window_id == ~2 )
         ;//TODO Restart podsystemu okienkowego.
-    if( window_id < 0 )
+    if( K_error( window_id ))
         return;
     struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
     E_windows_Q_window_I_place_top(window);
     I window_id_2 = E_window_files_M( E_window_Q_desktop_S_current );
     if( window_id_2 == ~2 )
         ;//TODO Restart podsystemu okienkowego.
-    if( window_id_2 < 0 )
+    if( K_error( window_id_2 ))
         return;
     window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id_2 );
     E_windows_Q_window_I_place_down(window);
@@ -472,7 +472,7 @@ E_gui_Q_pointer_I_click( void
                     }
                     if( window_i == windows )
                     {   window_id = E_gui_Q_main_menu_M();
-                        if( window_id < 0 )
+                        if( K_error( window_id ))
                             E_main_I_error_fatal();
                     }else
                     {   E_windows_Q_window_Q_stack_I_on_top( window_id );
@@ -803,7 +803,7 @@ E_gui_Q_pointer_I_click( void
                     }
                     if( window_i == windows )
                     {   window_id = E_gui_Q_main_menu_M();
-                        if( (S)window_id < 0 )
+                        if( K_error( window_id ))
                             E_main_I_error_fatal();
                     }else
                     {   E_windows_Q_window_Q_stack_I_on_top( window_id );
@@ -816,12 +816,16 @@ E_gui_Q_pointer_I_click( void
                 {   if( E_window_Q_desktop_S_current )
                         E_window_Q_desktop_S_current--;
                     else
-                        if( (S)E_windows_Q_desktop_M(no) < 0 )
+                    {   N r = E_windows_Q_desktop_M(no);
+                        if( K_error(r) )
                             E_main_I_error_fatal();
+                    }
                 }else
                 {   if( E_window_Q_desktop_S_current == E_windows_Q_desktop_S_n - 1 )
-                        if( (S)E_windows_Q_desktop_M(yes) < 0 )
+                    {   N r = E_windows_Q_desktop_M(yes);
+                        if( K_error(r) )
                             E_main_I_error_fatal();
+                    }
                     E_window_Q_desktop_S_current++;
                 }
                 E_gui_Q_taskbar_S_redraw = yes;
@@ -831,8 +835,10 @@ E_gui_Q_pointer_I_click( void
         {   if( !E_mouse_Q_button_S_coordinate[0] )
             {   if( E_window_Q_desktop_S_current )
                 {   if( E_window_Q_desktop_S_current == E_windows_Q_desktop_S_n - 1 )
-                        if( (S)E_windows_Q_desktop_W( E_window_Q_desktop_S_current ) < 0 )
+                    {   N r = E_windows_Q_desktop_W( E_window_Q_desktop_S_current );
+                        if( K_error(r) )
                             E_main_I_error_fatal();
+                    }
                     E_window_Q_desktop_S_current--;
                     E_gui_Q_taskbar_S_redraw = yes;
                     U_F( gui, draw );
@@ -842,16 +848,20 @@ E_gui_Q_pointer_I_click( void
                 {   if( E_window_Q_desktop_S_current )
                         E_window_Q_desktop_S_current++;
                     else
-                        if( (S)E_windows_Q_desktop_W( E_window_Q_desktop_S_current ) < 0 )
+                    {   N r = E_windows_Q_desktop_W( E_window_Q_desktop_S_current );
+                        if( K_error(r) )
                             E_main_I_error_fatal();
+                    }
                     E_gui_Q_taskbar_S_redraw = yes;
                     U_F( gui, draw );
                 }
         }else if( E_mouse_Q_button_S_button == 2
         && E_mouse_Q_button_S_click_count == 2
         )
-            if( (S)E_gui_Q_main_menu_M() < 0 )
-                E_main_I_error_fatal();
+        {   N r = E_gui_Q_main_menu_M();
+            if( K_error(r) )
+                E_main_I_error_fatal();\
+        }
     }else
         if( E_gui_Q_desktop_S_window_moving )
         {   I window_id = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window ) - 1 ];
@@ -1015,7 +1025,8 @@ E_gui_Q_keyboard_I_key( void
                         break;
                 }
                 if( window_i == windows )
-                {   if( (S)E_gui_Q_main_menu_M() < 0 )
+                {   N r = E_gui_Q_main_menu_M();
+                    if( K_error(r) )
                         E_main_I_error_fatal();
                 }else
                 {   E_windows_Q_window_Q_stack_I_on_top( window_id );

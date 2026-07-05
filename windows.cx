@@ -153,7 +153,7 @@ E_windows_Q_desktop_W( N8 desktop_id
     {   if( K_error(r) )
             Gk(E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S, desktop_id, 1 ));
         E_flow_I_sti();
-        return ~2;
+        return (S)r < ~2 ? r : ~2;
     }
     E_windows_Q_desktop_S_n--;
     E_flow_I_sti();
@@ -177,7 +177,7 @@ E_windows_Q_window_M( N8 desktop_id
 , N ( *destroy )( N8, I )
 ){  E_flow_I_cli();
     I window_id = E_mem_Q_tab_I_add( E_windows_Q_desktop_S[ desktop_id ].window );
-    if( window_id < 0 )
+    if( K_error( window_id ))
     {   E_flow_I_sti();
         return window_id;
     }
@@ -186,13 +186,14 @@ E_windows_Q_window_M( N8 desktop_id
     || !order
     )
     {   if( K_error(order) )
-        {   Gk(E_mem_Q_blk_I_append( &E_windows_Q_desktop_S[ desktop_id ].order, 1 ));
+        {   if( (N)order == ~4 )
+                Gk(E_mem_Q_blk_I_append( &E_windows_Q_desktop_S[ desktop_id ].order, 1 ));
             E_flow_I_sti();
-            return ~2;
+            return (N)order < ~2 ? (N)order : ~2;
         }
         N r = E_mem_Q_tab_I_remove( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
         E_flow_I_sti();
-        return r ? ( r < ~2 ? r : ~2 ) : ~0;
+        return K_error(r) ? ( r < ~2 ? r : ~2 ) : ~0;
     }
     *order = window_id;
     I windows = E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ desktop_id ].window );
@@ -201,18 +202,19 @@ E_windows_Q_window_M( N8 desktop_id
     || !stack
     )
     {   if( K_error(stack) )
-        {   Gk(E_mem_Q_blk_I_append( &E_windows_Q_desktop_S[ desktop_id ].stack, 1 ));
+        {   if( (N)stack == ~4 )
+                Gk(E_mem_Q_blk_I_append( &E_windows_Q_desktop_S[ desktop_id ].stack, 1 ));
             E_flow_I_sti();
-            return ~2;
+            return (N)stack < ~2 ? (N)stack : ~2;
         }
         N r = (N)E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S[ desktop_id ].order, windows - 1, 1 );
         if( K_error(r)
         || !r
         )
-        {   if( K_error(r) )
+        {   if( r == ~4 )
                 Gk(E_mem_Q_blk_I_append( &E_windows_Q_desktop_S[ desktop_id ].order, 1 ));
             E_flow_I_sti();
-            return ~2;
+            return (S)r < ~2 ? r : ~2;
         }
         r = E_mem_Q_tab_I_remove( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
         E_flow_I_sti();
@@ -226,19 +228,19 @@ E_windows_Q_window_M( N8 desktop_id
         if( K_error(r)
         || !r
         )
-        {   if( K_error(r) )
+        {   if( r == ~4 )
                 Gk(E_mem_Q_blk_I_append( &E_windows_Q_desktop_S[ desktop_id ].stack, 1 ));
             E_flow_I_sti();
-            return ~2;
+            return (S)r < ~2 ? r : ~2;
         }
         r = (N)E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S[ desktop_id ].order, windows - 1, 1 );
         if( K_error(r)
         || !r
         )
-        {   if( K_error(r) )
+        {   if( r == ~4 )
                 Gk(E_mem_Q_blk_I_append( &E_windows_Q_desktop_S[ desktop_id ].order, 1 ));
             E_flow_I_sti();
-            return ~2;
+            return (S)r < ~2 ? r : ~2;
         }
         r = E_mem_Q_tab_I_remove( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
         E_flow_I_sti();
@@ -255,19 +257,19 @@ E_windows_Q_window_M( N8 desktop_id
         if( K_error(r)
         || !r
         )
-        {   if( K_error(r) )
+        {   if( r == ~4 )
                 Gk(E_mem_Q_blk_I_append( &E_windows_Q_desktop_S[ desktop_id ].stack, 1 ));
             E_flow_I_sti();
-            return ~2;
+            return (S)r < ~2 ? r : ~2;
         }
         r = (N)E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S[ desktop_id ].order, windows - 1, 1 );
         if( K_error(r)
         || !r
         )
-        {   if( K_error(r) )
+        {   if( r == ~4 )
                 Gk(E_mem_Q_blk_I_append( &E_windows_Q_desktop_S[ desktop_id ].order, 1 ));
             E_flow_I_sti();
-            return ~2;
+            return (S)r < ~2 ? r : ~2;
         }
         r = E_mem_Q_tab_I_remove( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
         E_flow_I_sti();
@@ -343,10 +345,10 @@ E_windows_Q_window_W( N8 desktop_id
     if( K_error(r)
     || !r
     )
-    {   if( K_error(r) )
+    {   if( r == ~4 )
             Gk(E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S[ desktop_id ].stack, stack_i, 1 ));
         E_flow_I_sti();
-        return ~2;
+        return (S)r < ~2 ? r : ~2;
     }
     for_n( order_i, E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ desktop_id ].window ))
         if( E_windows_Q_desktop_S[ desktop_id ].order[ order_i ] == window_id )
@@ -355,10 +357,10 @@ E_windows_Q_window_W( N8 desktop_id
     if( K_error(r)
     || !r
     )
-    {   if( K_error(r) )
+    {   if( r == ~4 )
             Gk(E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S[ desktop_id ].order, order_i, 1 ));
         E_flow_I_sti();
-        return ~2;
+        return (S)r < ~2 ? r : ~2;
     }
     if( desktop_id == E_window_Q_desktop_S_current
     && stack_i == E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ desktop_id ].window ) - 1

@@ -188,7 +188,8 @@
 #define Kp(statement) \
   N J_autogen_line(r) = (N)(statement); \
   if( K_error( J_autogen_line(r) )) \
-  {   Gk(statement); \
+  {   if( J_autogen_line(r) == ~4 ) \
+          Gk(statement); \
       return J_autogen_line(r); \
   } \
   if( J_autogen_line(r) ) \
@@ -205,8 +206,9 @@
 #define Kp_(error,statement) \
   N J_autogen_line(r) = (N)(statement); \
   if( K_error( J_autogen_line(r) )) \
-  {   Gk(statement); \
-      return J_autogen_line(r); \
+  {   if( J_autogen_line(r) == ~4 ) \
+          Gk(statement); \
+      return J_autogen_line(r) < (error) ? J_autogen_line(r) : (error); \
   } \
   if( J_autogen_line(r) ) \
   { \
@@ -227,7 +229,8 @@
 #define KPp(statement) \
   N J_autogen_line(r) = (N)(statement); \
   if( K_error( J_autogen_line(r) )) \
-  {   Gk(statement); \
+  {   if( J_autogen_line(r) == ~4 ) \
+          Gk(statement); \
       return (P)J_autogen_line(r); \
   } \
   if( J_autogen_line(r) ) \
@@ -244,8 +247,9 @@
 #define KPp_(error,statement) \
   N J_autogen_line(r) = (N)(statement); \
   if( K_error( J_autogen_line(r) )) \
-  {   Gk(statement); \
-      return (P)J_autogen_line(r); \
+  {   if( J_autogen_line(r) == ~4 ) \
+          Gk(statement); \
+      return (P)( J_autogen_line(r) < (error) ? J_autogen_line(r) : (error) ); \
   } \
   if( J_autogen_line(r) ) \
   { \

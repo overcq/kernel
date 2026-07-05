@@ -710,9 +710,7 @@ E_acpi_reader_M( void
             K_( ~1, W( sta.s ));
             if( ret == ~10 )
                 continue;
-            if( (S)ret < 0
-            && ret != ~11
-            )
+            if( K_error(ret) )
                 return ret;
             if( ret != ~11 )
             {   if( result.type == E_acpi_aml_Z_value_Z_type_S_pathname )
@@ -744,7 +742,9 @@ E_acpi_reader_M( void
                     continue;
             }
             ret = E_acpi_aml_I_procedure_( ini_i, &result, 0, 0 );
-            if( (S)ret < 0 )
+            if( K_error(ret)
+            || ret == ~10
+            )
                 return ret;
         }
     // Konfigurowanie urządzeń.
@@ -765,9 +765,7 @@ E_acpi_reader_M( void
             {   K_( ~1, W( resources.irq ));
                 continue;
             }
-            if( (S)ret < 0
-            && ret != ~11
-            )
+            if( K_error(ret) )
             {   if( !~ret )
                 {   K_( ~1, W( resources.irq ));
                 }
@@ -818,7 +816,7 @@ E_acpi_reader_M( void
             {   K_( ~1, W( resources.irq ));
                 continue;
             }
-            if( (S)ret < 0 )
+            if( K_error(ret) )
             {   if( !~ret )
                 {   K_( ~1, W( resources.irq ));
                 }
@@ -844,10 +842,7 @@ E_acpi_reader_M( void
             struct E_acpi_aml_Z_value prs_value;
             ret = E_acpi_aml_I_procedure( prs, &prs_value, 0, 0 );
             K_( ~1, W( prs.s ));
-            if( (S)ret < 0
-            && ret != ~10
-            && ret != ~11
-            )
+            if( K_error(ret) )
             {   if( !~ret )
                 {   K_( ~1, E_acpi_aml_Q_value_W( &crs_value ));
                     K_( ~1, W( resources.irq ));
@@ -893,7 +888,7 @@ E_acpi_reader_M( void
                     K_( ~1, W( resources.irq ));
                     continue;
                 }
-                if( (S)ret < 0 )
+                if( K_error(ret) )
                 {   if( !~ret )
                     {   K_( ~1, E_acpi_aml_Q_value_W( &crs_value ));
                         K_( ~1, W( resources.irq ));
@@ -923,7 +918,7 @@ E_acpi_reader_M( void
                         K_( ~1, W( resources.irq ));
                         continue;
                     }
-                    if( (S)ret < 0 )
+                    if( K_error(ret) )
                     {   K_( ~1, E_acpi_aml_Q_value_W( &crs_value ));
                         K_( ~1, W( resources.irq ));
                         return ~0;

@@ -277,7 +277,7 @@ E_flow_Q_report_M( N uid
     }
     if( !~report_id )
     {   report_id = E_mem_Q_tab_I_add( E_flow_S_scheduler[ sched_i ].report );
-        if( report_id < 0 )
+        if( K_error( report_id ))
             goto End;
         struct E_flow_Q_report_Z *report = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].report, report_id );
         report->uid = uid;
@@ -382,7 +382,7 @@ E_flow_Q_report_timed_M( N uid
     }
     if( !~report_id )
     {   report_id = E_mem_Q_tab_I_add( E_flow_S_scheduler[ sched_i ].report_timed );
-        if( report_id < 0 )
+        if( K_error( report_id ))
             goto End;
         struct E_flow_Q_report_timed_Z *report = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].report_timed, report_id );
         report->uid = uid;
@@ -488,7 +488,7 @@ E_flow_Q_timer_M( N miliseconds
 ){  N time = E_flow_I_current_time();
     N sched_i = E_flow_I_current_scheduler();
     I timer_id = E_mem_Q_tab_I_add( E_flow_S_scheduler[ sched_i ].timer );
-    if( timer_id < 0 )
+    if( K_error( timer_id ))
         return timer_id;
     struct E_flow_Q_timer_Z *timer = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].timer, timer_id );
     timer->period = E_interrupt_S_cpu_freq * miliseconds / 1000;
@@ -567,7 +567,7 @@ E_flow_Q_impulser_M( N uid
     }
     if( !~timer_id )
     {   timer_id = E_mem_Q_tab_I_add( E_flow_S_scheduler[ sched_i ].timer );
-        if( timer_id < 0 )
+        if( K_error( timer_id ))
             goto End;
         timer = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].timer, timer_id );
         timer->left = timer->period = 0;
@@ -588,7 +588,7 @@ E_flow_Q_impulser_M_srv( N uid
     }
     if( !~timer_id )
     {   timer_id = E_mem_Q_tab_I_add( E_flow_S_scheduler[ sched_i ].timer );
-        if( timer_id < 0 )
+        if( K_error( timer_id ))
             return timer_id;
         struct E_flow_Q_timer_Z *timer = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].timer, timer_id );
         timer->left = timer->period = 0;

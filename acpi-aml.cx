@@ -1996,7 +1996,7 @@ E_acpi_aml_I_object( void
             {   K_( ~1, W(alias) );
             }else
             {   N object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_alias, ( struct E_acpi_aml_Z_pathname ){ alias, alias_n });
-                if( (S)object_i < 0 )
+                if( K_error( object_i ))
                 {   K_( ~1, W(alias) );
                     return object_i;
                 }
@@ -2033,7 +2033,7 @@ E_acpi_aml_I_object( void
             {
             }else
             {   N object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_uninitialized, ( struct E_acpi_aml_Z_pathname ){ name, n });
-                if( (S)object_i < 0 )
+                if( K_error( object_i ))
                 {   K_( ~1, W(name) );
                     return object_i;
                 }
@@ -2184,7 +2184,7 @@ E_acpi_aml_I_object( void
                     {
                     }else
                     {   N object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_mutex, ( struct E_acpi_aml_Z_pathname ){ name, n });
-                        if( (S)object_i < 0 )
+                        if( K_error( object_i ))
                         {   K_( ~1, W(name) );
                             return object_i;
                         }
@@ -2220,7 +2220,7 @@ E_acpi_aml_I_object( void
                     {
                     }else
                     {   N object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_data_table_region, ( struct E_acpi_aml_Z_pathname ){ name, n });
-                        if( (S)object_i < 0 )
+                        if( K_error( object_i ))
                         {   K_( ~1, W(name) );
                             return object_i;
                         }
@@ -2254,7 +2254,7 @@ E_acpi_aml_I_object( void
                     }else
                     {   struct E_acpi_aml_Z_pathname region_pathname = ( struct E_acpi_aml_Z_pathname ){ name, n };
                         N object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_op_region, region_pathname );
-                        if( (S)object_i < 0 )
+                        if( K_error( object_i ))
                         {   K_( ~1, W(name) );
                             return object_i;
                         }
@@ -2389,7 +2389,7 @@ E_acpi_aml_I_object( void
                                     E_mem_Q_blk_I_copy( field_name + depth * 4, name_, 4 );
                                     K_( ~1, W( name_ ));
                                     N field_object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_field_unit, ( struct E_acpi_aml_Z_pathname ){ field_name, depth + 1 });
-                                    if( (S)field_object_i < 0 )
+                                    if( K_error( field_object_i ))
                                     {   K_( ~1, W( field_name ));
                                         return field_object_i;
                                     }
@@ -2525,7 +2525,7 @@ E_acpi_aml_I_object( void
                                     E_mem_Q_blk_I_copy( field_name + depth * 4, name_, 4 );
                                     K_( ~1, W( name_ ));
                                     N field_object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_field_unit, ( struct E_acpi_aml_Z_pathname ){ field_name, depth + 1 });
-                                    if( (S)field_object_i < 0 )
+                                    if( K_error( field_object_i ))
                                     {   K_( ~1, W( field_name ));
                                         return field_object_i;
                                     }
@@ -2583,7 +2583,7 @@ E_acpi_aml_I_object( void
                     {
                     }else
                     {   N object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_device, ( struct E_acpi_aml_Z_pathname ){ name, n });
-                        if( (S)object_i < 0 )
+                        if( K_error( object_i ))
                         {   K_( ~1, W(name) );
                             return object_i;
                         }
@@ -2630,7 +2630,7 @@ E_acpi_aml_I_object( void
                     {
                     }else
                     {   N object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_event, ( struct E_acpi_aml_Z_pathname ){ name, n });
-                        if( (S)object_i < 0 )
+                        if( K_error( object_i ))
                         {   K_( ~1, W(name) );
                             return object_i;
                         }
@@ -2667,7 +2667,7 @@ E_acpi_aml_I_object( void
                     {
                     }else
                     {   N object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_power_res, ( struct E_acpi_aml_Z_pathname ){ name, n });
-                        if( (S)object_i < 0 )
+                        if( K_error( object_i ))
                         {   K_( ~1, W(name) );
                             return object_i;
                         }
@@ -2720,7 +2720,7 @@ E_acpi_aml_I_object( void
                     {
                     }else
                     {   N object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_thermal_zone, ( struct E_acpi_aml_Z_pathname ){ name, n });
-                        if( (S)object_i < 0 )
+                        if( K_error( object_i ))
                         {   K_( ~1, W(name) );
                             return object_i;
                         }
@@ -2775,7 +2775,7 @@ E_acpi_aml_I_object( void
                     {
                     }else
                     {   N object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_processor, ( struct E_acpi_aml_Z_pathname ){ name, n });
-                        if( (S)object_i < 0 )
+                        if( K_error( object_i ))
                         {   K_( ~1, W(name) );
                             return object_i;
                         }
@@ -2865,7 +2865,7 @@ E_acpi_aml_I_object( void
             E_acpi_aml_S_parse_data++;
             G_( ",%8x", procedure->arg_n );
             N object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_procedure, ( struct E_acpi_aml_Z_pathname ){ name, n });
-            if( (S)object_i < 0 )
+            if( K_error( object_i ))
             {   K_( ~1, W(procedure) );
                 K_( ~1, W(name) );
                 return object_i;
@@ -3458,7 +3458,7 @@ do \
     E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].n = 0; \
     E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end = 0; \
     N J_autogen_line( r_ ) = E_acpi_aml_Q_value_W( &E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result ); \
-    if( (S)J_autogen_line( r_ ) < 0 ) \
+    if( K_error( J_autogen_line( r_ ))) \
         return J_autogen_line( r_ ); \
     E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no; \
     E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n ].entity = entity_; \
@@ -3564,7 +3564,7 @@ E_acpi_aml_M_number_finish_3( void
             if( !s )
                 return ~0;
             object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_uninitialized, ( struct E_acpi_aml_Z_pathname ){ s, E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.pathname.n });
-            if( (S)object_i < 0 )
+            if( K_error( object_i ))
             {   K_( ~1, W(s) );
                 return object_i;
             }
@@ -3642,7 +3642,7 @@ E_acpi_aml_M_field_finish_2( N bytes
         }
         G_( ",0" );
         N object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_buffer_field, ( struct E_acpi_aml_Z_pathname ){ name, n });
-        if( (S)object_i < 0 )
+        if( K_error( object_i ))
         {   K_( ~1, W(name) );
             return object_i;
         }
@@ -4324,7 +4324,7 @@ Loop:
                                     E_mem_Q_blk_I_copy( field_name + depth * 4, name_, 4 );
                                     K_( ~1, W( name_ ));
                                     N field_object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_field_unit, ( struct E_acpi_aml_Z_pathname ){ field_name, depth + 1 });
-                                    if( (S)field_object_i < 0 )
+                                    if( K_error( field_object_i ))
                                     {   K_( ~1, W( field_name ));
                                         K_( ~1, W( bank_name ));
                                         return field_object_i;
@@ -4445,7 +4445,7 @@ Loop:
                         break;
                     }
                     N object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_buffer_field, ( struct E_acpi_aml_Z_pathname ){ name, n });
-                    if( (S)object_i < 0 )
+                    if( K_error( object_i ))
                     {   N r = W(name);
                         if( (S)r >= 0 )
                             if( object_i == ~10 )
@@ -4619,7 +4619,7 @@ Loop:
                         break;
                     }
                     N object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_buffer_field, ( struct E_acpi_aml_Z_pathname ){ name, n });
-                    if( (S)object_i < 0 )
+                    if( K_error( object_i ))
                     {   N r = W(name);
                         if( (S)r >= 0 )
                             if( object_i == ~10 )
@@ -7583,7 +7583,7 @@ Loop:
                                     if( !s )
                                         return ~0;
                                     object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_uninitialized, ( struct E_acpi_aml_Z_pathname ){ s, E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.pathname.n });
-                                    if( (S)object_i < 0 )
+                                    if( K_error( object_i ))
                                     {   K_( ~1, W(s) );
                                         return ~0;
                                     }
@@ -7655,7 +7655,7 @@ Loop:
                                                 if( !s )
                                                     return ~0;
                                                 object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_uninitialized, ( struct E_acpi_aml_Z_pathname ){ s, E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.pathname.n });
-                                                if( (S)object_i < 0 )
+                                                if( K_error( object_i ))
                                                 {   K_( ~1, W(s) );
                                                     return ~0;
                                                 }
@@ -7742,7 +7742,7 @@ Loop:
                                                 if( !s )
                                                     return ~0;
                                                 object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_uninitialized, ( struct E_acpi_aml_Z_pathname ){ s, E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.pathname.n });
-                                                if( (S)object_i < 0 )
+                                                if( K_error( object_i ))
                                                 {   K_( ~1, W(s) );
                                                     return ~0;
                                                 }
@@ -7832,7 +7832,7 @@ Loop:
                                                 if( !s )
                                                     return ~0;
                                                 object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_uninitialized, ( struct E_acpi_aml_Z_pathname ){ s, E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.pathname.n });
-                                                if( (S)object_i < 0 )
+                                                if( K_error( object_i ))
                                                 {   K_( ~1, W(s) );
                                                     return ~0;
                                                 }
@@ -7914,7 +7914,7 @@ Loop:
                                                 if( !s )
                                                     return ~0;
                                                 object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_uninitialized, ( struct E_acpi_aml_Z_pathname ){ s, E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.pathname.n });
-                                                if( (S)object_i < 0 )
+                                                if( K_error( object_i ))
                                                 {   K_( ~1, W(s) );
                                                     return ~0;
                                                 }
@@ -8000,7 +8000,7 @@ Loop:
                                                 if( !s )
                                                     return ~0;
                                                 object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_uninitialized, ( struct E_acpi_aml_Z_pathname ){ s, E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.pathname.n });
-                                                if( (S)object_i < 0 )
+                                                if( K_error( object_i ))
                                                 {   K_( ~1, W(s) );
                                                     return ~0;
                                                 }
@@ -8095,7 +8095,7 @@ Loop:
                                 object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_uninitialized
                                 , ( struct E_acpi_aml_Z_pathname ){ s, E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.pathname.n }
                                 );
-                                if( (S)object_i < 0 )
+                                if( K_error( object_i ))
                                 {   if( !E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.copy )
                                     {   K_( ~1, W(s) );
                                     }
@@ -8847,7 +8847,7 @@ Loop:
                 goto Loop;
             return ret;
         }
-        if( (S)ret < 0 )
+        if( K_error(ret) )
             return ret;
         /*G( "stack_n=%x", E_acpi_aml_S_parse_stack_n );
         G_( ",stack_n_last=%x", stack_n_last );
@@ -9100,7 +9100,7 @@ E_acpi_aml_M( Pc dsdt
     || ret == ~10
     )
         goto Error;
-    if( (S)ret < 0 )
+    if( K_error(ret) )
         return ret;
     struct
     { P address;
@@ -9123,7 +9123,7 @@ E_acpi_aml_M( Pc dsdt
         || ret == ~10
         )
             goto Error;
-        if( (S)ret < 0 )
+        if( K_error(ret) )
             return ret;
     }
     K_( ~2, W( E_acpi_aml_S_parse_stack ));
@@ -9132,8 +9132,8 @@ E_acpi_aml_M( Pc dsdt
     E_acpi_aml_Q_procedure_invocation_stack_S_invoking = yes;
     struct E_acpi_aml_Z_value result;
     ret = E_acpi_aml_I_procedure(( struct E_acpi_aml_Z_pathname ){ "_SB__INI", 2 }, &result, 0, 0 );
-    if( (S)ret < 0
-    && ret != ~11
+    if( K_error(ret)
+    || ret == ~10
     )
         return ret;
     if( ret != ~11 )
