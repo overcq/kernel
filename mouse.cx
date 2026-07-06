@@ -113,8 +113,8 @@ E_mouse_I_interrupt( void
                 if(( E_mouse_Q_button_S_state == E_mouse_Q_button_Z_state_S_press
                   || E_mouse_Q_button_S_state == E_mouse_Q_button_Z_state_S_release
                 )
-                && ( J_abs( E_mouse_Q_button_S_coordinate[0] - E_mouse_S_coordinate[0] ) > E_mouse_Q_button_S_click_dx
-                  || J_abs( E_mouse_Q_button_S_coordinate[1] - E_mouse_S_coordinate[1] ) > E_mouse_Q_button_S_click_dy
+                && ( J_abs( (S)E_mouse_Q_button_S_coordinate[0] - E_mouse_S_coordinate[0] ) > E_mouse_Q_button_S_click_dx
+                  || J_abs( (S)E_mouse_Q_button_S_coordinate[1] - E_mouse_S_coordinate[1] ) > E_mouse_Q_button_S_click_dy
                 ))
                 {   E_mouse_Q_button_S_state = E_mouse_Q_button_Z_state_S_dirty;
                     E_flow_Q_spin_time_M( &E_mouse_Q_button_S_time, E_mouse_Q_button_S_dirty_timeout * 1000 );
@@ -322,8 +322,8 @@ E_mouse_M( void
 ){  if( !E_mouse_S_initialized )
         return 0;
     E_mouse_S_interrupt_state = ~0;
-    E_mouse_Q_button_S_click_dx = 32; //CONF
-    E_mouse_Q_button_S_click_dy = 32; //CONF
+    E_mouse_Q_button_S_click_dx = 8; //CONF
+    E_mouse_Q_button_S_click_dy = 8; //CONF
     E_mouse_Q_button_S_press_timeout = 540; //CONF
     E_mouse_Q_button_S_release_timeout = 180; //CONF
     E_mouse_Q_button_S_border_timeout = 720; //CONF

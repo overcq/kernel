@@ -24,7 +24,7 @@
 #define J_min(a,b)                          ( (a) > (b) ? (b) : (a) )
 #define J_max(a,b)                          ( (a) < (b) ? (b) : (a) )
 #define J_min_max(a,b,c)                    ( J_min( (a), J_max( (b), (c) )))
-#define J_abs(v)                            ( (S)(v) < 0 ? -(v) : (v) )
+#define J_abs(v)                            ( (v) < 0 ? -(v) : (v) )
 //------------------------------------------------------------------------------
 #define J_autogen_S                         _autogen
 #define J_autogen(a)                        J_a_b( a, J_autogen_S )
