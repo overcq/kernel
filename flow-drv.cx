@@ -145,14 +145,16 @@ E_flow_I_sti( void
         );
 }
 _export
+__attribute__ (( __noinline__, __naked__ ))
 P
 E_flow_R_ip( void
-){  P ip;
-    __asm__ volatile (
-    "\n" "mov   (%%rsp),%0"
-    : "=r" (ip)
+){  __asm__ volatile (
+    "\n" "mov   (%%rsp),%%rax"
+    "\n" "ret"
+    :
+    :
+    : "rax", "rsp"
     );
-    return ip;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _private
@@ -302,10 +304,12 @@ E_flow_Q_report_M_srv( N uid
     return report_id;
 }
 _export
-void
+N
 E_flow_Q_report_W( I id
 ){  N sched_i = E_flow_I_current_scheduler();
-    E_mem_Q_tab_I_remove( E_flow_S_scheduler[ sched_i ].report, id );
+    Kp( E_mem_Q_tab_I_remove( E_flow_S_scheduler[ sched_i ].report, id ))
+        return ~0;
+    return 0;
 }
 //------------------------------------------------------------------------------
 _export
@@ -523,18 +527,20 @@ E_flow_Q_timer_M( N miliseconds
     return timer_id;
 }
 _export
-void
+N
 E_flow_Q_timer_W( I id
 ){  N sched_i = E_flow_I_current_scheduler();
-    E_mem_Q_tab_I_remove( E_flow_S_scheduler[ sched_i ].timer, id );
+    Kp( E_mem_Q_tab_I_remove( E_flow_S_scheduler[ sched_i ].timer, id ))
+        return ~0;
     for_each( timer_id, E_flow_S_scheduler[ sched_i ].timer, E_mem_Q_tab )
     {   struct E_flow_Q_timer_Z *timer = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].timer, timer_id );
         if( timer->period
         || timer->left
         )
-            return;
+            return 0;
     }
     E_flow_S_scheduler[ sched_i ].next_time = ~0;
+    return 0;
 }
 //------------------------------------------------------------------------------
 _export

@@ -553,6 +553,7 @@ E_window_files_Q_bubble_I_click(
     }
     if( K_error(r) )
         return r;
+    return 0;
 }
 _internal
 N

@@ -1574,10 +1574,11 @@ _private
 N
 E_ouxfs_Q_device_M( I disc_id
 , N partition_i
-){  N r;
+){  volatile N r = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-    if( E_flow_I_lock_r( &disc->partition[ partition_i ].lock, &r ))
-        return ~0;
+    E_flow_I_lock( &disc->partition[ partition_i ].lock );
+    if( K_error(r) )
+        return r;
     N r_;
     Pc sector;
     r = E_disc_R( disc_id, partition_i, 0, 1, &sector, &r_ );
@@ -5031,10 +5032,11 @@ _private
 N
 E_ouxfs_Q_device_W( I disc_id
 , N partition_i
-){  N r = 0;
+){  volatile N r = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-    if( E_flow_I_lock_r( &disc->partition[ partition_i ].lock, &r ))
-        return ~0;
+    E_flow_I_lock( &disc->partition[ partition_i ].lock );
+    if( K_error(r) )
+        return r;
     for_n( file_i, disc->partition[ partition_i ].oux.file_n )
         if( disc->partition[ partition_i ].oux.file[ file_i ].lock_write
         || disc->partition[ partition_i ].oux.file[ file_i ].lock_read
@@ -5092,10 +5094,11 @@ E_ouxfs_Q_directory_I_list_directory( N disc_id
 , N64 uid
 , N *n
 , N64 **list
-){  N r = 0;
+){  volatile N r = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-    if( E_flow_I_lock_r( &disc->partition[ partition_i ].lock, &r ))
-        return ~0;
+    E_flow_I_lock( &disc->partition[ partition_i ].lock );
+    if( K_error(r) )
+        return r;
     if( ~uid )
     {   N64 directory_i;
         r = E_ouxfs_Q_directory_R( disc_id, partition_i, uid, &directory_i );
@@ -5141,10 +5144,11 @@ E_ouxfs_Q_directory_I_list_file( N disc_id
 , N64 uid
 , N *n
 , N64 **list
-){  N r = 0;
+){  volatile N r = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-    if( E_flow_I_lock_r( &disc->partition[ partition_i ].lock, &r ))
-        return ~0;
+    E_flow_I_lock( &disc->partition[ partition_i ].lock );
+    if( K_error(r) )
+        return r;
     if( ~uid )
     {   N64 directory_i;
         r = E_ouxfs_Q_directory_R( disc_id, partition_i, uid, &directory_i );
@@ -5190,10 +5194,11 @@ E_ouxfs_Q_directory_R_name( N disc_id
 , N partition_i
 , N64 uid
 , Pc *name
-){  N r = 0;
+){  volatile N r = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-    if( E_flow_I_lock_r( &disc->partition[ partition_i ].lock, &r ))
-        return ~0;
+    E_flow_I_lock( &disc->partition[ partition_i ].lock );
+    if( K_error(r) )
+        return r;
     N64 directory_i;
     r = E_ouxfs_Q_directory_R( disc_id, partition_i, uid, &directory_i );
     if(r)
@@ -5210,10 +5215,11 @@ E_ouxfs_Q_directory_P_name( N disc_id
 , N partition_i
 , N64 uid
 , const Pc name
-){  N r = 0;
+){  volatile N r = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-    if( E_flow_I_lock_r( &disc->partition[ partition_i ].lock, &r ))
-        return ~0;
+    E_flow_I_lock( &disc->partition[ partition_i ].lock );
+    if( K_error(r) )
+        return r;
     N64 directory_i;
     r = E_ouxfs_Q_directory_R( disc_id, partition_i, uid, &directory_i );
     if(r)
@@ -5267,10 +5273,11 @@ E_ouxfs_Q_file_R_name( N disc_id
 , N partition_i
 , N64 uid
 , Pc *name
-){  N r = 0;
+){  volatile N r = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-    if( E_flow_I_lock_r( &disc->partition[ partition_i ].lock, &r ))
-        return ~0;
+    E_flow_I_lock( &disc->partition[ partition_i ].lock );
+    if( K_error(r) )
+        return r;
     N64 file_i;
     r = E_ouxfs_Q_file_R( disc_id, partition_i, uid, &file_i );
     if(r)
@@ -5287,10 +5294,11 @@ E_ouxfs_Q_file_P_name( N disc_id
 , N partition_i
 , N64 uid
 , const Pc name
-){  N r = 0;
+){  volatile N r = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-    if( E_flow_I_lock_r( &disc->partition[ partition_i ].lock, &r ))
-        return ~0;
+    E_flow_I_lock( &disc->partition[ partition_i ].lock );
+    if( K_error(r) )
+        return r;
     N64 file_i;
     r = E_ouxfs_Q_file_R( disc_id, partition_i, uid, &file_i );
     if(r)
@@ -5345,10 +5353,11 @@ E_ouxfs_Q_file_R_size( N disc_id
 , N partition_i
 , N64 uid
 , N64 *n
-){  N r = 0;
+){  volatile N r = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-    if( E_flow_I_lock_r( &disc->partition[ partition_i ].lock, &r ))
-        return ~0;
+    E_flow_I_lock( &disc->partition[ partition_i ].lock );
+    if( K_error(r) )
+        return r;
     N64 file_i;
     r = E_ouxfs_Q_file_R( disc_id, partition_i, uid, &file_i );
     if(r)
@@ -5364,10 +5373,11 @@ E_ouxfs_Q_directory_I_move( N disc_id
 , N partition_i
 , N64 uid
 , N64 parent
-){  N r = 0;
+){  volatile N r = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-    if( E_flow_I_lock_r( &disc->partition[ partition_i ].lock, &r ))
-        return ~0;
+    E_flow_I_lock( &disc->partition[ partition_i ].lock );
+    if( K_error(r) )
+        return r;
     N64 directory_i;
     r = E_ouxfs_Q_directory_R( disc_id, partition_i, uid, &directory_i );
     if(r)
@@ -5407,10 +5417,11 @@ E_ouxfs_Q_file_I_move( N disc_id
 , N partition_i
 , N64 uid
 , N64 parent
-){  N r = 0;
+){  volatile N r = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-    if( E_flow_I_lock_r( &disc->partition[ partition_i ].lock, &r ))
-        return ~0;
+    E_flow_I_lock( &disc->partition[ partition_i ].lock );
+    if( K_error(r) )
+        return r;
     N64 file_i;
     r = E_ouxfs_Q_file_R( disc_id, partition_i, uid, &file_i );
     if(r)
@@ -5451,10 +5462,11 @@ E_ouxfs_Q_file_I_truncate( N disc_id
 , N partition_i
 , N64 uid
 , N64 size
-){  N r = 0;
+){  volatile N r = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-    if( E_flow_I_lock_r( &disc->partition[ partition_i ].lock, &r ))
-        return ~0;
+    E_flow_I_lock( &disc->partition[ partition_i ].lock );
+    if( K_error(r) )
+        return r;
     N64 file_i;
     r = E_ouxfs_Q_file_R( disc_id, partition_i, uid, &file_i );
     if(r)
@@ -5508,10 +5520,11 @@ E_ouxfs_Q_directory_M( N disc_id
 , N64 parent
 , const Pc name
 , N64 *uid
-){  N r = 0;
+){  volatile N r = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-    if( E_flow_I_lock_r( &disc->partition[ partition_i ].lock, &r ))
-        return ~0;
+    E_flow_I_lock( &disc->partition[ partition_i ].lock );
+    if( K_error(r) )
+        return r;
     if( !~disc->partition[ partition_i ].oux.directory_n )
     {   r = ~0;
         goto End;
@@ -5597,10 +5610,11 @@ N
 E_ouxfs_Q_directory_W( N disc_id
 , N partition_i
 , N64 uid
-){  N r = 0;
+){  volatile N r = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-    if( E_flow_I_lock_r( &disc->partition[ partition_i ].lock, &r ))
-        return ~0;
+    E_flow_I_lock( &disc->partition[ partition_i ].lock );
+    if( K_error(r) )
+        return r;
     N64 directory_i;
     r = E_ouxfs_Q_directory_R( disc_id, partition_i, uid, &directory_i );
     if( K_error(r) )
@@ -5629,10 +5643,11 @@ E_ouxfs_Q_file_M( N disc_id
 , N64 parent
 , const Pc name
 , N64 *uid
-){  N r = 0;
+){  volatile N r = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-    if( E_flow_I_lock_r( &disc->partition[ partition_i ].lock, &r ))
-        return ~0;
+    E_flow_I_lock( &disc->partition[ partition_i ].lock );
+    if( K_error(r) )
+        return r;
     if( !~disc->partition[ partition_i ].oux.file_n )
     {   r = ~0;
         goto End;
@@ -5720,10 +5735,11 @@ N
 E_ouxfs_Q_file_W( N disc_id
 , N partition_i
 , N64 uid
-){  N r = 0;
+){  volatile N r = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-    if( E_flow_I_lock_r( &disc->partition[ partition_i ].lock, &r ))
-        return ~0;
+    E_flow_I_lock( &disc->partition[ partition_i ].lock );
+    if( K_error(r) )
+        return r;
     N64 file_i;
     r = E_ouxfs_Q_file_R( disc_id, partition_i, uid, &file_i );
     if( K_error(r) )
@@ -5791,10 +5807,11 @@ E_ouxfs_Q_file_I_lock( N disc_id
 , N partition_i
 , N64 uid
 , enum E_ouxfs_Z_file_Z_lock operation
-){  N r = 0;
+){  volatile N r = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-    if( E_flow_I_lock_r( &disc->partition[ partition_i ].lock, &r ))
-        return ~0;
+    E_flow_I_lock( &disc->partition[ partition_i ].lock );
+    if( K_error(r) )
+        return r;
     N64 file_i;
     r = E_ouxfs_Q_file_R( disc_id, partition_i, uid, &file_i );
     if( K_error(r) )
@@ -5843,10 +5860,11 @@ E_ouxfs_Q_file_I_read( N disc_id
 , N64 pos
 , N64 *n
 , Pc data
-){  N r = 0;
+){  volatile N r = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-    if( E_flow_I_lock_r( &disc->partition[ partition_i ].lock, &r ))
-        return ~0;
+    E_flow_I_lock( &disc->partition[ partition_i ].lock );
+    if( K_error(r) )
+        return r;
     N64 file_i;
     r = E_ouxfs_Q_file_R( disc_id, partition_i, uid, &file_i );
     if( K_error(r) )
@@ -5951,10 +5969,11 @@ E_ouxfs_Q_file_I_write( I disc_id
 , N64 pos
 , N64 n
 , const Pc data
-){  N r = 0;
+){  volatile N r = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-    if( E_flow_I_lock_r( &disc->partition[ partition_i ].lock, &r ))
-        return ~0;
+    E_flow_I_lock( &disc->partition[ partition_i ].lock );
+    if( K_error(r) )
+        return r;
     N64 file_i;
     r = E_ouxfs_Q_file_R( disc_id, partition_i, uid, &file_i );
     if( K_error(r) )

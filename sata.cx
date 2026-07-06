@@ -469,10 +469,11 @@ E_sata_Q_sata_ahci_I_read( I disc_id
 , P buffer
 , N32 *slot_mask
 ){  X_M( sata, interrupt );
-    N r = 0;
+    volatile N r = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-    if( E_flow_I_lock_r( &disc->sata_ahci.sata_lock, &r ))
-        return ~0;
+    E_flow_I_lock( &disc->sata_ahci.sata_lock );
+    if( K_error(r) )
+        return r;
     do
     {   N8 command_slot_i = E_sata_Q_disc_device_R_free_command_slot(disc);
         while( !~command_slot_i )
@@ -535,10 +536,11 @@ E_sata_Q_sata_ahci_I_write( I disc_id
 , P buffer
 , N32 *slot_mask
 ){  X_M( sata, interrupt );
-    N r = 0;
+    volatile N r = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-    if( E_flow_I_lock_r( &disc->sata_ahci.sata_lock, &r ))
-        return ~0;
+    E_flow_I_lock( &disc->sata_ahci.sata_lock );
+    if( K_error(r) )
+        return r;
     do
     {   N8 command_slot_i = E_sata_Q_disc_device_R_free_command_slot(disc);
         while( !~command_slot_i )
@@ -600,10 +602,11 @@ E_sata_Q_sata_ahci_I_trim( I disc_id
 , N16 logical_sector_count
 , N32 *slot_mask
 ){  X_M( sata, interrupt );
-    N r = 0;
+    volatile N r = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-    if( E_flow_I_lock_r( &disc->sata_ahci.sata_lock, &r ))
-        return ~0;
+    E_flow_I_lock( &disc->sata_ahci.sata_lock );
+    if( K_error(r) )
+        return r;
     N8 command_slot_i = E_sata_Q_disc_device_R_free_command_slot(disc);
     while( !~command_slot_i )
     {   X_B( sata, interrupt, 0 )

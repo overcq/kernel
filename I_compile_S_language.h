@@ -165,6 +165,7 @@
 #define K_V(statement) \
   E_mem_blk_S_context_ip = E_flow_R_ip(); \
   N J_autogen_line(r) = (statement); \
+  P J_autogen_line( context_ip ) = E_mem_blk_S_context_ip; \
   E_mem_blk_S_context_ip = 0; \
   if( !K_error( J_autogen_line(r) )) \
   { \

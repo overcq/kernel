@@ -144,11 +144,12 @@ E_ssd_cache_R( I disc_id
 , N pba
 , N count
 , P *data //DFN Adres do danych w ‘cache’.
-, N *r
+, volatile N *r
 ){  *r = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-    if( E_flow_I_lock_r( &disc->sata_ahci.ssd_cache_lock, r ))
-        return ~0;
+    E_flow_I_lock( &disc->sata_ahci.ssd_cache_lock );
+    if( K_error( *r ))
+        return *r;
     N32 slot_mask = 0;
     if( disc->sata_ahci.ssd_cache_n )
     {   N min = 0;
@@ -411,11 +412,12 @@ E_ssd_cache_P( I disc_id
 , N pba
 , N count
 , P *data //DFN Adres do danych w ‘cache’.
-, N *r
+, volatile N *r
 ){  *r = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-    if( E_flow_I_lock_r( &disc->sata_ahci.ssd_cache_lock, r ))
-        return ~0;
+    E_flow_I_lock( &disc->sata_ahci.ssd_cache_lock );
+    if( K_error( *r ))
+        return *r;
     if( disc->sata_ahci.ssd_cache_n )
     {   N min = 0;
         N max = disc->sata_ahci.ssd_cache_n - 1;
@@ -624,12 +626,13 @@ N
 E_ssd_cache_P_trim( I disc_id
 , N pba
 , N count
-){  N r = 0;
+){  volatile N r = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
     if( !disc->sata_ahci.trim )
+        return 0;
+    E_flow_I_lock( &disc->sata_ahci.ssd_cache_lock );
+    if( K_error(r) )
         return r;
-    if( E_flow_I_lock_r( &disc->sata_ahci.ssd_cache_lock, &r ))
-        return ~0;
     if( disc->sata_ahci.ssd_cache_n )
     {   N min = 0;
         N max = disc->sata_ahci.ssd_cache_n - 1;
@@ -713,13 +716,14 @@ End:E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r, r );
 _private
 N
 E_ssd_cache_I_sync_and_free( void
-){  N r = 0;
+){  volatile N r = 0;
     for_n( disc_id, E_mem_Q_tab_R_n( E_disc_S ))
     {   struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
         if( disc->type != E_disc_Z_type_S_sata_ahci )
             continue;
-        if( E_flow_I_lock_r( &disc->sata_ahci.ssd_cache_lock, &r ))
-            return ~0;
+        E_flow_I_lock( &disc->sata_ahci.ssd_cache_lock );
+        if( K_error(r) )
+            return r;
         if( disc->sata_ahci.trim_list_n )
         {   N32 slot_mask = 0;
             r = E_sata_Q_sata_ahci_I_trim( disc_id

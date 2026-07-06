@@ -79,9 +79,10 @@ E_gui_M( void
     E_gui_Q_taskbar_S_button_min_width = E_gui_Q_taskbar_S_panel_width;
     K( E_windows_M() )
         return ~0;
-    E_emerg_print_S_active = no;
     D_M( gui, draw, 0 )
         return ~0;
+    E_emerg_print_S_active = no;
+    E_gui_Q_taskbar_S_redraw = yes;
     X_F( gui, draw );
     K( E_window_log_M( E_window_Q_desktop_S_current ))
         return ~0;
@@ -446,10 +447,13 @@ E_gui_Q_pointer_I_click( void
             )
             {   E_windows_Q_window_Q_stack_I_on_top( E_gui_Q_bubble_S.window_id );
                 if( E_gui_Q_bubble_S.click )
-                    E_gui_Q_bubble_S.click(
+                {   K_V( E_gui_Q_bubble_S.click(
                       E_mouse_Q_button_S_coordinate[0] - E_gui_Q_bubble_S.x
                     , E_mouse_Q_button_S_coordinate[1] - E_gui_Q_bubble_S.y
-                    );
+                    ))
+                    {
+                    }
+                }
                 return;
             }
             if( E_mouse_Q_button_S_coordinate[1] < E_gui_Q_taskbar_S_height )
@@ -776,10 +780,13 @@ E_gui_Q_pointer_I_click( void
                             )
                             && window->click
                             )
-                                window->click( window_id
+                            {   K_V( window->click( window_id
                                 , E_mouse_Q_button_S_coordinate[0] - ( window->x + E_gui_Q_desktop_S_window_border_thickness )
                                 , E_mouse_Q_button_S_coordinate[1] - ( window->y + E_gui_Q_desktop_S_window_border_thickness )
-                                );
+                                ))
+                                {
+                                }
+                            }
                     }else
                         if(( !window->controls_data
                           || !E_controls_I_click( window_id
@@ -789,10 +796,13 @@ E_gui_Q_pointer_I_click( void
                         )
                         && window->click
                         )
-                            window->click( window_id
+                        {   K_V( window->click( window_id
                             , E_mouse_Q_button_S_coordinate[0]
                             , E_mouse_Q_button_S_coordinate[1] - E_gui_Q_taskbar_S_height
-                            );
+                            ))
+                            {
+                            }
+                        }
                 }else if( E_mouse_Q_button_S_button == 2
                 && E_mouse_Q_button_S_click_count == 2
                 )
