@@ -207,9 +207,9 @@ E_sata_I_interrupt( void
         if( disc->type == E_disc_Z_type_S_sata_ahci )
         {   disc->sata_ahci.memory->interrupt_status = 1 << disc->sata_ahci.port;
             if( disc->sata_ahci.memory->port[ disc->sata_ahci.port ].interrupt_status & ~0x2 )
-            {   G( "is: %32x", disc->sata_ahci.memory->port[ disc->sata_ahci.port ].interrupt_status );
-                G( "serr: %32x", disc->sata_ahci.memory->port[ disc->sata_ahci.port ].sata_error );
-                G( "tfd: %32x", disc->sata_ahci.memory->port[ disc->sata_ahci.port ].task_file_data );
+            {   G_( ", is: %32x", disc->sata_ahci.memory->port[ disc->sata_ahci.port ].interrupt_status );
+                G_( ", serr: %32x", disc->sata_ahci.memory->port[ disc->sata_ahci.port ].sata_error );
+                G_( ", tfd: %32x", disc->sata_ahci.memory->port[ disc->sata_ahci.port ].task_file_data );
             }
             disc->sata_ahci.memory->port[ disc->sata_ahci.port ].interrupt_status = E_sata_S_interrupt_status_clear_mask;
             break;
@@ -217,9 +217,9 @@ E_sata_I_interrupt( void
         if( disc->type == E_disc_Z_type_S_satapi_ahci )
         {   disc->satapi_ahci.memory->interrupt_status = 1 << disc->satapi_ahci.port;
             if( disc->satapi_ahci.memory->port[ disc->satapi_ahci.port ].interrupt_status & ~0x2 )
-            {   G( "is: %32x", disc->satapi_ahci.memory->port[ disc->satapi_ahci.port ].interrupt_status );
-                G( "serr: %32x", disc->satapi_ahci.memory->port[ disc->satapi_ahci.port ].sata_error );
-                G( "tfd: %32x", disc->satapi_ahci.memory->port[ disc->satapi_ahci.port ].task_file_data );
+            {   G_( ", is: %32x", disc->satapi_ahci.memory->port[ disc->satapi_ahci.port ].interrupt_status );
+                G_( ", serr: %32x", disc->satapi_ahci.memory->port[ disc->satapi_ahci.port ].sata_error );
+                G_( ", tfd: %32x", disc->satapi_ahci.memory->port[ disc->satapi_ahci.port ].task_file_data );
             }
             disc->satapi_ahci.memory->port[ disc->satapi_ahci.port ].interrupt_status = E_sata_S_interrupt_status_clear_mask;
             break;
@@ -276,7 +276,6 @@ E_sata_I_init( volatile struct E_sata_Z_memory *sata_memory
         if( !( sata_memory->global_host_control & ( 1 << 31 )))
             return ~0;
     }
-    X_M( sata, interrupt );
     N32 port_implemented = sata_memory->port_implemented;
     N8 port_n = ( sata_memory->host_cap & 0x1f ) + 1;
     for_n( port, port_n )
@@ -381,7 +380,8 @@ E_sata_I_init( volatile struct E_sata_Z_memory *sata_memory
         if( disc->type == E_disc_Z_type_S_sata_ahci
         || disc->type == E_disc_Z_type_S_satapi_ahci
         )
-        {   // IDENTIFY (PACKET) DEVICE
+        {   X_M( sata, interrupt );
+            // IDENTIFY (PACKET) DEVICE
             command_table_0->command_fis.command = disc->type == E_disc_Z_type_S_sata_ahci
             ? E_sata_Z_ata_command_S_identify_device
             : E_sata_Z_ata_command_S_identify_packet_device;
@@ -469,7 +469,8 @@ E_sata_Q_sata_ahci_I_read( I disc_id
 , P buffer
 , N32 *slot_mask
 ){  X_M( sata, interrupt );
-    volatile N r = 0;
+    volatile static N r;
+    r = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
     E_flow_I_lock( &disc->sata_ahci.sata_lock );
     if( K_error(r) )
@@ -536,7 +537,8 @@ E_sata_Q_sata_ahci_I_write( I disc_id
 , P buffer
 , N32 *slot_mask
 ){  X_M( sata, interrupt );
-    volatile N r = 0;
+    volatile static N r;
+    r = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
     E_flow_I_lock( &disc->sata_ahci.sata_lock );
     if( K_error(r) )
@@ -602,7 +604,8 @@ E_sata_Q_sata_ahci_I_trim( I disc_id
 , N16 logical_sector_count
 , N32 *slot_mask
 ){  X_M( sata, interrupt );
-    volatile N r = 0;
+    volatile static N r;
+    r = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
     E_flow_I_lock( &disc->sata_ahci.sata_lock );
     if( K_error(r) )

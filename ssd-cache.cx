@@ -626,7 +626,8 @@ N
 E_ssd_cache_P_trim( I disc_id
 , N pba
 , N count
-){  volatile N r = 0;
+){  volatile N r;
+    r = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
     if( !disc->sata_ahci.trim )
         return 0;
@@ -716,7 +717,8 @@ End:E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r, r );
 _private
 N
 E_ssd_cache_I_sync_and_free( void
-){  volatile N r = 0;
+){  volatile N r;
+    r = 0;
     for_n( disc_id, E_mem_Q_tab_R_n( E_disc_S ))
     {   struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
         if( disc->type != E_disc_Z_type_S_sata_ahci )

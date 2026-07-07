@@ -61,6 +61,7 @@ E_window_log_I_draw( I window_id
         s_0 = 0;
         element_i = E_se_log_S_element_n;
         N element_i_;
+        x_ = thickness + 1;
         do
         {   if( !s_0
             || *s_0 == '\n'
@@ -74,20 +75,24 @@ E_window_log_I_draw( I window_id
             s_0 = E_se_log_Q_element_I_print( &element_i_ );
             Kp( s_0 )
                 return ~0;
-            Pc s = s_0 + 1;
-            x_ = thickness + 1;
+            Pc s = s_0;
+            if( *s == '\n' )
+            {   s++;
+                x_ = thickness + 1;
+            }
             while( *s )
             {   U u;
                 Pc s_ = E_text_Z_su_R_u( s, &u );
                 s = s_;
                 N32 font_i;
+                B b = E_font_T_print_u( width - ( x_ + thickness + 1 ), thickness, &u, &font_i );
                 if( width <= x_ + thickness + 1
-                || !E_font_T_print_u( width - x_ - ( thickness + 1 ), thickness, &u, &font_i )
+                || !b
                 )
                 {   x_ = thickness + 1;
                     nl++;
-                }else
-                    x_ += ( thickness + 1 ) * E_font_S_font.bitmap[ font_i ].width + thickness + 1;
+                }
+                x_ += ( thickness + 1 ) * E_font_S_font.bitmap[ font_i ].width + thickness + 1;
             }
         }while( element_i
         && height > font_size + 1 + nl * (( font_size + 1 ) * E_font_S_font.height + font_size + 1 )
@@ -103,15 +108,16 @@ E_window_log_I_draw( I window_id
             {   U u;
                 Pc s = E_text_Z_su_R_u( s_begin, &u );
                 N32 font_i;
+                B b = E_font_T_print_u( width - ( x_ + thickness + 1 ), thickness, &u, &font_i );
                 if( width <= x_ + thickness + 1
-                || !E_font_T_print_u( width - x_ - ( thickness + 1 ), thickness, &u, &font_i )
+                || !b
                 )
                 {   x_ = thickness + 1;
                     nl--;
                     if( height >= font_size + 1 + ( nl - 1 ) * (( font_size + 1 ) * E_font_S_font.height + font_size + 1 ) + 1 )
                         break;
-                }else
-                    x_ += ( thickness + 1 ) * E_font_S_font.bitmap[ font_i ].width + thickness + 1;
+                }
+                x_ += ( thickness + 1 ) * E_font_S_font.bitmap[ font_i ].width + thickness + 1;
                 s_begin = s;
             }
         if( height < font_size + 1 + nl * (( font_size + 1 ) * E_font_S_font.height + font_size + 1 ))
@@ -134,16 +140,21 @@ E_window_log_I_draw( I window_id
         N32 font_i;
         if( u == '\n'
         || width <= x_ + thickness + 1
-        || !E_font_T_print_u( width - x_ - ( thickness + 1 ), thickness, &u, &font_i )
+        || !E_font_T_print_u( width - ( x_ + thickness + 1 ), thickness, &u, &font_i )
         )
         {   x_ = thickness + 1;
             y_ += ( font_size + 1 ) * E_font_S_font.height + font_size + 1;
             if( y_ >= y + height )
                 break;
-        }else
-        {   E_font_I_draw_u( font_i, x + x_, y_, y + ( font_size + 1 ), height - 2 * ( font_size + 1 ), E_vga_S_text_color, font_size, thickness );
-            x_ += ( thickness + 1 ) * E_font_S_font.bitmap[ font_i ].width + thickness + 1;
+            if( u == '\n' )
+                continue;
+            if( width <= x_ + thickness + 1
+            || !E_font_T_print_u( width - ( x_ + thickness + 1 ), thickness, &u, &font_i )
+            )
+                break;
         }
+        E_font_I_draw_u( font_i, x + x_, y_, y + ( font_size + 1 ), height - 2 * ( font_size + 1 ), E_vga_S_text_color, font_size, thickness );
+        x_ += ( thickness + 1 ) * E_font_S_font.bitmap[ font_i ].width + thickness + 1;
     }
     return 0;
 }

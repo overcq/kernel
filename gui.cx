@@ -1351,8 +1351,9 @@ E_gui_Q_taskbar_I_draw( void
                 Pc s_ = E_text_Z_su_R_u( s, &u );
                 s = s_;
                 N32 font_i;
+                B b = E_font_T_print_u( button_real_width - ( x - x_0 ), E_gui_Q_taskbar_S_thickness, &u, &font_i );
                 if( button_real_width <= x - x_0
-                || !E_font_T_print_u( button_real_width - ( x - x_0 ), E_gui_Q_taskbar_S_thickness, &u, &font_i )
+                || !b
                 )
                 {   if(line)
                     {   if( i == E_gui_Q_taskbar_S_mouse_over_panel )
@@ -1575,8 +1576,9 @@ E_gui_Q_taskbar_I_draw_expander( void
             Pc s_ = E_text_Z_su_R_u( s, &u );
             s = s_;
             N32 font_i;
+            B b = E_font_T_print_u( width - ( x - x_0 ), E_gui_Q_taskbar_S_thickness, &u, &font_i );
             if( width <= x - x_0
-            || !E_font_T_print_u( width - ( x - x_0 ), E_gui_Q_taskbar_S_thickness, &u, &font_i )
+            || !b
             )
             {   if(line)
                     break;
