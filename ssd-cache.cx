@@ -137,9 +137,9 @@ E_ssd_cache_P_dirty( struct E_disc_Z *disc
     return 0;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//DFN Procedury ‘read’/‘write’ — jeśli zakończyły się bez błędu — to nie zwalniają ‘lock’. Trzeba go zwolnić po wykonaniu operacji na danych: “E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_, 0 );”.
+//DFN Procedury ‘read’/‘write’ — jeśli zakończyły się bez błędu — to nie zwalniają ‘lock’. Trzeba go zwolnić po wykonaniu operacji na danych: “E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_ssd_cache, r_ );”.
 _private
-N
+void
 E_ssd_cache_R( I disc_id
 , N pba
 , N count
@@ -149,7 +149,7 @@ E_ssd_cache_R( I disc_id
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
     E_flow_I_lock( &disc->sata_ahci.ssd_cache_lock );
     if( K_error( *r ))
-        return *r;
+        return;
     N32 slot_mask = 0;
     if( disc->sata_ahci.ssd_cache_n )
     {   N min = 0;
@@ -403,11 +403,11 @@ E_ssd_cache_R( I disc_id
             *r = ~2;
     if( *r )
 End:    E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, r, *r );
-    return *r;
+    return;
 }
 // Ta procedura jest potrzebna tylko wtedy, gdy zapisujemy cały blok; nie czytamy wcześniej.
 _private
-N
+void
 E_ssd_cache_P( I disc_id
 , N pba
 , N count
@@ -417,7 +417,7 @@ E_ssd_cache_P( I disc_id
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
     E_flow_I_lock( &disc->sata_ahci.ssd_cache_lock );
     if( K_error( *r ))
-        return *r;
+        return;
     if( disc->sata_ahci.ssd_cache_n )
     {   N min = 0;
         N max = disc->sata_ahci.ssd_cache_n - 1;
@@ -619,7 +619,7 @@ E_ssd_cache_P( I disc_id
     }
     if( *r )
 End:    E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, r, *r );
-    return *r;
+    return;
 }
 _private
 N

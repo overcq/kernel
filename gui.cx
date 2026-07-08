@@ -81,11 +81,11 @@ E_gui_M( void
         return ~0;
     D_M( gui, draw, 0 )
         return ~0;
-    E_emerg_print_S_active = no;
     E_gui_Q_taskbar_S_redraw = yes;
     X_F( gui, draw );
     K( E_window_log_M( E_window_Q_desktop_S_current ))
         return ~0;
+    E_emerg_print_S_active = no;
     return 0;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

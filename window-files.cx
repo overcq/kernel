@@ -854,7 +854,9 @@ E_window_files_I_mouse_move( I window_id
         || window_data->pointer_column <= window_data->selected_dir_n // Jeśli po ewentualnym przewinięciu nie pozostało poza kolumnami.
         )
             U_F( gui, draw );
-        window_data->pointer_column = ~column && column ? column - ( window_data->dir_start + 1 ) : column;
+        window_data->pointer_column = column;
+        if( ~column && column )
+            window_data->pointer_column -= window_data->dir_start + 1;
     }
     if( ~window_data->pointer_column
     && ~window_data->pointer_row
