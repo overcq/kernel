@@ -272,6 +272,25 @@ E_se_log_Q_element_I_print( N *element_i
             return 0;
         }
         E_text_Z_n_N_s( s + l, E_se_log_S_element[ *element_i ].n, 10 );
+        KPp( E_text_Z_s_I_append_c( &output, '|' ))
+        {   KP_( ~1, W(output) );
+            return 0;
+        }
+        if( E_flow_S_inited )
+        {   N32 sched_i = E_flow_I_current_scheduler();
+            l = E_text_Z_n_N_s_G( E_flow_S_scheduler[ sched_i ].current_task, 10 );
+            s = E_mem_Q_blk_I_append( &output, l );
+            KPp(s)
+            {   KP_( ~1, W(output) );
+                return 0;
+            }
+            E_text_Z_n_N_s( s + l, E_flow_S_scheduler[ sched_i ].current_task, 10 );
+        }else
+        {   KPp( E_text_Z_s_I_append_c( &output, '0' ))
+            {   KP_( ~1, W(output) );
+                return 0;
+            }
+        }
         KPp( E_text_Z_s_I_append_s0( &output, ": " ))
         {   KP_( ~1, W(output) );
             return 0;

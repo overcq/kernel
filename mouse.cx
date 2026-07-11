@@ -330,7 +330,7 @@ E_mouse_M( void
     E_mouse_Q_button_S_dirty_timeout = 360; //CONF
     E_mouse_Q_button_S_click_count = 0;
     E_mouse_Q_wheel_S_count = 0;
-    D_M( mouse, click, 0 )
+    K( D_M( mouse, click, 0 ))
         return ~0;
     if( E_mouse_P_rate(200)
     || E_mouse_P_rate(100)
@@ -348,6 +348,10 @@ E_mouse_M( void
 //==============================================================================
 D( mouse, click )
 {   Yi_M( mouse, click );
+    if( K_error( _Yi_var( mouse, click )))
+    {   N32 sched_i = E_flow_I_current_scheduler();
+        E_flow_S_scheduler[ sched_i ].task_error = _Yi_var( mouse, click );
+    }
     O{  Yi_B( mouse, click )
             break;
         E_flow_I_cli();
@@ -371,6 +375,10 @@ D( mouse, click )
         }
         E_flow_I_sti();
     }
-    Yi_W( mouse, click );
+    N r = Yi_W( mouse, click );
+    if( K_error(r) )
+    {   N32 sched_i = E_flow_I_current_scheduler();
+        E_flow_S_scheduler[ sched_i ].task_error = r < ~1 ? r : ~1;
+    }
 }
 /******************************************************************************/

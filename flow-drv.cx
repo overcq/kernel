@@ -23,23 +23,6 @@ struct E_flow_Q_task_Z
   I run_state_object;
   enum E_flow_Z_run_state run_state;
 };
-struct E_flow_Z_scheduler
-{ struct E_mem_Q_tab_Z *task;
-  struct E_mem_Q_tab_Z *report;
-  struct E_mem_Q_tab_Z *report_timed;
-  struct E_mem_Q_tab_Z *timer;
-  N last_time;
-  N next_time;
-  N cli_count;
-  I current_task;
-  unsigned U_R( state, inside_interrupt )   :1;
-  unsigned U_R( signal, exit )              :1;
-  unsigned U_R( signal, wake )              :1;
-};
-_private volatile struct E_flow_Z_scheduler *E_flow_S_scheduler;
-_private N E_flow_S_scheduler_n;
-_private B E_flow_S_inited;
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 struct E_flow_Q_report_Z
 { N reported_count;
   N uid;
@@ -57,6 +40,25 @@ struct E_flow_Q_timer_Z
   N uid;
   I task_to;
 };
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+struct E_flow_Z_scheduler
+{ struct E_mem_Q_tab_Z *task;
+  struct E_mem_Q_tab_Z *report;
+  struct E_mem_Q_tab_Z *report_timed;
+  struct E_mem_Q_tab_Z *timer;
+  N last_time;
+  N next_time;
+  N cli_count;
+  N task_error;
+  I current_task;
+  unsigned U_R( state, inside_interrupt )   :1;
+  unsigned U_R( signal, exit )              :1;
+  unsigned U_R( signal, wake )              :1;
+};
+//==============================================================================
+_private struct E_flow_Z_scheduler *E_flow_S_scheduler;
+_private N E_flow_S_scheduler_n;
+_private B E_flow_S_inited;
 //==============================================================================
 _internal void E_flow_Q_task_I_switch(I);
 //==============================================================================
@@ -84,7 +86,7 @@ E_flow_Q_spin_time_T( N *time
 _private
 N32
 E_flow_I_current_scheduler( void
-){  return E_main_Q_msr_R( 0x802 );
+){  return E_main_Q_msr_R( 0x802 ); // Oczytaj identyfikator APIC.
 }
 _private
 void
@@ -97,7 +99,7 @@ E_flow_I_sleep( N microseconds
             __asm__ volatile (
             "\n" "cli"
             );
-            E_main_Q_msr_P( 0x838, acpi_timer_ticks_ );
+            E_main_Q_msr_P( 0x838, acpi_timer_ticks_ ); // Ustaw liczbę cykli zegara APIC.
             __asm__ volatile (
             "\n" "sti"
             "\n" "hlt"
@@ -105,7 +107,7 @@ E_flow_I_sleep( N microseconds
             O{  __asm__ volatile (
                 "\n" "cli"
                 );
-                if( !E_main_Q_msr_R( 0x839 ))
+                if( !E_main_Q_msr_R( 0x839 )) // Oczytaj liczbę pozostałych cykli zegara APIC.
                 {   __asm__ volatile (
                     "\n" "sti"
                     );
@@ -125,7 +127,7 @@ void
 E_flow_I_cli( void
 ){  if( !E_flow_S_inited )
         return;
-    N sched_i = E_flow_I_current_scheduler();
+    N32 sched_i = E_flow_I_current_scheduler();
     E_flow_S_scheduler[ sched_i ].cli_count++;
     __asm__ volatile (
     "\n" "cli"
@@ -136,7 +138,7 @@ void
 E_flow_I_sti( void
 ){  if( !E_flow_S_inited )
         return;
-    N sched_i = E_flow_I_current_scheduler();
+    N32 sched_i = E_flow_I_current_scheduler();
     if( !--E_flow_S_scheduler[ sched_i ].cli_count
     && !U_R( E_flow_S_scheduler[ sched_i ].state, inside_interrupt )
     )
@@ -160,7 +162,7 @@ E_flow_R_ip( void
 _private
 N
 E_flow_M( P main_stack
-){  N sched_i = E_flow_I_current_scheduler();
+){  N32 sched_i = E_flow_I_current_scheduler();
     E_flow_S_scheduler[ sched_i ].task = E_mem_Q_tab_M( sizeof( struct E_flow_Q_task_Z ), 1 );
     if( !E_flow_S_scheduler[ sched_i ].task )
         return ~2;
@@ -169,6 +171,7 @@ E_flow_M( P main_stack
     *task = ( struct E_flow_Q_task_Z )
     { .run_state = E_flow_Z_run_state_S_ready
     , .stack = main_stack
+    , .exe_stack = 0
         #ifdef C_line_report
     , .proc_name = "main"
         #endif
@@ -195,6 +198,7 @@ E_flow_M( P main_stack
     E_flow_S_scheduler[ sched_i ].last_time = 0;
     E_flow_S_scheduler[ sched_i ].next_time = ~0;
     E_flow_S_scheduler[ sched_i ].cli_count = 0;
+    E_flow_S_scheduler[ sched_i ].task_error = 0;
     U_L( E_flow_S_scheduler[ sched_i ].state, inside_interrupt );
     U_L( E_flow_S_scheduler[ sched_i ].signal, exit );
     return 0;
@@ -204,7 +208,7 @@ E_flow_M( P main_stack
 _internal
 void
 E_flow_Q_task_I_stop( void
-){  N sched_i = E_flow_I_current_scheduler();
+){  N32 sched_i = E_flow_I_current_scheduler();
     struct E_flow_Q_task_Z *task = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, E_flow_S_scheduler[ sched_i ].current_task );
     E_flow_Q_task_I_switch( task->run_state_object ); // Powrót do ‹zadania› zwalniającego bieżące.
     _unreachable;
@@ -223,8 +227,12 @@ E_flow_Q_task_M( I *uid
     if( !stack )
         return ~0;
     Pc exe_stack = stack + stack_pages * E_mem_S_page_size;
-    N sched_i = E_flow_I_current_scheduler();
+    N32 sched_i = E_flow_I_current_scheduler();
     I task_id = E_mem_Q_tab_I_add( E_flow_S_scheduler[ sched_i ].task );
+    Kp( task_id )
+    {   K_( ~1, W(stack) );
+        return ~0;
+    }
     E_mem_Q_stack_I_patch_page_table_add_guard( (N)stack, task_id );
     struct E_flow_Q_task_Z *task = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, task_id );
     task->stack = stack;
@@ -233,10 +241,11 @@ E_flow_Q_task_M( I *uid
         #endif
     task->run_state = E_flow_Z_run_state_S_ready;
     task->exe_stack = 0;
-    task->run_state_object = E_flow_S_scheduler[ sched_i ].current_task;
+    *uid = task_id;
     P *p = ( P * )exe_stack - 1;
     *p = (P)&E_flow_Q_task_I_stop;
     E_flow_Q_task_I_switch( task_id );
+    task = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, task_id );
     if( !task->exe_stack ) // W bloku – nowe ‹zadanie›: nic nie zmieniać na stosie należącym do przełączanego.
     {   __asm__ volatile (
         "\n" "mov   %0,%%rsp"
@@ -246,7 +255,13 @@ E_flow_Q_task_M( I *uid
         );
         _unreachable;
     }
-    *uid = task_id;
+    if( K_error( E_flow_S_scheduler[ sched_i ].task_error ))
+    {   task_id = E_flow_S_scheduler[ sched_i ].task_error;
+        E_flow_S_scheduler[ sched_i ].task_error = 0;
+        N r = E_flow_Q_task_W(uid);
+        if( task_id > r )
+            task_id = r;
+    }
     return task_id;
 }
 _export
@@ -254,13 +269,16 @@ N
 E_flow_Q_task_W( I *uid
 ){  I id = *uid;
     *uid = ~0;
-    N sched_i = E_flow_I_current_scheduler();
+    N32 sched_i = E_flow_I_current_scheduler();
     struct E_flow_Q_task_Z *task = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, id );
     task->run_state = E_flow_Z_run_state_S_stopping_by_task;
     task->run_state_object = E_flow_S_scheduler[ sched_i ].current_task;
     E_flow_Q_task_I_switch(id); // Przełącz tylko po to, by ‹zadanie› zwalniane zwolniło zasoby; również stosowo, hierarchicznie z powrotem przełączając przy zwalnianiu ‹zadań› przez siebie uruchomionych.
+    N task_error = E_flow_S_scheduler[ sched_i ].task_error;
+    E_flow_S_scheduler[ sched_i ].task_error = 0;
     task = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, id );
     E_mem_Q_stack_I_patch_page_table_remove_guard( (N)task->stack, id );
+    K_( ~2, task_error );
     K_( ~2, W( task->stack ));
     K_( ~2, E_mem_Q_tab_I_remove( E_flow_S_scheduler[ sched_i ].task, id ));
     return 0;
@@ -270,7 +288,7 @@ E_flow_Q_task_W( I *uid
 _export
 I
 E_flow_Q_report_M( N uid
-){  N sched_i = E_flow_I_current_scheduler();
+){  N32 sched_i = E_flow_I_current_scheduler();
     E_flow_I_cli();
     for_each( report_id, E_flow_S_scheduler[ sched_i ].report, E_mem_Q_tab )
     {   struct E_flow_Q_report_Z *report = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].report, report_id );
@@ -291,7 +309,7 @@ End:E_flow_I_sti();
 _export
 I
 E_flow_Q_report_M_srv( N uid
-){  N sched_i = E_flow_I_current_scheduler();
+){  N32 sched_i = E_flow_I_current_scheduler();
     E_flow_I_cli();
     for_each( report_id, E_flow_S_scheduler[ sched_i ].report, E_mem_Q_tab )
     {   struct E_flow_Q_report_Z *report = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].report, report_id );
@@ -306,7 +324,7 @@ E_flow_Q_report_M_srv( N uid
 _export
 N
 E_flow_Q_report_W( I id
-){  N sched_i = E_flow_I_current_scheduler();
+){  N32 sched_i = E_flow_I_current_scheduler();
     Kp( E_mem_Q_tab_I_remove( E_flow_S_scheduler[ sched_i ].report, id ))
         return ~0;
     return 0;
@@ -315,7 +333,7 @@ E_flow_Q_report_W( I id
 _export
 void
 E_flow_Q_report_I_signal( I id
-){  N sched_i = E_flow_I_current_scheduler();
+){  N32 sched_i = E_flow_I_current_scheduler();
     E_flow_I_cli();
     struct E_flow_Q_report_Z *report = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].report, id );
     if( ~report->reported_count )
@@ -337,7 +355,11 @@ B
 E_flow_Q_report_I_wait( I id
 , N *reported_count
 ){  B ret;
-    N sched_i = E_flow_I_current_scheduler();
+    N32 sched_i = E_flow_I_current_scheduler();
+    if( K_error( E_flow_S_scheduler[ sched_i ].task_error ))
+    {   ret = E_flow_Q_task_I_schedule();
+        return ret;
+    }
     struct E_flow_Q_report_Z *report = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].report, id );
     E_flow_I_cli();
     if( report->reported_count )
@@ -368,7 +390,7 @@ E_flow_Q_report_I_wait( I id
 _export
 void
 E_flow_Q_report_I_clear( I id
-){  N sched_i = E_flow_I_current_scheduler();
+){  N32 sched_i = E_flow_I_current_scheduler();
     struct E_flow_Q_report_Z *report = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].report, id );
     report->reported_count = 0;
 }
@@ -377,7 +399,7 @@ E_flow_Q_report_I_clear( I id
 _export
 I
 E_flow_Q_report_timed_M( N uid
-){  N sched_i = E_flow_I_current_scheduler();
+){  N32 sched_i = E_flow_I_current_scheduler();
     E_flow_I_cli();
     for_each( report_id, E_flow_S_scheduler[ sched_i ].report_timed, E_mem_Q_tab )
     {   struct E_flow_Q_report_timed_Z *report = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].report_timed, report_id );
@@ -397,16 +419,18 @@ End:E_flow_I_sti();
     return report_id;
 }
 _export
-void
+N
 E_flow_Q_report_timed_W( I id
-){  N sched_i = E_flow_I_current_scheduler();
-    E_mem_Q_tab_I_remove( E_flow_S_scheduler[ sched_i ].report_timed, id );
+){  N32 sched_i = E_flow_I_current_scheduler();
+    Kp( E_mem_Q_tab_I_remove( E_flow_S_scheduler[ sched_i ].report_timed, id ))
+        return ~0;
+    return 0;
 }
 //------------------------------------------------------------------------------
 _export
 void
 E_flow_Q_report_timed_I_signal( I id
-){  N sched_i = E_flow_I_current_scheduler();
+){  N32 sched_i = E_flow_I_current_scheduler();
     E_flow_I_cli();
     struct E_flow_Q_report_timed_Z *report = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].report_timed, id );
     report->left = 0;
@@ -430,7 +454,11 @@ E_flow_Q_report_timed_I_wait( I id
 , N miliseconds
 , N *reported_count
 ){  B ret;
-    N sched_i = E_flow_I_current_scheduler();
+    N32 sched_i = E_flow_I_current_scheduler();
+    if( K_error( E_flow_S_scheduler[ sched_i ].task_error ))
+    {   ret = E_flow_Q_task_I_schedule();
+        return ret;
+    }
     struct E_flow_Q_report_timed_Z *report = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].report_timed, id );
     E_flow_I_cli();
     if( report->reported_count )
@@ -490,7 +518,7 @@ _export
 I
 E_flow_Q_timer_M( N miliseconds
 ){  N time = E_flow_I_current_time();
-    N sched_i = E_flow_I_current_scheduler();
+    N32 sched_i = E_flow_I_current_scheduler();
     I timer_id = E_mem_Q_tab_I_add( E_flow_S_scheduler[ sched_i ].timer );
     if( K_error( timer_id ))
         return timer_id;
@@ -529,7 +557,7 @@ E_flow_Q_timer_M( N miliseconds
 _export
 N
 E_flow_Q_timer_W( I id
-){  N sched_i = E_flow_I_current_scheduler();
+){  N32 sched_i = E_flow_I_current_scheduler();
     Kp( E_mem_Q_tab_I_remove( E_flow_S_scheduler[ sched_i ].timer, id ))
         return ~0;
     for_each( timer_id, E_flow_S_scheduler[ sched_i ].timer, E_mem_Q_tab )
@@ -547,11 +575,16 @@ _export
 B
 E_flow_Q_timer_I_wait( I id
 , N *reported_count
-){  N sched_i = E_flow_I_current_scheduler();
+){  B ret;
+    N32 sched_i = E_flow_I_current_scheduler();
+    if( K_error( E_flow_S_scheduler[ sched_i ].task_error ))
+    {   ret = E_flow_Q_task_I_schedule();
+        return ret;
+    }
     struct E_flow_Q_task_Z *task = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, E_flow_S_scheduler[ sched_i ].current_task );
     task->run_state = E_flow_Z_run_state_S_waiting_for_timer;
     task->run_state_object = id;
-    B ret = E_flow_Q_task_I_schedule();
+    ret = E_flow_Q_task_I_schedule();
     struct E_flow_Q_timer_Z *timer = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].timer, id );
     if( reported_count )
         *reported_count = timer->reported_count;
@@ -564,7 +597,7 @@ _export
 I
 E_flow_Q_impulser_M( N uid
 ){  struct E_flow_Q_timer_Z *timer;
-    N sched_i = E_flow_I_current_scheduler();
+    N32 sched_i = E_flow_I_current_scheduler();
     E_flow_I_cli();
     for_each( timer_id, E_flow_S_scheduler[ sched_i ].timer, E_mem_Q_tab )
     {   timer = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].timer, timer_id );
@@ -586,7 +619,7 @@ End:E_flow_I_sti();
 _export
 I
 E_flow_Q_impulser_M_srv( N uid
-){  N sched_i = E_flow_I_current_scheduler();
+){  N32 sched_i = E_flow_I_current_scheduler();
     for_each( timer_id, E_flow_S_scheduler[ sched_i ].timer, E_mem_Q_tab )
     {   struct E_flow_Q_timer_Z *timer = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].timer, timer_id );
         if( timer->uid == uid )
@@ -607,7 +640,7 @@ _export
 void
 E_flow_Q_impulser_I_activate( I id
 , N miliseconds
-){  N sched_i = E_flow_I_current_scheduler();
+){  N32 sched_i = E_flow_I_current_scheduler();
     E_flow_I_cli();
     N time = E_flow_I_current_time();
     struct E_flow_Q_timer_Z *timer = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].timer, id );
@@ -644,7 +677,7 @@ End:E_flow_I_sti();
 _export
 void
 E_flow_Q_impulser_I_deactivate( I id
-){  N sched_i = E_flow_I_current_scheduler();
+){  N32 sched_i = E_flow_I_current_scheduler();
     E_flow_I_cli();
     struct E_flow_Q_timer_Z *timer = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].timer, id );
     if( !timer->left )
@@ -670,11 +703,13 @@ End:E_flow_I_sti();
 _export
 B
 E_flow_Q_impulser_I_wait( I id
-){  N sched_i = E_flow_I_current_scheduler();
+){  N32 sched_i = E_flow_I_current_scheduler();
+    if( K_error( E_flow_S_scheduler[ sched_i ].task_error ))
+        goto End;
     struct E_flow_Q_task_Z *task = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, E_flow_S_scheduler[ sched_i ].current_task );
     task->run_state = E_flow_Z_run_state_S_waiting_for_timer;
     task->run_state_object = id;
-    return E_flow_Q_task_I_schedule();
+End:return E_flow_Q_task_I_schedule();
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Każde ‹zadanie› synchroniczne po wywołaniu “E_flow_Q_task_I_schedule” i po przełączeniu w tej procedurze do innego ‹zadania› (“E_flow_Q_task_I_switch”) czeka przed instrukcją powrotu z tej procedury, by kontynuować w miejscu wywołania i ewentualnie zakończyć własne ‹zadanie› po powrocie.
@@ -682,7 +717,7 @@ _export
 __attribute__ (( __noinline__, __returns_twice__, __hot__ ))
 B
 E_flow_Q_task_I_schedule( void
-){  N sched_i = E_flow_I_current_scheduler();
+){  N32 sched_i = E_flow_I_current_scheduler();
     O{  if( U_E( E_flow_S_scheduler[ sched_i ].signal, exit ))
         {   struct E_flow_Q_task_Z *task = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, 0 );
             task->run_state = E_flow_Z_run_state_S_stopping_by_task;
@@ -845,7 +880,7 @@ E_flow_Q_task_I_schedule( void
                 {   do
                     {   N32 acpi_timer_ticks_ = acpi_timer_ticks > 0xffffffff ? 0xffffffff : acpi_timer_ticks;
                         acpi_timer_ticks -= acpi_timer_ticks_;
-                        E_main_Q_msr_P( 0x838, acpi_timer_ticks_ );
+                        E_main_Q_msr_P( 0x838, acpi_timer_ticks_ ); // Ustaw liczbę cykli zegara APIC.
                         __asm__ volatile (
                         "\n" "sti"
                         "\n" "hlt"
@@ -854,13 +889,13 @@ E_flow_Q_task_I_schedule( void
                             "\n" "cli"
                             );
                             if( U_E( E_flow_S_scheduler[ sched_i ].signal, wake ))
-                            {   E_main_Q_msr_P( 0x838, 0 );
+                            {   E_main_Q_msr_P( 0x838, 0 ); // Zatrzymaj zegar APIC.
                                 __asm__ volatile (
                                 "\n" "sti"
                                 );
                                 break;
                             }
-                            if( !E_main_Q_msr_R( 0x839 ))
+                            if( !E_main_Q_msr_R( 0x839 )) // Oczytaj liczbę pozostałych cykli zegara APIC.
                             {   __asm__ volatile (
                                 "\n" "sti"
                                 );
@@ -892,7 +927,7 @@ _internal
 __attribute__ (( __noinline__, __returns_twice__, __hot__ ))
 void
 E_flow_Q_task_I_switch( I task_to_id
-){  N sched_i = E_flow_I_current_scheduler();
+){  N32 sched_i = E_flow_I_current_scheduler();
     struct E_flow_Q_task_Z *task_from = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, E_flow_S_scheduler[ sched_i ].current_task );
     struct E_flow_Q_task_Z *task_to = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, task_to_id );
     E_flow_S_scheduler[ sched_i ].current_task = task_to_id;
@@ -903,7 +938,7 @@ E_flow_Q_task_I_switch( I task_to_id
     : "=m" ( task_from->exe_stack )
     : "r" ( task_to->exe_stack )
     : "cc", "memory"
-    , "rbx", "rcx", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"
+    , "rbp", "rbx", "rcx", "rsi", "rdi", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15"
     , "st", "st(1)", "st(2)", "st(3)", "st(4)", "st(5)", "st(6)", "st(7)"
     , "mm0", "mm1", "mm2", "mm3", "mm4", "mm5", "mm6", "mm7"
     , "xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5", "xmm6", "xmm7", "xmm8", "xmm9", "xmm10", "xmm11", "xmm12", "xmm13", "xmm14", "xmm15"

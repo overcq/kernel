@@ -91,9 +91,9 @@
 // Instrukcja blokowa definicji ‹zadania›.
 #define D(module,task)                      _private _unused void _D_proc(module,task)(void)
     #ifdef C_line_report
-#define D_M(module,task,additional_stack_pages) if( ~E_flow_Q_task_M( &D_id(module,task), ( additional_stack_pages ), &_D_proc(module,task), J_s( _D_proc(module,task) ))){} else
+#define D_M(module,task,additional_stack_pages) E_flow_Q_task_M( &D_id(module,task), ( additional_stack_pages ), &_D_proc(module,task), J_s( _D_proc(module,task) ))
     #else
-#define D_M(module,task,additional_stack_pages) if( ~E_flow_Q_task_M( &D_id(module,task), ( additional_stack_pages ), &_D_proc(module,task) )){} else
+#define D_M(module,task,additional_stack_pages) E_flow_Q_task_M( &D_id(module,task), ( additional_stack_pages ), &_D_proc(module,task) )
     #endif
 #define D_W(module,task)                    E_flow_Q_task_W( &D_id(module,task) )
 //------------------------------------------------------------------------------
@@ -162,12 +162,12 @@
 #define Gk(statement)                       G( "late compile‐time error: %z", J_s(statement) )
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Obsługa ‹zdarzenia›.
-#define K_V(statement) \
+#define K_V(context_ip,error,statement) \
   E_mem_blk_S_context_ip = E_flow_R_ip(); \
-  N J_autogen_line(r) = (statement); \
-  P J_autogen_line( context_ip ) = E_mem_blk_S_context_ip; \
+  error = (statement); \
+  context_ip = E_mem_blk_S_context_ip; \
   E_mem_blk_S_context_ip = 0; \
-  if( !K_error( J_autogen_line(r) )) \
+  if( !K_error(error) ) \
   { \
   }else
 //------------------------------------------------------------------------------

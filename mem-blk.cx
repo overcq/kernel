@@ -838,7 +838,8 @@ E_mem_Q_blk_Q_table_M_from_free( N *allocated_or_table_i
         N l_ = ~0;
         N i_found;
         struct E_mem_Q_blk_Z_free *free_p = (P)E_mem_blk_S.allocated[ E_mem_blk_S.free_id ].p;
-        for_n( free_i, E_mem_blk_S.allocated[ E_mem_blk_S.free_id ].n ) // Szukanie wolnego bloku na całą tablicę.
+        struct E_mem_Q_blk_Z_free free_p_;
+        for_n( free_i, E_mem_Q_blk_Q_sys_table_R_last( E_mem_blk_S.free_id, (Pc)&free_p_.p - (Pc)&free_p_ ) + 1 ) // Szukanie wolnego bloku na całą tablicę.
         {   p_1 = E_simple_Z_p_I_align_up_to_v2( free_p[ free_i ].p, l_align );
             if( free_p[ free_i ].l >= ( p_1 - free_p[ free_i ].p ) + l_1
             && free_p[ free_i ].l < l_
@@ -872,12 +873,10 @@ E_mem_Q_blk_Q_table_M_from_free( N *allocated_or_table_i
                 free_p[ E_mem_blk_S.allocated[ *allocated_or_table_i ].n ].p = old_free_p;
                 free_p[ E_mem_blk_S.allocated[ *allocated_or_table_i ].n ].l = p_1 - old_free_p;
                 E_mem_blk_S.allocated[ *allocated_or_table_i ].n++;
-                struct E_mem_Q_blk_Z_free free_p_;
                 E_mem_Q_blk_Q_sys_table_f_I_sort_inserted( *allocated_or_table_i, (Pc)&free_p_.p - (Pc)&free_p_, (Pc)&free_p_.l - (Pc)&free_p_, E_mem_blk_S.allocated[ *allocated_or_table_i ].n - 1 );
                 i++;
             }else
             {   E_mem_Q_blk_Q_table_I_put_before( E_mem_blk_S.free_id );
-                struct E_mem_Q_blk_Z_free free_p_;
                 if( !~E_mem_Q_blk_Q_sys_table_f_P_put( E_mem_blk_S.free_id, (Pc)&free_p_.p - (Pc)&free_p_, (Pc)&free_p_.l - (Pc)&free_p_, old_free_p, p_1 - old_free_p ))
                 {   E_mem_Q_blk_Q_table_I_put_after( E_mem_blk_S.free_id );
                     E_mem_Q_blk_Q_table_I_put_end();
@@ -996,6 +995,34 @@ E_mem_Q_sys_table_I_reduce( void
     }
     E_mem_J_single_processor_end;
     return 0;
+}
+_export
+N
+E_mem_Q_blk_I_free_context_ip( P context_ip
+){  N ret = 0;
+    E_mem_J_single_processor_begin;
+    B some_freed;
+    do
+    {   some_freed = no;
+        struct E_mem_Q_blk_Z_allocated allocated_p;
+        for_n_rev( allocated_i, E_mem_Q_blk_Q_sys_table_R_last( E_mem_blk_S.allocated_id, (Pc)&allocated_p.p - (Pc)&allocated_p ) + 1 )
+        {   if( E_mem_blk_S.allocated[ allocated_i ].context_ip == context_ip )
+            {   P p = E_mem_blk_S.allocated[ allocated_i ].p;
+                N n = E_mem_blk_S.allocated[ allocated_i ].n;
+                N u = E_mem_blk_S.allocated[ allocated_i ].u;
+                E_mem_Q_blk_Q_sys_table_a_I_move_empty_entry( allocated_i );
+                if(n)
+                {   struct E_mem_Q_blk_Z_free free_p_;
+                    if( ~E_mem_Q_blk_Q_sys_table_f_P_put( E_mem_blk_S.free_id, (Pc)&free_p_.p - (Pc)&free_p_, (Pc)&free_p_.l - (Pc)&free_p_, p, n * u ))
+                        some_freed = yes;
+                    else
+                        ret = ~1;
+                }
+            }
+        }
+    }while( some_freed );
+    E_mem_J_single_processor_end;
+    return ret;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _export

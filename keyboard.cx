@@ -642,14 +642,20 @@ E_keyboard_M( void
     E_keyboard_S_meta_set = 0;
     E_keyboard_S_led_set_changed_1 = 0;
     E_keyboard_S_queue_changed = no;
-    D_M( keyboard, key, 0 )
-        return ~1;
+    K( D_M( keyboard, key, 0 ))
+    {   K_( ~1, W( E_keyboard_S_queue ));
+        return ~0;
+    }
     E_interrupt_P( 1, &E_keyboard_I_interrupt );
     G( "Keyboard initialized." );
     return 0;
 }
 D( keyboard, key )
 {   X_M( keyboard, key );
+    if( K_error( _X_var( keyboard, key )))
+    {   N32 sched_i = E_flow_I_current_scheduler();
+        E_flow_S_scheduler[ sched_i ].task_error = _X_var( keyboard, key );
+    }
     O{  X_B( keyboard, key, 0 )
             break;
         E_flow_I_cli();
@@ -663,7 +669,11 @@ D( keyboard, key )
         }
         E_flow_I_sti();
     }
-    X_W( keyboard, key );
+    N r = X_W( keyboard, key );
+    if( K_error(r) )
+    {   N32 sched_i = E_flow_I_current_scheduler();
+        E_flow_S_scheduler[ sched_i ].task_error = r < ~1 ? r : ~1;
+    }
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _private

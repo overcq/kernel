@@ -169,26 +169,33 @@ E_disc_I_init( I disc_id
     { case E_disc_Z_type_S_sata_ahci:
         {   disc->sata_ahci.sata_lock = 0;
             disc->sata_ahci.ssd_cache_lock = 0;
+            G( "" );
             N r = E_ssd_cache_I_init(disc);
             if( K_error(r) )
                 return r;
+            G( "" );
             struct E_disc_Z_mbr *mbr = M( disc->sata_ahci.logical_sector_size );
             if( !mbr )
                 return ~2;
             N32 slot_mask;
+            G( "" );
             r = E_sata_Q_sata_ahci_I_read( disc_id, 0, 1, mbr, &slot_mask );
             if( K_error(r) )
                 return r < ~2 ? r : ~2;
             r = E_sata_Q_sata_ahci_I_wait_on_completion( disc, slot_mask );
             if( K_error(r) )
                 return r < ~2 ? r : ~2;
+            G( "" );
             disc = E_mem_Q_tab_R( E_disc_S, disc_id );
             if( mbr->mbr_signature != 0xaa55 )
-                return W(mbr) ? ~1 : 0;
+            {   K_( ~1, W(mbr) );
+                return 0;
+            }
             for_n( i, 4 )
             {   switch( mbr->partition[i].type )
                 { case 0xee:
-                    {   slot_mask = 0;
+                    {   G( "" );
+                        slot_mask = 0;
                         struct E_disc_Z_gpt_header *gpt_header = M( disc->sata_ahci.logical_sector_size );;
                         r = E_sata_Q_sata_ahci_I_read( disc_id, 1, 1, gpt_header, &slot_mask );
                         if( K_error(r) )
@@ -196,6 +203,7 @@ E_disc_I_init( I disc_id
                         r = E_sata_Q_sata_ahci_I_wait_on_completion( disc, slot_mask );
                         if( K_error(r) )
                             return r < ~2 ? r : ~2;
+                        G( "" );
                         disc = E_mem_Q_tab_R( E_disc_S, disc_id );
                         if( gpt_header->signature != 0x5452415020494645
                         || gpt_header->size < 92
@@ -258,8 +266,7 @@ E_disc_I_init( I disc_id
                                 )
                                     return ~2;
                                 struct E_disc_Z_partition *partition = E_mem_Q_blk_I_append( &disc->partition, 1 );
-                                Kp(partition)
-                                    return ~2;
+                                Kp_( ~2, partition );
                                 partition->pba = gpt_partition_record->start_lba / ( disc->sata_ahci.physical_sector_size / disc->sata_ahci.logical_sector_size );
                                 partition->count = ( gpt_partition_record->end_lba - gpt_partition_record->start_lba + 1 ) / ( disc->sata_ahci.physical_sector_size / disc->sata_ahci.logical_sector_size );
                                 for_n( partition_i, disc->partition_n )
@@ -280,12 +287,14 @@ E_disc_I_init( I disc_id
                                 }
                                 disc->partition_n++;
                                 partition->lock = 0;
-                                if( !E_ouxfs_Q_device_M( disc_id, disc->partition_n - 1 ))
-                                {   G( "ouxfs" );
-                                    partition->file_system = E_disc_Z_file_system_S_oux;
-                                }else
+                                r = E_ouxfs_Q_device_M( disc_id, disc->partition_n - 1 );
+                                K(r)
                                 {   G( "unknown" );
                                     partition->file_system = E_disc_Z_file_system_S_unknown;
+                                }
+                                if( ~r )
+                                {   G( "ouxfs" );
+                                    partition->file_system = E_disc_Z_file_system_S_oux;
                                 }
                             }
                             gpt_partition_record = (P)(( Pc )gpt_partition_record + gpt_header->partition_entry_size );
@@ -294,9 +303,7 @@ E_disc_I_init( I disc_id
                     }
                 }
             }
-            r = W(mbr);
-            if(r)
-                return ~1;
+            K_( ~1, W(mbr) );
             break;
         }
       case E_disc_Z_type_S_satapi_ahci:

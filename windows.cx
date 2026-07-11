@@ -92,6 +92,7 @@ E_windows_Q_desktop_M( B on_end
     }
     E_windows_Q_desktop_S[ desktop_id ].visible_button_start = 0;
     E_windows_Q_desktop_S[ desktop_id ].visible_buttons = 0;
+    E_windows_Q_desktop_S[ desktop_id ].button_width = E_main_S_framebuffer.width;
     return 0;
 }
 _private
@@ -150,7 +151,7 @@ E_windows_Q_desktop_W( N8 desktop_id
     if( K_error(r)
     || !r
     )
-    {   if( K_error(r) )
+    {   if( r == ~4 )
             Gk(E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S, desktop_id, 1 ));
         E_flow_I_sti();
         return (S)r < ~2 ? r : ~2;
@@ -161,6 +162,51 @@ E_windows_Q_desktop_W( N8 desktop_id
     {   E_gui_Q_taskbar_S_redraw = yes;
         X_F( gui, draw );
     }
+    return 0;
+}
+_private
+void
+E_windows_Q_desktop_W_error( N8 desktop_id
+){  for_each( window_id, E_windows_Q_desktop_S[ desktop_id ].window, E_mem_Q_tab )
+    {   struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
+        if( window->controls_data )
+            E_controls_W( desktop_id, window_id );
+        if( window->destroy )
+            window->destroy( desktop_id, window_id );
+        W( window->description );
+        W( window->title );
+    }
+    W( E_windows_Q_desktop_S[ desktop_id ].stack );
+    W( E_windows_Q_desktop_S[ desktop_id ].order );
+    E_mem_Q_tab_W( E_windows_Q_desktop_S[ desktop_id ].window );
+}
+_private
+N
+E_windows_Q_desktop_W_clean( N8 desktop_id
+){  if( desktop_id == E_window_Q_desktop_S_current )
+        E_gui_Q_bubble_S.draw = 0;
+    for_each( window_id, E_windows_Q_desktop_S[ desktop_id ].window, E_mem_Q_tab )
+    {   struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
+        if( window->controls_data )
+            E_controls_W( desktop_id, window_id );
+        if( window->destroy )
+            window->destroy( desktop_id, window_id );
+        W( window->description );
+        W( window->title );
+    }
+    I windows = E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ desktop_id ].window );
+    Kp_( ~2, E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S[ desktop_id ].stack, 0, windows ));
+    Kp_( ~2, E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S[ desktop_id ].order, 0, windows ));
+    if( desktop_id == E_window_Q_desktop_S_current )
+    {   E_gui_Q_desktop_S_window_moving = no;
+        E_gui_Q_desktop_S_window_resizing_state = E_gui_Q_desktop_Z_window_resizing_state_S_none;
+    }
+    E_mem_Q_tab_W( E_windows_Q_desktop_S[ desktop_id ].window );
+    E_windows_Q_desktop_S[ desktop_id ].window = E_mem_Q_tab_M( sizeof( struct E_window_Q_window_Z ), 0 );
+    Kp_( ~2, E_windows_Q_desktop_S[ desktop_id ].window );
+    E_windows_Q_desktop_S[ desktop_id ].visible_button_start = 0;
+    E_windows_Q_desktop_S[ desktop_id ].visible_buttons = 0;
+    E_windows_Q_desktop_S[ desktop_id ].button_width = E_main_S_framebuffer.width;
     return 0;
 }
 //------------------------------------------------------------------------------

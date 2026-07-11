@@ -108,7 +108,7 @@ _private
 void
 E_mem_Q_stack_I_page_fault( N address
 ){  address = E_simple_Z_n_I_align_down_to_v2( address, E_mem_S_page_size );
-    N sched_i = E_flow_I_current_scheduler();
+    N32 sched_i = E_flow_I_current_scheduler();
     for_each( task_id, E_flow_S_scheduler[ sched_i ].task, E_mem_Q_tab )
     {   struct E_flow_Q_task_Z *task = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, task_id );
         if( (N)task->stack == address )

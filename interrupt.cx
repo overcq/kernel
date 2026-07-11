@@ -277,10 +277,10 @@ _private struct E_interrupt_Z_id E_interrupt_S_id;
 _internal volatile N E_interrupt_S_apic_timer_ticks;
 _private volatile N E_interrupt_S_cpu_freq;
 _private N E_interrupt_S_apic_timer_tick_time;
-_private volatile N E_interrupt_S_apic_timer_freq;
+_private N E_interrupt_S_apic_timer_freq;
 _internal volatile N E_interrupt_S_apic_timer_freq_;
 _internal volatile N32 E_interrupt_S_apic_timer_div;
-_internal volatile N E_interrupt_S_rtc_ticks;
+_internal volatile N8 E_interrupt_S_rtc_ticks;
 //==============================================================================
 _internal
 N32
@@ -350,19 +350,19 @@ E_interrupt_I_rtc_interrupt_1( void
     else if( E_interrupt_S_rtc_ticks == 1 )
         E_interrupt_S_cpu_freq = E_flow_I_current_time() - E_interrupt_S_cpu_freq;
     E_interrupt_S_rtc_ticks++;
-    E_main_I_out_8( 0x70, 0xc );
-    E_main_I_in_8( 0x71 );
+    E_main_I_out_8( 0x70, 0xc ); // Wybierz rejestr C i włącz NMI.
+    E_main_I_in_8( 0x71 ); // Potwierdź odbiór przerwania.
 }
 _internal
 void
 E_interrupt_I_rtc_interrupt_2( void
 ){  if( !E_interrupt_S_rtc_ticks )
-        E_main_Q_msr_P( 0x838, E_interrupt_S_apic_timer_div );
+        E_main_Q_msr_P( 0x838, E_interrupt_S_apic_timer_div ); // Włącz zegar APIC i ustaw liczbę cykli (był ustawiony tryb okresowy).
     else if( E_interrupt_S_rtc_ticks == 1 )
         E_interrupt_S_apic_timer_freq_ = E_interrupt_S_apic_timer_ticks;
     E_interrupt_S_rtc_ticks++;
-    E_main_I_out_8( 0x70, 0xc );
-    E_main_I_in_8( 0x71 );
+    E_main_I_out_8( 0x70, 0xc ); // Wybierz rejestr C i włącz NMI.
+    E_main_I_in_8( 0x71 ); // Potwierdź odbiór przerwania.
 }
 #define E_interrupt_J_interrupt_descriptor_low( selector, offset, stack ) (( (N)(offset) & (( 1UL << 16 ) - 1 )) | ( (N)(selector) << 16 ) | ( (N)(stack) << 32 ) | ( 0xeUL << ( 32 + 8 )) | ( 1UL << ( 32 + 15 )) | ((( (N)(offset) >> 16 ) & (( 1UL << 16 ) - 1 )) << ( 32 + 16 )))
 #define E_interrupt_J_interrupt_descriptor( i, procedure, stack ) \
@@ -1159,19 +1159,20 @@ E_interrupt_M( void
     G( "Timer calibrating…" );
     E_interrupt_S_external[16] = &E_interrupt_I_apic_timer_interrupt;
     E_interrupt_P( 8, &E_interrupt_I_rtc_interrupt_1 );
-    E_main_Q_msr_P( 0x80f, ( E_main_Q_msr_R( 0x80f ) & ~0xff ) | 0x100 | ( 32 + E_interrupt_S_gsi_n ));
-    E_main_Q_msr_P( 0x832, ( 32 + 16 ) | ( 1 << 17 ));
-    E_main_Q_msr_P( 0x83e, ( E_main_Q_msr_R( 0x83e ) & ~0xf ) | 0xb );
-    E_main_I_out_8( 0x70, 0x8a );
+    E_main_Q_msr_P( 0x80f, ( E_main_Q_msr_R( 0x80f ) & ~0xff ) | 0x100 | ( 32 + E_interrupt_S_gsi_n )); // Ustaw numer przerwania nieoczekiwanego i włącz APIC.
+    E_main_Q_msr_P( 0x832, ( 32 + 16 ) | ( 1 << 17 )); // Ustaw przerwanie zegara i typ zegara: okresowy.
+    E_main_Q_msr_P( 0x83e, ( E_main_Q_msr_R( 0x83e ) & ~0xf ) | 0xb ); // Ustaw dzielnik na 1.
+    // Przygotowanie zegara RTC.
+    E_main_I_out_8( 0x70, 0x8a ); // Wybierz rejestr A i wyłącz NMI.
     N8 v = E_main_I_in_8( 0x71 );
     E_main_I_out_8( 0x70, 0x8a );
-    E_main_I_out_8( 0x71, ( v & 0xf0 ) | 0xf );
-    E_main_I_out_8( 0x70, 0x8b );
+    E_main_I_out_8( 0x71, ( v & 0xf0 ) | 0xf ); // Ustaw częstotliwość na 2 Hz.
+    E_main_I_out_8( 0x70, 0x8b ); // Wybierz rejestr B i wyłącz NMI.
     v = E_main_I_in_8( 0x71 );
     E_main_I_out_8( 0x70, 0x8b );
-    E_main_I_out_8( 0x71, v | 0x40 );
-    E_main_I_out_8( 0x70, 0xc );
-    E_main_I_in_8( 0x71 );
+    E_main_I_out_8( 0x71, v | 0x40 ); // Włącz zegar RTC.
+    E_main_I_out_8( 0x70, 0xc ); // Wybierz rejestr C i włącz NMI.
+    E_main_I_in_8( 0x71 ); // Potwierdź odbiór przerwania.
     E_interrupt_S_rtc_ticks = 0;
     __asm__ volatile (
     "\n" "sti"
@@ -1198,7 +1199,7 @@ E_interrupt_M( void
         __asm__ volatile (
         "\n" "cli"
         );
-        E_main_Q_msr_P( 0x838, 0 );
+        E_main_Q_msr_P( 0x838, 0 ); // Zatrzymaj zegar APIC.
         if(( E_interrupt_S_apic_timer_freq << 1 ) > E_interrupt_S_apic_timer_freq_ ) // Czy nie nadąża obsługiwać przerwań zliczających?
         {   E_interrupt_S_apic_timer_div <<= 1;
             break;
@@ -1206,15 +1207,16 @@ E_interrupt_M( void
         E_interrupt_S_apic_timer_freq = E_interrupt_S_apic_timer_freq_;
         if( E_interrupt_S_apic_timer_div == 1 )
             break;
+        G( "divider=%32x", E_interrupt_S_apic_timer_div );
         E_interrupt_S_apic_timer_div >>= 1;
     }
-    E_main_I_out_8( 0x70, 0x8b );
+    E_main_I_out_8( 0x70, 0x8b ); // Wybierz rejestr B i wyłącz NMI.
     v = E_main_I_in_8( 0x71 );
     E_main_I_out_8( 0x70, 0x8b );
-    E_main_I_out_8( 0x71, v & ~0x40 );
-    E_main_I_out_8( 0x70, 0xc );
-    E_main_I_in_8( 0x71 );
-    E_main_Q_msr_P( 0x832, 32 + E_interrupt_S_gsi_timer );
+    E_main_I_out_8( 0x71, v & ~0x40 ); // Wyłącz zegar RTC.
+    E_main_I_out_8( 0x70, 0xc ); // Wybierz rejestr C i włącz NMI.
+    E_main_I_in_8( 0x71 ); // Potwierdź odbiór przerwania.
+    E_main_Q_msr_P( 0x832, 32 + E_interrupt_S_gsi_timer ); // Ustaw przerwanie zegara i typ zegara: jednorazowy.
     E_interrupt_P( 8, 0 );
     E_interrupt_S_external[16] = 0;
     __asm__ volatile (
@@ -1223,7 +1225,7 @@ E_interrupt_M( void
     E_interrupt_S_cpu_freq *= 2;
     E_interrupt_S_apic_timer_freq *= E_interrupt_S_apic_timer_div * 2;
     E_interrupt_S_apic_timer_tick_time = E_interrupt_S_cpu_freq / E_interrupt_S_apic_timer_freq;
-    G( "Timer calibrated." );
+    G( "Timer calibrated: CPU frequency=%x, APIC frequency=%x, APIC tick time=%x", E_interrupt_S_cpu_freq, E_interrupt_S_apic_timer_freq, E_interrupt_S_apic_timer_tick_time );
     return 0;
 }
 /******************************************************************************/

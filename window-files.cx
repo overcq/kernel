@@ -36,6 +36,19 @@ struct E_window_files_Z_data
 //==============================================================================
 _internal
 N
+E_window_files_W_error( N8 desktop_id
+, I window_id
+){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
+    struct E_window_files_Z_data *window_data = window->data;
+    for_n( i, window_data->disc_partition_n )
+        W( window_data->disc_partition[i].name );
+    W( window_data->disc_partition );
+    W( window->data );
+    return 0;
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_internal
+N
 E_window_files_I_click_(
   struct E_window_Q_window_Z *window
 ){  if( E_mouse_Q_button_S_button != 1
@@ -551,9 +564,27 @@ E_window_files_Q_bubble_I_click(
     {   E_gui_Q_bubble_S.draw = 0;
         X_F( gui, draw );
     }
-    if( K_error(r) )
-        return r;
-    return 0;
+    if( K_error(r)
+    && ~r
+    )
+    {   struct E_window_files_Z_data *window_data = window->data;
+        window_data->dir_start = ~0;
+        window_data->pointer_column = ~0;
+        N r_ = (N)E_mem_Q_blk_I_remove( &window_data->selected_dir, 0, window_data->selected_dir_n );
+        if( K_error( r_ )
+        || !r_
+        )
+        {   window->destroy = &E_window_files_W_error;
+            r_ = E_windows_Q_window_W( E_window_Q_desktop_S_current, E_gui_Q_bubble_S.window_id );
+            if( r > r_ )
+                r = r_;
+        }else
+        {   window_data->selected_dir_n = 0;
+            if( r == ~2 )
+                r = ~1;
+        }
+    }
+    return r;
 }
 _internal
 N
@@ -950,7 +981,27 @@ E_window_files_I_click( I window_id
     struct E_window_files_Z_data *window_data = window->data;
     if( !~window_data->pointer_column )
         return 0;
-    return E_window_files_I_click_(window);
+    N r = E_window_files_I_click_(window);
+    if( K_error(r)
+    && ~r
+    )
+    {   window_data->dir_start = ~0;
+        window_data->pointer_column = ~0;
+        N r_ = (N)E_mem_Q_blk_I_remove( &window_data->selected_dir, 0, window_data->selected_dir_n );
+        if( K_error( r_ )
+        || !r_
+        )
+        {   window->destroy = &E_window_files_W_error;
+            r_ = E_windows_Q_window_W( E_window_Q_desktop_S_current, window_id );
+            if( r > r_ )
+                r = r_;
+        }else
+        {   window_data->selected_dir_n = 0;
+            if( r == ~2 )
+                r = ~1;
+        }
+    }
+    return r;
 }
 _internal
 void
