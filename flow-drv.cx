@@ -56,7 +56,7 @@ struct E_flow_Z_scheduler
   unsigned U_R( signal, wake )              :1;
 };
 //==============================================================================
-_private struct E_flow_Z_scheduler *E_flow_S_scheduler;
+_private volatile struct E_flow_Z_scheduler *E_flow_S_scheduler;
 _private N E_flow_S_scheduler_n;
 _private B E_flow_S_inited;
 //==============================================================================
@@ -317,7 +317,9 @@ E_flow_Q_report_M_srv( N uid
             break;
     }
     if( !~report_id )
-        E_main_I_error_fatal();
+    {   G( "Event %x handled", ~4 );
+        E_main_I_fatal_save();
+    }
     E_flow_I_sti();
     return report_id;
 }

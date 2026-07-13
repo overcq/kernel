@@ -269,7 +269,7 @@ E_main_Z_p_I_to_physical( P p
 _private
 __attribute__ (( __noreturn__ ))
 void
-E_main_I_error_fatal( void
+E_main_I_fatal( void
 ){  __asm__ volatile (
     "\n" "cli"
     );
@@ -277,6 +277,12 @@ E_main_I_error_fatal( void
         "\n" "hlt"
         );
     }
+}
+_private
+__attribute__ (( __noreturn__ ))
+void
+E_main_I_fatal_save( void
+){  E_main_I_fatal();
 }
 _internal
 __attribute__ (( __naked__ ))
@@ -342,7 +348,7 @@ E_main_I_processor_start( void
     "\n" "call      E_flow_M"
     "\n" "test      %%rax,%%rax"
     "\n" "jns       0f"
-    "\n" "jmp       E_main_I_error_fatal"
+    "\n" "jmp       E_main_I_fatal"
     "\n0: mov       %%rax,(%%rbp,%%rbx,8)"
     "\n"  "jmp      E_flow_I_main_task"
     :
@@ -384,16 +390,16 @@ main( struct E_main_Z_kernel_args *kernel_args
     E_flow_S_inited = no;
     Mt_( E_vga_S_framebuffer, E_main_S_framebuffer.height * E_main_S_framebuffer.width );
     if( !E_vga_S_framebuffer )
-        E_main_I_error_fatal();
+        E_main_I_fatal();
     N r = E_font_M();
     if( K_error(r) )
-        E_main_I_error_fatal();
+        E_main_I_fatal();
     r = E_se_log_M();
     if( K_error(r) )
-        E_main_I_error_fatal();
+        E_main_I_fatal();
     r = E_emerg_print_M();
     if( K_error(r) )
-        E_main_I_error_fatal();
+        E_main_I_fatal();
     Mt_( E_main_S_gdt, 5 + kernel_args->processor_n * 2 );
     if( !E_main_S_gdt )
         goto End;
@@ -531,7 +537,7 @@ main( struct E_main_Z_kernel_args *kernel_args
     }
     S status = E_main_S_uefi_runtime_services.reset_system( H_uefi_Z_reset_Z_shutdown, 0, 0, 0 );
 End:G( "end loop" );
-    E_main_I_error_fatal();
+    E_main_I_fatal();
 }
 D( main, test )
 {   I timer = Y_M(10000);

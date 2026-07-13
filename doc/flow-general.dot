@@ -1,0 +1,15 @@
+digraph
+{ gui_D_draw -> gui_draw [ label = "move blocked in mouse interrupt" ];
+  E_keyboard_I_interrupt -> keyboard_D_key [ dir = none ];
+  keyboard_D_key -> E_gui_Q_keyboard_I_key [ label = "interrupts blocked" ];
+  E_mouse_I_interrupt -> E_gui_Q_pointer_I_move;
+  E_gui_Q_pointer_I_move -> E_gui_Q_pointer_I_move_over_window;
+  E_mouse_I_interrupt -> mouse_D_click [ dir = none ];
+  mouse_D_click -> gui_wheel_click [ label = "interrupts blocked" ];
+  E_ethernet_I_interrupt -> net_D_dhcp [ dir = none ];
+  gui_D_draw [ label = "D( gui, draw )" ];
+  gui_draw [ label = "E_gui_Q_desktop_I_draw\nE_gui_Q_bubble_I_draw\nE_gui_Q_taskbar_I_draw\nE_gui_Q_taskbar_I_draw_expander" ];
+  keyboard_D_key [ label = "D( keyboard, key )" ];
+  mouse_D_click [ label = "D( mouse, click )" ];
+  gui_wheel_click [ label = "E_gui_Q_pointer_I_wheel || E_controls_I_wheel\nE_controls_I_click || E_gui_Q_pointer_I_click" ];
+}

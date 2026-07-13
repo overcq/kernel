@@ -315,7 +315,10 @@ Switch:     switch( interface->dhcp.state )
                     N packet_l = sizeof( struct E_ipv4_Z_dhcp_packet ) + 16;
                     struct E_ipv4_Z_dhcp_packet *packet = M( packet_l );
                     if( !packet )
-                        E_main_I_error_fatal();
+                    {   N32 sched_i = E_flow_I_current_scheduler();
+                        E_flow_S_scheduler[ sched_i ].task_error = ~0;
+                        goto Block;
+                    }
                     _0( packet, packet_l );
                     for_n( i, 6 )
                         packet->ethernet.destination_address[i] = 0xff;
@@ -371,17 +374,56 @@ Switch:     switch( interface->dhcp.state )
                     for_n_( i, J_a_R_n( packet_ ))
                     {   packet_[i] = M( packet_l );
                         if( !packet_[i] )
-                            E_main_I_error_fatal();
+                        {   N r = ~0;
+                            for_n( i_, i )
+                            {   r = W( packet_[ i_ ] );
+                                if( K_error(r) )
+                                {   if( r > ~1 )
+                                        r = ~1;
+                                    break;
+                                }
+                            }
+                            N32 sched_i = E_flow_I_current_scheduler();
+                            E_flow_S_scheduler[ sched_i ].task_error = r;
+                            goto Block;
+                        }
                         E_mem_Q_blk_I_copy( packet_[i], packet, packet_l );
                     }
                     if( !~interface->dhcp.connection_id )
                     {   interface->dhcp.connection_id = E_net_Q_udp4_connection_state_M( packet->ipv4.source_address, packet->udp.source_port, packet->ipv4.destination_address, packet->udp.destination_port, _Xi_var( net, dhcp ));
                         if( !~interface->dhcp.connection_id )
-                            E_main_I_error_fatal();
+                        {   N r = ~0;
+                            for_n_( i, J_a_R_n( packet_ ))
+                            {   r = W( packet_[i] );
+                                if( K_error(r) )
+                                {   if( r > ~1 )
+                                        r = ~1;
+                                    break;
+                                }
+                            }
+                            N32 sched_i = E_flow_I_current_scheduler();
+                            E_flow_S_scheduler[ sched_i ].task_error = r;
+                            goto Block;
+                        }
                     }
                     E_ethernet_I_transmit( interface, packet, packet_l );
                     for_n_( i, J_a_R_n( packet_ ))
-                        E_ethernet_I_transmit( interface, packet_[i], packet_l );
+                    {   N r = E_ethernet_I_transmit( interface, packet_[i], packet_l );
+                        if( K_error(r) )
+                        {   N r = ~0;
+                            for_n_( i, J_a_R_n( packet_ ))
+                            {   r = W( packet_[i] );
+                                if( K_error(r) )
+                                {   if( r > ~1 )
+                                        r = ~1;
+                                    break;
+                                }
+                            }
+                            N32 sched_i = E_flow_I_current_scheduler();
+                            E_flow_S_scheduler[ sched_i ].task_error = r;
+                            goto Block;
+                        }
+                    }
                     interface->dhcp.state = E_net_Z_interface_state_S_dhcp_offer;
                     break;
                 }
@@ -409,7 +451,10 @@ Switch:     switch( interface->dhcp.state )
                     || offer_packet->options[3] != 99
                     )
                     {   if( W( connection_state->buffer ))
-                            E_main_I_error_fatal();
+                        {   N32 sched_i = E_flow_I_current_scheduler();
+                            E_flow_S_scheduler[ sched_i ].task_error = ~1;
+                            goto Block;
+                        }
                         connection_state->buffer = 0;
                         break;
                     }
@@ -425,7 +470,10 @@ Switch:     switch( interface->dhcp.state )
                     || option[2] != 2
                     )
                     {   if( W( connection_state->buffer ))
-                            E_main_I_error_fatal();
+                        {   N32 sched_i = E_flow_I_current_scheduler();
+                            E_flow_S_scheduler[ sched_i ].task_error = ~1;
+                            goto Block;
+                        }
                         connection_state->buffer = 0;
                         if( ++interface->dhcp.retry == E_net_S_dhcp_tries )
                         {   interface->dhcp.state = E_net_Z_interface_state_S_dhcp_invalid;
@@ -459,14 +507,20 @@ Offer_end:          interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
                     ? E_net_Z_interface_state_S_dhcp_request
                     : E_net_Z_interface_state_S_dhcp_invalid;
                     if( W( connection_state->buffer ))
-                        E_main_I_error_fatal();
+                    {   N32 sched_i = E_flow_I_current_scheduler();
+                        E_flow_S_scheduler[ sched_i ].task_error = ~1;
+                        goto Block;
+                    }
                     connection_state->buffer = 0;
                 }
               case E_net_Z_interface_state_S_dhcp_request:
                 {   N packet_l = sizeof( struct E_ipv4_Z_dhcp_packet ) + 34;
                     struct E_ipv4_Z_dhcp_packet *packet = M( packet_l );
                     if( !packet )
-                        E_main_I_error_fatal();
+                    {   N32 sched_i = E_flow_I_current_scheduler();
+                        E_flow_S_scheduler[ sched_i ].task_error = ~0;
+                        goto Block;
+                    }
                     _0( packet, packet_l );
                     for_n( i, 6 )
                         packet->ethernet.destination_address[i] = 0xff;
@@ -543,12 +597,39 @@ Offer_end:          interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
                     for_n_( i, J_a_R_n( packet_ ))
                     {   packet_[i] = M( packet_l );
                         if( !packet_[i] )
-                            E_main_I_error_fatal();
+                        {   N r = ~0;
+                            for_n( i_, i )
+                            {   r = W( packet_[ i_ ] );
+                                if( K_error(r) )
+                                {   if( r > ~1 )
+                                        r = ~1;
+                                    break;
+                                }
+                            }
+                            N32 sched_i = E_flow_I_current_scheduler();
+                            E_flow_S_scheduler[ sched_i ].task_error = r;
+                            goto Block;
+                        }
                         E_mem_Q_blk_I_copy( packet_[i], packet, packet_l );
                     }
                     E_ethernet_I_transmit( interface, packet, packet_l );
                     for_n_( i, J_a_R_n( packet_ ))
-                        E_ethernet_I_transmit( interface, packet_[i], packet_l );
+                    {   N r = E_ethernet_I_transmit( interface, packet_[i], packet_l );
+                        if( K_error(r) )
+                        {   N r = ~0;
+                            for_n_( i, J_a_R_n( packet_ ))
+                            {   r = W( packet_[i] );
+                                if( K_error(r) )
+                                {   if( r > ~1 )
+                                        r = ~1;
+                                    break;
+                                }
+                            }
+                            N32 sched_i = E_flow_I_current_scheduler();
+                            E_flow_S_scheduler[ sched_i ].task_error = r;
+                            goto Block;
+                        }
+                    }
                     interface->dhcp.state = E_net_Z_interface_state_S_dhcp_ack;
                     break;
                 }
@@ -576,7 +657,10 @@ Offer_end:          interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
                     || offer_packet->options[3] != 99
                     )
                     {   if( W( connection_state->buffer ))
-                            E_main_I_error_fatal();
+                        {   N32 sched_i = E_flow_I_current_scheduler();
+                            E_flow_S_scheduler[ sched_i ].task_error = ~1;
+                            goto Block;
+                        }
                         connection_state->buffer = 0;
                         break;
                     }
@@ -592,7 +676,10 @@ Offer_end:          interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
                     || option[2] != 5
                     )
                     {   if( W( connection_state->buffer ))
-                            E_main_I_error_fatal();
+                        {   N32 sched_i = E_flow_I_current_scheduler();
+                            E_flow_S_scheduler[ sched_i ].task_error = ~1;
+                            goto Block;
+                        }
                         connection_state->buffer = 0;
                         if( ++interface->dhcp.retry == E_net_S_dhcp_tries )
                         {   interface->dhcp.state = E_net_Z_interface_state_S_dhcp_invalid;
@@ -658,7 +745,10 @@ Ack_end:            interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
                     if( interface->dhcp.state == E_net_Z_interface_state_S_dhcp_renew_0 )
                         connection_state->ip4.local_address = interface->ipv4_address;
                     if( W( connection_state->buffer ))
-                        E_main_I_error_fatal();
+                    {   N32 sched_i = E_flow_I_current_scheduler();
+                        E_flow_S_scheduler[ sched_i ].task_error = ~1;
+                        goto Block;
+                    }
                     connection_state->buffer = 0;
                     break;
                 }
@@ -666,7 +756,10 @@ Ack_end:            interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
                 {   N packet_l = sizeof( struct E_ipv4_Z_dhcp_packet ) + 34;
                     struct E_ipv4_Z_dhcp_packet *packet = M( packet_l );
                     if( !packet )
-                        E_main_I_error_fatal();
+                    {   N32 sched_i = E_flow_I_current_scheduler();
+                        E_flow_S_scheduler[ sched_i ].task_error = ~0;
+                        goto Block;
+                    }
                     _0( packet, packet_l );
                     for_n( i, 6 )
                         packet->ethernet.destination_address[i] = 0xff;
@@ -743,12 +836,39 @@ Ack_end:            interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
                     for_n_( i, J_a_R_n( packet_ ))
                     {   packet_[i] = M( packet_l );
                         if( !packet_[i] )
-                            E_main_I_error_fatal();
+                        {   N r = ~0;
+                            for_n( i_, i )
+                            {   r = W( packet_[ i_ ] );
+                                if( K_error(r) )
+                                {   if( r > ~1 )
+                                        r = ~1;
+                                    break;
+                                }
+                            }
+                            N32 sched_i = E_flow_I_current_scheduler();
+                            E_flow_S_scheduler[ sched_i ].task_error = r;
+                            goto Block;
+                        }
                         E_mem_Q_blk_I_copy( packet_[i], packet, packet_l );
                     }
                     E_ethernet_I_transmit( interface, packet, packet_l );
                     for_n_( i, J_a_R_n( packet_ ))
-                        E_ethernet_I_transmit( interface, packet_[i], packet_l );
+                    {   N r = E_ethernet_I_transmit( interface, packet_[i], packet_l );
+                        if( K_error(r) )
+                        {   N r = ~0;
+                            for_n_( i, J_a_R_n( packet_ ))
+                            {   r = W( packet_[i] );
+                                if( K_error(r) )
+                                {   if( r > ~1 )
+                                        r = ~1;
+                                    break;
+                                }
+                            }
+                            N32 sched_i = E_flow_I_current_scheduler();
+                            E_flow_S_scheduler[ sched_i ].task_error = r;
+                            goto Block;
+                        }
+                    }
                     interface->dhcp.state = E_net_Z_interface_state_S_dhcp_ack_any;
                     break;
                 }
@@ -776,7 +896,10 @@ Ack_end:            interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
                     || offer_packet->options[3] != 99
                     )
                     {   if( W( connection_state->buffer ))
-                            E_main_I_error_fatal();
+                        {   N32 sched_i = E_flow_I_current_scheduler();
+                            E_flow_S_scheduler[ sched_i ].task_error = ~1;
+                            goto Block;
+                        }
                         connection_state->buffer = 0;
                         break;
                     }
@@ -792,7 +915,10 @@ Ack_end:            interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
                     || option[2] != 5
                     )
                     {   if( W( connection_state->buffer ))
-                            E_main_I_error_fatal();
+                        {   N32 sched_i = E_flow_I_current_scheduler();
+                            E_flow_S_scheduler[ sched_i ].task_error = ~1;
+                            goto Block;
+                        }
                         connection_state->buffer = 0;
                         if( ++interface->dhcp.retry == E_net_S_dhcp_tries )
                         {   interface->dhcp.state = E_net_Z_interface_state_S_dhcp_invalid;
@@ -857,7 +983,10 @@ Ack_any_end:        interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
                     ? E_net_Z_interface_state_S_dhcp_renew_0
                     : E_net_Z_interface_state_S_dhcp_invalid;
                     if( W( connection_state->buffer ))
-                        E_main_I_error_fatal();
+                    {   N32 sched_i = E_flow_I_current_scheduler();
+                        E_flow_S_scheduler[ sched_i ].task_error = ~1;
+                        goto Block;
+                    }
                     connection_state->buffer = 0;
                     break;
                 }
@@ -921,7 +1050,7 @@ Ack_any_end:        interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
                 time = time > current_time ? ( time - current_time ) * 1000 / E_interrupt_S_cpu_freq : 0;
                 Yi_F( net, dhcp, time );
             }
-            Yi_B( net, dhcp )
+Block:      Yi_B( net, dhcp )
                 goto End;
         }
     }

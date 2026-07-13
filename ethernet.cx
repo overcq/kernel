@@ -137,8 +137,13 @@ E_ethernet_I_interrupt( void
                 N last;
                 for_n( i, part_count )
                 {   if(eop)
-                        if( W( E_main_Z_p_I_to_virtual( (P)transmit_descriptors[tail].buffer_address )))
-                            E_main_I_error_fatal();
+                    {   N r = W( E_main_Z_p_I_to_virtual( (P)transmit_descriptors[tail].buffer_address ));
+                        if( K_error(r) )
+                        {   if( r > ~1 )
+                                r = ~1;
+                            G( "Event %x handled", r );
+                        }
+                    }
                     eop = transmit_descriptors[tail].eop;
                     _0_( &transmit_descriptors[tail] );
                     transmit_descriptors[tail].buffer_address = ( N64 )E_main_Z_p_I_to_physical( E_ethernet_S_transmit_queue[ queue_i ].buffer ) + i * E_ethernet_S_receive_buffer_size;
@@ -153,8 +158,13 @@ E_ethernet_I_interrupt( void
                 queue_i++;
             }while( --E_ethernet_S_transmit_queue_n );
             if( queue_i )
-            {   if( !E_mem_Q_blk_I_remove( &E_ethernet_S_transmit_queue, 0, queue_i ))
-                    E_main_I_error_fatal();
+            {   N r = (N)E_mem_Q_blk_I_remove( &E_ethernet_S_transmit_queue, 0, queue_i );
+                if( K_error(r)
+                || !r
+                )
+                {   G( "Event %x handled", r );
+                    E_main_I_fatal_save();
+                }
                 *( volatile N32 * )(( Pc )interface->register_memory + 0x3818 ) = tail;
             }
         }
@@ -204,7 +214,9 @@ E_ethernet_I_interrupt( void
                                         {   while( !receive_descriptors[tail].eop )
                                             {   tail = ( tail + 1 ) % count;
                                                 if( tail == head )
-                                                    E_main_I_error_fatal();
+                                                {   G( "Event %x handled", ~0 );
+                                                    E_main_I_fatal_save();
+                                                }
                                                 receive_descriptors[tail].dd = no;
                                             }
                                             break;
@@ -212,7 +224,9 @@ E_ethernet_I_interrupt( void
                                         N length = sizeof( struct E_net_Z_ethernet_header ) + sizeof( struct E_net_Z_ipv4_header ) + udp4->length;
                                         connection_state->buffer = M(length);
                                         if( !connection_state->buffer )
-                                            E_main_I_error_fatal();
+                                        {   G( "Event %x handled", ~0 );
+                                            E_main_I_fatal_save();
+                                        }
                                         N offset = J_min( length, E_ethernet_S_receive_buffer_size );
                                         E_mem_Q_blk_I_copy( connection_state->buffer, ( Pc )eth, offset );
                                         length -= offset;
@@ -222,14 +236,18 @@ E_ethernet_I_interrupt( void
                                                 if( tail == head
                                                 || length <= E_ethernet_S_receive_buffer_size
                                                 )
-                                                    E_main_I_error_fatal();
+                                                {   G( "Event %x handled", ~0 );
+                                                    E_main_I_fatal_save();
+                                                }
                                                 E_mem_Q_blk_I_copy( connection_state->buffer + offset, E_main_Z_p_I_to_virtual( (P)receive_descriptors[tail].buffer_address ), E_ethernet_S_receive_buffer_size );
                                                 offset += E_ethernet_S_receive_buffer_size;
                                                 length -= E_ethernet_S_receive_buffer_size;
                                             }while( !receive_descriptors[tail].eop );
                                             tail = ( tail + 1 ) % count;
                                             if( tail == head )
-                                                E_main_I_error_fatal();
+                                            {   G( "Event %x handled", ~0 );
+                                                E_main_I_fatal_save();
+                                            }
                                             E_mem_Q_blk_I_copy( connection_state->buffer + offset, E_main_Z_p_I_to_virtual( (P)receive_descriptors[tail].buffer_address ), length );
                                         }
                                         struct E_net_Z_ethernet_header *eth = (P)connection_state->buffer;

@@ -1,7 +1,8 @@
 *.o
-/install/a.out
+*.svg
 /kernel
 /kernel.elf
 /I_compile_S_0.h
 /I_compile_S_0_*.h
 /I_compile_S_0_*.c
+/install/a.out

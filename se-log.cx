@@ -303,12 +303,6 @@ E_se_log_Q_element_I_print( N *element_i
     while( *fmt )
     {   U u;
         Pc s = E_text_Z_su_R_u( fmt, &u );
-        if( s == fmt )
-        {   KP_( ~1, W(output) );
-            return 0;
-        }
-        if( !~u )
-            break;
         if( inside_arg )
         {   if( inside_arg == 1
             && u == '%'

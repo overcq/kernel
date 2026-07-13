@@ -1893,6 +1893,20 @@ E_text_Z_getter_Z_c_R_u_rev( N (*getter)(void)
     : ~0;
     return 1 + i;
 }
+_export
+B
+E_text_Z_su_T_correct( Pc s
+){  while( *s )
+    {   U u;
+        Pc s_ = E_text_Z_su_R_u( s, &u );
+        if( s_ == s
+        || !~u
+        )
+            return no;
+        s = s_;
+    }
+    return yes;
+}
 //==============================================================================
 _export
 N

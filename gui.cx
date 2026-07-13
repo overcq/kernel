@@ -7,8 +7,6 @@
 *         GUI
 * (c)overcq              on WSL\Debian (Linux 6.6.87.2)             2025-12-20 I
 *******************************************************************************/
-//TODO Zmienić wywołania “E_main_I_error_fatal” na wyjścia.
-//==============================================================================
 enum E_gui_Q_desktop_Z_window_resizing_state
 { E_gui_Q_desktop_Z_window_resizing_state_S_none
 , E_gui_Q_desktop_Z_window_resizing_state_S_nw
@@ -91,6 +89,54 @@ E_gui_M( void
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _internal
 void
+E_gui_I_error( P context_ip
+, N error
+){  N r;
+    if( !~error )
+        r = 0;
+    if( error <= ~1 )
+        r = E_mem_Q_blk_I_free_context_ip( context_ip );
+    if( error <= ~2 )
+    {   N r_ = E_windows_Q_desktop_W_clean( E_window_Q_desktop_S_current );
+        if( K_error( r_ ))
+        {   r_ = (N)E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S, E_window_Q_desktop_S_current, 1 );
+            if( K_error( r_ )
+            || !r_
+            )
+            {   if( r == ~4 )
+                    Gk(E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S, E_window_Q_desktop_S_current, 1 ));
+                for_n_rev( desktop_id, E_windows_Q_desktop_S_n )
+                    E_windows_Q_desktop_W_error( desktop_id );
+                r_ = (N)E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S, 0, E_windows_Q_desktop_S_n );
+                if( K_error( r_ )
+                || !r_
+                )
+                    E_main_I_fatal_save();
+                E_windows_Q_desktop_S_n = 1;
+            }
+            if( !--E_windows_Q_desktop_S_n )
+            {   r_ = E_windows_Q_desktop_M(yes);
+                if( K_error( r_ ))
+                    E_main_I_fatal_save();
+                E_window_Q_desktop_S_current = 0;
+            }else
+                if( E_window_Q_desktop_S_current )
+                    E_window_Q_desktop_S_current--;
+        }
+        E_gui_Q_taskbar_S_redraw = yes;
+        X_F( gui, draw );
+    }
+    if( error == ~3 )
+        E_main_I_fatal();
+    if( error == ~4 )
+        r = 0;
+    G( "Event %x handled", error );
+    if( K_error(r) )
+        G_( " with error %x", r );
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_internal
+void
 E_gui_Q_main_menu_I_log_window( I window_id
 ){  window_id = E_window_log_M( E_window_Q_desktop_S_current );
     if( window_id == ~2 )
@@ -121,6 +167,11 @@ E_gui_Q_main_menu_I_restart( I window_id
 ){  S status = E_main_S_uefi_runtime_services.reset_system( H_uefi_Z_reset_Z_warm, 0, 0, 0 );
 }
 _internal
+void
+E_gui_Q_main_menu_I_shutdown( I window_id
+){  S status = E_main_S_uefi_runtime_services.reset_system( H_uefi_Z_reset_Z_shutdown, 0, 0, 0 );
+}
+_internal
 N
 E_gui_Q_main_menu_I_draw( I window_id
 , N32 x
@@ -130,25 +181,47 @@ E_gui_Q_main_menu_I_draw( I window_id
 ){  return 0;
 }
 _internal
+N
+E_gui_Q_main_menu_W( N8 desktop_id
+, I window_id
+){  return E_controls_W( desktop_id, window_id );
+}
+_internal
 I
 E_gui_Q_main_menu_M( void
-){  I window_id = E_windows_Q_window_M( E_window_Q_desktop_S_current, "Main menu", S_os_version, &E_gui_Q_main_menu_I_draw, 0, 0, 0, 0, 0 );
+){  I window_id = E_windows_Q_window_M( E_window_Q_desktop_S_current, "Main menu", S_os_version, &E_gui_Q_main_menu_I_draw, 0, 0, 0, 0, &E_gui_Q_main_menu_W );
     K( window_id )
         return ~0;
     K( E_controls_M( E_window_Q_desktop_S_current, window_id ))
-        return ~2;
+    {   K_( ~2, E_windows_Q_window_W( E_window_Q_desktop_S_current, window_id ));
+        return ~0;
+    }
     K( E_controls_Q_button_I_add( E_window_Q_desktop_S_current, window_id, "Log window", E_gui_Q_taskbar_S_font_size, E_gui_Q_taskbar_S_thickness, &E_gui_Q_main_menu_I_log_window, no ))
-        return ~2;
+    {   K_( ~2, E_windows_Q_window_W( E_window_Q_desktop_S_current, window_id ));
+        return ~0;
+    }
     K( E_controls_Q_button_I_add( E_window_Q_desktop_S_current, window_id, "Double file browser", E_gui_Q_taskbar_S_font_size, E_gui_Q_taskbar_S_thickness, &E_gui_Q_main_menu_I_browse_files, no ))
-        return ~2;
+    {   K_( ~2, E_windows_Q_window_W( E_window_Q_desktop_S_current, window_id ));
+        return ~0;
+    }
     K( E_controls_Q_button_I_add( E_window_Q_desktop_S_current, window_id, "Restart", E_gui_Q_taskbar_S_font_size, E_gui_Q_taskbar_S_thickness, &E_gui_Q_main_menu_I_restart, yes ))
-        return ~2;
+    {   K_( ~2, E_windows_Q_window_W( E_window_Q_desktop_S_current, window_id ));
+        return ~0;
+    }
+    K( E_controls_Q_button_I_add( E_window_Q_desktop_S_current, window_id, "Shutdown", E_gui_Q_taskbar_S_font_size, E_gui_Q_taskbar_S_thickness, &E_gui_Q_main_menu_I_shutdown, no ))
+    {   K_( ~2, E_windows_Q_window_W( E_window_Q_desktop_S_current, window_id ));
+        return ~0;
+    }
     struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
     struct E_controls_Z_data *data = window->controls_data;
     K( E_controls_Q_label_I_add( E_window_Q_desktop_S_current, window_id, "Label", E_gui_Q_taskbar_S_font_size, E_gui_Q_taskbar_S_thickness, yes ))
-        return ~2;
+    {   K_( ~2, E_windows_Q_window_W( E_window_Q_desktop_S_current, window_id ));
+        return ~0;
+    }
     K( E_controls_Q_textbox_I_add( E_window_Q_desktop_S_current, window_id, 40, "Textbox", E_gui_Q_taskbar_S_font_size, E_gui_Q_taskbar_S_thickness, no ))
-        return ~2;
+    {   K_( ~2, E_windows_Q_window_W( E_window_Q_desktop_S_current, window_id ));
+        return ~0;
+    }
     window->data = 0;
     return window_id;
 }
@@ -461,56 +534,7 @@ E_gui_Q_pointer_I_click( void
                       E_mouse_Q_button_S_coordinate[0] - E_gui_Q_bubble_S.x
                     , E_mouse_Q_button_S_coordinate[1] - E_gui_Q_bubble_S.y
                     ))
-                    {   N r;
-                        switch(error)
-                        { case ~0:
-                                r = 0;
-                                break;
-                          case ~1:
-                                r = E_mem_Q_blk_I_free_context_ip( context_ip );
-                                break;
-                          case ~2:
-                            {   r = E_mem_Q_blk_I_free_context_ip( context_ip );
-                                N r_ = E_windows_Q_desktop_W_clean( E_window_Q_desktop_S_current );
-                                if( K_error( r_ ))
-                                {   r_ = (N)E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S, E_window_Q_desktop_S_current, 1 );
-                                    if( K_error( r_ )
-                                    || !r_
-                                    )
-                                    {   if( r == ~4 )
-                                            Gk(E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S, E_window_Q_desktop_S_current, 1 ));
-                                        for_n_rev( desktop_id, E_windows_Q_desktop_S_n )
-                                            E_windows_Q_desktop_W_error( desktop_id );
-                                        r_ = (N)E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S, 0, E_windows_Q_desktop_S_n );
-                                        if( K_error( r_ )
-                                        || !r_
-                                        )
-                                            E_main_I_error_fatal();
-                                        E_windows_Q_desktop_S_n = 1;
-                                    }
-                                    if( !--E_windows_Q_desktop_S_n )
-                                    {   r_ = E_windows_Q_desktop_M(yes);
-                                        if( K_error( r_ ))
-                                            E_main_I_error_fatal();
-                                        E_window_Q_desktop_S_current = 0;
-                                    }else
-                                        if( E_window_Q_desktop_S_current )
-                                            E_window_Q_desktop_S_current--;
-                                }
-                                E_gui_Q_taskbar_S_redraw = yes;
-                                X_F( gui, draw );
-                                break;
-                            }
-                          case ~3:
-                                E_main_I_error_fatal();
-                                break;
-                          case ~4:
-                                break;
-                        }
-                        G( "Event %x handled", error );
-                        if( K_error(r) )
-                            G_( " with error %x", r );
-                    }
+                        E_gui_I_error( context_ip, error );
                 }
                 return;
             }
@@ -532,9 +556,12 @@ E_gui_Q_pointer_I_click( void
                             break;
                     }
                     if( window_i == windows )
-                    {   window_id = E_gui_Q_main_menu_M();
-                        if( K_error( window_id ))
-                            E_main_I_error_fatal();
+                    {   P context_ip;
+                        N error;
+                        K_V( context_ip, error
+                        , E_gui_Q_main_menu_M()
+                        )
+                            E_gui_I_error( context_ip, error );
                     }else
                     {   E_windows_Q_window_Q_stack_I_on_top( window_id );
                         if( E_gui_Q_taskbar_I_scroll_to_active() )
@@ -577,8 +604,12 @@ E_gui_Q_pointer_I_click( void
                     if( E_mouse_Q_button_S_coordinate[0] >= panel_x_0 + E_gui_Q_taskbar_S_font_size + 1
                     && E_mouse_Q_button_S_coordinate[0] < panel_x_0 + E_gui_Q_taskbar_S_font_size + 1 + ( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height
                     ) // Kliknięto przycisk ‛zamknij’.
-                    {   if( E_windows_Q_window_W( E_window_Q_desktop_S_current, window_id ))
-                            E_main_I_error_fatal();
+                    {   P context_ip;
+                        N error;
+                        K_V( context_ip, error
+                        , E_windows_Q_window_W( E_window_Q_desktop_S_current, window_id )
+                        )
+                            E_gui_I_error( context_ip, error );
                     }else if( E_mouse_Q_button_S_coordinate[0] >= panel_x_0 + E_gui_Q_taskbar_S_font_size + 1 + (( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height + E_gui_Q_taskbar_S_font_size + 1 )
                     && E_mouse_Q_button_S_coordinate[0] < panel_x_0 + E_gui_Q_taskbar_S_font_size + 1 + (( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height + E_gui_Q_taskbar_S_font_size + 1 ) + ( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height
                     ) // Kliknięto przycisk ‛zmaksymalizowane’.
@@ -845,56 +876,7 @@ E_gui_Q_pointer_I_click( void
                                 , E_mouse_Q_button_S_coordinate[0] - ( window->x + E_gui_Q_desktop_S_window_border_thickness )
                                 , E_mouse_Q_button_S_coordinate[1] - ( window->y + E_gui_Q_desktop_S_window_border_thickness )
                                 ))
-                                {   N r;
-                                    switch(error)
-                                    { case ~0:
-                                            r = 0;
-                                            break;
-                                      case ~1:
-                                            r = E_mem_Q_blk_I_free_context_ip( context_ip );
-                                            break;
-                                      case ~2:
-                                        {   r = E_mem_Q_blk_I_free_context_ip( context_ip );
-                                            N r_ = E_windows_Q_desktop_W_clean( E_window_Q_desktop_S_current );
-                                            if( K_error( r_ ))
-                                            {   r_ = (N)E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S, E_window_Q_desktop_S_current, 1 );
-                                                if( K_error( r_ )
-                                                || !r_
-                                                )
-                                                {   if( r == ~4 )
-                                                        Gk(E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S, E_window_Q_desktop_S_current, 1 ));
-                                                    for_n_rev( desktop_id, E_windows_Q_desktop_S_n )
-                                                        E_windows_Q_desktop_W_error( desktop_id );
-                                                    r_ = (N)E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S, 0, E_windows_Q_desktop_S_n );
-                                                    if( K_error( r_ )
-                                                    || !r_
-                                                    )
-                                                        E_main_I_error_fatal();
-                                                    E_windows_Q_desktop_S_n = 1;
-                                                }
-                                                if( !--E_windows_Q_desktop_S_n )
-                                                {   r_ = E_windows_Q_desktop_M(yes);
-                                                    if( K_error( r_ ))
-                                                        E_main_I_error_fatal();
-                                                    E_window_Q_desktop_S_current = 0;
-                                                }else
-                                                    if( E_window_Q_desktop_S_current )
-                                                        E_window_Q_desktop_S_current--;
-                                            }
-                                            E_gui_Q_taskbar_S_redraw = yes;
-                                            X_F( gui, draw );
-                                            break;
-                                        }
-                                      case ~3:
-                                            E_main_I_error_fatal();
-                                            break;
-                                      case ~4:
-                                            break;
-                                    }
-                                    G( "Event %x handled", error );
-                                    if( K_error(r) )
-                                        G_( " with error %x", r );
-                                }
+                                    E_gui_I_error( context_ip, error );
                             }
                     }else
                         if(( !window->controls_data
@@ -912,56 +894,7 @@ E_gui_Q_pointer_I_click( void
                             , E_mouse_Q_button_S_coordinate[0]
                             , E_mouse_Q_button_S_coordinate[1] - E_gui_Q_taskbar_S_height
                             ))
-                            {   N r;
-                                switch(error)
-                                { case ~0:
-                                        r = 0;
-                                        break;
-                                  case ~1:
-                                        r = E_mem_Q_blk_I_free_context_ip( context_ip );
-                                        break;
-                                  case ~2:
-                                    {   r = E_mem_Q_blk_I_free_context_ip( context_ip );
-                                        N r_ = E_windows_Q_desktop_W_clean( E_window_Q_desktop_S_current );
-                                        if( K_error( r_ ))
-                                        {   r_ = (N)E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S, E_window_Q_desktop_S_current, 1 );
-                                            if( K_error( r_ )
-                                            || !r_
-                                            )
-                                            {   if( r == ~4 )
-                                                    Gk(E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S, E_window_Q_desktop_S_current, 1 ));
-                                                for_n_rev( desktop_id, E_windows_Q_desktop_S_n )
-                                                    E_windows_Q_desktop_W_error( desktop_id );
-                                                r_ = (N)E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S, 0, E_windows_Q_desktop_S_n );
-                                                if( K_error( r_ )
-                                                || !r_
-                                                )
-                                                    E_main_I_error_fatal();
-                                                E_windows_Q_desktop_S_n = 1;
-                                            }
-                                            if( !--E_windows_Q_desktop_S_n )
-                                            {   r_ = E_windows_Q_desktop_M(yes);
-                                                if( K_error( r_ ))
-                                                    E_main_I_error_fatal();
-                                                E_window_Q_desktop_S_current = 0;
-                                            }else
-                                                if( E_window_Q_desktop_S_current )
-                                                    E_window_Q_desktop_S_current--;
-                                        }
-                                        E_gui_Q_taskbar_S_redraw = yes;
-                                        X_F( gui, draw );
-                                        break;
-                                    }
-                                  case ~3:
-                                        E_main_I_error_fatal();
-                                        break;
-                                  case ~4:
-                                        break;
-                                }
-                                G( "Event %x handled", error );
-                                if( K_error(r) )
-                                    G_( " with error %x", r );
-                            }
+                                E_gui_I_error( context_ip, error );
                         }
                 }else if( E_mouse_Q_button_S_button == 2
                 && E_mouse_Q_button_S_click_count == 2
@@ -975,9 +908,12 @@ E_gui_Q_pointer_I_click( void
                             break;
                     }
                     if( window_i == windows )
-                    {   window_id = E_gui_Q_main_menu_M();
-                        if( K_error( window_id ))
-                            E_main_I_error_fatal();
+                    {   P context_ip;
+                        N error;
+                        K_V( context_ip, error
+                        , E_gui_Q_main_menu_M()
+                        )
+                            E_gui_I_error( context_ip, error );
                     }else
                     {   E_windows_Q_window_Q_stack_I_on_top( window_id );
                         if( E_gui_Q_taskbar_I_scroll_to_active() )
@@ -985,59 +921,82 @@ E_gui_Q_pointer_I_click( void
                     }
                 }
             }else // Przełączanie pulpitów, z tworzeniem nowego, jeśli na krańcu.
-            {   if( !E_mouse_Q_button_S_coordinate[0] )
+            {   N error = 0;
+                if( !E_mouse_Q_button_S_coordinate[0] )
                 {   if( E_window_Q_desktop_S_current )
                         E_window_Q_desktop_S_current--;
                     else
-                    {   N r = E_windows_Q_desktop_M(no);
-                        if( K_error(r) )
-                            E_main_I_error_fatal();
+                    {   P context_ip;
+                        K_V( context_ip, error
+                        , E_windows_Q_desktop_M(no)
+                        )
+                            E_gui_I_error( context_ip, error );
                     }
-                    E_mouse_S_coordinate[0] = 1;
+                    if( !K_error(error) )
+                        E_mouse_S_coordinate[0] = 1;
                 }else
                 {   if( E_window_Q_desktop_S_current == E_windows_Q_desktop_S_n - 1 )
-                    {   N r = E_windows_Q_desktop_M(yes);
-                        if( K_error(r) )
-                            E_main_I_error_fatal();
+                    {   P context_ip;
+                        K_V( context_ip, error
+                        , E_windows_Q_desktop_M(yes)
+                        )
+                            E_gui_I_error( context_ip, error );
                     }
-                    E_window_Q_desktop_S_current++;
-                    E_mouse_S_coordinate[0] = E_main_S_framebuffer.width - 2;
+                    if( !K_error(error) )
+                    {   E_window_Q_desktop_S_current++;
+                        E_mouse_S_coordinate[0] = E_main_S_framebuffer.width - 2;
+                    }
                 }
-                E_gui_Q_taskbar_S_redraw = yes;
-                U_F( gui, draw );
+                if( !K_error(error) )
+                {   E_gui_Q_taskbar_S_redraw = yes;
+                    U_F( gui, draw );
+                }
             }
         }else if( !~(S8)E_mouse_Q_button_S_click_count ) // Przełączanie pulpitów, z usuwaniem, jeśli na krańcu.
         {   if( !E_mouse_Q_button_S_coordinate[0] )
             {   if( E_window_Q_desktop_S_current )
-                {   if( E_window_Q_desktop_S_current == E_windows_Q_desktop_S_n - 1 )
-                    {   N r = E_windows_Q_desktop_W( E_window_Q_desktop_S_current );
-                        if( K_error(r) )
-                            E_main_I_error_fatal();
+                {   N error = 0;
+                    if( E_window_Q_desktop_S_current == E_windows_Q_desktop_S_n - 1 )
+                    {   P context_ip;
+                        K_V( context_ip, error
+                        , E_windows_Q_desktop_W( E_window_Q_desktop_S_current )
+                        )
+                            E_gui_I_error( context_ip, error );
                     }
-                    E_window_Q_desktop_S_current--;
-                    E_mouse_S_coordinate[0] = 1;
-                    E_gui_Q_taskbar_S_redraw = yes;
-                    U_F( gui, draw );
+                    if( !K_error(error) )
+                    {   E_window_Q_desktop_S_current--;
+                        E_mouse_S_coordinate[0] = 1;
+                        E_gui_Q_taskbar_S_redraw = yes;
+                        U_F( gui, draw );
+                    }
                 }
             }else
                 if( E_window_Q_desktop_S_current != E_windows_Q_desktop_S_n - 1 )
-                {   if( E_window_Q_desktop_S_current )
+                {   N error = 0;
+                    if( E_window_Q_desktop_S_current )
                         E_window_Q_desktop_S_current++;
                     else
-                    {   N r = E_windows_Q_desktop_W( E_window_Q_desktop_S_current );
-                        if( K_error(r) )
-                            E_main_I_error_fatal();
+                    {   P context_ip;
+                        K_V( context_ip, error
+                        , E_windows_Q_desktop_W( E_window_Q_desktop_S_current )
+                        )
+                            E_gui_I_error( context_ip, error );
                     }
-                    E_mouse_S_coordinate[0] = E_main_S_framebuffer.width - 2;
-                    E_gui_Q_taskbar_S_redraw = yes;
-                    U_F( gui, draw );
+                    if( !K_error(error) )
+                    {   E_mouse_S_coordinate[0] = E_main_S_framebuffer.width - 2;
+                        E_gui_Q_taskbar_S_redraw = yes;
+                        U_F( gui, draw );
+                    }
                 }
         }else if( E_mouse_Q_button_S_button == 2
         && E_mouse_Q_button_S_click_count == 2
         )
-        {   N r = E_gui_Q_main_menu_M();
-            if( K_error(r) )
-                E_main_I_error_fatal();\
+        {   P context_ip;
+            N error;
+            K_V( context_ip, error
+            , E_gui_Q_main_menu_M()
+            )
+                E_gui_I_error( context_ip, error );
         }
     }else
         if( E_gui_Q_desktop_S_window_moving )
@@ -1056,42 +1015,75 @@ E_gui_Q_pointer_I_click( void
                 E_gui_Q_desktop_S_window_moving = no;
                 U_F( gui, draw );
             }else // Przełączenie okna do innego pulpitu.
-            {   N8 desktop_id;
+            {   N error = 0;
+                N8 desktop_id;
                 desktop_id = E_window_Q_desktop_S_current;
                 if( !E_mouse_Q_button_S_coordinate[0] ) // W lewo.
                 {   if( E_window_Q_desktop_S_current )
                         E_window_Q_desktop_S_current--;
                     else if( E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window ) != 1 )
-                    {   if( E_windows_Q_desktop_M(no) )
-                            E_main_I_error_fatal();
-                        desktop_id++;
+                    {   P context_ip;
+                        K_V( context_ip, error
+                        , E_windows_Q_desktop_M(no)
+                        )
+                            E_gui_I_error( context_ip, error );
+                        if( !K_error(error) )
+                            desktop_id++;
                     }
                 }else // W prawo.
                     if( E_window_Q_desktop_S_current != E_windows_Q_desktop_S_n - 1 )
                         E_window_Q_desktop_S_current++;
                     else if( E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window ) != 1 )
-                    {   if( E_windows_Q_desktop_M(yes) )
-                            E_main_I_error_fatal();
-                        E_window_Q_desktop_S_current++;
+                    {   P context_ip;
+                        N error;
+                        K_V( context_ip, error
+                        , E_windows_Q_desktop_M(yes)
+                        )
+                            E_gui_I_error( context_ip, error );
+                        if( !K_error(error) )
+                            E_window_Q_desktop_S_current++;
                     }
                 if( E_window_Q_desktop_S_current != desktop_id )
-                {   if( E_windows_Q_desktop_I_move_window( E_window_Q_desktop_S_current, desktop_id, window_id ))
-                        E_main_I_error_fatal();
-                    if( !E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ desktop_id ].window ))
-                        if( desktop_id == E_windows_Q_desktop_S_n - 1 ) // Po przesunięciu od krańcowego w lewo.
-                        {   if( E_windows_Q_desktop_W( desktop_id ))
-                                E_main_I_error_fatal();
-                        }else if( !desktop_id ) // Po przesunięciu od krańcowego w prawo.
-                        {   if( E_windows_Q_desktop_W( desktop_id ))
-                                E_main_I_error_fatal();
-                            E_window_Q_desktop_S_current--;
+                {   P context_ip;
+                    N error;
+                    K_V( context_ip, error
+                    , E_windows_Q_desktop_I_move_window( E_window_Q_desktop_S_current, desktop_id, window_id )
+                    )
+                        E_gui_I_error( context_ip, error );
+                    if( !K_error(error) )
+                    {   if( !E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ desktop_id ].window ))
+                            if( desktop_id == E_windows_Q_desktop_S_n - 1 ) // Po przesunięciu od krańcowego w lewo.
+                            {   P context_ip;
+                                N error;
+                                K_V( context_ip, error
+                                , E_windows_Q_desktop_W( desktop_id )
+                                )
+                                {   if( error > ~2 )
+                                        error = ~2;
+                                    E_gui_I_error( context_ip, error );
+                                }
+                            }else if( !desktop_id ) // Po przesunięciu od krańcowego w prawo.
+                            {   P context_ip;
+                                N error;
+                                K_V( context_ip, error
+                                , E_windows_Q_desktop_W( desktop_id )
+                                )
+                                {   if( error > ~2 )
+                                        error = ~2;
+                                    E_gui_I_error( context_ip, error );
+                                }
+                                if( !K_error(error) )
+                                    E_window_Q_desktop_S_current--;
+                            }
+                        if( !K_error(error) )
+                        {   if( !E_mouse_Q_button_S_coordinate[0] )
+                                E_mouse_S_coordinate[0] = E_main_S_framebuffer.width - 2;
+                            else
+                                E_mouse_S_coordinate[0] = 1;
+                            E_gui_Q_taskbar_S_redraw = yes;
+                            U_F( gui, draw );
                         }
-                    if( !E_mouse_Q_button_S_coordinate[0] )
-                        E_mouse_S_coordinate[0] = E_main_S_framebuffer.width - 2;
-                    else
-                        E_mouse_S_coordinate[0] = 1;
-                    E_gui_Q_taskbar_S_redraw = yes;
-                    U_F( gui, draw );
+                    }
                 }
             }
         }else // E_gui_Q_desktop_S_window_resizing_state
@@ -1202,9 +1194,12 @@ E_gui_Q_keyboard_I_key( void
                         break;
                 }
                 if( window_i == windows )
-                {   N r = E_gui_Q_main_menu_M();
-                    if( K_error(r) )
-                        E_main_I_error_fatal();
+                {   P context_ip;
+                    N error;
+                    K_V( context_ip, error
+                    , E_gui_Q_main_menu_M()
+                    )
+                        E_gui_I_error( context_ip, error );
                 }else
                 {   E_windows_Q_window_Q_stack_I_on_top( window_id );
                     if( E_gui_Q_taskbar_I_scroll_to_active() )
@@ -1272,27 +1267,14 @@ E_gui_Q_desktop_I_draw( void
         , E_main_S_framebuffer.width
         , E_main_S_framebuffer.height - E_gui_Q_taskbar_S_height
         ))
-        {   N r;
-            switch(error)
-            { case ~0:
-                    r = 0;
-                    break;
-              case ~1:
-              case ~2:
-                    r = E_mem_Q_blk_I_free_context_ip( context_ip );
-                    break;
-              case ~3:
-                    r = 0;
-                    break;
-              case ~4:
-                    r = 0;
-                    break;
-            }
-            G( "Event %x handled", error );
-            if( K_error(r) )
-                G_( " with error %x", r );
-        }
-        if( window->controls_data )
+            E_gui_I_error( context_ip, error );
+        if( K_error(error)
+        && ~error
+        )
+            return;
+        if( !K_error(error)
+        && window->controls_data
+        )
             E_controls_I_draw( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ]
             , 0
             , E_gui_Q_taskbar_S_height
@@ -1321,27 +1303,14 @@ E_gui_Q_desktop_I_draw( void
         , window->width - 2 * E_gui_Q_desktop_S_window_border_thickness
         , window->height - 2 * E_gui_Q_desktop_S_window_border_thickness
         ))
-        {   N r;
-            switch(error)
-            { case ~0:
-                    r = 0;
-                    break;
-              case ~1:
-              case ~2:
-                    r = E_mem_Q_blk_I_free_context_ip( context_ip );
-                    break;
-              case ~3:
-                    r = 0;
-                    break;
-              case ~4:
-                    r = 0;
-                    break;
-            }
-            G( "Event %x handled", error );
-            if( K_error(r) )
-                G_( " with error %x", r );
-        }
-        if( window->controls_data )
+            E_gui_I_error( context_ip, error );
+        if( K_error(error)
+        && ~error
+        )
+            return;
+        if( !K_error(error)
+        && window->controls_data
+        )
             E_controls_I_draw( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ]
             , window->x + E_gui_Q_desktop_S_window_border_thickness
             , window->y + E_gui_Q_desktop_S_window_border_thickness
@@ -1392,27 +1361,14 @@ E_gui_Q_desktop_I_draw( void
         , width - 2 * E_gui_Q_desktop_S_window_border_thickness
         , height - 2 * E_gui_Q_desktop_S_window_border_thickness
         ))
-        {   N r;
-            switch(error)
-            { case ~0:
-                    r = 0;
-                    break;
-              case ~1:
-              case ~2:
-                    r = E_mem_Q_blk_I_free_context_ip( context_ip );
-                    break;
-              case ~3:
-                    r = 0;
-                    break;
-              case ~4:
-                    r = 0;
-                    break;
-            }
-            G( "Event %x handled", error );
-            if( K_error(r) )
-                G_( " with error %x", r );
-        }
-        if( window->controls_data )
+            E_gui_I_error( context_ip, error );
+        if( K_error(error)
+        && ~error
+        )
+            return;
+        if( !K_error(error)
+        && window->controls_data
+        )
             E_controls_I_draw( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ]
             , x + E_gui_Q_desktop_S_window_border_thickness
             , y + E_gui_Q_desktop_S_window_border_thickness
@@ -1484,27 +1440,14 @@ E_gui_Q_desktop_I_draw( void
         , width - 2 * E_gui_Q_desktop_S_window_border_thickness
         , height - 2 * E_gui_Q_desktop_S_window_border_thickness
         ))
-        {   N r;
-            switch(error)
-            { case ~0:
-                    r = 0;
-                    break;
-              case ~1:
-              case ~2:
-                    r = E_mem_Q_blk_I_free_context_ip( context_ip );
-                    break;
-              case ~3:
-                    r = 0;
-                    break;
-              case ~4:
-                    r = 0;
-                    break;
-            }
-            G( "Event %x handled", error );
-            if( K_error(r) )
-                G_( " with error %x", r );
-        }
-        if( window->controls_data )
+            E_gui_I_error( context_ip, error );
+        if( K_error(error)
+        && ~error
+        )
+            return;
+        if( !K_error(error)
+        && window->controls_data
+        )
             E_controls_I_draw( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ]
             , x + E_gui_Q_desktop_S_window_border_thickness
             , y + E_gui_Q_desktop_S_window_border_thickness
@@ -1536,33 +1479,61 @@ E_gui_Q_desktop_I_draw( void
         , window->width - 2 * E_gui_Q_desktop_S_window_border_thickness
         , window->height - 2 * E_gui_Q_desktop_S_window_border_thickness
         ))
-        {   N r;
-            switch(error)
-            { case ~0:
-                    r = 0;
-                    break;
-              case ~1:
-              case ~2:
-                    r = E_mem_Q_blk_I_free_context_ip( context_ip );
-                    break;
-              case ~3:
-                    r = 0;
-                    break;
-              case ~4:
-                    r = 0;
-                    break;
-            }
-            G( "Event %x handled", error );
-            if( K_error(r) )
-                G_( " with error %x", r );
-        }
-        if( window->controls_data )
+            E_gui_I_error( context_ip, error );
+        if( K_error(error)
+        && ~error
+        )
+            return;
+        if( !K_error(error)
+        && window->controls_data
+        )
             E_controls_I_draw( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ]
             , window->x + E_gui_Q_desktop_S_window_border_thickness
             , window->y + E_gui_Q_desktop_S_window_border_thickness
             , window->width - 2 * E_gui_Q_desktop_S_window_border_thickness
             , window->height - 2 * E_gui_Q_desktop_S_window_border_thickness
             );
+    }
+}
+_internal
+void
+E_gui_Q_bubble_I_draw( void
+){  if( !E_gui_Q_bubble_S.draw )
+        return;
+    E_vga_I_fill_rect(
+      E_gui_Q_bubble_S.x, E_gui_Q_bubble_S.y
+    , E_gui_Q_bubble_S.width, E_gui_Q_bubble_S.height
+    , E_vga_R_video_color( 0xffeff0 )
+    );
+    if( E_gui_Q_bubble_S.custom_draw )
+    {   P context_ip;
+        N error;
+        K_V( context_ip, error
+        , E_gui_Q_bubble_S.draw()
+        )
+            E_gui_I_error( context_ip, error );
+    }else
+    {   Pc s = E_gui_Q_bubble_S.text;
+        N32 y_ = E_gui_Q_bubble_S.y + E_gui_Q_bubble_S.font_size + 1;
+        N32 x_ = E_gui_Q_bubble_S.x + E_gui_Q_bubble_S.thickness + 1;
+        while( *s )
+        {   U u;
+            Pc s_ = E_text_Z_su_R_u( s, &u );
+            s = s_;
+            N32 font_i;
+            if( E_gui_Q_bubble_S.width <= x_ - E_gui_Q_bubble_S.x + E_gui_Q_bubble_S.thickness + 1
+            || !E_font_T_print_u( E_gui_Q_bubble_S.width - ( x_ - E_gui_Q_bubble_S.x + E_gui_Q_bubble_S.thickness + 1 ), E_gui_Q_bubble_S.thickness, &u, &font_i )
+            )
+                break;
+            E_font_I_draw_u( font_i
+            , x_, y_
+            , y_, ( E_gui_Q_bubble_S.font_size + 1 ) * E_font_S_font.height
+            , E_vga_S_text_color
+            , E_gui_Q_bubble_S.font_size
+            , E_gui_Q_bubble_S.thickness
+            );
+            x_ += ( E_gui_Q_bubble_S.thickness + 1 ) * E_font_S_font.bitmap[ font_i ].width + E_gui_Q_bubble_S.thickness + 1;
+        }
     }
 }
 _internal
@@ -1861,66 +1832,6 @@ E_gui_Q_taskbar_I_draw_expander( void
         }
     }
 }
-_internal
-void
-E_gui_Q_bubble_I_draw( void
-){  if( !E_gui_Q_bubble_S.draw )
-        return;
-    E_vga_I_fill_rect(
-      E_gui_Q_bubble_S.x, E_gui_Q_bubble_S.y
-    , E_gui_Q_bubble_S.width, E_gui_Q_bubble_S.height
-    , E_vga_R_video_color( 0xffeff0 )
-    );
-    if( E_gui_Q_bubble_S.custom_draw )
-    {   P context_ip;
-        N error;
-        K_V( context_ip, error
-        , E_gui_Q_bubble_S.draw()
-        )
-        {   N r;
-            switch(error)
-            { case ~0:
-                    r = 0;
-                    break;
-              case ~1:
-              case ~2:
-                    r = E_mem_Q_blk_I_free_context_ip( context_ip );
-                    break;
-              case ~3:
-                    r = 0;
-                    break;
-              case ~4:
-                    r = 0;
-                    break;
-            }
-            G( "Event %x handled", error );
-            if( K_error(r) )
-                G_( " with error %x", r );
-        }
-    }else
-    {   Pc s = E_gui_Q_bubble_S.text;
-        N32 y_ = E_gui_Q_bubble_S.y + E_gui_Q_bubble_S.font_size + 1;
-        N32 x_ = E_gui_Q_bubble_S.x + E_gui_Q_bubble_S.thickness + 1;
-        while( *s )
-        {   U u;
-            Pc s_ = E_text_Z_su_R_u( s, &u );
-            s = s_;
-            N32 font_i;
-            if( E_gui_Q_bubble_S.width <= x_ - E_gui_Q_bubble_S.x + E_gui_Q_bubble_S.thickness + 1
-            || !E_font_T_print_u( E_gui_Q_bubble_S.width - ( x_ - E_gui_Q_bubble_S.x + E_gui_Q_bubble_S.thickness + 1 ), E_gui_Q_bubble_S.thickness, &u, &font_i )
-            )
-                break;
-            E_font_I_draw_u( font_i
-            , x_, y_
-            , y_, ( E_gui_Q_bubble_S.font_size + 1 ) * E_font_S_font.height
-            , E_vga_S_text_color
-            , E_gui_Q_bubble_S.font_size
-            , E_gui_Q_bubble_S.thickness
-            );
-            x_ += ( E_gui_Q_bubble_S.thickness + 1 ) * E_font_S_font.bitmap[ font_i ].width + E_gui_Q_bubble_S.thickness + 1;
-        }
-    }
-}
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 D( gui, draw )
 {   X_M( gui, draw );
@@ -1933,8 +1844,8 @@ D( gui, draw )
         E_gui_Q_pointer_S_move_blocked = yes;
         E_gui_Q_pointer_I_move_0();
         E_gui_Q_desktop_I_draw();
-        E_gui_Q_taskbar_I_draw();
         E_gui_Q_bubble_I_draw();
+        E_gui_Q_taskbar_I_draw();
         E_gui_Q_taskbar_I_draw_expander();
         E_vga_Q_buffer_I_draw( 0, 0, E_main_S_framebuffer.width, E_main_S_framebuffer.height );
         E_gui_Q_pointer_I_move_1();

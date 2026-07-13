@@ -7,6 +7,8 @@
 *         files window
 * (c)overcq              on WSL\Debian (Linux 6.6.87.2)              2026-4-22 S
 *******************************************************************************/
+#define E_window_files_S_invalid_text "[invalid text]"
+//==============================================================================
 struct E_window_files_Z_data_Z_column_0
 { N disc, partition;
   Pc name;
@@ -150,6 +152,31 @@ E_window_files_I_click_(
                         window_data->selected_dir_n = column_i;
                         return ~0;
                     }
+                    if( !E_text_Z_su_T_correct( window_data->selected_dir[ column_i ].name[i] ))
+                    {   K( W( window_data->selected_dir[ column_i ].name[i] ))
+                        {   for_n( i_, i )
+                            {   K_( ~2, W( window_data->selected_dir[ column_i ].name[ i_ ] ));
+                            }
+                            K_( ~2, W( window_data->selected_dir[ column_i ].name ));
+                            K_( ~2, W( list_file ));
+                            K_( ~2, W( list_dir ));
+                            Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 ));
+                            window_data->selected_dir_n = column_i;
+                            return ~0;
+                        }
+                        window_data->selected_dir[ column_i ].name[i] = E_text_Z_s0_M_duplicate( E_window_files_S_invalid_text );
+                        if( !window_data->selected_dir[ column_i ].name[i] )
+                        {   for_n( i_, i )
+                            {   K_( ~2, W( window_data->selected_dir[ column_i ].name[ i_ ] ));
+                            }
+                            K_( ~2, W( window_data->selected_dir[ column_i ].name ));
+                            K_( ~2, W( list_file ));
+                            K_( ~2, W( list_dir ));
+                            Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 ));
+                            window_data->selected_dir_n = column_i;
+                            return ~0;
+                        }
+                    }
                 }
                 for_n_( i, n_file )
                 {   K( E_ouxfs_Q_file_R_name( window_data->disc_partition[ window_data->disc_partition_selected_row ].disc
@@ -166,6 +193,31 @@ E_window_files_I_click_(
                         Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 ));
                         window_data->selected_dir_n = column_i;
                         return ~0;
+                    }
+                    if( !E_text_Z_su_T_correct( window_data->selected_dir[ column_i ].name[ n_dir + i ] ))
+                    {   K( W( window_data->selected_dir[ column_i ].name[ n_dir + i ] ))
+                        {   for_n( i_, n_dir + i )
+                            {   K_( ~2, W( window_data->selected_dir[ column_i ].name[ i_ ] ));
+                            }
+                            K_( ~2, W( window_data->selected_dir[ column_i ].name ));
+                            K_( ~2, W( list_file ));
+                            K_( ~2, W( list_dir ));
+                            Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 ));
+                            window_data->selected_dir_n = column_i;
+                            return ~0;
+                        }
+                        window_data->selected_dir[ column_i ].name[ n_dir + i ] = E_text_Z_s0_M_duplicate( E_window_files_S_invalid_text );
+                        if( !window_data->selected_dir[ column_i ].name[ n_dir + i ] )
+                        {   for_n( i_, n_dir + i )
+                            {   K_( ~2, W( window_data->selected_dir[ column_i ].name[ i_ ] ));
+                            }
+                            K_( ~2, W( window_data->selected_dir[ column_i ].name ));
+                            K_( ~2, W( list_file ));
+                            K_( ~2, W( list_dir ));
+                            Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 ));
+                            window_data->selected_dir_n = column_i;
+                            return ~0;
+                        }
                     }
                 }
                 Mt_( window_data->selected_dir[ column_i ].uid, n_dir + n_file );
@@ -243,7 +295,7 @@ E_window_files_I_click_(
                     {   name[ n_dir ] = window_data->selected_dir[ column_i ].name[ n_dir ];
                         uid[ n_dir ] = window_data->selected_dir[ column_i ].uid[ n_dir ];
                         for( i = n_dir + 1; i != n_dir + n_file; i++ )
-                        {   N min = 0;
+                        {   N min = n_dir;
                             N max = i - 1;
                             N dst_i = max / 2;
                             O{  S cmp = E_text_Z_s0_I_cmp_s0( name[ dst_i ], window_data->selected_dir[ column_i ].name[i] );
@@ -402,6 +454,31 @@ E_window_files_I_click_(
                         window_data->selected_dir_n = column_i;
                         return ~0;
                     }
+                    if( !E_text_Z_su_T_correct( window_data->selected_dir[ column_i ].name[i] ))
+                    {   K( W( window_data->selected_dir[ column_i ].name[i] ))
+                        {   for_n( i_, i )
+                            {   K_( ~2, W( window_data->selected_dir[ column_i ].name[ i_ ] ));
+                            }
+                            K_( ~2, W( window_data->selected_dir[ column_i ].name ));
+                            K_( ~2, W( list_file ));
+                            K_( ~2, W( list_dir ));
+                            Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 ));
+                            window_data->selected_dir_n = column_i;
+                            return ~0;
+                        }
+                        window_data->selected_dir[ column_i ].name[i] = E_text_Z_s0_M_duplicate( E_window_files_S_invalid_text );
+                        if( !window_data->selected_dir[ column_i ].name[i] )
+                        {   for_n( i_, i )
+                            {   K_( ~2, W( window_data->selected_dir[ column_i ].name[ i_ ] ));
+                            }
+                            K_( ~2, W( window_data->selected_dir[ column_i ].name ));
+                            K_( ~2, W( list_file ));
+                            K_( ~2, W( list_dir ));
+                            Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 ));
+                            window_data->selected_dir_n = column_i;
+                            return ~0;
+                        }
+                    }
                 }
                 for_n_( i, n_file )
                 {   K( E_ouxfs_Q_file_R_name( window_data->disc_partition[ row_i ].disc, window_data->disc_partition[ row_i ].partition
@@ -417,6 +494,31 @@ E_window_files_I_click_(
                         Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 ));
                         window_data->selected_dir_n = column_i;
                         return ~0;
+                    }
+                    if( !E_text_Z_su_T_correct( window_data->selected_dir[ column_i ].name[ n_dir + i ] ))
+                    {   K( W( window_data->selected_dir[ column_i ].name[ n_dir + i ] ))
+                        {   for_n( i_, n_dir + i )
+                            {   K_( ~2, W( window_data->selected_dir[ column_i ].name[ i_ ] ));
+                            }
+                            K_( ~2, W( window_data->selected_dir[ column_i ].name ));
+                            K_( ~2, W( list_file ));
+                            K_( ~2, W( list_dir ));
+                            Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 ));
+                            window_data->selected_dir_n = column_i;
+                            return ~0;
+                        }
+                        window_data->selected_dir[ column_i ].name[ n_dir + i ] = E_text_Z_s0_M_duplicate( E_window_files_S_invalid_text );
+                        if( !window_data->selected_dir[ column_i ].name[ n_dir + i ] )
+                        {   for_n( i_, n_dir + i )
+                            {   K_( ~2, W( window_data->selected_dir[ column_i ].name[ i_ ] ));
+                            }
+                            K_( ~2, W( window_data->selected_dir[ column_i ].name ));
+                            K_( ~2, W( list_file ));
+                            K_( ~2, W( list_dir ));
+                            Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 ));
+                            window_data->selected_dir_n = column_i;
+                            return ~0;
+                        }
                     }
                 }
                 Mt_( window_data->selected_dir[ column_i ].uid, n_dir + n_file );
@@ -494,7 +596,7 @@ E_window_files_I_click_(
                     {   name[ n_dir ] = window_data->selected_dir[ column_i ].name[ n_dir ];
                         uid[ n_dir ] = window_data->selected_dir[ column_i ].uid[ n_dir ];
                         for( i = n_dir + 1; i != n_dir + n_file; i++ )
-                        {   N min = 0;
+                        {   N min = n_dir;
                             N max = i - 1;
                             N dst_i = max / 2;
                             O{  S cmp = E_text_Z_s0_I_cmp_s0( name[ dst_i ], window_data->selected_dir[ column_i ].name[i] );

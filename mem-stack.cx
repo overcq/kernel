@@ -114,6 +114,6 @@ E_mem_Q_stack_I_page_fault( N address
         if( (N)task->stack == address )
             break;
     }
-    E_main_I_error_fatal();
+    E_main_I_fatal();
 }
 /******************************************************************************/

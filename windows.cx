@@ -447,7 +447,8 @@ E_windows_Q_window_R_order_i( N8 desktop_id
 ){  for_i( window_i, E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ desktop_id ].window ))
         if( E_windows_Q_desktop_S[ desktop_id ].order[ window_i ] == window_id )
             return window_i;
-    E_main_I_error_fatal();
+    G( "Event %x handled", ~4 );
+    E_main_I_fatal_save();
 }
 _export
 B

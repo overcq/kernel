@@ -12,9 +12,9 @@ CFLAGS := -Os
 H_make_I_block_root = $(if $(filter 0,$(shell id -u)),$(error root user not allowed. Run make as user first.))
 #===============================================================================
 all: build
-build: kernel
+build: kernel doc
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.PHONY: all build mostlyclean clean install-qemu install-vmware install-usb
+.PHONY: all build doc mostlyclean clean install-qemu install-vmware install-usb
 .SECONDARY: $(patsubst %.S,%.o,interrupt.S) \
 I_compile_S_0.h \
 $(patsubst %.cx,I_compile_S_0_%.h,$(wildcard *.cx)) \
@@ -30,6 +30,7 @@ Makefile
 	$(CC) $(CFLAGS) -std=gnu23 -march=native -mno-sse -mno-red-zone -fno-zero-initialized-in-bss -ffreestanding -fno-stack-protector -fwrapv -Wall -Wextra -Wno-address-of-packed-member -Wno-dangling-else -Wno-incompatible-pointer-types-discards-qualifiers -Wno-missing-braces -Wno-parentheses -Wno-sign-compare -Wno-switch -include stdarg.h -include I_compile_S_0.h -nostdlib -shared -s -Wl,-T,main.ld -o $@.elf $(filter %.o,$^) $(filter %.c,$^)
 	rm -f $@; elf2oux $@.elf
 	rm $@.elf
+doc: $(patsubst %.dot,%.svg,$(wildcard doc/*.dot))
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 I_compile_S_0.h: \
 I_compile_N_c_to_h.sh \
@@ -57,11 +58,18 @@ I_compile_N_c_to_h.sh
 	./I_compile_N_c_to_h.sh -c $< > $@
 %.o: %.S
 	$(CC) -c -o $@ $<
+#-------------------------------------------------------------------------------
+%.svg: %.dot
+	dot -Tsvg \
+      -Gbgcolor=\#dbdbdb -Gcolor=black \
+      -Ncolor=\#8b8b90 -Nfontname='Calibri, Ubuntu Condensed, sans-serif' -Nfontsize=11 \
+      -Ecolor=\#8b8b90 -Efontname='Calibri, Ubuntu Condensed, sans-serif' -Efontsize=11 \
+      -o $@ $<
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 mostlyclean: $(wildcard *.cx)
 	rm -f I_compile_S_0.h $(patsubst %.cx,I_compile_S_0_%.h,$^) $(patsubst %.cx,I_compile_S_0_%.c,$^) *.o
 clean: mostlyclean
-	rm -f kernel
+	rm -f kernel $(patsubst %.dot,%.svg,$(wildcard doc/*.dot))
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 install-qemu:
 	ocq_mnt=/mnt/oth; \

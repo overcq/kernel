@@ -106,7 +106,9 @@ E_controls_Q_label_I_add( N8 desktop_id
     data->control[ data->control_n ].type = E_controls_Z_type_S_label;
     data->control[ data->control_n ].label.text = E_text_Z_s0_M_duplicate(text);
     if( !data->control[ data->control_n ].label.text )
-        return ~2;
+    {   Kp_( ~2, E_mem_Q_blk_I_remove( &data->control, data->control_n, 1 ));
+        return ~0;
+    }
     N32 x_ = 0;
     Pc s = text;
     while( *s )
@@ -115,7 +117,10 @@ E_controls_Q_label_I_add( N8 desktop_id
         if( s_ == s
         || !~u
         )
+        {   K_( ~2, W( data->control[ data->control_n ].button.text ));
+            Kp_( ~2, E_mem_Q_blk_I_remove( &data->control, data->control_n, 1 ));
             return ~0;
+        }
         s = s_;
         N32 font_i;
         E_font_T_print_u( 0, thickness, &u, &font_i );
@@ -154,7 +159,9 @@ E_controls_Q_button_I_add( N8 desktop_id
     data->control[ data->control_n ].type = E_controls_Z_type_S_button;
     data->control[ data->control_n ].button.text = E_text_Z_s0_M_duplicate(text);
     if( !data->control[ data->control_n ].button.text )
-        return ~2;
+    {   Kp_( ~2, E_mem_Q_blk_I_remove( &data->control, data->control_n, 1 ));
+        return ~0;
+    }
     N32 x_ = 1 + thickness + 1;
     Pc s = text;
     while( *s )
@@ -163,7 +170,10 @@ E_controls_Q_button_I_add( N8 desktop_id
         if( s_ == s
         || !~u
         )
+        {   K_( ~2, W( data->control[ data->control_n ].button.text ));
+            Kp_( ~2, E_mem_Q_blk_I_remove( &data->control, data->control_n, 1 ));
             return ~0;
+        }
         s = s_;
         N32 font_i;
         E_font_T_print_u( 0, thickness, &u, &font_i );
@@ -196,7 +206,9 @@ E_controls_Q_textbox_I_add( N8 desktop_id
 , N8 font_size
 , N8 thickness
 , B new_row
-){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
+){  if( !E_text_Z_su_T_correct(text) )
+        return ~0;
+    struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
     struct E_controls_Z_data *data = window->controls_data;
     Kp( E_mem_Q_blk_I_append( &data->control, 1 ))
         return ~0;
@@ -204,7 +216,9 @@ E_controls_Q_textbox_I_add( N8 desktop_id
     //TODO Sprawdzić poprawność tekstu Unicode.
     data->control[ data->control_n ].textbox.text = E_text_Z_s0_M_duplicate(text);
     if( !data->control[ data->control_n ].textbox.text )
-        return ~2;
+    {   Kp_( ~2, E_mem_Q_blk_I_remove( &data->control, data->control_n, 1 ));
+        return ~0;
+    }
     data->control[ data->control_n ].width = width;
     data->control[ data->control_n ].textbox.visible_start = 0;
     data->control[ data->control_n ].textbox.font_size = font_size;
