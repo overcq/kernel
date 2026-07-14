@@ -1242,7 +1242,7 @@ E_text_Z_s_I_append_c( Pc *s
 , C c
 ){  Pc p = E_mem_Q_blk_I_append( s, 1 );
     KPp(p)
-        return 0;
+        return (P)~0;
     *p = c;
     return p;
 }
@@ -1253,7 +1253,7 @@ E_text_Z_s_I_append_s( Pc *s
 , Pc t_end
 ){  Pc p = E_mem_Q_blk_I_append( s, t_end - t );
     KPp(p)
-        return 0;
+        return (P)~0;
     E_text_Z_s_P_copy_s( p, t, t_end );
     return p;
 }
@@ -1264,7 +1264,7 @@ E_text_Z_s_I_s_append_0( Pc *s
 , Pc t_end
 ){  Pc p = E_mem_Q_blk_I_append( s, t_end - t + 1 );
     KPp(p)
-        return 0;
+        return (P)~0;
     E_text_Z_s_P_copy_s_0( p, t, t_end );
     return p;
 }
@@ -1275,7 +1275,7 @@ E_text_Z_s_I_append_sl( Pc *s
 , N l
 ){  Pc p = E_mem_Q_blk_I_append( s, l );
     KPp(p)
-        return 0;
+        return (P)~0;
     E_mem_Q_blk_I_copy( p, t, l );
     return p;
 }
@@ -1286,7 +1286,7 @@ E_text_Z_s_I_append_sl_0( Pc *s
 , N l
 ){  Pc p = E_mem_Q_blk_I_append( s, l + 1 );
     KPp(p)
-        return 0;
+        return (P)~0;
     E_text_Z_s_P_copy_sl_0( p, t, l );
     return p;
 }
@@ -1311,7 +1311,7 @@ E_text_Z_s_I_prepend_s( Pc *s
 , Pc t
 , Pc t_end
 ){  KPp( E_mem_Q_blk_I_prepend( s, t_end - t ))
-        return 0;
+        return (P)~0;
     E_text_Z_s_P_copy_s( *s, t, t_end );
     return *s + ( t_end - t );
 }
@@ -1322,7 +1322,7 @@ E_text_Z_s_I_prepend_s0( Pc *s
 ){  N l = E_text_Z_s0_R_l(t);
     Pc p = E_mem_Q_blk_I_prepend( s, l );
     KPp(p)
-        return 0;
+        return (P)~0;
     E_mem_Q_blk_I_copy( *s, t, l );
     return p;
 }
@@ -1343,7 +1343,7 @@ E_text_Z_s0_I_append_c( Pc *s
 , C c
 ){  Pc p = E_mem_Q_blk_I_append( s, 1 );
     KPp(p)
-        return 0;
+        return (P)~0;
     *( p - 1 ) = c;
     *p = '\0';
     return p - 1;
@@ -1357,7 +1357,7 @@ E_text_Z_s0_I_append_s0( Pc *s
         return *s + l;
     Pc p = E_mem_Q_blk_I_append( s, l );
     KPp(p)
-        return 0;
+        return (P)~0;
     E_text_Z_s_P_copy_sl_0( p - 1, t, l );
     return p - 1;
 }
@@ -1370,7 +1370,7 @@ E_text_Z_s0_I_append_s( Pc *s
         return *s + ( t_end - t );
     Pc p = E_mem_Q_blk_I_append( s, t_end - t );
     KPp(p)
-        return 0;
+        return (P)~0;
     E_text_Z_s_P_copy_s_0( p - 1, t, t_end );
     return p - 1;
 }
@@ -1914,7 +1914,7 @@ E_text_I_vsprintf( Pc *output
 , Pc fmt
 , va_list args
 ){  *output = M(0);
-    if( !*output )
+    Kp( *output )
         return ~0;
     N8 inside_arg = 0;
     N8 size;

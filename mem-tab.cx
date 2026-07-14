@@ -29,12 +29,12 @@ E_mem_Q_tab_M(
     if( !tab_ )
         return 0;
     Mt_( tab_->index, n );
-    if( !tab_->index )
+    KPp( tab_->index )
     {   KP_( ~1, W( tab_ ));
-        return 0;
+        return (P)~0;
     }
     tab_->data = Mt( u, n );
-    if( !tab_->data )
+    KPp( tab_->data )
     {   KP_( ~1, W( tab_->index ));
         KP_( ~1, W( tab_ ));
         return 0;
@@ -309,13 +309,13 @@ E_mem_Q_tab_Q_iter_M( struct E_mem_Q_tab_Z *tab_
             return ~0;
     }else
     {   tab_->iterator = E_mem_Q_tab_M( sizeof( struct E_mem_Q_tab_S_iterator_Z ), 1 );
-        if( !tab_->iterator )
+        Kp( tab_->iterator )
             return ~0;
         iterator_id = 0;
     }
     struct E_mem_Q_tab_S_iterator_Z *iterator = (P)tab_->iterator->index[ iterator_id ];
     Mt_( iterator->index, n );
-    if( !iterator->index )
+    Kp( iterator->index )
     {   if( iterator_id )
         {   Kp_( ~2, E_mem_Q_tab_I_remove( tab_->iterator, iterator_id ));
         }else

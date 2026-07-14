@@ -164,8 +164,7 @@ N
 E_flow_M( P main_stack
 ){  N32 sched_i = E_flow_I_current_scheduler();
     E_flow_S_scheduler[ sched_i ].task = E_mem_Q_tab_M( sizeof( struct E_flow_Q_task_Z ), 1 );
-    if( !E_flow_S_scheduler[ sched_i ].task )
-        return ~2;
+    Kp_( ~2, E_flow_S_scheduler[ sched_i ].task );
     E_flow_S_scheduler[ sched_i ].current_task = 0;
     struct E_flow_Q_task_Z *task = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, E_flow_S_scheduler[ sched_i ].current_task );
     *task = ( struct E_flow_Q_task_Z )
@@ -178,23 +177,11 @@ E_flow_M( P main_stack
     };
     E_mem_Q_stack_I_patch_page_table_add_guard( (N)main_stack, E_flow_S_scheduler[ sched_i ].current_task );
     E_flow_S_scheduler[ sched_i ].report = E_mem_Q_tab_M( sizeof( struct E_flow_Q_report_Z ), 0 );
-    if( !E_flow_S_scheduler[ sched_i ].report )
-    {   K_( ~2, W( E_flow_S_scheduler[ sched_i ].task ));
-        return ~2;
-    }
+    Kp_( ~2, E_flow_S_scheduler[ sched_i ].report );
     E_flow_S_scheduler[ sched_i ].report_timed = E_mem_Q_tab_M( sizeof( struct E_flow_Q_report_timed_Z ), 0 );
-    if( !E_flow_S_scheduler[ sched_i ].report_timed )
-    {   K_( ~2, W( E_flow_S_scheduler[ sched_i ].report ));
-        K_( ~2, W( E_flow_S_scheduler[ sched_i ].task ));
-        return ~2;
-    }
+    Kp_( ~2, E_flow_S_scheduler[ sched_i ].report_timed );
     E_flow_S_scheduler[ sched_i ].timer = E_mem_Q_tab_M( sizeof( struct E_flow_Q_timer_Z ), 0 );
-    if( !E_flow_S_scheduler[ sched_i ].timer )
-    {   K_( ~2, W( E_flow_S_scheduler[ sched_i ].report_timed ));
-        K_( ~2, W( E_flow_S_scheduler[ sched_i ].report ));
-        K_( ~2, W( E_flow_S_scheduler[ sched_i ].task ));
-        return ~2;
-    }
+    Kp_( ~2, E_flow_S_scheduler[ sched_i ].timer );
     E_flow_S_scheduler[ sched_i ].last_time = 0;
     E_flow_S_scheduler[ sched_i ].next_time = ~0;
     E_flow_S_scheduler[ sched_i ].cli_count = 0;

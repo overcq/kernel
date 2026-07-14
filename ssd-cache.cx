@@ -25,16 +25,21 @@ N
 E_ssd_cache_I_init( struct E_disc_Z *disc
 ){  disc->sata_ahci.ssd_cache_n = 0;
     Mt_( disc->sata_ahci.ssd_cache, disc->sata_ahci.ssd_cache_n );
-    if( !disc->sata_ahci.ssd_cache )
+    Kp( disc->sata_ahci.ssd_cache )
         return ~0;
     disc->sata_ahci.dirty_n = 0;
     Mt_( disc->sata_ahci.dirty, disc->sata_ahci.dirty_n );
-    if( !disc->sata_ahci.dirty )
+    Kp( disc->sata_ahci.dirty )
+    {   K_( ~1, W( disc->sata_ahci.ssd_cache ));
         return ~0;
+    }
     disc->sata_ahci.trim_list_n = 0;
     Mt_( disc->sata_ahci.trim_list, E_ssd_cache_Q_trim_S_list_max );
-    if( !disc->sata_ahci.trim_list )
+    Kp( disc->sata_ahci.trim_list )
+    {   K_( ~1, W( disc->sata_ahci.dirty ));
+        K_( ~1, W( disc->sata_ahci.ssd_cache ));
         return ~0;
+    }
     _0( disc->sata_ahci.trim_list, E_ssd_cache_Q_trim_S_list_max * sizeof( *disc->sata_ahci.trim_list ));
     return 0;
 }
@@ -177,7 +182,9 @@ E_ssd_cache_R( I disc_id
                         goto End;
                     }
                     disc->sata_ahci.ssd_cache[ cache_i ].data = Mt( disc->sata_ahci.physical_sector_size, 0 );
-                    if( !disc->sata_ahci.ssd_cache[ cache_i ].data )
+                    if( K_error( disc->sata_ahci.ssd_cache[ cache_i ].data )
+                    || !disc->sata_ahci.ssd_cache[ cache_i ].data
+                    )
                     {   N r_ = (N)E_mem_Q_blk_I_remove( &disc->sata_ahci.ssd_cache, cache_i, 1 );
                         if( K_error( r_ )
                         || !r_
@@ -216,7 +223,9 @@ E_ssd_cache_R( I disc_id
                         goto End;
                     }
                     disc->sata_ahci.ssd_cache[ cache_i ].data = Mt( disc->sata_ahci.physical_sector_size, 0 );
-                    if( !disc->sata_ahci.ssd_cache[ cache_i ].data )
+                    if( K_error( disc->sata_ahci.ssd_cache[ cache_i ].data )
+                    || !disc->sata_ahci.ssd_cache[ cache_i ].data
+                    )
                     {   N r_ = (N)E_mem_Q_blk_I_remove( &disc->sata_ahci.ssd_cache, cache_i, 1 );
                         if( K_error( r_ )
                         || !r_
@@ -444,7 +453,9 @@ E_ssd_cache_P( I disc_id
                         goto End;
                     }
                     disc->sata_ahci.ssd_cache[ cache_i ].data = Mt( disc->sata_ahci.physical_sector_size, 0 );
-                    if( !disc->sata_ahci.ssd_cache[ cache_i ].data )
+                    if( K_error( disc->sata_ahci.ssd_cache[ cache_i ].data )
+                    || !disc->sata_ahci.ssd_cache[ cache_i ].data
+                    )
                     {   N r_ = (N)E_mem_Q_blk_I_remove( &disc->sata_ahci.ssd_cache, cache_i, 1 );
                         if( K_error( r_ )
                         || !r_
@@ -483,7 +494,9 @@ E_ssd_cache_P( I disc_id
                         goto End;
                     }
                     disc->sata_ahci.ssd_cache[ cache_i ].data = Mt( disc->sata_ahci.physical_sector_size, 0 );
-                    if( !disc->sata_ahci.ssd_cache[ cache_i ].data )
+                    if( K_error( disc->sata_ahci.ssd_cache[ cache_i ].data )
+                    || !disc->sata_ahci.ssd_cache[ cache_i ].data
+                    )
                     {   N r_ = (N)E_mem_Q_blk_I_remove( &disc->sata_ahci.ssd_cache, cache_i, 1 );
                         if( K_error( r_ )
                         || !r_

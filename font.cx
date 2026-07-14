@@ -27,7 +27,7 @@ E_font_M( void
     E_font_S_font.default_i = 63;
     E_font_S_font.bitmap_n = 177;
     Mt_( E_font_S_font.bitmap, E_font_S_font.bitmap_n );
-    if( !E_font_S_font.bitmap )
+    Kp( E_font_S_font.bitmap )
         return ~0;
     for_n( i, E_font_S_font.bitmap_n )
     {   N8 *bitmap;
@@ -46,8 +46,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -65,8 +64,7 @@ E_font_M( void
                 , 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -84,8 +82,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -103,8 +100,7 @@ E_font_M( void
                 , 0, 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -122,8 +118,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -141,8 +136,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -160,8 +154,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -179,8 +172,7 @@ E_font_M( void
                 , 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -198,8 +190,7 @@ E_font_M( void
                 , 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -217,8 +208,7 @@ E_font_M( void
                 , 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -236,8 +226,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -255,8 +244,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -274,8 +262,7 @@ E_font_M( void
                 , 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -293,8 +280,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -312,8 +298,7 @@ E_font_M( void
                 , 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -331,8 +316,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -350,8 +334,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -369,8 +352,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -388,8 +370,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -407,8 +388,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -426,8 +406,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -445,8 +424,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -464,8 +442,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -483,8 +460,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -502,8 +478,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -521,8 +496,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -540,8 +514,7 @@ E_font_M( void
                 , 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -559,8 +532,7 @@ E_font_M( void
                 , 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -578,8 +550,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -597,8 +568,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -616,8 +586,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -635,8 +604,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -654,8 +622,7 @@ E_font_M( void
                 , 0, 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -673,8 +640,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -692,8 +658,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -711,8 +676,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -730,8 +694,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -749,8 +712,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -768,8 +730,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -787,8 +748,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -806,8 +766,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -825,8 +784,7 @@ E_font_M( void
                 , 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -844,8 +802,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -863,8 +820,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -882,8 +838,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -901,8 +856,7 @@ E_font_M( void
                 , 0, 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -920,8 +874,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -939,8 +892,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -958,8 +910,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -977,8 +928,7 @@ E_font_M( void
                 , 0, 0, 1, 2
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -996,8 +946,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1015,8 +964,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1034,8 +982,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1053,8 +1000,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1072,8 +1018,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1091,8 +1036,7 @@ E_font_M( void
                 , 0, 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1110,8 +1054,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1129,8 +1072,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1148,8 +1090,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1167,8 +1108,7 @@ E_font_M( void
                 , 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1186,8 +1126,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1205,8 +1144,7 @@ E_font_M( void
                 , 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1224,8 +1162,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1243,8 +1180,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1262,8 +1198,7 @@ E_font_M( void
                 , 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1281,8 +1216,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1300,8 +1234,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1319,8 +1252,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1338,8 +1270,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1357,8 +1288,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1376,8 +1306,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1395,8 +1324,7 @@ E_font_M( void
                 , 2, 3, 3, 2
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1414,8 +1342,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1433,8 +1360,7 @@ E_font_M( void
                 , 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1452,8 +1378,7 @@ E_font_M( void
                 , 3, 2
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1471,8 +1396,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1490,8 +1414,7 @@ E_font_M( void
                 , 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1509,8 +1432,7 @@ E_font_M( void
                 , 0, 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1528,8 +1450,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1547,8 +1468,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1566,8 +1486,7 @@ E_font_M( void
                 , 3, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1585,8 +1504,7 @@ E_font_M( void
                 , 0, 0, 0, 3
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1604,8 +1522,7 @@ E_font_M( void
                 , 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1623,8 +1540,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1642,8 +1558,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1661,8 +1576,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1680,8 +1594,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1699,8 +1612,7 @@ E_font_M( void
                 , 0, 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1718,8 +1630,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1737,8 +1648,7 @@ E_font_M( void
                 , 3, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1756,8 +1666,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1775,8 +1684,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1794,8 +1702,7 @@ E_font_M( void
                 , 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1813,8 +1720,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1832,8 +1738,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1851,8 +1756,7 @@ E_font_M( void
                 , 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1870,8 +1774,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1889,8 +1792,7 @@ E_font_M( void
                 , 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1908,8 +1810,7 @@ E_font_M( void
                 , 0, 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1927,8 +1828,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1946,8 +1846,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1965,8 +1864,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -1984,8 +1882,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2003,8 +1900,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2022,8 +1918,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2041,8 +1936,7 @@ E_font_M( void
                 , 3, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2060,8 +1954,7 @@ E_font_M( void
                 , 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2079,8 +1972,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2098,8 +1990,7 @@ E_font_M( void
                 , 1, 3, 1
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2117,8 +2008,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2136,8 +2026,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2155,8 +2044,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2174,8 +2062,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2193,8 +2080,7 @@ E_font_M( void
                 , 0, 0, 2, 1
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2212,8 +2098,7 @@ E_font_M( void
                 , 0, 0, 2, 3
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2231,8 +2116,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2250,8 +2134,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2269,8 +2152,7 @@ E_font_M( void
                 , 0, 0, 2, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2288,8 +2170,7 @@ E_font_M( void
                 , 0, 0, 2, 3
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2307,8 +2188,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2326,8 +2206,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2345,8 +2224,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2364,8 +2242,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2383,8 +2260,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2402,8 +2278,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2421,8 +2296,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2440,8 +2314,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2459,8 +2332,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2478,8 +2350,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2497,8 +2368,7 @@ E_font_M( void
                 , 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2516,8 +2386,7 @@ E_font_M( void
                 , 0, 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2535,8 +2404,7 @@ E_font_M( void
                 , 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2554,8 +2422,7 @@ E_font_M( void
                 , 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2573,8 +2440,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2592,8 +2458,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2611,8 +2476,7 @@ E_font_M( void
                 , 0, 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2630,8 +2494,7 @@ E_font_M( void
                 , 0, 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2649,8 +2512,7 @@ E_font_M( void
                 , 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2668,8 +2530,7 @@ E_font_M( void
                 , 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2687,8 +2548,7 @@ E_font_M( void
                 , 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2706,8 +2566,7 @@ E_font_M( void
                 , 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2725,8 +2584,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2744,8 +2602,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2763,8 +2620,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2782,8 +2638,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2801,8 +2656,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2820,8 +2674,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2839,8 +2692,7 @@ E_font_M( void
                 , 0, 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2858,8 +2710,7 @@ E_font_M( void
                 , 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2877,8 +2728,7 @@ E_font_M( void
                 , 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2896,8 +2746,7 @@ E_font_M( void
                 , 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2915,8 +2764,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2934,8 +2782,7 @@ E_font_M( void
                 , 0, 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2953,8 +2800,7 @@ E_font_M( void
                 , 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2972,8 +2818,7 @@ E_font_M( void
                 , 0, 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -2991,8 +2836,7 @@ E_font_M( void
                 , 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -3010,8 +2854,7 @@ E_font_M( void
                 , 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -3029,8 +2872,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -3048,8 +2890,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -3067,8 +2908,7 @@ E_font_M( void
                 , 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -3086,8 +2926,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -3105,8 +2944,7 @@ E_font_M( void
                 , 0, 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -3124,8 +2962,7 @@ E_font_M( void
                 , 0, 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -3143,8 +2980,7 @@ E_font_M( void
                 , 0, 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -3162,8 +2998,7 @@ E_font_M( void
                 , 0, 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -3181,8 +3016,7 @@ E_font_M( void
                 , 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -3200,8 +3034,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -3219,8 +3052,7 @@ E_font_M( void
                 , 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -3238,8 +3070,7 @@ E_font_M( void
                 , 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -3257,8 +3088,7 @@ E_font_M( void
                 , 0, 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -3276,8 +3106,7 @@ E_font_M( void
                 , 0, 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -3295,8 +3124,7 @@ E_font_M( void
                 , 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -3314,8 +3142,7 @@ E_font_M( void
                 , 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -3333,8 +3160,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -3352,8 +3178,7 @@ E_font_M( void
                 , 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -3371,8 +3196,7 @@ E_font_M( void
                 , 0, 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
@@ -3390,15 +3214,13 @@ E_font_M( void
                 , 0, 0, 0, 0, 0
                 };
                 bitmap = M( E_font_S_font.bitmap[i].width * E_font_S_font.height );
-                if( !bitmap )
-                    return ~2;
+                Kp_( ~2, bitmap );
                 E_mem_Q_blk_I_copy( bitmap, bitmap_, E_font_S_font.bitmap[i].width * E_font_S_font.height );
                 break;
             }
         }
         Mt_( E_font_S_font.bitmap[i].bitmap, E_font_S_font.bitmap[i].width * E_font_S_font.height / 4 + ( E_font_S_font.bitmap[i].width * E_font_S_font.height % 4 ? 1 : 0 ));
-        if( !E_font_S_font.bitmap[i].bitmap )
-            return ~2;
+        Kp_( ~2, E_font_S_font.bitmap[i].bitmap );
         N8 c;
         for_n( j, E_font_S_font.bitmap[i].width * E_font_S_font.height )
         {   if( j % 4 == 0 )

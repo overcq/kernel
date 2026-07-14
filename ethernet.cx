@@ -223,7 +223,9 @@ E_ethernet_I_interrupt( void
                                         }
                                         N length = sizeof( struct E_net_Z_ethernet_header ) + sizeof( struct E_net_Z_ipv4_header ) + udp4->length;
                                         connection_state->buffer = M(length);
-                                        if( !connection_state->buffer )
+                                        if( K_error( connection_state->buffer )
+                                        || !connection_state->buffer
+                                        )
                                         {   G( "Event %x handled", ~0 );
                                             E_main_I_fatal_save();
                                         }

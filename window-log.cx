@@ -245,7 +245,7 @@ _private
 I
 E_window_log_M( N8 desktop_id
 ){  struct E_window_log_Z_data *M_(data);
-    if( !data )
+    Kp(data)
         return ~0;
     data->line = ~0;
     I window_id = E_windows_Q_window_M( desktop_id, "System log", "In memory system log window", &E_window_log_I_draw, 0, 0, &E_window_log_I_wheel, &E_window_log_I_key, &E_window_log_W );

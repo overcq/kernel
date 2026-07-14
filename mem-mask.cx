@@ -12,8 +12,8 @@ Pc
 E_mem_Q_mask_M( N length
 ){  N bytes = length / 8 + ( length % 8 ? 1 : 0 );
     Pc mask = M(bytes);
-    if( !mask )
-        return mask;
+    KPp(mask)
+        return (P)~0;
     _0( mask, bytes );
     return mask;
 }

@@ -505,7 +505,7 @@ _private
 N
 E_pci_I_check_buses( void
 ){  Pc bus_mask = E_mem_Q_mask_M(256);
-    if( !bus_mask )
+    Kp( bus_mask )
         return ~0;
     N8 header_type = E_pci_I_read( 0, 0, 0, 0xe );
     if( header_type & 0x80 )

@@ -433,7 +433,7 @@ E_acpi_aml_Q_value_N_convert( enum E_acpi_aml_Z_value_Z_type type
             { case E_acpi_aml_Z_value_Z_type_S_string:
                 {   N l = E_text_Z_n_N_s_G( value->n, 10 );
                     Pc s = M( l + 1 );
-                    if( !s )
+                    Kp(s)
                         return ~0;
                     s[l] = '\0';
                     E_text_Z_n_N_s( s + l, value->n, 10 );
@@ -446,7 +446,7 @@ E_acpi_aml_Q_value_N_convert( enum E_acpi_aml_Z_value_Z_type type
               case E_acpi_aml_Z_value_Z_type_S_buffer:
                 {   N l = sizeof( value->n );
                     P p = M(l);
-                    if( !p )
+                    Kp(p)
                         return ~0;
                     *( N * )p = value->n;
                     value->buffer.p = p;
@@ -525,7 +525,7 @@ E_acpi_aml_Q_value_N_convert( enum E_acpi_aml_Z_value_Z_type type
                                 return ~0;
                         }else
                         {   p = E_text_Z_sl_M_duplicate( p, s + 1 - p );
-                            if( !p )
+                            Kp(p)
                                 return ~0;
                             value->copy = yes;
                         }
@@ -535,7 +535,7 @@ E_acpi_aml_Q_value_N_convert( enum E_acpi_aml_Z_value_Z_type type
                                 return ~0;
                         }else
                         {   Pc p_ = M( l + 1 );
-                            if( !p_ )
+                            Kp( p_ )
                                 return ~0;
                             E_mem_Q_blk_I_copy( p_, p, l );
                             value->copy = yes;
@@ -618,7 +618,7 @@ N
 E_acpi_aml_M_current_path( void
 ){  E_acpi_aml_S_current_path_n = 0;
     Mt_( E_acpi_aml_S_current_path, E_acpi_aml_S_current_path_n );
-    if( !E_acpi_aml_S_current_path )
+    Kp( E_acpi_aml_S_current_path )
         return ~0;
     return 0;
 }
@@ -640,7 +640,7 @@ E_acpi_aml_Q_current_path_I_push( struct E_acpi_aml_Z_pathname pathname
     E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n ] = pathname;
     E_acpi_aml_S_current_path_n++;
     //Pc name = M( pathname.n * 4 + 1 );
-    //if( !name )
+    //Kp(name)
         //return ~0;
     //E_text_Z_s_P_copy_sl_0( name, pathname.s, pathname.n * 4 );
     //G( "push=%s", name );
@@ -653,7 +653,7 @@ E_acpi_aml_Q_current_path_I_pop( void
     Kp_( ~1, E_mem_Q_blk_I_remove( &E_acpi_aml_S_current_path, --E_acpi_aml_S_current_path_n, 1 ));
     //if( E_acpi_aml_S_current_path_n )
     //{   Pc name = M( E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n - 1 ].n * 4 + 1 );
-        //if( !name )
+        //Kp(name)
             //return ~0;
         //E_text_Z_s_P_copy_sl_0( name, E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n - 1 ].s, E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n - 1 ].n * 4 );
         //G( ",pop=%s", name );
@@ -744,10 +744,10 @@ N
 E_acpi_aml_M_object( void
 ){  E_acpi_aml_S_object_n = 7;
     Mt_( E_acpi_aml_S_object, E_acpi_aml_S_object_n );
-    if( !E_acpi_aml_S_object )
+    Kp( E_acpi_aml_S_object )
         return ~0;
     Pc name = E_text_Z_sl_M_duplicate( "_GL_", 4 );
-    if( !name )
+    Kp(name)
     {   K_( ~2, W( E_acpi_aml_S_object ));
         return ~0;
     }
@@ -757,7 +757,7 @@ E_acpi_aml_M_object( void
     E_acpi_aml_S_object[0].procedure_invocation = 0;
     E_acpi_aml_S_object[0].type = E_acpi_aml_Z_object_Z_type_S_mutex;
     name = E_text_Z_sl_M_duplicate( "_GPE", 4 );
-    if( !name )
+    Kp(name)
     {   K_( ~2, W( E_acpi_aml_S_object[0].name.s ));
         K_( ~2, W( E_acpi_aml_S_object ));
         return ~0;
@@ -768,7 +768,7 @@ E_acpi_aml_M_object( void
     E_acpi_aml_S_object[1].procedure_invocation = 0;
     E_acpi_aml_S_object[1].type = E_acpi_aml_Z_object_Z_type_S_uninitialized;
     name = E_text_Z_sl_M_duplicate( "_OS_", 4 );
-    if( !name )
+    Kp(name)
     {   K_( ~2, W( E_acpi_aml_S_object[1].name.s ));
         K_( ~2, W( E_acpi_aml_S_object[0].name.s ));
         K_( ~2, W( E_acpi_aml_S_object ));
@@ -777,7 +777,7 @@ E_acpi_aml_M_object( void
     E_acpi_aml_S_object[2].name.s = name;
     E_acpi_aml_S_object[2].name.n = 1;
     E_acpi_aml_S_object[2].data = E_text_Z_s0_M_duplicate( "OUX/C+ OS" );
-    if( !E_acpi_aml_S_object[2].data )
+    Kp( E_acpi_aml_S_object[2].data )
     {   K_( ~2, W( E_acpi_aml_S_object[2].name.s ));
         K_( ~2, W( E_acpi_aml_S_object[1].name.s ));
         K_( ~2, W( E_acpi_aml_S_object[0].name.s ));
@@ -788,7 +788,7 @@ E_acpi_aml_M_object( void
     E_acpi_aml_S_object[2].procedure_invocation = 0;
     E_acpi_aml_S_object[2].type = E_acpi_aml_Z_object_Z_type_S_string;
     name = E_text_Z_sl_M_duplicate( "_OSI", 4 );
-    if( !name )
+    Kp(name)
     {   N i_2 = 2;
         K_( ~2, E_acpi_aml_Q_object_W_data( &i_2 ));
         K_( ~2, W( E_acpi_aml_S_object[2].name.s ));
@@ -800,7 +800,7 @@ E_acpi_aml_M_object( void
     E_acpi_aml_S_object[3].name.s = name;
     E_acpi_aml_S_object[3].name.n = 1;
     struct E_acpi_aml_Z_object_data_Z_procedure *M_(procedure);
-    if( !procedure )
+    Kp(procedure)
     {   N i_2 = 2;
         K_( ~2, W( E_acpi_aml_S_object[3].name.s ));
         K_( ~2, E_acpi_aml_Q_object_W_data( &i_2 ));
@@ -816,7 +816,7 @@ E_acpi_aml_M_object( void
     E_acpi_aml_S_object[3].procedure_invocation = 0;
     E_acpi_aml_S_object[3].type = E_acpi_aml_Z_object_Z_type_S_procedure;
     name = E_text_Z_sl_M_duplicate( "_REV", 4 );
-    if( !name )
+    Kp(name)
     {   N i_2 = 2, i_3 = 3;
         K_( ~2, E_acpi_aml_Q_object_W_data( &i_3 ));
         K_( ~2, W( E_acpi_aml_S_object[3].name.s ));
@@ -834,7 +834,7 @@ E_acpi_aml_M_object( void
     E_acpi_aml_S_object[4].procedure_invocation = 0;
     E_acpi_aml_S_object[4].type = E_acpi_aml_Z_object_Z_type_S_number;
     name = E_text_Z_sl_M_duplicate( "_SB_", 4 );
-    if( !name )
+    Kp(name)
     {   N i_2 = 2, i_3 = 3;
         K_( ~2, W( E_acpi_aml_S_object[4].name.s ));
         K_( ~2, E_acpi_aml_Q_object_W_data( &i_3 ));
@@ -852,7 +852,7 @@ E_acpi_aml_M_object( void
     E_acpi_aml_S_object[5].procedure_invocation = 0;
     E_acpi_aml_S_object[5].type = E_acpi_aml_Z_object_Z_type_S_uninitialized;
     name = E_text_Z_sl_M_duplicate( "_SI_", 4 );
-    if( !name )
+    Kp(name)
     {   N i_2 = 2, i_3 = 3;
         K_( ~2, W( E_acpi_aml_S_object[5].name.s ));
         K_( ~2, W( E_acpi_aml_S_object[4].name.s ));
@@ -1002,12 +1002,12 @@ _internal
 struct E_acpi_aml_Z_package *
 E_acpi_aml_Q_object_I_package_duplicate( struct E_acpi_aml_Z_package *package
 ){  struct E_acpi_aml_Z_package *M_(ret);
-    if( !ret )
+    KPp(ret)
         return 0;
     ret->n = package->n;
     Mt_( ret->value, ret->n );
-    if( !ret->value )
-    {   W(ret);
+    KPp( ret->value )
+    {   KP_( ~1, W(ret) );
         return 0;
     }
     for_n( i, package->n )
@@ -1018,10 +1018,9 @@ E_acpi_aml_Q_object_I_package_duplicate( struct E_acpi_aml_Z_package *package
                 break;
           case E_acpi_aml_Z_value_Z_type_S_string:
             {   Pc s = E_text_Z_s0_M_duplicate( package->value[i].p );
-                if( !s )
-                {   if( W( ret->value ))
-                        return 0;
-                    W(ret);
+                KPp(s)
+                {   KP_( ~1, W( ret->value ));
+                    KP_( ~1, W(ret) );
                     return 0;
                 }
                 ret->value[i].p = s;
@@ -1032,10 +1031,9 @@ E_acpi_aml_Q_object_I_package_duplicate( struct E_acpi_aml_Z_package *package
           case E_acpi_aml_Z_value_Z_type_S_buffer:
             {   ret->value[i].buffer.n = package->value[i].buffer.n;
                 ret->value[i].buffer.p = E_text_Z_sl_M_duplicate( package->value[i].p, ret->value[i].buffer.n );
-                if( !ret->value[i].buffer.p )
-                {   if( W( ret->value ))
-                        return 0;
-                    W(ret);
+                KPp( ret->value[i].buffer.p )
+                {   KP_( ~1, W( ret->value ));
+                    KP_( ~1, W(ret) );
                     return 0;
                 }
                 ret->value[i].copy = yes;
@@ -1044,10 +1042,9 @@ E_acpi_aml_Q_object_I_package_duplicate( struct E_acpi_aml_Z_package *package
             }
           case E_acpi_aml_Z_value_Z_type_S_package:
             {   struct E_acpi_aml_Z_package *package_ = E_acpi_aml_Q_object_I_package_duplicate( package->value[i].package );
-                if( !package_ )
-                {   if( W( ret->value ))
-                        return 0;
-                    W(ret);
+                KPp( package_ )
+                {   KP_( ~1, W( ret->value ));
+                    KP_( ~1, W(ret) );
                     return 0;
                 }
                 ret->value[i].package = package_;
@@ -1057,10 +1054,9 @@ E_acpi_aml_Q_object_I_package_duplicate( struct E_acpi_aml_Z_package *package
             }
           case E_acpi_aml_Z_value_Z_type_S_pathname:
             {   Pc s = E_text_Z_sl_M_duplicate( package->value[i].pathname.s, package->value[i].pathname.n * 4 );
-                if( !s )
-                {   if( W( ret->value ))
-                        return 0;
-                    W(ret);
+                KPp(s)
+                {   KP_( ~1, W( ret->value ));
+                    KP_( ~1, W(ret) );
                     return 0;
                 }
                 ret->value[i].pathname.s = s;
@@ -1070,10 +1066,10 @@ E_acpi_aml_Q_object_I_package_duplicate( struct E_acpi_aml_Z_package *package
                 break;
             }
           default:
-                if( W( ret->value ))
-                    return 0;
-                W(ret);
+            {   KP_( ~1, W( ret->value ));
+                KP_( ~1, W(ret) );
                 return 0;
+            }
         }
     return ret;
 }
@@ -1200,12 +1196,12 @@ _internal
 Pc
 E_acpi_aml_Q_path_R_segment_( Pc pkg_end
 ){  if( E_acpi_aml_S_parse_data + 4 > pkg_end )
-        return (Pc)~0;
+        return (P)~0;
     if( !( E_acpi_aml_S_parse_data[0] == '_'
     || ( E_acpi_aml_S_parse_data[0] >= 'A'
       && E_acpi_aml_S_parse_data[0] <= 'Z'
     )))
-        return (Pc)~10;
+        return (P)~10;
     for_n( j, 3 )
         if( !( E_acpi_aml_S_parse_data[ 1 + j ] == '_'
         || ( E_acpi_aml_S_parse_data[ 1 + j ] >= '0'
@@ -1214,10 +1210,10 @@ E_acpi_aml_Q_path_R_segment_( Pc pkg_end
         || ( E_acpi_aml_S_parse_data[ 1 + j ] >= 'A'
           && E_acpi_aml_S_parse_data[ 1 + j ] <= 'Z'
         )))
-            return (Pc)~10;
+            return (P)~10;
     Pc s = M(4);
-    if( !s )
-        return (Pc)~0;
+    KPp(s)
+        return (P)~0;
     E_mem_Q_blk_I_copy( s, E_acpi_aml_S_parse_data, 4 );
     E_acpi_aml_S_parse_data += 4;
     return s;
@@ -1286,42 +1282,30 @@ E_acpi_aml_Q_path_R_root( N8 *n
             if( !~(S8)*n
             || !*n
             )
-            {   *n = ~10;
-                return 0;
-            }
+                return (P)~10;
             Pc s = M( *n * 4 );
-            if( !s )
-            {   *n = ~0;
+            KPp(s)
                 return 0;
-            }
             E_mem_Q_blk_I_copy( s, E_acpi_aml_S_parse_data - *n * 4, *n * 4 );
             return s;
         }
       case '^':
             if( !E_acpi_aml_S_current_path_n )
-            {   *n = ~10;
-                return 0;
-            }
+                return (P)~10;
             do
             {   if( ++E_acpi_aml_S_parse_data == E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end
                 || ++parent_n > E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n - 1 ].n
                 )
-                {   *n = ~10;
-                    return 0;
-                }
+                    return (P)~10;
             }while( *E_acpi_aml_S_parse_data == '^' );
       default:
         {   *n = E_acpi_aml_Q_path_R_pathname();
             if( !~(S8)*n )
-            {   *n = ~10;
-                return 0;
-            }
+                return (P)~10;
             N depth = E_acpi_aml_S_current_path_n ? E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n - 1 ].n - parent_n : 0;
             Pc s = M(( depth + *n ) * 4 );
-            if( !s )
-            {   *n = ~0;
-                return 0;
-            }
+            KPp(s)
+                return (P)~0;
             if( E_acpi_aml_S_current_path_n )
                 E_mem_Q_blk_I_copy( s, E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n - 1 ].s, depth * 4 );
             E_mem_Q_blk_I_copy( s + depth * 4, E_acpi_aml_S_parse_data - *n * 4, *n * 4 );
@@ -1344,45 +1328,33 @@ E_acpi_aml_Q_path_R_relative( N8 *n
             if( !~(S8)*n
             || !*n
             )
-            {   *n = ~10;
-                return 0;
-            }
+                return (P)~10;
             Pc s = M( *n * 4 );
-            if( !s )
-            {   *n = ~0;
-                return 0;
-            }
+            KPp(s)
+                return (P)~0;
             E_mem_Q_blk_I_copy( s, E_acpi_aml_S_parse_data - *n * 4, *n * 4 );
             *object_i = E_acpi_aml_Q_object_R(( struct E_acpi_aml_Z_pathname ){ s, *n });
             return s;
         }
       case '^':
         {   if( !E_acpi_aml_S_current_path_n )
-            {   *n = ~10;
-                return 0;
-            }
+                return (P)~10;
             N parent_n = 0;
             do
             {   if( ++E_acpi_aml_S_parse_data == E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end
                 || ++parent_n > E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n - 1 ].n
                 )
-                {   *n = ~10;
-                    return 0;
-                }
+                    return (P)~10;
             }while( *E_acpi_aml_S_parse_data == '^' );
             *n = E_acpi_aml_Q_path_R_pathname();
             if( !~(S8)*n
             || !*n
             )
-            {   *n = ~10;
-                return 0;
-            }
+                return (P)~10;
             N depth = E_acpi_aml_S_current_path_n ? E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n - 1 ].n - parent_n : 0;
             Pc s = M(( depth + *n ) * 4 );
-            if( !s )
-            {   *n = ~0;
-                return 0;
-            }
+            KPp(s)
+                return (P)~0;
             E_mem_Q_blk_I_copy( s, E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n - 1 ].s, depth * 4 );
             E_mem_Q_blk_I_copy( s + depth * 4, E_acpi_aml_S_parse_data - *n * 4, *n * 4 );
             *n += depth;
@@ -1394,9 +1366,7 @@ E_acpi_aml_Q_path_R_relative( N8 *n
             if( !~(S8)*n
             || !*n
             )
-            {   *n = ~10;
-                return 0;
-            }
+                return (P)~10;
             Pc s;
             if( E_acpi_aml_S_current_path_n )
             {   N i;
@@ -1404,20 +1374,16 @@ E_acpi_aml_Q_path_R_relative( N8 *n
                 && ~( i = E_acpi_aml_Q_object_R_relative( E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n - 1 ], E_acpi_aml_S_parse_data - 4 ))
                 )
                 {   s = M( E_acpi_aml_S_object[i].name.n * 4 );
-                    if( !s )
-                    {   *n = ~0;
-                        return 0;
-                    }
+                    KPp(s)
+                        return (P)~0;
                     E_mem_Q_blk_I_copy( s, E_acpi_aml_S_object[i].name.s, E_acpi_aml_S_object[i].name.n * 4 );
                     *n = E_acpi_aml_S_object[i].name.n;
                     *object_i = i;
                 }else
                 {   N depth = E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n - 1 ].n;
                     s = M(( depth + *n ) * 4 );
-                    if( !s )
-                    {   *n = ~0;
-                        return 0;
-                    }
+                    KPp(s)
+                        return (P)~0;
                     E_mem_Q_blk_I_copy( s, E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n - 1 ].s, depth * 4 );
                     E_mem_Q_blk_I_copy( s + depth * 4, E_acpi_aml_S_parse_data - *n * 4, *n * 4 );
                     *n += depth;
@@ -1425,10 +1391,8 @@ E_acpi_aml_Q_path_R_relative( N8 *n
                 }
             }else
             {   s = M( *n * 4 );
-                if( !s )
-                {   *n = ~0;
-                    return 0;
-                }
+                KPp(s)
+                    return (P)~0;
                 E_mem_Q_blk_I_copy( s, E_acpi_aml_S_parse_data - *n * 4, *n * 4 );
                 *object_i = E_acpi_aml_Q_object_R(( struct E_acpi_aml_Z_pathname ){ E_acpi_aml_S_parse_data - *n * 4, *n });
             }
@@ -1659,11 +1623,11 @@ E_acpi_aml_I_data_object( void
                 E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].match = yes;
             }else
             {   struct E_acpi_aml_Z_package *M_(package);
-                if( !package )
+                Kp(package)
                     return ~0;
                 package->n = 0;
                 Mt_( package->value, package->n );
-                if( !package->value )
+                Kp( package->value )
                 {   K_( ~1, W(package) );
                     return ~0;
                 }
@@ -1690,11 +1654,11 @@ E_acpi_aml_I_data_object( void
             {
             }else
             {   struct E_acpi_aml_Z_package *M_(package);
-                if( !package )
+                Kp(package)
                     return ~0;
                 package->n = 0;
                 Mt_( package->value, package->n );
-                if( !package->value )
+                Kp( package->value )
                 {   K_( ~1, W(package) );
                     return ~0;
                 }
@@ -1842,11 +1806,11 @@ E_acpi_aml_I_term( void
       case 0x15: // external
         {   N8 n;
             Pc name = E_acpi_aml_Q_path_R_root( &n );
-            if( !name )
-                return (S8)n;
+            Kp(name)
+                return ~0;
             K_( ~1, W(name) );
             Pc name_ = M( n * 4 + 1 );
-            if( !name_ )
+            Kp( name_ )
                 return ~0;
             E_text_Z_s_P_copy_sl_0( name_, name, n * 4 );
             G_( ",external=%s", name_ );
@@ -1967,14 +1931,14 @@ E_acpi_aml_I_object( void
         {   N8 name_n;
             N dest_object_i;
             Pc name = E_acpi_aml_Q_path_R_relative( &name_n, &dest_object_i );
-            if( !name )
-                return (S8)name_n;
+            Kp(name)
+                return ~0;
             if( !~dest_object_i )
             {   K_( ~1, W(name) );
                 return ~0;
             }
             Pc name_ = M( name_n * 4 + 1 );
-            if( !name_ )
+            Kp( name_ )
             {   K_( ~1, W(name) );
                 return ~0;
             }
@@ -1983,10 +1947,10 @@ E_acpi_aml_I_object( void
             K_( ~1, W(name) );
             N8 alias_n;
             Pc alias = E_acpi_aml_Q_path_R_root( &alias_n );
-            if( !alias )
-                return (S8)alias_n;
+            Kp(alias)
+                return ~0;
             name_ = M( alias_n * 4 + 1 );
-            if( !name_ )
+            Kp( name_ )
             {   K_( ~1, W(alias) );
                 return ~0;
             }
@@ -2001,7 +1965,7 @@ E_acpi_aml_I_object( void
                     return object_i;
                 }
                 struct E_acpi_aml_Z_pathname *M_(pathname);
-                if( !pathname )
+                Kp(pathname)
                 {   E_acpi_aml_S_object[ object_i ].type = E_acpi_aml_Z_object_Z_type_S_uninitialized;
                     return ~0;
                 }
@@ -2014,10 +1978,10 @@ E_acpi_aml_I_object( void
       case 8: // object
         {   N8 n;
             Pc name = E_acpi_aml_Q_path_R_root( &n );
-            if( !name )
-                return (S8)n;
+            Kp(name)
+                return ~0;
             Pc name_ = M( n * 4 + 1 );
-            if( !name_ )
+            Kp( name_ )
             {   K_( ~1, W(name) );
                 return ~0;
             }
@@ -2038,7 +2002,7 @@ E_acpi_aml_I_object( void
                     return object_i;
                 }
                 name_ = E_text_Z_sl_M_duplicate( name, n * 4 );
-                if( !name_ )
+                Kp( name_ )
                     return ~0;
                 name = name_;
             }
@@ -2061,10 +2025,10 @@ E_acpi_aml_I_object( void
             N8 n;
             N object_i;
             Pc name = E_acpi_aml_Q_path_R_relative( &n, &object_i );
-            if( !name )
-                return (S8)n;
+            Kp(name)
+                return ~0;
             Pc name_ = M( n * 4 + 1 );
-            if( !name_ )
+            Kp( name_ )
             {   K_( ~1, W(name) );
                 return ~0;
             }
@@ -2111,10 +2075,10 @@ E_acpi_aml_I_object( void
                     N8 n;
                     N object_i;
                     Pc region_name = E_acpi_aml_Q_path_R_relative( &n, &object_i );
-                    if( !region_name )
-                        return (S8)n;
+                    Kp( region_name )
+                        return ~0;
                     Pc name_ = M( n * 4 + 1 );
-                    if( !name_ )
+                    Kp( name_ )
                     {   K_( ~1, W( region_name ));
                         return ~0;
                     }
@@ -2133,7 +2097,7 @@ E_acpi_aml_I_object( void
                     )
                         return (N)bank_name;
                     name_ = M( n * 4 + 1 );
-                    if( !name_ )
+                    Kp( name_ )
                     {   K_( ~1, W( bank_name ));
                         return ~0;
                     }
@@ -2143,7 +2107,7 @@ E_acpi_aml_I_object( void
                     {   K_( ~1, W( bank_name ));
                     }else
                     {   struct E_acpi_aml_Z_value *Mt_( value, E_acpi_aml_S_parse_stack_S_tmp_p_n );
-                        if( !value )
+                        Kp( value )
                         {   K_( ~1, W( bank_name ));
                             return ~0;
                         }
@@ -2162,8 +2126,8 @@ E_acpi_aml_I_object( void
               case 1: // mutex
                 {   N8 n;
                     Pc name = E_acpi_aml_Q_path_R_root( &n );
-                    if( !name )
-                        return (S8)n;
+                    Kp(name)
+                        return ~0;
                     if( n > 1
                     && !~E_acpi_aml_Q_object_R(( struct E_acpi_aml_Z_pathname ){ name, n - 1 })
                     )
@@ -2171,7 +2135,7 @@ E_acpi_aml_I_object( void
                         return ~0;
                     }
                     Pc name_ = M( n * 4 + 1 );
-                    if( !name_ )
+                    Kp( name_ )
                     {   K_( ~1, W(name) );
                         return ~0;
                     }
@@ -2201,8 +2165,8 @@ E_acpi_aml_I_object( void
               case 0x88: // data dsdt region
                 {   N8 n;
                     Pc name = E_acpi_aml_Q_path_R_root( &n );
-                    if( !name )
-                        return (S8)n;
+                    Kp(name)
+                        return ~0;
                     if( n > 1
                     && !~E_acpi_aml_Q_object_R(( struct E_acpi_aml_Z_pathname ){ name, n - 1 })
                     )
@@ -2210,7 +2174,7 @@ E_acpi_aml_I_object( void
                         return ~0;
                     }
                     Pc name_ = M( n * 4 + 1 );
-                    if( !name_ )
+                    Kp( name_ )
                     {   K_( ~1, W(name) );
                         return ~0;
                     }
@@ -2232,8 +2196,8 @@ E_acpi_aml_I_object( void
              case 0x80: // op region
                 {   N8 n;
                     Pc name = E_acpi_aml_Q_path_R_root( &n );
-                    if( !name )
-                        return (S8)n;
+                    Kp(name)
+                        return ~0;
                     if( n > 1
                     && !~E_acpi_aml_Q_object_R(( struct E_acpi_aml_Z_pathname ){ name, n - 1 })
                     )
@@ -2241,7 +2205,7 @@ E_acpi_aml_I_object( void
                         return ~0;
                     }
                     Pc name_ = M( n * 4 + 1 );
-                    if( !name_ )
+                    Kp( name_ )
                     {   K_( ~1, W(name) );
                         return ~0;
                     }
@@ -2259,7 +2223,7 @@ E_acpi_aml_I_object( void
                             return object_i;
                         }
                         struct E_acpi_aml_Z_op_region *M_(region);
-                        if( !region )
+                        Kp(region)
                         {   E_acpi_aml_S_object[ object_i ].type = E_acpi_aml_Z_object_Z_type_S_uninitialized;
                             return ~0;
                         }
@@ -2270,7 +2234,7 @@ E_acpi_aml_I_object( void
                             return ~10;
                         }
                         struct E_acpi_aml_Z_value *Mt_( value, E_acpi_aml_S_parse_stack_S_tmp_p_n );
-                        if( !value )
+                        Kp(value)
                         {   K_( ~1, W(region) );
                             E_acpi_aml_S_object[ object_i ].type = E_acpi_aml_Z_object_Z_type_S_uninitialized;
                             return ~0;
@@ -2297,10 +2261,10 @@ E_acpi_aml_I_object( void
                     N8 n;
                     N object_i;
                     Pc name = E_acpi_aml_Q_path_R_relative( &n, &object_i );
-                    if( !name )
-                        return (S8)n;
+                    Kp(name)
+                        return ~0;
                     Pc name_ = M( n * 4 + 1 );
-                    if( !name_ )
+                    Kp( name_ )
                     {   K_( ~1, W(name) );
                         return ~0;
                     }
@@ -2372,7 +2336,7 @@ E_acpi_aml_I_object( void
                                     )
                                         return (N)name_;
                                     Pc name__ = M( 4 + 1 );
-                                    if( !name__ )
+                                    Kp( name__ )
                                     {   K_( ~1, W( name_ ));
                                         return ~0;
                                     }
@@ -2380,7 +2344,7 @@ E_acpi_aml_I_object( void
                                     G_( ",name=%s", name__ );
                                     N depth = E_acpi_aml_S_current_path_n ? E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n - 1 ].n : 0;
                                     Pc field_name = M(( depth + 1 ) * 4 );
-                                    if( !field_name )
+                                    Kp( field_name )
                                     {   K_( ~1, W( name_ ));
                                         return ~0;
                                     }
@@ -2394,7 +2358,7 @@ E_acpi_aml_I_object( void
                                         return field_object_i;
                                     }
                                     struct E_acpi_aml_Z_field_unit *M_(field);
-                                    if( !field )
+                                    Kp( field )
                                     {   E_acpi_aml_S_object[ field_object_i ].type = E_acpi_aml_Z_object_Z_type_S_uninitialized;
                                         return ~0;
                                     }
@@ -2428,10 +2392,10 @@ E_acpi_aml_I_object( void
                     N8 n;
                     N object_i;
                     Pc name = E_acpi_aml_Q_path_R_relative( &n, &object_i );
-                    if( !name )
-                        return (S8)n;
+                    Kp(name)
+                        return ~0;
                     Pc name_ = M( n * 4 + 1 );
-                    if( !name_ )
+                    Kp( name_ )
                     {   K_( ~1, W(name) );
                         return ~0;
                     }
@@ -2442,10 +2406,10 @@ E_acpi_aml_I_object( void
                     {   E_acpi_aml_S_parse_data = pkg_end; // Tymczasowo.
                     }else
                     {   name = E_acpi_aml_Q_path_R_root( &n );
-                        if( !name )
-                            return (S8)n;
+                        Kp(name)
+                            return ~0;
                         name_ = M( n * 4 + 1 );
-                        if( !name_ )
+                        Kp( name_ )
                         {   K_( ~1, W(name) );
                             return ~0;
                         }
@@ -2508,7 +2472,7 @@ E_acpi_aml_I_object( void
                                     )
                                         return (N)name_;
                                     Pc name__ = M( 4 + 1 );
-                                    if( !name__ )
+                                    Kp( name__ )
                                     {   K_( ~1, W( name_ ));
                                         return ~0;
                                     }
@@ -2516,7 +2480,7 @@ E_acpi_aml_I_object( void
                                     G_( ",name=%s", name__ );
                                     N depth = E_acpi_aml_S_current_path_n ? E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n - 1 ].n : 0;
                                     Pc field_name = M(( depth + 1 ) * 4 );
-                                    if( !field_name )
+                                    Kp( field_name )
                                     {   K_( ~1, W( name_ ));
                                         return ~0;
                                     }
@@ -2530,7 +2494,7 @@ E_acpi_aml_I_object( void
                                         return field_object_i;
                                     }
                                     struct E_acpi_aml_Z_field_unit *M_(field);
-                                    if( !field )
+                                    Kp(field)
                                     {   E_acpi_aml_S_object[ field_object_i ].type = E_acpi_aml_Z_object_Z_type_S_uninitialized;
                                         return ~0;
                                     }
@@ -2564,10 +2528,10 @@ E_acpi_aml_I_object( void
                         return ~10;
                     N8 n;
                     Pc name = E_acpi_aml_Q_path_R_root( &n );
-                    if( !name )
-                        return (S8)n;
+                    Kp(name)
+                        return ~0;
                     Pc name_ = M( n * 4 + 1 );
-                    if( !name_ )
+                    Kp( name_ )
                     {   K_( ~1, W(name) );
                         return ~0;
                     }
@@ -2594,7 +2558,7 @@ E_acpi_aml_I_object( void
                         {   name_ = name;
                         }else
                         {   name_ = E_text_Z_sl_M_duplicate( name, n * 4 );
-                            if( !name_ )
+                            Kp( name_ )
                                 return ~0;
                         }
                         K( E_acpi_aml_Q_current_path_I_push(( struct E_acpi_aml_Z_pathname ){ name_, n } ))
@@ -2611,8 +2575,8 @@ E_acpi_aml_I_object( void
               case 2: // event
                 {   N8 n;
                     Pc name = E_acpi_aml_Q_path_R_root( &n );
-                    if( !name )
-                        return (S8)n;
+                    Kp(name)
+                        return ~0;
                     if( n > 1
                     && !~E_acpi_aml_Q_object_R(( struct E_acpi_aml_Z_pathname ){ name, n - 1 })
                     )
@@ -2620,7 +2584,7 @@ E_acpi_aml_I_object( void
                         return ~0;
                     }
                     Pc name_ = M( n * 4 + 1 );
-                    if( !name_ )
+                    Kp( name_ )
                     {   K_( ~1, W(name) );
                         return ~0;
                     }
@@ -2648,8 +2612,8 @@ E_acpi_aml_I_object( void
                         return ~10;
                     N8 n;
                     Pc name = E_acpi_aml_Q_path_R_root( &n );
-                    if( !name )
-                        return (S8)n;
+                    Kp(name)
+                        return ~0;
                     if( n > 1
                     && !~E_acpi_aml_Q_object_R(( struct E_acpi_aml_Z_pathname ){ name, n - 1 })
                     )
@@ -2657,7 +2621,7 @@ E_acpi_aml_I_object( void
                         return ~0;
                     }
                     Pc name_ = M( n * 4 + 1 );
-                    if( !name_ )
+                    Kp( name_ )
                     {   K_( ~1, W(name) );
                         return ~0;
                     }
@@ -2680,7 +2644,7 @@ E_acpi_aml_I_object( void
                         if( E_acpi_aml_S_parse_data > pkg_end )
                             return ~10;
                         name_ = E_text_Z_sl_M_duplicate( name, n * 4 );
-                        if( !name_ )
+                        Kp( name_ )
                             return ~0;
                         K( E_acpi_aml_Q_current_path_I_push(( struct E_acpi_aml_Z_pathname ){ name_, n } ))
                         {   K_( ~1, W( name_ ));
@@ -2701,8 +2665,8 @@ E_acpi_aml_I_object( void
                         return ~10;
                     N8 n;
                     Pc name = E_acpi_aml_Q_path_R_root( &n );
-                    if( !name )
-                        return (S8)n;
+                    Kp(name)
+                        return ~0;
                     if( n > 1
                     && !~E_acpi_aml_Q_object_R(( struct E_acpi_aml_Z_pathname ){ name, n - 1 })
                     )
@@ -2710,7 +2674,7 @@ E_acpi_aml_I_object( void
                         return ~0;
                     }
                     Pc name_ = M( n * 4 + 1 );
-                    if( !name_ )
+                    Kp( name_ )
                     {   K_( ~1, W(name) );
                         return ~0;
                     }
@@ -2728,7 +2692,7 @@ E_acpi_aml_I_object( void
                     E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].match = yes;
                     if( E_acpi_aml_S_parse_data != pkg_end )
                     {   name_ = E_text_Z_sl_M_duplicate( name, n * 4 );
-                        if( !name_ )
+                        Kp( name_ )
                             return ~0;
                         K( E_acpi_aml_Q_current_path_I_push(( struct E_acpi_aml_Z_pathname ){ name_, n } ))
                         {   K_( ~1, W( name_ ));
@@ -2749,8 +2713,8 @@ E_acpi_aml_I_object( void
                         return ~10;
                     N8 n;
                     Pc name = E_acpi_aml_Q_path_R_root( &n );
-                    if( !name )
-                        return (S8)n;
+                    Kp(name)
+                        return ~0;
                     if( n > 1
                     && !~E_acpi_aml_Q_object_R(( struct E_acpi_aml_Z_pathname ){ name, n - 1 })
                     )
@@ -2758,7 +2722,7 @@ E_acpi_aml_I_object( void
                         return ~0;
                     }
                     Pc name_ = M( n * 4 + 1 );
-                    if( !name_ )
+                    Kp( name_ )
                     {   K_( ~1, W(name) );
                         return ~0;
                     }
@@ -2783,7 +2747,7 @@ E_acpi_aml_I_object( void
                     E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].match = yes;
                     if( E_acpi_aml_S_parse_data != pkg_end )
                     {   name_ = E_text_Z_sl_M_duplicate( name, n * 4 );
-                        if( !name_ )
+                        Kp( name_ )
                             return ~0;
                         K( E_acpi_aml_Q_current_path_I_push(( struct E_acpi_aml_Z_pathname ){ name_, n } ))
                         {   K_( ~1, W( name_ ));
@@ -2841,10 +2805,10 @@ E_acpi_aml_I_object( void
                 return ~10;
             N8 n;
             Pc name = E_acpi_aml_Q_path_R_root( &n );
-            if( !name )
-                return (S8)n;
+            Kp(name)
+                return ~0;
             Pc name_ = M( n * 4 + 1 );
-            if( !name_ )
+            Kp( name_ )
             {   K_( ~1, W(name) );
                 return ~0;
             }
@@ -2859,7 +2823,7 @@ E_acpi_aml_I_object( void
             if( E_acpi_aml_S_parse_data == pkg_end )
                 return ~10;
             struct E_acpi_aml_Z_object_data_Z_procedure *M_(procedure);
-            if( !procedure )
+            Kp(procedure)
                 return ~0;
             procedure->arg_n = *E_acpi_aml_S_parse_data & 3;
             E_acpi_aml_S_parse_data++;
@@ -2878,7 +2842,7 @@ E_acpi_aml_I_object( void
             if( E_acpi_aml_S_precompilation )
             {   if( E_acpi_aml_S_parse_data != pkg_end )
                 {   name_ = E_text_Z_sl_M_duplicate( name, n * 4 );
-                    if( !name_ )
+                    Kp( name_ )
                         return ~0;
                     K( E_acpi_aml_Q_current_path_I_push(( struct E_acpi_aml_Z_pathname ){ name_, n } ))
                     {   K_( ~1, W( name_ ));
@@ -3120,11 +3084,11 @@ E_acpi_aml_I_expression( void
             {   E_acpi_aml_S_parse_data = pkg_end;
             }else
             {   struct E_acpi_aml_Z_package *M_(package);
-                if( !package )
+                Kp(package)
                     return ~0;
                 package->n = 0;
                 Mt_( package->value, package->n );
-                if( !package->value )
+                Kp( package->value )
                 {   K_( ~1, W(package) );
                     return ~0;
                 }
@@ -3151,11 +3115,11 @@ E_acpi_aml_I_expression( void
             {
             }else
             {   M_(package);
-                if( !package )
+                Kp(package)
                     return ~0;
                 package->n = 0;
                 Mt_( package->value, package->n );
-                if( !package->value )
+                Kp( package->value )
                 {   K_( ~1, W(package) );
                     return ~0;
                 }
@@ -3245,10 +3209,10 @@ E_acpi_aml_I_expression( void
             }else
             {   N object_i;
                 Pc name = E_acpi_aml_Q_path_R_relative( &n, &object_i );
-                if( !name )
-                    return (S8)n;
+                Kp(name)
+                    return ~0;
                 Pc name_ = M( n * 4 + 1 );
-                if( !name_ )
+                Kp( name_ )
                 {   K_( ~1, W(name) );
                     return ~0;
                 }
@@ -3425,10 +3389,10 @@ E_acpi_aml_I_supername( void
             N8 n;
             N object_i;
             Pc name = E_acpi_aml_Q_path_R_relative( &n, &object_i );
-            if( !name )
-                return (S8)n;
+            Kp(name)
+                return ~0;
             Pc name_ = M( n * 4 + 1 );
-            if( !name_ )
+            Kp( name_ )
             {   K_( ~1, W(name) );
                 return ~0;
             }
@@ -3561,7 +3525,7 @@ E_acpi_aml_M_number_finish_3( void
         {   Pc s = E_text_Z_sl_M_duplicate( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.pathname.s
             , E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.pathname.n * 4
             );
-            if( !s )
+            Kp(s)
                 return ~0;
             object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_uninitialized, ( struct E_acpi_aml_Z_pathname ){ s, E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.pathname.n });
             if( K_error( object_i ))
@@ -3622,10 +3586,10 @@ E_acpi_aml_M_field_finish_2( N bytes
     }
     N8 n;
     Pc name = E_acpi_aml_Q_path_R_root( &n );
-    if( !name )
-        return (S8)n;
+    Kp(name)
+        return ~0;
     Pc name_ = M( n * 4 + 1 );
-    if( !name_ )
+    Kp( name_ )
     {   K_( ~1, W(name) );
         return ~0;
     }
@@ -3651,7 +3615,7 @@ E_acpi_aml_M_field_finish_2( N bytes
         && i.type != E_acpi_aml_Z_value_Z_type_S_uninitialized
         )
         {   struct E_acpi_aml_Z_buffer_field *M_(field);
-            if( !field )
+            Kp(field)
                 return ~0;
             if( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.copy )
             {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.copy = no;
@@ -3660,7 +3624,7 @@ E_acpi_aml_M_field_finish_2( N bytes
             {   field->pathname.s = E_text_Z_sl_M_duplicate( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.pathname.s
                 , E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.pathname.n * 4
                 );
-                if( !field->pathname.s )
+                Kp( field->pathname.s )
                 {   K_( ~1, W(field) );
                     return ~0;
                 }
@@ -3683,7 +3647,7 @@ E_acpi_aml_M_convert( struct E_acpi_aml_Z_value **e
 ){  if( v_0->type != v_1->type )
     {   if( !copy )
         {   M_( *e );
-            if( !*e )
+            Kp( *e )
                 return ~0;
             switch( v_1->type )
             { case E_acpi_aml_Z_value_Z_type_S_number:
@@ -3691,7 +3655,7 @@ E_acpi_aml_M_convert( struct E_acpi_aml_Z_value **e
                     break;
               case E_acpi_aml_Z_value_Z_type_S_string:
                     (*e)->p = E_text_Z_s0_M_duplicate( v_1->p );
-                    if( !(*e)->p )
+                    Kp( (*e)->p )
                     {   K_( ~1, W( *e ));
                         return ~0;
                     }
@@ -3701,7 +3665,7 @@ E_acpi_aml_M_convert( struct E_acpi_aml_Z_value **e
                     break;
               case E_acpi_aml_Z_value_Z_type_S_buffer:
                     (*e)->buffer.p = E_text_Z_sl_M_duplicate( v_1->buffer.p, v_1->buffer.n );
-                    if( !(*e)->buffer.p )
+                    Kp( (*e)->buffer.p )
                     {   K_( ~1, W( *e ));
                         return ~0;
                     }
@@ -3713,7 +3677,7 @@ E_acpi_aml_M_convert( struct E_acpi_aml_Z_value **e
         }else
             *e = v_1;
         N ret = E_acpi_aml_Q_value_N_convert( v_0->type, *e );
-        if( !~ret
+        if( K_error(ret)
         || ret == ~10
         )
         {   if( !copy )
@@ -4025,8 +3989,10 @@ Loop:
                 if( !E_acpi_aml_S_parse_stack[ stack_n_last - 2 ].match )
                 {   N8 n;
                     Pc name = E_acpi_aml_Q_path_R_root( &n );
-                    if( !name )
-                    {   ret = (S8)n;
+                    if( K_error(name)
+                    || !name
+                    )
+                    {   ret = (N)name;
                         E_acpi_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result = value_package;
                         break;
                     }
@@ -4078,7 +4044,7 @@ Loop:
                                         s = E_acpi_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result.p;
                                     }else
                                     {   s = E_text_Z_s0_M_duplicate( E_acpi_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result.p );
-                                        if( !s )
+                                        Kp(s)
                                         {   E_acpi_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result = value_package;
                                             return ~0;
                                         }
@@ -4098,7 +4064,7 @@ Loop:
                                     }else
                                     {   buffer.n = E_acpi_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result.buffer.n;
                                         buffer.p = E_text_Z_sl_M_duplicate( E_acpi_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result.buffer.p, buffer.n );
-                                        if( !buffer.p )
+                                        Kp( buffer.p )
                                         {   E_acpi_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result = value_package;
                                             return ~0;
                                         }
@@ -4126,7 +4092,7 @@ Loop:
                                     {   s = E_text_Z_sl_M_duplicate( E_acpi_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result.pathname.s
                                         , E_acpi_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result.pathname.n * 4
                                         );
-                                        if( !s )
+                                        Kp(s)
                                         {   E_acpi_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result = value_package;
                                             return ~0;
                                         }
@@ -4161,7 +4127,7 @@ Loop:
                     s = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.buffer.p;
                 }else
                 {   s = E_text_Z_s0_M_duplicate( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.buffer.p );
-                    if( !s )
+                    Kp(s)
                         return ~0;
                 }
                 value->buffer.p = s;
@@ -4225,7 +4191,7 @@ Loop:
                         }
                         N depth = E_acpi_aml_S_current_path_n ? E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n - 1 ].n : 0;
                         Pc bank_name = M(( depth + 1 ) * 4 );
-                        if( !bank_name )
+                        Kp( bank_name )
                             return ~0;
                         if( E_acpi_aml_S_current_path_n )
                             E_mem_Q_blk_I_copy( bank_name, E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n - 1 ].s, depth * 4 );
@@ -4306,7 +4272,7 @@ Loop:
                                         return (N)name_;
                                     }
                                     Pc name__ = M( 4 + 1 );
-                                    if( !name__ )
+                                    Kp( name__ )
                                     {   K_( ~1, W( name_ ));
                                         K_( ~1, W( bank_name ));
                                         return ~0;
@@ -4314,7 +4280,7 @@ Loop:
                                     E_text_Z_s_P_copy_sl_0( name__, name_, 4 );
                                     G_( ",name=%s", name__ );
                                     Pc field_name = M(( depth + 1 ) * 4 );
-                                    if( !field_name )
+                                    Kp( field_name )
                                     {   K_( ~1, W( name_ ));
                                         K_( ~1, W( bank_name ));
                                         return ~0;
@@ -4330,13 +4296,13 @@ Loop:
                                         return field_object_i;
                                     }
                                     name_ = E_text_Z_sl_M_duplicate( bank_name, ( E_acpi_aml_S_object[ object_i ].name.n + 1 ) * 4 );
-                                    if( !name_ )
+                                    Kp( name_ )
                                     {   E_acpi_aml_S_object[ field_object_i ].type = E_acpi_aml_Z_object_Z_type_S_uninitialized;
                                         K_( ~1, W( bank_name ));
                                         return ~0;
                                     }
                                     struct E_acpi_aml_Z_field_unit *M_(field);
-                                    if( !field )
+                                    Kp(field)
                                     {   E_acpi_aml_S_object[ field_object_i ].type = E_acpi_aml_Z_object_Z_type_S_uninitialized;
                                         K_( ~1, W( bank_name ));
                                         return ~0;
@@ -4422,12 +4388,14 @@ Loop:
                 }
                 N8 n;
                 Pc name = E_acpi_aml_Q_path_R_root( &n );
-                if( !name )
-                {   ret = (S8)n;
+                if( K_error(name)
+                || !name
+                )
+                {   ret = (N)name;
                     break;
                 }
                 Pc name_ = M( n * 4 + 1 );
-                if( !name_ )
+                Kp( name_ )
                 {   K_( ~1, W(name) );
                     return ~0;
                 }
@@ -4458,7 +4426,7 @@ Loop:
                     && o.type != E_acpi_aml_Z_value_Z_type_S_uninitialized
                     )
                     {   struct E_acpi_aml_Z_buffer_field *M_(field);
-                        if( !field )
+                        Kp(field)
                             return ~0;
                         if( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.copy )
                         {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.copy = no;
@@ -4467,7 +4435,7 @@ Loop:
                         {   field->pathname.s = E_text_Z_sl_M_duplicate( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.pathname.s
                             , E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.pathname.n * 4
                             );
-                            if( !field->pathname.s )
+                            Kp( field->pathname.s )
                             {   K_( ~1, W(field) );
                                 return ~0;
                             }
@@ -4514,7 +4482,7 @@ Loop:
                 {
                 }else
                 {   struct E_acpi_aml_Z_value *Mt_( value, E_acpi_aml_S_parse_stack_S_tmp_p_n );
-                    if( !value )
+                    Kp(value)
                         return ~0;
                     value[0] = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result;
                     E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
@@ -4596,12 +4564,14 @@ Loop:
                 }
                 N8 n;
                 Pc name = E_acpi_aml_Q_path_R_root( &n );
-                if( !name )
-                {   ret = (S8)n;
+                if( K_error(name)
+                || !name
+                )
+                {   ret = (N)name;
                     break;
                 }
                 Pc name_ = M( n * 4 + 1 );
-                if( !name_ )
+                Kp( name_ )
                 {   K_( ~1, W(name) );
                     return ~0;
                 }
@@ -4633,14 +4603,14 @@ Loop:
                     && i.type != E_acpi_aml_Z_value_Z_type_S_uninitialized
                     )
                     {   struct E_acpi_aml_Z_buffer_field *M_(field);
-                        if( !field )
+                        Kp(field)
                             return ~0;
                         if( value[0].copy )
                         {   value[0].copy = no;
                             field->pathname = value[0].pathname;
                         }else
                         {   field->pathname.s = E_text_Z_sl_M_duplicate( value[0].pathname.s, value[0].pathname.n * 4 );
-                            if( !field->pathname.s )
+                            Kp( field->pathname.s )
                             {   K_( ~1, W(field) );
                                 return ~0;
                             }
@@ -5041,7 +5011,7 @@ Loop:
                 {
                 }else
                 {   struct E_acpi_aml_Z_value *Mt_( value, E_acpi_aml_S_parse_stack_S_tmp_p_n );
-                    if( !value )
+                    Kp(value)
                         return ~0;
                     E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.tmp_p = value;
                     value[0] = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result;
@@ -5102,8 +5072,8 @@ Loop:
                             )
                             {   struct E_acpi_aml_Z_value *e;
                                 ret = E_acpi_aml_M_convert( &e, E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.copy, &v_0, &v_1 );
-                                if( !~ret )
-                                    return ~0;
+                                if( K_error(ret) )
+                                    return ret;
                                 if( ret == ~10 )
                                 {   if( v_0.type == E_acpi_aml_Z_value_Z_type_S_string )
                                     {   Pc s_1;
@@ -5116,7 +5086,7 @@ Loop:
                                             s_1 = E_acpi_aml_Q_object_N( object_0_i );
                                         if( v_1.type != E_acpi_aml_Z_value_Z_type_S_uninitialized )
                                         {   M_(e);
-                                            if( !e )
+                                            Kp(e)
                                                 return ~0;
                                             e->p = s_1;
                                             e->copy = no;
@@ -5131,7 +5101,7 @@ Loop:
                                         {   struct E_acpi_aml_Z_buffer buffer;
                                             buffer.n = 2 * sizeof(N);
                                             buffer.p = M( buffer.n );
-                                            if( !buffer.p )
+                                            Kp( buffer.p )
                                             {   if( e != &v_1 )
                                                 {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
                                                     K_( ~1, E_acpi_aml_Q_value_W(e) );
@@ -5149,7 +5119,7 @@ Loop:
                                         {   N l_0 = E_text_Z_s0_R_l( v_0.p );
                                             N l_1 = E_text_Z_s0_R_l( e->p );
                                             Pc s = M( l_0 + l_1 + 1 );
-                                            if( !s )
+                                            Kp(s)
                                             {   if( e != &v_1 )
                                                 {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
                                                     K_( ~1, E_acpi_aml_Q_value_W(e) );
@@ -5166,7 +5136,7 @@ Loop:
                                         {   struct E_acpi_aml_Z_buffer buffer;
                                             buffer.n = v_0.buffer.n + e->buffer.n;
                                             buffer.p = M( buffer.n );
-                                            if( !buffer.p )
+                                            Kp( buffer.p )
                                             {   if( e != &v_1 )
                                                 {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
                                                     K_( ~1, E_acpi_aml_Q_value_W(e) );
@@ -5212,7 +5182,7 @@ Loop:
                                 N l_0 = E_text_Z_s0_R_l( s_0 );
                                 N l_1 = E_text_Z_s0_R_l( s_1 );
                                 Pc s = M( l_0 + l_1 + 1 );
-                                if( !s )
+                                Kp(s)
                                     return ~0;
                                 E_text_Z_s_P_copy_s0_0( E_text_Z_s_P_copy_s0( s, s_0 ), s_1 );
                                 E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.p = s;
@@ -5266,7 +5236,7 @@ Loop:
                                     break;
                                 }
                                 struct E_acpi_aml_Z_buffer *M_(buffer);
-                                if( !buffer )
+                                Kp(buffer)
                                     return ~0;
                                 buffer->p = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.buffer.p;
                                 buffer->n = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.buffer.n;
@@ -5321,7 +5291,7 @@ Loop:
                             ret = no;
                     }
                     struct E_acpi_aml_Z_value *Mt_( value, E_acpi_aml_S_parse_stack_S_tmp_p_n );
-                    if( !value )
+                    Kp(value)
                         return ~0;
                     value[0] = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result;
                     E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
@@ -5359,10 +5329,10 @@ Loop:
                                 break;
                             }
                             struct E_acpi_aml_Z_pathname *M_(pathname);
-                            if( !pathname )
+                            Kp(pathname)
                                 return ~0;
                             pathname->s = E_text_Z_sl_M_duplicate( E_acpi_aml_S_object[ object_i ].name.s, E_acpi_aml_S_object[ object_i ].name.n * 4 );
-                            if( !pathname->s )
+                            Kp( pathname->s )
                             {   K_( ~1, W(pathname) );
                                 return ~0;
                             }
@@ -5390,7 +5360,7 @@ Loop:
                                     s = value[0].p;
                                 }else
                                 {   s = E_text_Z_s0_M_duplicate( value[0].p );
-                                    if( !s )
+                                    Kp(s)
                                         return ~0;
                                 }
                                 E_acpi_aml_S_object[ object_i ].data = s;
@@ -5400,14 +5370,14 @@ Loop:
                             }
                           case E_acpi_aml_Z_value_Z_type_S_buffer:
                             {   struct E_acpi_aml_Z_buffer *M_(buffer);
-                                if( !buffer )
+                                Kp(buffer)
                                     return ~0;
                                 if( value[0].copy )
                                 {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.copy = no;
                                     buffer->p = value[0].buffer.p;
                                 }else
                                 {   buffer->p = E_text_Z_sl_M_duplicate( value[0].buffer.p, value[0].buffer.n );
-                                    if( !buffer->p )
+                                    Kp( buffer->p )
                                     {   K_( ~1, W(buffer) );
                                         return ~0;
                                     }
@@ -5425,7 +5395,7 @@ Loop:
                                     package = value[0].package;
                                 }else
                                 {   package = E_acpi_aml_Q_object_I_package_duplicate( value[0].package );
-                                    if( !package )
+                                    Kp(package)
                                         return ~0;
                                 }
                                 E_acpi_aml_S_object[ object_i ].data = package;
@@ -5509,7 +5479,7 @@ Loop:
                                 s = v.p;
                             }else
                             {   s = E_text_Z_s0_M_duplicate( v.p );
-                                if( !s )
+                                Kp(s)
                                     return ~0;
                             }
                             E_acpi_aml_S_object[ object_i ].data = s;
@@ -5526,14 +5496,14 @@ Loop:
                                 break;
                             }
                             struct E_acpi_aml_Z_buffer *M_(buffer);
-                            if( !buffer )
+                            Kp(buffer)
                                 return ~0;
                             if( v.copy )
                             {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.copy = no;
                                 buffer->p = v.buffer.p;
                             }else
                             {   buffer->p = E_text_Z_sl_M_duplicate( v.buffer.p, v.buffer.n );
-                                if( !buffer->p )
+                                Kp( buffer->p )
                                 {   K_( ~1, W(buffer) );
                                     return ~0;
                                 }
@@ -5558,7 +5528,7 @@ Loop:
                                 package = v.package;
                             }else
                             {   package = E_acpi_aml_Q_object_I_package_duplicate( v.package );
-                                if( !package )
+                                Kp(package)
                                     return ~0;
                             }
                             E_acpi_aml_S_object[ object_i ].data = package;
@@ -5950,7 +5920,7 @@ Loop:
                 {
                 }else
                 {   struct E_acpi_aml_Z_value *Mt_( value, E_acpi_aml_S_parse_stack_S_tmp_p_n );
-                    if( !value )
+                    Kp(value)
                         return ~0;
                     E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.tmp_p = value;
                     value[0] = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result;
@@ -6079,7 +6049,7 @@ Loop:
                                     s = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.p;
                                 }else
                                 {   s = E_text_Z_s0_M_duplicate( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.p );
-                                    if( !s )
+                                    Kp(s)
                                         return ~0;
                                 }
                                 E_acpi_aml_S_object[ object_i ].data = s;
@@ -6096,7 +6066,7 @@ Loop:
                                     break;
                                 }
                                 struct E_acpi_aml_Z_buffer *M_(buffer);
-                                if( !buffer )
+                                Kp(buffer)
                                     return ~0;
                                 if( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.copy )
                                 {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.copy = no;
@@ -6105,7 +6075,7 @@ Loop:
                                 {   buffer->p = E_text_Z_sl_M_duplicate( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.buffer.p
                                     , E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.buffer.n
                                     );
-                                    if( !buffer->p )
+                                    Kp( buffer->p )
                                     {   K_( ~1, W(buffer) );
                                         return ~0;
                                     }
@@ -6130,7 +6100,7 @@ Loop:
                                     package = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.package;
                                 }else
                                 {   package = E_acpi_aml_Q_object_I_package_duplicate( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.package );
-                                    if( !package )
+                                    Kp(package)
                                         return ~0;
                                 }
                                 E_acpi_aml_S_object[ object_i ].data = package;
@@ -6237,8 +6207,8 @@ Loop:
                         if( v_1.type != E_acpi_aml_Z_value_Z_type_S_uninitialized )
                         {   struct E_acpi_aml_Z_value *e;
                             ret = E_acpi_aml_M_convert( &e, E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.copy, &v_0, &v_1 );
-                            if( !~ret )
-                                return ~0;
+                            if( K_error(ret) )
+                                return ret;
                             if( ret == ~10 )
                                 v_1.type = E_acpi_aml_Z_value_Z_type_S_uninitialized;
                             else
@@ -6325,8 +6295,8 @@ Loop:
                         if( v_1.type != E_acpi_aml_Z_value_Z_type_S_uninitialized )
                         {   struct E_acpi_aml_Z_value *e;
                             ret = E_acpi_aml_M_convert( &e, E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.copy, &v_0, &v_1 );
-                            if( !~ret )
-                                return ~0;
+                            if( K_error(ret) )
+                                return ret;
                             if( ret == ~10 )
                                 v_1.type = E_acpi_aml_Z_value_Z_type_S_uninitialized;
                             else
@@ -6413,8 +6383,8 @@ Loop:
                         if( v_1.type != E_acpi_aml_Z_value_Z_type_S_uninitialized )
                         {   struct E_acpi_aml_Z_value *e;
                             ret = E_acpi_aml_M_convert( &e, E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.copy, &v_0, &v_1 );
-                            if( !~ret )
-                                return ~0;
+                            if( K_error(ret) )
+                                return ret;
                             if( ret == ~10 )
                                 v_1.type = E_acpi_aml_Z_value_Z_type_S_uninitialized;
                             else
@@ -6501,8 +6471,8 @@ Loop:
                         if( v_1.type != E_acpi_aml_Z_value_Z_type_S_uninitialized )
                         {   struct E_acpi_aml_Z_value *e;
                             ret = E_acpi_aml_M_convert( &e, E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.copy, &v_0, &v_1 );
-                            if( !~ret )
-                                return ~0;
+                            if( K_error(ret) )
+                                return ret;
                             if( ret == ~10 )
                                 v_1.type = E_acpi_aml_Z_value_Z_type_S_uninitialized;
                             else
@@ -6589,8 +6559,8 @@ Loop:
                         if( v_1.type != E_acpi_aml_Z_value_Z_type_S_uninitialized )
                         {   struct E_acpi_aml_Z_value *e;
                             ret = E_acpi_aml_M_convert( &e, E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.copy, &v_0, &v_1 );
-                            if( !~ret )
-                                return ~0;
+                            if( K_error(ret) )
+                                return ret;
                             if( ret == ~10 )
                                 v_1.type = E_acpi_aml_Z_value_Z_type_S_uninitialized;
                             else
@@ -6677,8 +6647,8 @@ Loop:
                         if( v_1.type != E_acpi_aml_Z_value_Z_type_S_uninitialized )
                         {   struct E_acpi_aml_Z_value *e;
                             ret = E_acpi_aml_M_convert( &e, E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.copy, &v_0, &v_1 );
-                            if( !~ret )
-                                return ~0;
+                            if( K_error(ret) )
+                                return ret;
                             if( ret == ~10 )
                                 v_1.type = E_acpi_aml_Z_value_Z_type_S_uninitialized;
                             else
@@ -6704,7 +6674,7 @@ Loop:
                 {
                 }else
                 {   struct E_acpi_aml_Z_value *Mt_( value, E_acpi_aml_S_parse_stack_S_tmp_p_n );
-                    if( !value )
+                    Kp(value)
                         return ~0;
                     E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.tmp_p = value;
                     value[0] = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result;
@@ -6812,7 +6782,7 @@ Loop:
                                 switch( o.type )
                                 { case E_acpi_aml_Z_value_Z_type_S_string:
                                     {   Pc s = M( l_ - i_ + 1 );
-                                        if( !s )
+                                        Kp(s)
                                             return ~0;
                                         E_text_Z_s_P_copy_sl_0( s, o.buffer.p + i_, l_ - i_ );
                                         E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.p = s;
@@ -6820,7 +6790,7 @@ Loop:
                                     }
                                   default:
                                     {   Pc s = M( l_ - i_ );
-                                        if( !s )
+                                        Kp(s)
                                             return ~0;
                                         E_mem_Q_blk_I_copy( s, o.buffer.p + i_, l_ - i_ );
                                         E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.buffer.p = s;
@@ -6879,7 +6849,7 @@ Loop:
                                     break;
                                 }
                                 struct E_acpi_aml_Z_buffer *M_(buffer);
-                                if( !buffer )
+                                Kp(buffer)
                                     return ~0;
                                 buffer->p = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.buffer.p;
                                 buffer->n = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.buffer.n;
@@ -6966,7 +6936,7 @@ Loop:
                 {
                 }else
                 {   struct E_acpi_aml_Z_value *Mt_( value, E_acpi_aml_S_parse_stack_S_tmp_p_n );
-                    if( !value )
+                    Kp(value)
                         return ~0;
                     E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.tmp_p = value;
                     value[0] = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result;
@@ -7129,8 +7099,8 @@ Loop:
                                     for( i = start.n; i != package.package->n; i++ )
                                     {   struct E_acpi_aml_Z_value *e;
                                         ret = E_acpi_aml_M_convert( &e, package.copy, &package.package->value[i], &match_1 );
-                                        if( !~ret )
-                                            return ~0;
+                                        if( K_error(ret) )
+                                            return ret;
                                         if( ret == ~10 )
                                             continue;
                                         B cmp_1 = E_acpi_aml_M_cmp( value[1].n, e, &match_1 );
@@ -7140,8 +7110,8 @@ Loop:
                                         }
                                         if( match_1.type != match_2.type )
                                         {   ret = E_acpi_aml_M_convert( &e, package.copy, &package.package->value[i], &match_2 );
-                                            if( !~ret )
-                                                return ~0;
+                                            if( K_error(ret) )
+                                                return ret;
                                             if( ret == ~10 )
                                                 continue;
                                         }
@@ -7580,7 +7550,7 @@ Loop:
                                 {   Pc s = E_text_Z_sl_M_duplicate( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.pathname.s
                                     , E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.pathname.n * 4
                                     );
-                                    if( !s )
+                                    Kp(s)
                                         return ~0;
                                     object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_uninitialized, ( struct E_acpi_aml_Z_pathname ){ s, E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.pathname.n });
                                     if( K_error( object_i ))
@@ -7652,7 +7622,7 @@ Loop:
                                             {   Pc s = E_text_Z_sl_M_duplicate( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.pathname.s
                                                 , E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.pathname.n * 4
                                                 );
-                                                if( !s )
+                                                Kp(s)
                                                     return ~0;
                                                 object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_uninitialized, ( struct E_acpi_aml_Z_pathname ){ s, E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.pathname.n });
                                                 if( K_error( object_i ))
@@ -7698,7 +7668,7 @@ Loop:
                                                             s = v.p;
                                                         }else
                                                         {   s = E_text_Z_s0_M_duplicate( v.p );
-                                                            if( !s )
+                                                            Kp(s)
                                                                 return ~0;
                                                         }
                                                         K_( ~2, E_acpi_aml_Q_value_W( &package->value[ E_acpi_aml_S_object[ object_i ].n ] ));
@@ -7717,7 +7687,7 @@ Loop:
                                                             s = v.p;
                                                         }else
                                                         {   s = E_text_Z_s0_M_duplicate( v.p );
-                                                            if( !s )
+                                                            Kp(s)
                                                                 return ~0;
                                                         }
                                                         K_( ~2, E_acpi_aml_Q_object_W_data( &object_i ));
@@ -7739,7 +7709,7 @@ Loop:
                                             {   Pc s = E_text_Z_sl_M_duplicate( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.pathname.s
                                                 , E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.pathname.n * 4
                                                 );
-                                                if( !s )
+                                                Kp(s)
                                                     return ~0;
                                                 object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_uninitialized, ( struct E_acpi_aml_Z_pathname ){ s, E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.pathname.n });
                                                 if( K_error( object_i ))
@@ -7783,7 +7753,7 @@ Loop:
                                                             s = v.buffer.p;
                                                         }else
                                                         {   s = E_text_Z_sl_M_duplicate( v.buffer.p, v.buffer.n );
-                                                            if( !s )
+                                                            Kp(s)
                                                                 return ~0;
                                                         }
                                                         K_( ~2, E_acpi_aml_Q_value_W( &package->value[ E_acpi_aml_S_object[ object_i ].n ] ));
@@ -7799,14 +7769,14 @@ Loop:
                                                 switch( E_acpi_aml_S_object[ object_i ].type )
                                                 { default:
                                                     {   struct E_acpi_aml_Z_buffer *M_(buffer);
-                                                        if( !buffer )
+                                                        Kp(buffer)
                                                             return ~0;
                                                         if( v.copy )
                                                         {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.copy = no;
                                                             buffer->p = v.buffer.p;
                                                         }else
                                                         {   buffer->p = E_text_Z_sl_M_duplicate( v.buffer.p, v.buffer.n );
-                                                            if( !buffer->p )
+                                                            Kp( buffer->p )
                                                                 return ~0;
                                                         }
                                                         buffer->n = v.buffer.n;
@@ -7829,7 +7799,7 @@ Loop:
                                             {   Pc s = E_text_Z_sl_M_duplicate( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.pathname.s
                                                 , E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.pathname.n * 4
                                                 );
-                                                if( !s )
+                                                Kp(s)
                                                     return ~0;
                                                 object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_uninitialized, ( struct E_acpi_aml_Z_pathname ){ s, E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.pathname.n });
                                                 if( K_error( object_i ))
@@ -7859,7 +7829,7 @@ Loop:
                                                             package_ = v.package;
                                                         }else
                                                         {   package_ = E_acpi_aml_Q_object_I_package_duplicate( v.package );
-                                                            if( !package_ )
+                                                            Kp( package_ )
                                                                 return ~0;
                                                         }
                                                         K_( ~2, E_acpi_aml_Q_value_W( &package->value[ E_acpi_aml_S_object[ object_i ].n ] ));
@@ -7879,7 +7849,7 @@ Loop:
                                                         }else
                                                         {   
                                                             package = E_acpi_aml_Q_object_I_package_duplicate( v.package );
-                                                            if( !package )
+                                                            Kp(package)
                                                                 return ~0;
                                                         }
                                                         K_( ~2, E_acpi_aml_Q_object_W_data( &object_i ));
@@ -7911,7 +7881,7 @@ Loop:
                                             {   Pc s = E_text_Z_sl_M_duplicate( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.pathname.s
                                                 , E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.pathname.n * 4
                                                 );
-                                                if( !s )
+                                                Kp(s)
                                                     return ~0;
                                                 object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_uninitialized, ( struct E_acpi_aml_Z_pathname ){ s, E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.pathname.n });
                                                 if( K_error( object_i ))
@@ -7953,7 +7923,7 @@ Loop:
                                                         }
                                                         Pc s = v.p;
                                                         Pc s_ = M( 1 + 1 );
-                                                        if( !s_ )
+                                                        Kp( s_ )
                                                             return ~0;
                                                         s_[0] = s[i];
                                                         s_[1] = '\0';
@@ -7970,7 +7940,7 @@ Loop:
                                                 { default:
                                                     {   Pc s = v.p;
                                                         Pc s_ = M( 1 + 1 );
-                                                        if( !s_ )
+                                                        Kp( s_ )
                                                             return ~0;
                                                         s_[0] = s[i];
                                                         s_[1] = '\0';
@@ -7997,7 +7967,7 @@ Loop:
                                             {   Pc s = E_text_Z_sl_M_duplicate( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.pathname.s
                                                 , E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.pathname.n * 4
                                                 );
-                                                if( !s )
+                                                Kp(s)
                                                     return ~0;
                                                 object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_uninitialized, ( struct E_acpi_aml_Z_pathname ){ s, E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.pathname.n });
                                                 if( K_error( object_i ))
@@ -8036,7 +8006,7 @@ Loop:
                                                             break;
                                                         }
                                                         Pc s = M(1);
-                                                        if( !s )
+                                                        Kp(s)
                                                             return ~0;
                                                         s[0] = v.buffer.p[i];
                                                         K_( ~2, E_acpi_aml_Q_value_W( &package->value[ E_acpi_aml_S_object[ object_i ].n ] ));
@@ -8052,10 +8022,10 @@ Loop:
                                                 switch( E_acpi_aml_S_object[ object_i ].type )
                                                 { default:
                                                     {   struct E_acpi_aml_Z_buffer *M_(buffer);
-                                                        if( !buffer )
+                                                        Kp(buffer)
                                                             return ~0;
                                                         buffer->p = M(1);
-                                                        if( !buffer->p )
+                                                        Kp( buffer->p )
                                                         {   K_( ~1, W(buffer) );
                                                             return ~0;
                                                         }
@@ -8089,7 +8059,7 @@ Loop:
                                 {   s = E_text_Z_sl_M_duplicate( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.pathname.s
                                     , E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.pathname.n * 4
                                     );
-                                    if( !s )
+                                    Kp(s)
                                         return ~0;
                                 }
                                 object_i = E_acpi_aml_Q_object_I_add( E_acpi_aml_Z_object_Z_type_S_uninitialized
@@ -8228,14 +8198,15 @@ Loop:
                         v.type = E_acpi_aml_Z_value_Z_type_S_uninitialized;
                     if( v.type != E_acpi_aml_Z_value_Z_type_S_uninitialized )
                     {   N ret = E_acpi_aml_Q_value_N_convert( E_acpi_aml_Z_value_Z_type_S_buffer, &v );
-                        if( !ret )
+                        if( K_error(ret) )
+                            return ret;
+                        if( ret == ~10 )
+                            v.type = E_acpi_aml_Z_value_Z_type_S_uninitialized;
+                        else
                         {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result = v;
                             if( v.copy )
                                 E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
-                        }else if( ret == ~10 )
-                            v.type = E_acpi_aml_Z_value_Z_type_S_uninitialized;
-                        else
-                            return ~0;
+                        }
                     }
                     if( v.type == E_acpi_aml_Z_value_Z_type_S_uninitialized )
                         E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_acpi_aml_Z_value_Z_type_S_uninitialized;
@@ -8264,7 +8235,7 @@ Loop:
                         }
                         if( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.type != E_acpi_aml_Z_value_Z_type_S_uninitialized )
                         {   struct E_acpi_aml_Z_buffer *M_(buffer);
-                            if( !buffer )
+                            Kp(buffer)
                                 return ~0;
                             if( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.copy )
                             {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.copy = no;
@@ -8273,7 +8244,7 @@ Loop:
                             {   buffer->p = E_text_Z_sl_M_duplicate( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.buffer.p
                                 , E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.buffer.n
                                 );
-                                if( !buffer->p )
+                                Kp( buffer->p )
                                 {   K_( ~1, W(buffer) );
                                     return ~0;
                                 }
@@ -8327,12 +8298,12 @@ Loop:
                     switch( v.type )
                     { case E_acpi_aml_Z_value_Z_type_S_number:
                         {   N ret = E_acpi_aml_Q_value_N_convert( E_acpi_aml_Z_value_Z_type_S_string, &v );
-                            if( !ret )
-                                E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result = v;
-                            else if( ret == ~10 )
+                            if( K_error(ret) )
+                                return ret;
+                            if( ret == ~10 )
                                 E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_acpi_aml_Z_value_Z_type_S_uninitialized;
                             else
-                                return ~0;
+                                E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result = v;
                             break;
                         }
                       case E_acpi_aml_Z_value_Z_type_S_string:
@@ -8342,7 +8313,7 @@ Loop:
                             break;
                       case E_acpi_aml_Z_value_Z_type_S_buffer:
                         {   Pc s = M(0);
-                            if( !s )
+                            Kp(s)
                                 return ~0;
                             N l = 0;
                             for_n( i, v.buffer.n )
@@ -8402,7 +8373,7 @@ Loop:
                                 E_acpi_aml_S_object[ object_i ].data = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.p;
                             }else
                             {   Pc s = E_text_Z_s0_M_duplicate( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.p );
-                                if( !s )
+                                Kp(s)
                                     return ~0;
                                 E_acpi_aml_S_object[ object_i ].data = s;
                             }
@@ -8454,7 +8425,7 @@ Loop:
                     { case E_acpi_aml_Z_value_Z_type_S_number:
                         {   N l = E_text_Z_n_N_s_G( v.n, 16 );
                             Pc s = M( 2 + l + 1 );
-                            if( !s )
+                            Kp(s)
                                 return ~0;
                             s[ 2 + l ] = '\0';
                             E_text_Z_n_N_s( s + 2 + l, v.n, 16 );
@@ -8473,7 +8444,7 @@ Loop:
                             break;
                       case E_acpi_aml_Z_object_Z_type_S_buffer:
                         {   Pc s = M(0);
-                            if( !s )
+                            Kp(s)
                                 return ~0;
                             N l = 0;
                             for_n( i, v.buffer.n )
@@ -8533,7 +8504,7 @@ Loop:
                                 E_acpi_aml_S_object[ object_i ].data = E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.p;
                             }else
                             {   Pc s = E_text_Z_s0_M_duplicate( E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.p );
-                                if( !s )
+                                Kp(s)
                                     return ~0;
                                 E_acpi_aml_S_object[ object_i ].data = s;
                             }
@@ -8583,14 +8554,15 @@ Loop:
                         v.type = E_acpi_aml_Z_value_Z_type_S_uninitialized;
                     if( v.type != E_acpi_aml_Z_value_Z_type_S_uninitialized )
                     {   N ret = E_acpi_aml_Q_value_N_convert( E_acpi_aml_Z_value_Z_type_S_number, &v );
-                        if( !ret )
+                        if( K_error(ret) )
+                            return ret;
+                        if( ret == ~10 )
+                            v.type = E_acpi_aml_Z_value_Z_type_S_uninitialized;
+                        else
                         {   E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result = v;
                             if( v.copy )
                                 E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.result.copy = no;
-                        }else if( ret == ~10 )
-                            v.type = E_acpi_aml_Z_value_Z_type_S_uninitialized;
-                        else
-                            return ~0;
+                        }
                     }
                     if( v.type == E_acpi_aml_Z_value_Z_type_S_uninitialized )
                         E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 2 ].execution_context.result.type = E_acpi_aml_Z_value_Z_type_S_uninitialized;
@@ -8681,7 +8653,7 @@ Loop:
                                 }
                             else
                             {   Pc p_ = M( s - p + 1 );
-                                if( !p_ )
+                                Kp( p_ )
                                     return ~0;
                                 E_text_Z_s_P_copy_sl_0( p_, p, s - p );
                                 p = p_;
@@ -8942,7 +8914,7 @@ E_acpi_aml_I_procedure_( N object_i
 ){  K( E_acpi_aml_M_current_path() )
         return ~0;
     Pc name = E_text_Z_sl_M_duplicate( E_acpi_aml_S_object[ object_i ].name.s, E_acpi_aml_S_object[ object_i ].name.n * 4 );
-    if( !name )
+    Kp(name)
         return ~0;
     K( E_acpi_aml_Q_current_path_I_push(( struct E_acpi_aml_Z_pathname ){ name, E_acpi_aml_S_object[ object_i ].name.n } ))
     {   K_( ~2, W(name) );
@@ -8951,7 +8923,7 @@ E_acpi_aml_I_procedure_( N object_i
     }
     E_acpi_aml_S_procedure_invocation_stack_n = 1;
     Mt_( E_acpi_aml_S_procedure_invocation_stack, E_acpi_aml_S_procedure_invocation_stack_n );
-    if( !E_acpi_aml_S_procedure_invocation_stack )
+    Kp( E_acpi_aml_S_procedure_invocation_stack )
     {   K_( ~2, E_acpi_aml_W_current_path() );
         return ~0;
     }
@@ -8965,7 +8937,7 @@ E_acpi_aml_I_procedure_( N object_i
     E_acpi_aml_S_procedure_invocation_stack[ E_acpi_aml_S_procedure_invocation_stack_n - 1 ].computing_arg = no;
     E_acpi_aml_S_procedure_invocation_stack[ E_acpi_aml_S_procedure_invocation_stack_n - 1 ].result.type = E_acpi_aml_Z_value_Z_type_S_uninitialized;
     name = M( E_acpi_aml_S_procedure_invocation_stack[ E_acpi_aml_S_procedure_invocation_stack_n - 1 ].name.n * 4 + 1 );
-    if( !name )
+    Kp(name)
     {   K_( ~2, W( E_acpi_aml_S_procedure_invocation_stack ));
         K_( ~2, E_acpi_aml_W_current_path() );
         return ~0;
@@ -8982,7 +8954,7 @@ E_acpi_aml_I_procedure_( N object_i
     else
     {   E_acpi_aml_S_parse_stack_n = 1;
         Mt_( E_acpi_aml_S_parse_stack, E_acpi_aml_S_parse_stack_n );
-        if( !E_acpi_aml_S_parse_stack )
+        Kp( E_acpi_aml_S_parse_stack )
         {   K_( ~2, W( E_acpi_aml_S_procedure_invocation_stack ));
             K_( ~2, E_acpi_aml_W_current_path() );
             return ~0;
@@ -9072,7 +9044,7 @@ E_acpi_aml_M( Pc dsdt
         return ~0;
     }
     Mt_( E_acpi_aml_S_parse_stack, E_acpi_aml_S_parse_stack_n );
-    if( !E_acpi_aml_S_parse_stack )
+    Kp( E_acpi_aml_S_parse_stack )
     {   K_( ~2, E_acpi_aml_W_object() );
         K_( ~2, E_acpi_aml_W_current_path() );
         return ~0;
@@ -9087,7 +9059,7 @@ E_acpi_aml_M( Pc dsdt
     E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].execution_context.tmp_p = 0;
     E_acpi_aml_S_procedure_invocation_stack_n = 0;
     Mt_( E_acpi_aml_S_procedure_invocation_stack, E_acpi_aml_S_procedure_invocation_stack_n );
-    if( !E_acpi_aml_S_procedure_invocation_stack )
+    Kp( E_acpi_aml_S_procedure_invocation_stack )
     {   K_( ~2, E_acpi_aml_W_object() );
         K_( ~2, W( E_acpi_aml_S_parse_stack ));
         K_( ~2, E_acpi_aml_W_current_path() );

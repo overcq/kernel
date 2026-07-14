@@ -259,22 +259,22 @@ _private
 N
 E_net_M( void
 ){  E_net_S_interface = E_mem_Q_tab_M( sizeof( struct E_net_Z_interface ), 0 );
-    if( !E_net_S_interface )
+    Kp( E_net_S_interface )
         return ~0;
     E_ethernet_S_transmit_queue_n = 0;
     Mt_( E_ethernet_S_transmit_queue, E_ethernet_S_transmit_queue_n );
-    if( !E_ethernet_S_transmit_queue )
+    Kp( E_ethernet_S_transmit_queue )
     {   K_( ~1, E_mem_Q_tab_W( E_net_S_interface ));
         return ~0;
     }
     E_net_S_udp4_connection_state = E_mem_Q_tab_M(sizeof( struct E_net_Z_udp4_connection_state ), 0 );
-    if( !E_net_S_udp4_connection_state )
+    Kp( E_net_S_udp4_connection_state )
     {   K_( ~1, W( E_ethernet_S_transmit_queue ));
         K_( ~1, E_mem_Q_tab_W( E_net_S_interface ));
         return ~0;
     }
     E_net_S_tcp4_connection_state = E_mem_Q_tab_M(sizeof( struct E_net_Z_tcp4_connection_state ), 0 );
-    if( !E_net_S_tcp4_connection_state )
+    Kp( E_net_S_tcp4_connection_state )
     {   K_( ~1, E_mem_Q_tab_W( E_net_S_udp4_connection_state ));
         K_( ~1, W( E_ethernet_S_transmit_queue ));
         K_( ~1, E_mem_Q_tab_W( E_net_S_interface ));
@@ -314,9 +314,11 @@ Switch:     switch( interface->dhcp.state )
                 {   interface->ipv4_address = 0;
                     N packet_l = sizeof( struct E_ipv4_Z_dhcp_packet ) + 16;
                     struct E_ipv4_Z_dhcp_packet *packet = M( packet_l );
-                    if( !packet )
+                    if( K_error(packet)
+                    || !packet
+                    )
                     {   N32 sched_i = E_flow_I_current_scheduler();
-                        E_flow_S_scheduler[ sched_i ].task_error = ~0;
+                        E_flow_S_scheduler[ sched_i ].task_error = packet ? (N)packet : ~0;
                         goto Block;
                     }
                     _0( packet, packet_l );
@@ -373,8 +375,10 @@ Switch:     switch( interface->dhcp.state )
                     struct E_ipv4_Z_dhcp_packet *packet_[3];
                     for_n_( i, J_a_R_n( packet_ ))
                     {   packet_[i] = M( packet_l );
-                        if( !packet_[i] )
-                        {   N r = ~0;
+                        if( K_error( packet_[i] )
+                        || !(N)packet_[i]
+                        )
+                        {   N r = packet_[i] ? (N)packet_[i] : ~0;
                             for_n( i_, i )
                             {   r = W( packet_[ i_ ] );
                                 if( K_error(r) )
@@ -516,9 +520,11 @@ Offer_end:          interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
               case E_net_Z_interface_state_S_dhcp_request:
                 {   N packet_l = sizeof( struct E_ipv4_Z_dhcp_packet ) + 34;
                     struct E_ipv4_Z_dhcp_packet *packet = M( packet_l );
-                    if( !packet )
+                    if( K_error(packet)
+                    || !packet
+                    )
                     {   N32 sched_i = E_flow_I_current_scheduler();
-                        E_flow_S_scheduler[ sched_i ].task_error = ~0;
+                        E_flow_S_scheduler[ sched_i ].task_error = packet ? (N)packet : ~0;
                         goto Block;
                     }
                     _0( packet, packet_l );
@@ -596,8 +602,10 @@ Offer_end:          interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
                     struct E_ipv4_Z_dhcp_packet *packet_[3];
                     for_n_( i, J_a_R_n( packet_ ))
                     {   packet_[i] = M( packet_l );
-                        if( !packet_[i] )
-                        {   N r = ~0;
+                        if( K_error( packet_[i] )
+                        || !packet_[i]
+                        )
+                        {   N r = packet_[i] ? (N)packet_[i] : ~0;
                             for_n( i_, i )
                             {   r = W( packet_[ i_ ] );
                                 if( K_error(r) )
@@ -755,9 +763,11 @@ Ack_end:            interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
               case E_net_Z_interface_state_S_dhcp_request_any:
                 {   N packet_l = sizeof( struct E_ipv4_Z_dhcp_packet ) + 34;
                     struct E_ipv4_Z_dhcp_packet *packet = M( packet_l );
-                    if( !packet )
+                    if( K_error(packet)
+                    || !packet
+                    )
                     {   N32 sched_i = E_flow_I_current_scheduler();
-                        E_flow_S_scheduler[ sched_i ].task_error = ~0;
+                        E_flow_S_scheduler[ sched_i ].task_error = packet ? (N)packet : ~0;
                         goto Block;
                     }
                     _0( packet, packet_l );
@@ -835,8 +845,10 @@ Ack_end:            interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
                     struct E_ipv4_Z_dhcp_packet *packet_[3];
                     for_n_( i, J_a_R_n( packet_ ))
                     {   packet_[i] = M( packet_l );
-                        if( !packet_[i] )
-                        {   N r = ~0;
+                        if( K_error( packet_[i] )
+                        || !packet_[i]
+                        )
+                        {   N r = packet_[i] ? (N)packet_[i] : ~0;
                             for_n( i_, i )
                             {   r = W( packet_[ i_ ] );
                                 if( K_error(r) )

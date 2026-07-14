@@ -88,6 +88,10 @@ struct E_acpi_aml_Z_pathname
 E_acpi_reader_I_child_build( N parent_object_i
 , Pc name
 ){  Pc name_ = M(( E_acpi_aml_S_object[ parent_object_i ].name.n + 1 ) * 4 );
+    if( K_error( name_ )
+    || !name_
+    )
+        return ( struct E_acpi_aml_Z_pathname ){ name_ ? name_ : (P)~0, 0 };
     E_mem_Q_blk_I_copy( name_, E_acpi_aml_S_object[ parent_object_i ].name.s, E_acpi_aml_S_object[ parent_object_i ].name.n * 4 );
     E_mem_Q_blk_I_copy( name_ + E_acpi_aml_S_object[ parent_object_i ].name.n * 4, name, 4 );
     return ( struct E_acpi_aml_Z_pathname ){ name_, E_acpi_aml_S_object[ parent_object_i ].name.n + 1 };
@@ -105,6 +109,10 @@ E_acpi_reader_I_child_print( N parent_object_i
             break;
         if( E_acpi_aml_S_object[ object_i ].name.n == E_acpi_aml_S_object[ parent_object_i ].name.n + 1 )
         {   Pc name = M( 4 + 1 );
+            if( K_error(name)
+            || !name
+            )
+                return;
             E_text_Z_s_P_copy_sl_0( name, E_acpi_aml_S_object[ object_i ].name.s + ( E_acpi_aml_S_object[ object_i ].name.n - 1 ) * 4, 4 );
             G_( ",%s", name );
         }
@@ -118,11 +126,11 @@ E_acpi_reader_M_crs( struct E_acpi_reader_Z_resources *resources
 , struct E_acpi_aml_Z_value *crs_value
 ){  N prs_conf_n = 0;
     P *Mt_( prs_conf, prs_conf_n );
-    if( !prs_conf )
+    Kp( prs_conf )
         return ~0;
     N prs_dependent_conf_n = 0;
     P *Mt_( prs_dependent_conf, prs_dependent_conf_n );
-    if( !prs_dependent_conf )
+    Kp( prs_dependent_conf )
     {   K_( ~1, W( prs_conf ));
         return ~0;
     }
@@ -707,11 +715,15 @@ E_acpi_reader_M( void
             struct E_acpi_aml_Z_pathname sta = E_acpi_reader_I_child_build( i, "_STA" );
             struct E_acpi_aml_Z_value result;
             N ret = E_acpi_aml_I_procedure( sta, &result, 0, 0 );
-            K_( ~1, W( sta.s ));
+            K(ret)
+            {   K_( ~1, W( sta.s ));
+                return ~0;
+            }
             if( ret == ~10 )
+            {   K_( ~1, W( sta.s ));
                 continue;
-            if( K_error(ret) )
-                return ret;
+            }
+            K_( ~1, W( sta.s ));
             if( ret != ~11 )
             {   if( result.type == E_acpi_aml_Z_value_Z_type_S_pathname )
                 {   N object_i = E_acpi_aml_Q_object_R( result.pathname );
@@ -755,22 +767,22 @@ E_acpi_reader_M( void
     {   if( E_acpi_aml_S_object[i].type == E_acpi_aml_Z_object_Z_type_S_device )
         {   resources.irq_n = 0;
             Mt_( resources.irq, resources.irq_n );
-            if( !resources.irq )
+            Kp( resources.irq )
                 return ~0;
             struct E_acpi_aml_Z_value result;
             struct E_acpi_aml_Z_pathname sta = E_acpi_reader_I_child_build( i, "_STA" );
             N ret = E_acpi_aml_I_procedure( sta, &result, 0, 0 );
-            K_( ~1, W( sta.s ));
+            K(ret)
+            {   K_( ~1, W( sta.s ));
+                K_( ~1, W( resources.irq ));
+                return ~0;
+            }
             if( ret == ~10 )
-            {   K_( ~1, W( resources.irq ));
+            {   K_( ~1, W( sta.s ));
+                K_( ~1, W( resources.irq ));
                 continue;
             }
-            if( K_error(ret) )
-            {   if( !~ret )
-                {   K_( ~1, W( resources.irq ));
-                }
-                return ret;
-            }
+            K_( ~1, W( sta.s ));
             if( ret != ~11 )
             {   if( result.type == E_acpi_aml_Z_value_Z_type_S_pathname )
                 {   N object_i = E_acpi_aml_Q_object_R( result.pathname );
@@ -809,19 +821,19 @@ E_acpi_reader_M( void
             struct E_acpi_aml_Z_pathname crs = E_acpi_reader_I_child_build( i, "_CRS" );
             struct E_acpi_aml_Z_value crs_value;
             ret = E_acpi_aml_I_procedure( crs, &crs_value, 0, 0 );
-            K_( ~1, W( crs.s ));
+            K(ret)
+            {   K_( ~1, W( crs.s ));
+                K_( ~1, W( resources.irq ));
+                return ~0;
+            }
             if( ret == ~10
             || ret == ~11
             )
-            {   K_( ~1, W( resources.irq ));
+            {   K_( ~1, W( crs.s ));
+                K_( ~1, W( resources.irq ));
                 continue;
             }
-            if( K_error(ret) )
-            {   if( !~ret )
-                {   K_( ~1, W( resources.irq ));
-                }
-                return ret;
-            }
+            K_( ~1, W( crs.s ));
             if( crs_value.type == E_acpi_aml_Z_value_Z_type_S_pathname )
             {   N object_i = E_acpi_aml_Q_object_R( crs_value.pathname );
                 if( ~object_i
@@ -939,6 +951,8 @@ E_acpi_reader_M( void
         && E_acpi_aml_S_object[ prt_i ].type == E_acpi_aml_Z_object_Z_type_S_procedure
         )
         {   Pc name_ = M( E_acpi_aml_S_object[i].name.n * 4 + 1 );
+            Kp( name_ )
+                return ~0;
             E_text_Z_s_P_copy_sl_0( name_, E_acpi_aml_S_object[i].name.s, E_acpi_aml_S_object[i].name.n * 4 );
             G( ",object with _PRT=%s", name_ );
             struct E_acpi_aml_Z_value result;
@@ -974,6 +988,8 @@ E_acpi_reader_M( void
         {   N hid_i = E_acpi_reader_R_child( i, ( struct E_acpi_aml_Z_pathname ){ "_HID", 1 });
             if( ~hid_i )
             {   Pc name_ = M( E_acpi_aml_S_object[i].name.n * 4 + 1 );
+                Kp( name_ )
+                    return ~0;
                 E_text_Z_s_P_copy_sl_0( name_, E_acpi_aml_S_object[i].name.s, E_acpi_aml_S_object[i].name.n * 4 );
                 G( ",device=%s", name_ );
                 G_( ",_HID=" );

@@ -137,7 +137,7 @@ _private
 N
 E_disc_M( void
 ){  E_disc_S = E_mem_Q_tab_M( sizeof( struct E_disc_Z ), 0 );
-    if( !E_disc_S )
+    Kp( E_disc_S )
         return ~0;
     return 0;
 }
@@ -163,8 +163,7 @@ E_disc_I_init( I disc_id
 ){  struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
     disc->partition_n = 0;
     Mt_( disc->partition, disc->partition_n );
-    if( !disc->partition )
-        return ~2;
+    Kp_( ~2, disc->partition );
     switch( disc->type )
     { case E_disc_Z_type_S_sata_ahci:
         {   disc->sata_ahci.sata_lock = 0;
@@ -175,8 +174,7 @@ E_disc_I_init( I disc_id
                 return r;
             G( "" );
             struct E_disc_Z_mbr *mbr = M( disc->sata_ahci.logical_sector_size );
-            if( !mbr )
-                return ~2;
+            Kp_( ~2, mbr );
             N32 slot_mask;
             G( "" );
             r = E_sata_Q_sata_ahci_I_read( disc_id, 0, 1, mbr, &slot_mask );
@@ -197,6 +195,7 @@ E_disc_I_init( I disc_id
                     {   G( "" );
                         slot_mask = 0;
                         struct E_disc_Z_gpt_header *gpt_header = M( disc->sata_ahci.logical_sector_size );;
+                        Kp_( ~2, gpt_header );
                         r = E_sata_Q_sata_ahci_I_read( disc_id, 1, 1, gpt_header, &slot_mask );
                         if( K_error(r) )
                             return r < ~2 ? r : ~2;
@@ -237,6 +236,7 @@ E_disc_I_init( I disc_id
                         if( disc->sata_ahci.logical_sector_shift )
                             last_usable_lba -= disc->sata_ahci.physical_sector_size / disc->sata_ahci.logical_sector_size - disc->sata_ahci.logical_sector_shift;
                         struct E_disc_Z_gpt_partition_record *gpt_partition_record = M( E_simple_Z_n_I_align_up_to_v2( (N)gpt_header->partition_entry_count * gpt_header->partition_entry_size, disc->sata_ahci.logical_sector_size ));
+                        Kp_( ~2, gpt_partition_record );
                         r = E_sata_Q_sata_ahci_I_read( disc_id
                         , gpt_header->partition_entry_lba
                         , E_simple_Z_n_I_align_up_to_v2( (N)gpt_header->partition_entry_count * gpt_header->partition_entry_size, disc->sata_ahci.logical_sector_size ) / disc->sata_ahci.logical_sector_size

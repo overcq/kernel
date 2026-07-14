@@ -129,7 +129,7 @@ E_window_files_I_click_(
                     return ~0;
                 }
                 Mt_( window_data->selected_dir[ column_i ].name, n_dir + n_file );
-                if( !window_data->selected_dir[ column_i ].name )
+                Kp( window_data->selected_dir[ column_i ].name )
                 {   K_( ~2, W( list_file ));
                     K_( ~2, W( list_dir ));
                     Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 ));
@@ -165,7 +165,7 @@ E_window_files_I_click_(
                             return ~0;
                         }
                         window_data->selected_dir[ column_i ].name[i] = E_text_Z_s0_M_duplicate( E_window_files_S_invalid_text );
-                        if( !window_data->selected_dir[ column_i ].name[i] )
+                        Kp( window_data->selected_dir[ column_i ].name[i] )
                         {   for_n( i_, i )
                             {   K_( ~2, W( window_data->selected_dir[ column_i ].name[ i_ ] ));
                             }
@@ -207,7 +207,7 @@ E_window_files_I_click_(
                             return ~0;
                         }
                         window_data->selected_dir[ column_i ].name[ n_dir + i ] = E_text_Z_s0_M_duplicate( E_window_files_S_invalid_text );
-                        if( !window_data->selected_dir[ column_i ].name[ n_dir + i ] )
+                        Kp( window_data->selected_dir[ column_i ].name[ n_dir + i ] )
                         {   for_n( i_, n_dir + i )
                             {   K_( ~2, W( window_data->selected_dir[ column_i ].name[ i_ ] ));
                             }
@@ -221,7 +221,7 @@ E_window_files_I_click_(
                     }
                 }
                 Mt_( window_data->selected_dir[ column_i ].uid, n_dir + n_file );
-                if( !window_data->selected_dir[ column_i ].uid )
+                Kp( window_data->selected_dir[ column_i ].uid )
                 {   for_n( i, n_dir + n_file )
                     {   K_( ~2, W( window_data->selected_dir[ column_i ].name[i] ));
                     }
@@ -240,7 +240,7 @@ E_window_files_I_click_(
                 K_( ~2, W( list_file ));
                 N64 *uid;
                 Mt_( uid, n_dir + n_file );
-                if( !uid )
+                Kp(uid)
                 {   for_n( i, n_dir + n_file )
                     {   K_( ~2, W( window_data->selected_dir[ column_i ].name[i] ));
                     }
@@ -251,7 +251,7 @@ E_window_files_I_click_(
                 }
                 Pc *name;
                 Mt_( name, n_dir + n_file );
-                if( !name )
+                Kp(name)
                 {   K_( ~2, W(uid) );
                     for_n( i, n_dir + n_file )
                     {   K_( ~2, W( window_data->selected_dir[ column_i ].name[i] ));
@@ -326,7 +326,7 @@ E_window_files_I_click_(
                     window_data->selected_dir[ column_i ].uid = uid;
                 }
                 Mt_( window_data->selected_dir[ column_i ].name_expand, n_dir + n_file );
-                if( !window_data->selected_dir[ column_i ].name_expand )
+                Kp( window_data->selected_dir[ column_i ].name_expand )
                 {   for_n( i, n_dir + n_file )
                     {   K_( ~2, W( window_data->selected_dir[ column_i ].name[i] ));
                     }
@@ -432,7 +432,7 @@ E_window_files_I_click_(
                     return ~0;
                 }
                 Mt_( window_data->selected_dir[ column_i ].name, n_dir + n_file );
-                if( !window_data->selected_dir[ column_i ].name )
+                Kp( window_data->selected_dir[ column_i ].name )
                 {   K_( ~2, W( list_file ));
                     K_( ~2, W( list_dir ));
                     Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, 1 ));
@@ -467,7 +467,7 @@ E_window_files_I_click_(
                             return ~0;
                         }
                         window_data->selected_dir[ column_i ].name[i] = E_text_Z_s0_M_duplicate( E_window_files_S_invalid_text );
-                        if( !window_data->selected_dir[ column_i ].name[i] )
+                        Kp( window_data->selected_dir[ column_i ].name[i] )
                         {   for_n( i_, i )
                             {   K_( ~2, W( window_data->selected_dir[ column_i ].name[ i_ ] ));
                             }
@@ -508,7 +508,7 @@ E_window_files_I_click_(
                             return ~0;
                         }
                         window_data->selected_dir[ column_i ].name[ n_dir + i ] = E_text_Z_s0_M_duplicate( E_window_files_S_invalid_text );
-                        if( !window_data->selected_dir[ column_i ].name[ n_dir + i ] )
+                        Kp( window_data->selected_dir[ column_i ].name[ n_dir + i ] )
                         {   for_n( i_, n_dir + i )
                             {   K_( ~2, W( window_data->selected_dir[ column_i ].name[ i_ ] ));
                             }
@@ -522,7 +522,7 @@ E_window_files_I_click_(
                     }
                 }
                 Mt_( window_data->selected_dir[ column_i ].uid, n_dir + n_file );
-                if( !window_data->selected_dir[ column_i ].uid )
+                Kp( window_data->selected_dir[ column_i ].uid )
                 {   for_n( i, n_dir + n_file )
                     {   K_( ~2, W( window_data->selected_dir[ column_i ].name[i] ));
                     }
@@ -541,7 +541,7 @@ E_window_files_I_click_(
                 K_( ~2, W( list_file ));
                 N64 *uid;
                 Mt_( uid, n_dir + n_file );
-                if( !uid )
+                Kp(uid)
                 {   for_n( i, n_dir + n_file )
                     {   K_( ~2, W( window_data->selected_dir[ column_i ].name[i] ));
                     }
@@ -552,7 +552,7 @@ E_window_files_I_click_(
                 }
                 Pc *name;
                 Mt_( name, n_dir + n_file );
-                if( !name )
+                Kp(name)
                 {   K_( ~2, W(uid) );
                     for_n( i, n_dir + n_file )
                     {   K_( ~2, W( window_data->selected_dir[ column_i ].name[i] ));
@@ -627,7 +627,7 @@ E_window_files_I_click_(
                     window_data->selected_dir[ column_i ].uid = uid;
                 }
                 Mt_( window_data->selected_dir[ column_i ].name_expand, n_dir + n_file );
-                if( !window_data->selected_dir[ column_i ].name_expand )
+                Kp( window_data->selected_dir[ column_i ].name_expand )
                 {   for_n( i, n_dir + n_file )
                     {   K_( ~2, W( window_data->selected_dir[ column_i ].name[i] ));
                     }
@@ -1199,17 +1199,17 @@ _private
 I
 E_window_files_M( N8 desktop_id
 ){  struct E_window_files_Z_data *M_(data);
-    if( !data )
+    Kp(data)
         return ~0;
     data->disc_partition_n = 0;
     Mt_( data->disc_partition, data->disc_partition_n );
-    if( !data->disc_partition )
+    Kp( data->disc_partition )
     {   K_( ~1, W(data) );
         return ~0;
     }
     data->selected_dir_n = 0;
     Mt_( data->selected_dir, data->selected_dir_n );
-    if( !data->selected_dir )
+    Kp( data->selected_dir )
     {   K_( ~1, W( data->disc_partition ));
         K_( ~1, W(data) );
         return ~0;
@@ -1237,7 +1237,7 @@ E_window_files_M( N8 desktop_id
             N l_1 = E_text_Z_n_N_s_G( disc_id, 10 );
             N l_2 = E_text_Z_n_N_s_G( partition_i, 10 );
             Pc s = M( l_1 + 1 + l_2 + 1 );
-            if( !s )
+            Kp(s)
             {   K_( ~2, E_windows_Q_window_W( desktop_id, window_id ));
                 K_( ~1, W( data->disc_partition ));
                 K_( ~1, W(data) );

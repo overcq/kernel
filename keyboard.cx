@@ -637,7 +637,7 @@ E_keyboard_M( void
     E_keyboard_S_prefix = no;
     E_keyboard_S_queue_i = 0;
     Mt_( E_keyboard_S_queue, E_keyboard_S_queue_n );
-    if( !E_keyboard_S_queue )
+    Kp( E_keyboard_S_queue )
         return ~0;
     E_keyboard_S_meta_set = 0;
     E_keyboard_S_led_set_changed_1 = 0;

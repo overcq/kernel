@@ -433,7 +433,7 @@ N
 E_interrupt_M( void
 ){  N idt_n = 32 + E_interrupt_S_gsi_n + 1;
     Mt_( E_interrupt_S_idt, idt_n * 2 );
-    if( !E_interrupt_S_idt )
+    Kp( E_interrupt_S_idt )
         return ~0;
     E_interrupt_J_interrupt_descriptor( 0, E_interrupt_I_exeception_de, 1 );
     E_interrupt_J_interrupt_descriptor( 1, E_interrupt_I_exeception_db, 1 );
@@ -461,7 +461,7 @@ E_interrupt_M( void
     for( N i = 22; i != 32; i++ )
         E_interrupt_S_idt[ i * 2 ] = 0;
     Mt_( E_interrupt_S_external, E_interrupt_S_gsi_n );
-    if( !E_interrupt_S_external )
+    Kp( E_interrupt_S_external )
     {   K_( ~1, W( E_interrupt_S_idt ));
         return ~0;
     }
