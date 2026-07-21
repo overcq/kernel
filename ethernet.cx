@@ -106,7 +106,8 @@ _private N E_ethernet_S_transmit_queue_n;
 _private
 void
 E_ethernet_I_interrupt( void
-){  N32 sched_i = E_flow_I_current_scheduler();
+){  E_flow_Q_interrupt_I_signal();
+    N32 sched_i = E_flow_I_current_scheduler();
     U_F( E_flow_S_scheduler[ sched_i ].state, inside_interrupt );
     G( "Ethernet interrupt" );
     for_each( interface_id, E_net_S_interface, E_mem_Q_tab )
@@ -115,6 +116,7 @@ E_ethernet_I_interrupt( void
         G( "cause=%32x", cause );
         if( cause & ( 1 << 2 ))
         {   G( "link status change" );
+            //TODO Ponownie inicjować sieć.
         }
         if(( cause & ( 1 << 0 ))
         && E_ethernet_S_transmit_queue_n

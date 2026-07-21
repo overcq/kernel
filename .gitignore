@@ -4,5 +4,6 @@
 /kernel.elf
 /I_compile_S_0.h
 /I_compile_S_0_*.h
+/I_compile_S_1_*.h
 /I_compile_S_0_*.c
 /install/a.out

@@ -18,11 +18,13 @@ build: kernel doc
 .SECONDARY: $(patsubst %.S,%.o,interrupt.S) \
 I_compile_S_0.h \
 $(patsubst %.cx,I_compile_S_0_%.h,$(wildcard *.cx)) \
+$(patsubst %.cx,I_compile_S_1_%.h,$(wildcard *.cx)) \
 $(patsubst %.cx,I_compile_S_0_%.c,$(wildcard *.cx))
 #===============================================================================
 kernel: I_compile_S_0.h \
 $(patsubst %.S,%.o,interrupt.S) \
 $(patsubst %.cx,I_compile_S_0_%.h,$(wildcard *.cx)) \
+$(patsubst %.cx,I_compile_S_1_%.h,$(wildcard *.cx)) \
 simple.h \
 $(patsubst %.cx,I_compile_S_0_%.c,$(wildcard *.cx)) \
 main.ld \
@@ -42,16 +44,23 @@ $(wildcard *.cx)
         for header in $(patsubst %.cx,I_compile_S_0_%.h,$(filter-out main.cx,$(filter %.cx,$^))); do \
             echo "#include \"$${header}\"" ;\
         done ;\
+        for header in $(patsubst %.cx,I_compile_S_1_%.h,$(filter-out main.cx,$(filter %.cx,$^))); do \
+            echo "#include \"$${header}\"" ;\
+        done ;\
         echo '#include "I_compile_S_0_main.h"' ;\
+        echo '#include "I_compile_S_1_main.h"' ;\
         echo '#include "simple.h"' ;\
     } > $@
 I_compile_S_0_%.h: %.cx \
 I_compile_N_c_to_h.sh
 	$(H_make_I_block_root)
 	{   ./I_compile_N_c_to_h.sh -h1 $< \
-        && ./I_compile_N_c_to_h.sh -h2 $< \
-        && ./I_compile_N_c_to_h.sh -h3 $< ;\
+        && ./I_compile_N_c_to_h.sh -h2 $< ;\
     } > $@
+I_compile_S_1_%.h: %.cx \
+I_compile_N_c_to_h.sh
+	$(H_make_I_block_root)
+	./I_compile_N_c_to_h.sh -h3 $< > $@
 I_compile_S_0_%.c: %.cx \
 I_compile_N_c_to_h.sh
 	$(H_make_I_block_root)
@@ -67,7 +76,7 @@ I_compile_N_c_to_h.sh
       -o $@ $<
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 mostlyclean: $(wildcard *.cx)
-	rm -f I_compile_S_0.h $(patsubst %.cx,I_compile_S_0_%.h,$^) $(patsubst %.cx,I_compile_S_0_%.c,$^) *.o
+	rm -f I_compile_S_0.h $(patsubst %.cx,I_compile_S_0_%.h,$^) $(patsubst %.cx,I_compile_S_1_%.h,$^) $(patsubst %.cx,I_compile_S_0_%.c,$^) *.o
 clean: mostlyclean
 	rm -f kernel $(patsubst %.dot,%.svg,$(wildcard doc/*.dot))
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

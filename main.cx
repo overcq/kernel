@@ -472,6 +472,7 @@ main( struct E_main_Z_kernel_args *kernel_args
     || !E_flow_S_scheduler
     )
         goto End;
+    U_L( E_flow_S_scheduler_signal, wake );
     r = E_flow_M( kernel_args->kernel_stack );
     if( K_error(r) )
         goto End;

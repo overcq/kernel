@@ -14,6 +14,7 @@ enum E_sata_Z_ata_command
 , E_sata_Z_ata_command_S_read_fpdma_queued = 0x60
 , E_sata_Z_ata_command_S_write_fpdma_queued = 0x61
 , E_sata_Z_ata_command_S_identify_packet_device = 0xa1
+, E_sata_Z_ata_command_S_flush_cache_ext = 0xea
 , E_sata_Z_ata_command_S_identify_device = 0xec
 };
 enum E_sata_Z_fis_type
@@ -197,35 +198,39 @@ struct __attribute__ (( __packed__ )) E_sata_Z_dsm_range
 _private
 void
 E_sata_I_interrupt( void
-){  N32 sched_i = E_flow_I_current_scheduler();
+){  E_flow_Q_interrupt_I_signal();
+    N32 sched_i = E_flow_I_current_scheduler();
     U_F( E_flow_S_scheduler[ sched_i ].state, inside_interrupt );
     G( "SATA interrupt" );
     for_each( disc_id, E_disc_S, E_mem_Q_tab )
     {   struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-        if( !( disc->sata_ahci.memory->interrupt_status & ( 1 << disc->sata_ahci.port )))
-            continue;
         if( disc->type == E_disc_Z_type_S_sata_ahci )
-        {   disc->sata_ahci.memory->interrupt_status = 1 << disc->sata_ahci.port;
-            if( disc->sata_ahci.memory->port[ disc->sata_ahci.port ].interrupt_status & ~0x2 )
-            {   G_( ", is: %32x", disc->sata_ahci.memory->port[ disc->sata_ahci.port ].interrupt_status );
-                G_( ", serr: %32x", disc->sata_ahci.memory->port[ disc->sata_ahci.port ].sata_error );
+        {   if( !( disc->sata_ahci.memory->interrupt_status & ( 1 << disc->sata_ahci.port )))
+                continue;
+            G_( ", port: %32x", disc->sata_ahci.memory->interrupt_status );
+            G_( ", is: %32x", disc->sata_ahci.memory->port[ disc->sata_ahci.port ].interrupt_status );
+            if( disc->sata_ahci.memory->port[ disc->sata_ahci.port ].interrupt_status & ~2 )
+            {   G_( ", serr: %32x", disc->sata_ahci.memory->port[ disc->sata_ahci.port ].sata_error );
                 G_( ", tfd: %32x", disc->sata_ahci.memory->port[ disc->sata_ahci.port ].task_file_data );
             }
             disc->sata_ahci.memory->port[ disc->sata_ahci.port ].interrupt_status = E_sata_S_interrupt_status_clear_mask;
+            disc->sata_ahci.memory->interrupt_status = 1 << disc->sata_ahci.port;
             break;
         }
         if( disc->type == E_disc_Z_type_S_satapi_ahci )
-        {   disc->satapi_ahci.memory->interrupt_status = 1 << disc->satapi_ahci.port;
-            if( disc->satapi_ahci.memory->port[ disc->satapi_ahci.port ].interrupt_status & ~0x2 )
-            {   G_( ", is: %32x", disc->satapi_ahci.memory->port[ disc->satapi_ahci.port ].interrupt_status );
-                G_( ", serr: %32x", disc->satapi_ahci.memory->port[ disc->satapi_ahci.port ].sata_error );
+        {   if( !( disc->sata_ahci.memory->interrupt_status & ( 1 << disc->satapi_ahci.port )))
+                continue;
+            G_( ", port: %32x", disc->satapi_ahci.memory->interrupt_status );
+            G_( ", is: %32x", disc->satapi_ahci.memory->port[ disc->satapi_ahci.port ].interrupt_status );
+            if( disc->satapi_ahci.memory->port[ disc->satapi_ahci.port ].interrupt_status & ~2 )
+            {   G_( ", serr: %32x", disc->satapi_ahci.memory->port[ disc->satapi_ahci.port ].sata_error );
                 G_( ", tfd: %32x", disc->satapi_ahci.memory->port[ disc->satapi_ahci.port ].task_file_data );
             }
             disc->satapi_ahci.memory->port[ disc->satapi_ahci.port ].interrupt_status = E_sata_S_interrupt_status_clear_mask;
+            disc->satapi_ahci.memory->interrupt_status = 1 << disc->satapi_ahci.port;
             break;
         }
     }
-    X_F( sata, interrupt );
     U_L( E_flow_S_scheduler[ sched_i ].state, inside_interrupt );
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -380,8 +385,7 @@ E_sata_I_init( volatile struct E_sata_Z_memory *sata_memory
         if( disc->type == E_disc_Z_type_S_sata_ahci
         || disc->type == E_disc_Z_type_S_satapi_ahci
         )
-        {   X_M( sata, interrupt );
-            // IDENTIFY (PACKET) DEVICE
+        {   // IDENTIFY (PACKET) DEVICE
             command_table_0->command_fis.command = disc->type == E_disc_Z_type_S_sata_ahci
             ? E_sata_Z_ata_command_S_identify_device
             : E_sata_Z_ata_command_S_identify_packet_device;
@@ -400,7 +404,7 @@ E_sata_I_init( volatile struct E_sata_Z_memory *sata_memory
             }
             sata_memory->port[port].command_issue = 1;
             do
-            {   X_B( sata, interrupt, 0 )
+            {   if( E_flow_Q_interrupt_I_wait() )
                     return ~2;
             }while( sata_memory->port[port].command_issue & 1 );
             if( disc->type == E_disc_Z_type_S_sata_ahci )
@@ -443,12 +447,13 @@ Next_port:
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _private
 N
-E_sata_Q_sata_ahci_I_wait_on_completion( struct E_disc_Z *disc
+E_sata_Q_sata_ahci_I_wait_on_completion( I disc_id
 , N32 slot_mask
-){  X_M( sata, interrupt );
+){  struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
     while( disc->sata_ahci.memory->port[ disc->sata_ahci.port ].sata_active & slot_mask )
-    {   X_B( sata, interrupt, 0 )
+    {   if( E_flow_Q_interrupt_I_wait() )
             return ~0;
+        disc = E_mem_Q_tab_R( E_disc_S, disc_id );
     }
     return 0;
 }
@@ -468,8 +473,7 @@ E_sata_Q_sata_ahci_I_read( I disc_id
 , N logical_sector_count
 , P buffer
 , N32 *slot_mask
-){  X_M( sata, interrupt );
-    volatile static N r;
+){  volatile static N r;
     r = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
     E_flow_I_lock( &disc->sata_ahci.sata_lock );
@@ -478,14 +482,15 @@ E_sata_Q_sata_ahci_I_read( I disc_id
     do
     {   N8 command_slot_i = E_sata_Q_disc_device_R_free_command_slot(disc);
         while( !~command_slot_i )
-        {   X_B( sata, interrupt, 0 )
-            {   r = ~0;
-                goto End;
-            }
+        {   E_flow_I_unlock_r( &disc->sata_ahci.sata_lock, &r, r );
+            if( E_flow_Q_interrupt_I_wait() )
+                return ~0;
             disc = E_mem_Q_tab_R( E_disc_S, disc_id );
+            E_flow_I_lock( &disc->sata_ahci.sata_lock );
+            if( K_error(r) )
+                return r;
             command_slot_i = E_sata_Q_disc_device_R_free_command_slot(disc);
         }
-        disc->sata_ahci.memory->port[ disc->sata_ahci.port ].interrupt_status = E_sata_S_interrupt_status_clear_mask;
         struct E_sata_Z_command_header *command_list = E_main_Z_p_I_to_virtual( (P)disc->sata_ahci.memory->port[ disc->sata_ahci.port ].command_list_base );
         command_list[ command_slot_i ].write = 0;
         struct E_sata_Z_command_table *command_table = E_main_Z_p_I_to_virtual( (P)command_list[ command_slot_i ].command_table_base );
@@ -528,7 +533,6 @@ E_sata_Q_sata_ahci_I_read( I disc_id
 End:E_flow_I_unlock_r( &disc->sata_ahci.sata_lock, &r, r );
     return r;
 }
-//------------------------------------------------------------------------------
 _private
 N
 E_sata_Q_sata_ahci_I_write( I disc_id
@@ -536,8 +540,7 @@ E_sata_Q_sata_ahci_I_write( I disc_id
 , N logical_sector_count //DFN 0 oznacza 65536 sektorów.
 , P buffer
 , N32 *slot_mask
-){  X_M( sata, interrupt );
-    volatile static N r;
+){  volatile static N r;
     r = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
     E_flow_I_lock( &disc->sata_ahci.sata_lock );
@@ -546,14 +549,15 @@ E_sata_Q_sata_ahci_I_write( I disc_id
     do
     {   N8 command_slot_i = E_sata_Q_disc_device_R_free_command_slot(disc);
         while( !~command_slot_i )
-        {   X_B( sata, interrupt, 0 )
-            {   r = ~0;
-                goto End;
-            }
+        {   E_flow_I_unlock_r( &disc->sata_ahci.sata_lock, &r, r );
+            if( E_flow_Q_interrupt_I_wait() )
+                return ~0;
             disc = E_mem_Q_tab_R( E_disc_S, disc_id );
+            E_flow_I_lock( &disc->sata_ahci.sata_lock );
+            if( K_error(r) )
+                return r;
             command_slot_i = E_sata_Q_disc_device_R_free_command_slot(disc);
         }
-        disc->sata_ahci.memory->port[ disc->sata_ahci.port ].interrupt_status = E_sata_S_interrupt_status_clear_mask;
         struct E_sata_Z_command_header *command_list = E_main_Z_p_I_to_virtual( (P)disc->sata_ahci.memory->port[ disc->sata_ahci.port ].command_list_base );
         command_list[ command_slot_i ].write = 1;
         struct E_sata_Z_command_table *command_table = E_main_Z_p_I_to_virtual( (P)command_list[ command_slot_i ].command_table_base );
@@ -596,15 +600,13 @@ E_sata_Q_sata_ahci_I_write( I disc_id
 End:E_flow_I_unlock_r( &disc->sata_ahci.sata_lock, &r, r );
     return r;
 }
-//------------------------------------------------------------------------------
 _private
 N
 E_sata_Q_sata_ahci_I_trim( I disc_id
 , struct E_sata_Z_dsm_range *range_list
 , N16 logical_sector_count
 , N32 *slot_mask
-){  X_M( sata, interrupt );
-    volatile static N r;
+){  volatile static N r;
     r = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
     E_flow_I_lock( &disc->sata_ahci.sata_lock );
@@ -612,14 +614,15 @@ E_sata_Q_sata_ahci_I_trim( I disc_id
         return r;
     N8 command_slot_i = E_sata_Q_disc_device_R_free_command_slot(disc);
     while( !~command_slot_i )
-    {   X_B( sata, interrupt, 0 )
-        {   r = ~0;
-            goto End;
-        }
+    {   E_flow_I_unlock_r( &disc->sata_ahci.sata_lock, &r, r );
+        if( E_flow_Q_interrupt_I_wait() )
+            return ~0;
         disc = E_mem_Q_tab_R( E_disc_S, disc_id );
+        E_flow_I_lock( &disc->sata_ahci.sata_lock );
+        if( K_error(r) )
+            return r;
         command_slot_i = E_sata_Q_disc_device_R_free_command_slot(disc);
     }
-    disc->sata_ahci.memory->port[ disc->sata_ahci.port ].interrupt_status = E_sata_S_interrupt_status_clear_mask;
     struct E_sata_Z_command_header *command_list = E_main_Z_p_I_to_virtual( (P)disc->sata_ahci.memory->port[ disc->sata_ahci.port ].command_list_base );
     command_list[ command_slot_i ].write = 1;
     struct E_sata_Z_command_table *command_table = E_main_Z_p_I_to_virtual( (P)command_list[ command_slot_i ].command_table_base );
@@ -646,5 +649,36 @@ E_sata_Q_sata_ahci_I_trim( I disc_id
     *slot_mask &= disc->sata_ahci.memory->port[ disc->sata_ahci.port ].sata_active;
 End:E_flow_I_unlock_r( &disc->sata_ahci.sata_lock, &r, r );
     return r;
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_private
+N
+E_sata_Q_sata_ahci_I_flush( I disc_id
+){  struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
+    struct E_sata_Z_command_header *command_list = E_main_Z_p_I_to_virtual( (P)disc->sata_ahci.memory->port[ disc->sata_ahci.port ].command_list_base );
+    command_list[0].write = 0;
+    struct E_sata_Z_command_table *command_table = E_main_Z_p_I_to_virtual( (P)command_list[0].command_table_base );
+    command_table->command_fis.command = E_sata_Z_ata_command_S_flush_cache_ext;
+    command_table->command_fis.lba_0 = 0;
+    command_table->command_fis.lba_1 = 0;
+    command_table->command_fis.lba_2 = 0;
+    command_table->command_fis.device = 0;
+    command_table->command_fis.lba_3 = 0;
+    command_table->command_fis.lba_4 = 0;
+    command_table->command_fis.lba_5 = 0;
+    command_table->command_fis.feature_low = 0;
+    command_table->command_fis.feature_high = 0;
+    command_table->command_fis.count = 0;
+    N time;
+    E_flow_Q_spin_time_M( &time, 10000000 );
+    while( disc->sata_ahci.memory->port[ disc->sata_ahci.port ].task_file_data & (( 1 << 7 ) | ( 1 << 3 )))
+    {   if( E_flow_Q_spin_time_T( &time ))
+            return ~0;
+        __asm__ volatile (
+        "\n" "pause"
+        );
+    }
+    disc->sata_ahci.memory->port[ disc->sata_ahci.port ].command_issue = 1;
+    return 0;
 }
 /******************************************************************************/

@@ -12,6 +12,7 @@ enum E_flow_Z_run_state
 , E_flow_Z_run_state_S_waiting_for_report
 , E_flow_Z_run_state_S_waiting_for_report_timed
 , E_flow_Z_run_state_S_waiting_for_timer
+, E_flow_Z_run_state_S_waiting_for_interrupt
 , E_flow_Z_run_state_S_stopping_by_task
 };
 struct E_flow_Q_task_Z
@@ -51,12 +52,11 @@ struct E_flow_Z_scheduler
   N cli_count;
   N task_error;
   I current_task;
-  unsigned U_R( state, inside_interrupt )   :1;
-  unsigned U_R( signal, exit )              :1;
-  unsigned U_R( signal, wake )              :1;
+  volatile B U_R( state, inside_interrupt );
 };
 //==============================================================================
-_private volatile struct E_flow_Z_scheduler *E_flow_S_scheduler;
+_private volatile B U_R( E_flow_S_scheduler_signal, wake );
+_private struct E_flow_Z_scheduler *E_flow_S_scheduler;
 _private N E_flow_S_scheduler_n;
 _private B E_flow_S_inited;
 //==============================================================================
@@ -93,32 +93,25 @@ void
 E_flow_I_sleep( N microseconds
 ){  N acpi_timer_ticks = E_interrupt_S_apic_timer_freq * microseconds / 1000000;
     if( acpi_timer_ticks )
-    {   do
+    {   __asm__ volatile (
+        "\n" "cli"
+        );
+        do
         {   N32 acpi_timer_ticks_ = acpi_timer_ticks > 0xffffffff ? 0xffffffff : acpi_timer_ticks;
             acpi_timer_ticks -= acpi_timer_ticks_;
-            __asm__ volatile (
-            "\n" "cli"
-            );
             E_main_Q_msr_P( 0x838, acpi_timer_ticks_ ); // Ustaw liczbę cykli zegara APIC.
-            __asm__ volatile (
-            "\n" "sti"
-            "\n" "hlt"
-            );
             O{  __asm__ volatile (
+                "\n" "sti"
+                "\n" "hlt"
                 "\n" "cli"
                 );
                 if( !E_main_Q_msr_R( 0x839 )) // Oczytaj liczbę pozostałych cykli zegara APIC.
-                {   __asm__ volatile (
-                    "\n" "sti"
-                    );
                     break;
-                }
-                __asm__ volatile (
-                "\n" "sti"
-                "\n" "hlt"
-                );
             }
         }while( acpi_timer_ticks );
+        __asm__ volatile (
+        "\n" "sti"
+        );
     }
 }
 //------------------------------------------------------------------------------
@@ -187,7 +180,6 @@ E_flow_M( P main_stack
     E_flow_S_scheduler[ sched_i ].cli_count = 0;
     E_flow_S_scheduler[ sched_i ].task_error = 0;
     U_L( E_flow_S_scheduler[ sched_i ].state, inside_interrupt );
-    U_L( E_flow_S_scheduler[ sched_i ].signal, exit );
     return 0;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -337,7 +329,6 @@ E_flow_Q_report_I_signal( I id
         }
     }
     E_flow_I_sti();
-    U_F( E_flow_S_scheduler[ sched_i ].signal, wake );
 }
 _export
 B
@@ -373,7 +364,6 @@ E_flow_Q_report_I_wait( I id
         *reported_count = report->reported_count;
     report->reported_count = 0;
     E_flow_I_sti();
-    U_L( E_flow_S_scheduler[ sched_i ].signal, wake );
     return ret;
 }
 _export
@@ -435,7 +425,6 @@ E_flow_Q_report_timed_I_signal( I id
         }
     }
     E_flow_I_sti();
-    U_F( E_flow_S_scheduler[ sched_i ].signal, wake );
 }
 _export
 B
@@ -499,7 +488,6 @@ End:    report->task_to = E_flow_S_scheduler[ sched_i ].current_task;
         *reported_count = report->reported_count;
     report->reported_count = 0;
     E_flow_I_sti();
-    U_L( E_flow_S_scheduler[ sched_i ].signal, wake );
     return ret;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -661,7 +649,6 @@ E_flow_Q_impulser_I_activate( I id
     E_flow_S_scheduler[ sched_i ].last_time = time;
     E_flow_S_scheduler[ sched_i ].next_time = time + timer->left;
 End:E_flow_I_sti();
-    U_F( E_flow_S_scheduler[ sched_i ].signal, wake );
 }
 _export
 void
@@ -701,15 +688,38 @@ E_flow_Q_impulser_I_wait( I id
 End:return E_flow_Q_task_I_schedule();
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_export
+void
+E_flow_Q_interrupt_I_signal( void
+){  U_F( E_flow_S_scheduler_signal, wake );
+    __asm__ volatile (
+    "\n" "lock xchg %1,%0"
+    : "+m" ( U_R( E_flow_S_scheduler_signal, wake )), "+r" ( U_R( E_flow_S_scheduler_signal, wake ))
+    );
+}
+_export
+B
+E_flow_Q_interrupt_I_wait( void
+){  N32 sched_i = E_flow_I_current_scheduler();
+    if( K_error( E_flow_S_scheduler[ sched_i ].task_error ))
+    {   B ret = E_flow_Q_task_I_schedule();
+        return ret;
+    }
+    struct E_flow_Q_task_Z *task = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, E_flow_S_scheduler[ sched_i ].current_task );
+    task->run_state = E_flow_Z_run_state_S_waiting_for_interrupt;
+    return E_flow_Q_task_I_schedule();
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Każde ‹zadanie› synchroniczne po wywołaniu “E_flow_Q_task_I_schedule” i po przełączeniu w tej procedurze do innego ‹zadania› (“E_flow_Q_task_I_switch”) czeka przed instrukcją powrotu z tej procedury, by kontynuować w miejscu wywołania i ewentualnie zakończyć własne ‹zadanie› po powrocie.
 _export
 __attribute__ (( __noinline__, __returns_twice__, __hot__ ))
 B
 E_flow_Q_task_I_schedule( void
 ){  N32 sched_i = E_flow_I_current_scheduler();
-    O{  if( U_E( E_flow_S_scheduler[ sched_i ].signal, exit ))
+    O{  if( K_error( E_flow_S_scheduler[ sched_i ].task_error ))
         {   struct E_flow_Q_task_Z *task = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, 0 );
             task->run_state = E_flow_Z_run_state_S_stopping_by_task;
+            task->run_state_object = ~0;
             E_flow_Q_task_I_switch(0);
             task = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, E_flow_S_scheduler[ sched_i ].current_task );
             return task->run_state == E_flow_Z_run_state_S_stopping_by_task;
@@ -811,6 +821,13 @@ E_flow_Q_task_I_schedule( void
         __asm__ volatile (
         "\n" "sti"
         );
+        if( U_E( E_flow_S_scheduler_signal, wake ))
+        {   for_each( task_id, E_flow_S_scheduler[ sched_i ].task, E_mem_Q_tab )
+            {   struct E_flow_Q_task_Z *task = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, task_id );
+                if( task->run_state == E_flow_Z_run_state_S_waiting_for_interrupt )
+                    task->run_state = E_flow_Z_run_state_S_ready;
+            }
+        }
         for_each_out( E_flow_S_scheduler[ sched_i ].current_task, task_id, E_flow_S_scheduler[ sched_i ].task, E_mem_Q_tab )
         {   B task_skip = no;
             for_each( task_id_, E_flow_S_scheduler[ sched_i ].task, E_mem_Q_tab )
@@ -846,69 +863,43 @@ E_flow_Q_task_I_schedule( void
             if( task->run_state == E_flow_Z_run_state_S_ready )
                 return task->run_state == E_flow_Z_run_state_S_stopping_by_task;
         }
-        if( U_R( E_flow_S_scheduler[ sched_i ].signal, exit ))
-            continue;
         __asm__ volatile (
         "\n" "cli"
         );
-        if( U_E( E_flow_S_scheduler[ sched_i ].signal, wake ))
-        {   __asm__ volatile (
-            "\n" "sti"
-            );
-            continue;
-        }
-        B U_has_suspend_time = ~E_flow_S_scheduler[ sched_i ].next_time;
-        if( U_has_suspend_time )
-            time = E_flow_I_current_time();
-        if( !U_has_suspend_time
-        || time < E_flow_S_scheduler[ sched_i ].next_time
-        )
+        if( !U_R( E_flow_S_scheduler_signal, wake ))
+        {   B U_has_suspend_time = ~E_flow_S_scheduler[ sched_i ].next_time;
             if( U_has_suspend_time )
-            {   N acpi_timer_ticks = ( E_flow_S_scheduler[ sched_i ].next_time - time ) / E_interrupt_S_apic_timer_tick_time;
-                if( acpi_timer_ticks )
-                {   do
-                    {   N32 acpi_timer_ticks_ = acpi_timer_ticks > 0xffffffff ? 0xffffffff : acpi_timer_ticks;
-                        acpi_timer_ticks -= acpi_timer_ticks_;
-                        E_main_Q_msr_P( 0x838, acpi_timer_ticks_ ); // Ustaw liczbę cykli zegara APIC.
-                        __asm__ volatile (
-                        "\n" "sti"
-                        "\n" "hlt"
-                        );
-                        O{  __asm__ volatile (
-                            "\n" "cli"
-                            );
-                            if( U_E( E_flow_S_scheduler[ sched_i ].signal, wake ))
-                            {   E_main_Q_msr_P( 0x838, 0 ); // Zatrzymaj zegar APIC.
-                                __asm__ volatile (
+                time = E_flow_I_current_time();
+            if( !U_has_suspend_time
+            || time < E_flow_S_scheduler[ sched_i ].next_time
+            )
+                if( U_has_suspend_time )
+                {   N acpi_timer_ticks = ( E_flow_S_scheduler[ sched_i ].next_time - time ) / E_interrupt_S_apic_timer_tick_time;
+                    if( acpi_timer_ticks )
+                    {   do
+                        {   N32 acpi_timer_ticks_ = acpi_timer_ticks > 0xffffffff ? 0xffffffff : acpi_timer_ticks;
+                            acpi_timer_ticks -= acpi_timer_ticks_;
+                            E_main_Q_msr_P( 0x838, acpi_timer_ticks_ ); // Ustaw liczbę cykli zegara APIC.
+                            O{  __asm__ volatile (
                                 "\n" "sti"
+                                "\n" "hlt"
+                                "\n" "cli"
                                 );
-                                break;
+                                if( U_R( E_flow_S_scheduler_signal, wake ))
+                                {   E_main_Q_msr_P( 0x838, 0 ); // Zatrzymaj zegar APIC.
+                                    acpi_timer_ticks = 0;
+                                    break;
+                                }
+                                if( !E_main_Q_msr_R( 0x839 )) // Oczytaj liczbę pozostałych cykli zegara APIC.
+                                    break;
                             }
-                            if( !E_main_Q_msr_R( 0x839 )) // Oczytaj liczbę pozostałych cykli zegara APIC.
-                            {   __asm__ volatile (
-                                "\n" "sti"
-                                );
-                                break;
-                            }
-                            __asm__ volatile (
-                            "\n" "sti"
-                            "\n" "hlt"
-                            );
-                        }
-                    }while( acpi_timer_ticks );
-                }else
-                    __asm__ volatile (
-                    "\n" "sti"
-                    );
-            }else
-                __asm__ volatile (
-                "\n" "sti"
-                "\n" "hlt"
-                );
-        else
-            __asm__ volatile (
-            "\n" "sti"
-            );
+                        }while( acpi_timer_ticks );
+                    }
+                }
+        }
+        __asm__ volatile (
+        "\n" "sti"
+        );
     }
 }
 // Przełączenie do ‹zadania› przez przełączenie wskaźnika “stosu” wykonania.

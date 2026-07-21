@@ -72,8 +72,8 @@ E_simple_T_multiply_overflow(
   N a
 , N b
 ){  return a && b
-    && ( E_asm_I_bsr(a) != ~0ULL ? E_asm_I_bsr(a) : 0 )
-      + ( E_asm_I_bsr(b) != ~0ULL ? E_asm_I_bsr(b) : 0 )
+    && ( ~E_asm_I_bsr(a) ? E_asm_I_bsr(a) : 0 )
+      + ( ~E_asm_I_bsr(b) ? E_asm_I_bsr(b) : 0 )
       >= sizeof(N) * 8;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

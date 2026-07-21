@@ -178,14 +178,14 @@ E_window_log_I_wheel( I window_id
     }
 }
 _internal
-void
+N
 E_window_log_I_key( I window_id
 , N queue_i
 ){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
     if( E_keyboard_S_queue[ queue_i ].ex_2
     || E_keyboard_S_queue[ queue_i ].up
     )
-        return;
+        return 0;
     X_A( gui, draw );
     struct E_window_log_Z_data *window_data = window->data;
     if( E_keyboard_S_queue[ queue_i ].code == 0x48
@@ -231,6 +231,7 @@ E_window_log_I_key( I window_id
         }
     }
     X_U( gui, draw );
+    return 0;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _internal

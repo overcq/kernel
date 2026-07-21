@@ -168,22 +168,18 @@ E_disc_I_init( I disc_id
     { case E_disc_Z_type_S_sata_ahci:
         {   disc->sata_ahci.sata_lock = 0;
             disc->sata_ahci.ssd_cache_lock = 0;
-            G( "" );
             N r = E_ssd_cache_I_init(disc);
             if( K_error(r) )
                 return r;
-            G( "" );
             struct E_disc_Z_mbr *mbr = M( disc->sata_ahci.logical_sector_size );
             Kp_( ~2, mbr );
             N32 slot_mask;
-            G( "" );
             r = E_sata_Q_sata_ahci_I_read( disc_id, 0, 1, mbr, &slot_mask );
             if( K_error(r) )
                 return r < ~2 ? r : ~2;
-            r = E_sata_Q_sata_ahci_I_wait_on_completion( disc, slot_mask );
+            r = E_sata_Q_sata_ahci_I_wait_on_completion( disc_id, slot_mask );
             if( K_error(r) )
                 return r < ~2 ? r : ~2;
-            G( "" );
             disc = E_mem_Q_tab_R( E_disc_S, disc_id );
             if( mbr->mbr_signature != 0xaa55 )
             {   K_( ~1, W(mbr) );
@@ -192,17 +188,15 @@ E_disc_I_init( I disc_id
             for_n( i, 4 )
             {   switch( mbr->partition[i].type )
                 { case 0xee:
-                    {   G( "" );
-                        slot_mask = 0;
+                    {   slot_mask = 0;
                         struct E_disc_Z_gpt_header *gpt_header = M( disc->sata_ahci.logical_sector_size );;
                         Kp_( ~2, gpt_header );
                         r = E_sata_Q_sata_ahci_I_read( disc_id, 1, 1, gpt_header, &slot_mask );
                         if( K_error(r) )
                             return r < ~2 ? r : ~2;
-                        r = E_sata_Q_sata_ahci_I_wait_on_completion( disc, slot_mask );
+                        r = E_sata_Q_sata_ahci_I_wait_on_completion( disc_id, slot_mask );
                         if( K_error(r) )
                             return r < ~2 ? r : ~2;
-                        G( "" );
                         disc = E_mem_Q_tab_R( E_disc_S, disc_id );
                         if( gpt_header->signature != 0x5452415020494645
                         || gpt_header->size < 92
@@ -245,7 +239,7 @@ E_disc_I_init( I disc_id
                         );
                         if( K_error(r) )
                             return r < ~2 ? r : ~2;
-                        r = E_sata_Q_sata_ahci_I_wait_on_completion( disc, slot_mask );
+                        r = E_sata_Q_sata_ahci_I_wait_on_completion( disc_id, slot_mask );
                         if( K_error(r) )
                             return r < ~2 ? r : ~2;
                         disc = E_mem_Q_tab_R( E_disc_S, disc_id );
@@ -311,6 +305,28 @@ E_disc_I_init( I disc_id
       default:
             G( "unknown disc type" );
             return ~0;
+    }
+    return 0;
+}
+_private
+N
+E_disc_I_save( void
+){  for_each( disc_id, E_disc_S, E_mem_Q_tab )
+    {   struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
+        switch( disc->type )
+        { case E_disc_Z_type_S_sata_ahci:
+            {   for_n( partition_i, disc->partition_n )
+                {   switch( disc->partition[ partition_i ].file_system )
+                    { case E_disc_Z_file_system_S_oux:
+                        {   K( E_ouxfs_Q_device_I_save( disc_id, partition_i ))
+                                return ~0;
+                            break;
+                        }
+                    }
+                }
+                break;
+            }
+        }
     }
     return 0;
 }

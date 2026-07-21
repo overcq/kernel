@@ -315,6 +315,7 @@ E_keyboard_I_interrupt( void
       || v == 0x9d
     ))
         return;
+    E_flow_Q_interrupt_I_signal();
     N32 sched_i = E_flow_I_current_scheduler();
     U_F( E_flow_S_scheduler[ sched_i ].state, inside_interrupt );
     X_A( keyboard, key );

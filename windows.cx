@@ -9,16 +9,30 @@
 *******************************************************************************/
 // Procedury w tym module wymagają oczyszczenia z użycia specyficznego dla bieżącego pulpitu.
 //==============================================================================
+enum E_windows_Z_selection_Z_type
+{ E_windows_Z_selection_Z_type_S_none
+, E_windows_Z_selection_Z_type_S_directory
+, E_windows_Z_selection_Z_type_S_file
+};
+struct E_windows_Z_selection
+{ union
+  { P p;
+    N n;
+  };
+  enum E_windows_Z_selection_Z_type type;
+};
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 struct E_window_Q_window_Z
 { Pc title, description;
   N ( *draw )( I window_id, N32 x, N32 y, N32 width, N32 height );
   void ( *mouse_move )( I window_id, N32 x, N32 y );
   N ( *click )( I window_id, N32 x, N32 y );
   void ( *wheel )( I window_id );
-  void ( *key )( I window_id, N queue_i );
+  N ( *key )( I window_id, N queue_i );
   N ( *destroy )( N8 desktop_id, I window_id );
   struct E_controls_Z_data *controls_data;
   P data;
+  struct E_windows_Z_selection selection;
   N32 x, y, width, height;
   B sized;
 };
@@ -215,7 +229,7 @@ E_windows_Q_window_M( N8 desktop_id
 , void ( *mouse_move )( I, N32, N32 )
 , N ( *click )( I, N32, N32 )
 , void ( *wheel )(I)
-, void ( *key )( I, N )
+, N ( *key )( I, N )
 , N ( *destroy )( N8, I )
 ){  E_flow_I_cli();
     I window_id = E_mem_Q_tab_I_add( E_windows_Q_desktop_S[ desktop_id ].window );
@@ -349,6 +363,7 @@ E_windows_Q_window_M( N8 desktop_id
     window->wheel = wheel;
     window->key = key;
     window->destroy = destroy;
+    window->selection.type = E_windows_Z_selection_Z_type_S_none;
     E_windows_Q_desktop_S[ desktop_id ].button_width = E_main_S_framebuffer.width / windows;
     if( E_windows_Q_desktop_S[ desktop_id ].button_width < E_gui_Q_taskbar_S_button_min_width )
     {   E_windows_Q_desktop_S[ desktop_id ].button_width = E_gui_Q_taskbar_S_button_min_width;
@@ -641,10 +656,11 @@ E_windows_Q_desktop_I_move_window( N8 desktop_dst_id
 _private
 void
 E_windows_Q_window_Q_stack_I_on_top( I window_id
-){  for_n( stack_i, E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window ))
+){  I windows = E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window );
+    for_n( stack_i, windows )
         if( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ] == window_id )
             break;
-    if( ++stack_i != E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window ))
+    if( ++stack_i != windows )
     {   for( ; stack_i != E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window ); stack_i++ )
             E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i - 1 ] = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ];
         E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i - 1 ] = window_id;

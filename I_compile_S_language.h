@@ -153,9 +153,6 @@
 //------------------------------------------------------------------------------
 // Czekanie na wznowienie w następnym obiegu czasu.
 #define I_B()                               if( !E_flow_Q_task_I_schedule() ){} else
-//------------------------------------------------------------------------------
-// Wyjście z ‹zadania› po procedurze zawierającej instrukcję przełączenia.
-#define I_V()                               if( !E_flow_Q_task_R_exit() ){} else
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #define G(...)                              E_se_log_I_log( __FILE__, __LINE__, __VA_ARGS__ )
 #define G_(...)                             E_se_log_I_log_( __VA_ARGS__ )

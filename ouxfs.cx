@@ -480,7 +480,7 @@ E_ouxfs_Q_block_table_I_unite( I disc_id
         );
         if( disc->partition[ partition_i ].oux.block_table_changed_from > block_table_i )
             disc->partition[ partition_i ].oux.block_table_changed_from = block_table_i;
-        if( !E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.block_table, block_table_i, disc->partition[ partition_i ].oux.block_table_n - ( block_table_i + 1 )))
+        Kp( E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.block_table, block_table_i, 1 ))
             r = ~0;
         if( block_table_i + 1 != disc->partition[ partition_i ].oux.block_table_n )
         {   if( disc->partition[ partition_i ].oux.block_table_directory_table_start > block_table_i )
@@ -505,7 +505,7 @@ E_ouxfs_Q_block_table_I_unite( I disc_id
           : sizeof( N16 ) + sizeof( N16 )
         );
     }else if( realloc_add )
-    {   if( !E_mem_Q_blk_I_insert( &disc->partition[ partition_i ].oux.block_table, block_table_i, disc->partition[ partition_i ].oux.block_table_n - 1 - block_table_i ))
+    {   Kp( E_mem_Q_blk_I_insert( &disc->partition[ partition_i ].oux.block_table, block_table_i, 1 ))
             return ~0;
         disc->partition[ partition_i ].oux.block_table_n++;
         (*block_n)++;
@@ -533,7 +533,7 @@ E_ouxfs_Q_block_table_I_unite( I disc_id
     if( disc->partition[ partition_i ].oux.block_table_changed_from > block_table_i )
         disc->partition[ partition_i ].oux.block_table_changed_from = block_table_i;
     if( free_table_found_fit )
-    {   Kp( E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.free_table, free_table_found_i, disc->partition[ partition_i ].oux.free_table_n - ( free_table_found_i + 1 )))
+    {   Kp( E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.free_table, free_table_found_i, 1 ))
             r = ~1;
         disc->partition[ partition_i ].oux.free_table_n--;
     }
@@ -1016,8 +1016,7 @@ E_ouxfs_Z_start_n_I_block_append( N disc_id
             }
             K(r)
                 G( "some free blocks not counted: disc_id=%x, partition_i=%x", disc_id, partition_i );
-            Kp( E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.block_table, block_start_, *block_n ))
-                return ~2;
+            Kp_( ~2, E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.block_table, block_start_, *block_n ));
             disc->partition[ partition_i ].oux.block_table_n -= *block_n;
             if( disc->partition[ partition_i ].oux.block_table_directory_table_start > block_start_ )
                 disc->partition[ partition_i ].oux.block_table_directory_table_start -= *block_n;
@@ -1225,7 +1224,7 @@ Compute:(*count)++;
                         ));
                         r = ~0;
                     }
-                    if( (S)r >= 0 )
+                    if( !K_error(r) )
                     {   disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.pre -= n__;
                         if( !disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.pre
                         && !disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.n
@@ -1260,7 +1259,7 @@ Compute:(*count)++;
                         ));
                         r = ~0;
                     }
-                    if( (S)r >= 0
+                    if( !K_error(r)
                     && size_left
                     )
                     {   N16 post = disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.post;
@@ -1300,7 +1299,7 @@ Compute:(*count)++;
                         ));
                         r = ~0;
                     }
-                    if( (S)r >= 0
+                    if( !K_error(r)
                     && post != n__
                     )
                     {   disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector += disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.n;
@@ -1327,7 +1326,7 @@ Compute:(*count)++;
                     ));
                     r = ~0;
                 }
-                if( (S)r >= 0
+                if( !K_error(r)
                 && size != n__
                 )
                 {   disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.in_sector.start += n__;
@@ -1342,7 +1341,7 @@ Compute:(*count)++;
         , block_table_diff
         ))
             r = ~0;
-        if( (S)r >= 0 )
+        if( !K_error(r) )
         {   K_( ~2, E_ouxfs_Z_start_n_I_block_truncate( disc_id, partition_i
             , n_0 - ( n + n__ )
             , *block_start, block_n
@@ -4255,7 +4254,7 @@ End:if( !K_error( r_ ))
     } \
     continue_from++
 //------------------------------------------------------------------------------
-_internal
+_private
 N
 E_ouxfs_Q_device_I_save( I disc_id
 , N partition_i
@@ -4340,7 +4339,12 @@ E_ouxfs_Q_device_I_save( I disc_id
                         }
             }
         }while( data != sector + disc->sata_ahci.physical_sector_size );
-End_loop:;
+End_loop:
+        r_ = E_disc_P_dirty( disc_id, partition_i, 0, 1 );
+        if( K_error( r_ ))
+        {   E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_ssd_cache, r_ );
+            return ~0;
+        }
         E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_ssd_cache, r_ );
         for_n( block_table_i_write, disc->partition[ partition_i ].oux.block_table_block_table_n )
         {   if( disc->partition[ partition_i ].oux.block_table[ block_table_i_write ].location_type == E_ouxfs_Z_block_Z_location_S_sectors )
@@ -5182,6 +5186,53 @@ End:E_flow_I_unlock_r( &disc->partition[ partition_i ].lock, &r_partition, r_ );
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _private
 N
+E_ouxfs_Q_directory_R_parent( N disc_id
+, N partition_i
+, N64 uid
+, N64 *parent
+){  N r = 0, r_;
+    volatile static N r_partition;
+    r_partition = 0;
+    struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
+    E_flow_I_lock( &disc->partition[ partition_i ].lock );
+    K( r_partition )
+        return ~0;
+    N64 directory_i;
+    r_ = E_ouxfs_Q_directory_R( disc_id, partition_i, uid, &directory_i );
+    if( K_error( r_ ))
+    {   r = r_;
+        goto End;
+    }
+    *parent = disc->partition[ partition_i ].oux.directory[ directory_i ].parent;
+End:E_flow_I_unlock_r( &disc->partition[ partition_i ].lock, &r_partition, r_ );
+    return r;
+}
+_private
+N
+E_ouxfs_Q_file_R_parent( N disc_id
+, N partition_i
+, N64 uid
+, N64 *parent
+){  N r = 0, r_;
+    volatile static N r_partition;
+    r_partition = 0;
+    struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
+    E_flow_I_lock( &disc->partition[ partition_i ].lock );
+    K( r_partition )
+        return ~0;
+    N64 file_i;
+    r_ = E_ouxfs_Q_file_R( disc_id, partition_i, uid, &file_i );
+    if( K_error( r_ ))
+    {   r = r_;
+        goto End;
+    }
+    *parent = disc->partition[ partition_i ].oux.file[ file_i ].parent;
+End:E_flow_I_unlock_r( &disc->partition[ partition_i ].lock, &r_partition, r_ );
+    return r;
+}
+//------------------------------------------------------------------------------
+_private
+N
 E_ouxfs_Q_directory_I_list_directory( N disc_id
 , N partition_i
 , N64 uid
@@ -5301,7 +5352,7 @@ E_ouxfs_Q_directory_R_name( N disc_id
 , N partition_i
 , N64 uid
 , Pc *name
-){  N r = 0, r_ = 0;
+){  N r = 0, r_;
     volatile static N r_partition;
     r_partition = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
@@ -5314,7 +5365,6 @@ E_ouxfs_Q_directory_R_name( N disc_id
     {   r = r_;
         goto End;
     }
-    r_ = 0;
     *name = E_text_Z_s0_M_duplicate( disc->partition[ partition_i ].oux.directory[ directory_i ].name );
     if( K_error( *name )
     || !*name
@@ -5329,7 +5379,7 @@ E_ouxfs_Q_directory_P_name( N disc_id
 , N partition_i
 , N64 uid
 , const Pc name
-){  N r = 0, r_ = 0;
+){  N r = 0, r_;
     volatile static N r_partition;
     r_partition = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
@@ -5343,9 +5393,9 @@ E_ouxfs_Q_directory_P_name( N disc_id
         goto End;
     }
     N64 parent = disc->partition[ partition_i ].oux.directory[ directory_i ].parent;
-    for_n_( directory_i, disc->partition[ partition_i ].oux.directory_n )
-        if( disc->partition[ partition_i ].oux.directory[ directory_i ].parent == parent
-        && E_text_Z_s0_T_eq_s0( disc->partition[ partition_i ].oux.directory[ directory_i ].name, name )
+    for_n( directory_i_, disc->partition[ partition_i ].oux.directory_n )
+        if( disc->partition[ partition_i ].oux.directory[ directory_i_ ].parent == parent
+        && E_text_Z_s0_T_eq_s0( disc->partition[ partition_i ].oux.directory[ directory_i_ ].name, name )
         )
         {   r = ~0;
             goto End;
@@ -5381,7 +5431,6 @@ E_ouxfs_Q_directory_P_name( N disc_id
         r = ~0;
         goto End;
     }
-    r_ = 0;
     E_text_Z_s_P_copy_s0_0( disc->partition[ partition_i ].oux.directory[ directory_i ].name, name );
     if( disc->partition[ partition_i ].oux.directory_table_changed_from > directory_i )
         disc->partition[ partition_i ].oux.directory_table_changed_from = directory_i;
@@ -5394,7 +5443,7 @@ E_ouxfs_Q_file_R_name( N disc_id
 , N partition_i
 , N64 uid
 , Pc *name
-){  N r = 0, r_ = 0;
+){  N r = 0, r_;
     volatile static N r_partition;
     r_partition = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
@@ -5421,7 +5470,7 @@ E_ouxfs_Q_file_P_name( N disc_id
 , N partition_i
 , N64 uid
 , const Pc name
-){  N r = 0, r_ = 0;
+){  N r = 0, r_;
     volatile static N r_partition;
     r_partition = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
@@ -5442,9 +5491,9 @@ E_ouxfs_Q_file_P_name( N disc_id
         {   r = ~0;
             goto End;
         }
-    for_n_( file_i, disc->partition[ partition_i ].oux.file_n )
-        if( disc->partition[ partition_i ].oux.file[ file_i ].parent == parent
-        && E_text_Z_s0_T_eq_s0( disc->partition[ partition_i ].oux.file[ file_i ].name, name )
+    for_n( file_i_, disc->partition[ partition_i ].oux.file_n )
+        if( disc->partition[ partition_i ].oux.file[ file_i_ ].parent == parent
+        && E_text_Z_s0_T_eq_s0( disc->partition[ partition_i ].oux.file[ file_i_ ].name, name )
         )
         {   r = ~0;
             goto End;
@@ -5473,7 +5522,6 @@ E_ouxfs_Q_file_P_name( N disc_id
         r = ~0;
         goto End;
     }
-    r_ = 0;
     E_text_Z_s_P_copy_s0_0( disc->partition[ partition_i ].oux.file[ file_i ].name, name );
     if( disc->partition[ partition_i ].oux.file_table_changed_from > file_i )
         disc->partition[ partition_i ].oux.file_table_changed_from = file_i;
@@ -5487,7 +5535,7 @@ E_ouxfs_Q_file_R_size( N disc_id
 , N partition_i
 , N64 uid
 , N64 *n
-){  N r = 0, r_ = 0;
+){  N r = 0, r_;
     volatile static N r_partition;
     r_partition = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
@@ -5511,7 +5559,7 @@ E_ouxfs_Q_directory_I_move( N disc_id
 , N partition_i
 , N64 uid
 , N64 parent
-){  N r = 0, r_ = 0;
+){  N r = 0, r_;
     volatile static N r_partition;
     r_partition = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
@@ -5561,7 +5609,7 @@ E_ouxfs_Q_file_I_move( N disc_id
 , N partition_i
 , N64 uid
 , N64 parent
-){  N r = 0, r_ = 0;
+){  N r = 0, r_;
     volatile static N r_partition;
     r_partition = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
@@ -5612,7 +5660,7 @@ E_ouxfs_Q_file_I_truncate( N disc_id
 , N partition_i
 , N64 uid
 , N64 size
-){  N r = 0, r_ = 0;
+){  N r = 0, r_;
     volatile static N r_partition;
     r_partition = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
@@ -5774,13 +5822,13 @@ N
 E_ouxfs_Q_directory_W( N disc_id
 , N partition_i
 , N64 uid
-){  N r = 0, r_ = 0;
+){  N r = 0, r_;
     volatile static N r_partition;
     r_partition = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
     E_flow_I_lock( &disc->partition[ partition_i ].lock );
-    if( K_error(r) )
-        return r;
+    K( r_partition )
+        return ~0;
     N64 directory_i;
     r_ = E_ouxfs_Q_directory_R( disc_id, partition_i, uid, &directory_i );
     if( K_error( r_ ))
@@ -5917,7 +5965,7 @@ N
 E_ouxfs_Q_file_W( N disc_id
 , N partition_i
 , N64 uid
-){  N r = 0, r_ = 0;
+){  N r = 0, r_;
     volatile static N r_partition;
     r_partition = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
@@ -5994,7 +6042,7 @@ E_ouxfs_Q_file_I_lock( N disc_id
 , N partition_i
 , N64 uid
 , enum E_ouxfs_Z_file_Z_lock operation
-){  N r = 0, r_ = 0;
+){  N r = 0, r_;
     volatile static N r_partition;
     r_partition = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
@@ -6051,7 +6099,7 @@ E_ouxfs_Q_file_I_read( N disc_id
 , N64 pos
 , N64 *n
 , Pc data
-){  N r = 0, r_ = 0;
+){  N r = 0, r_;
     volatile static N r_partition, r_ssd_cache;
     r_partition = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
@@ -6168,7 +6216,7 @@ E_ouxfs_Q_file_I_write( I disc_id
 , N64 pos
 , N64 n
 , const Pc data
-){  N r = 0, r_ = 0;
+){  N r = 0, r_;
     volatile static N r_partition, r_ssd_cache;
     r_partition = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );

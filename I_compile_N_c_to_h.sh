@@ -107,12 +107,25 @@ case "$1" in
     perl -e '
         use strict;
         use warnings;
+        my $inside_braces = 0;
         local $\ = $/;
         while(<>)
         {   chomp;
             s`//.*$``;
+            if( $inside_braces == 1 )
+            {   if( /^}/ )
+                {   print "};";
+                    $inside_braces = 0;
+                }else
+                {   print $_;
+                }
+                next;
+            }
             if( /^\s*#(?:if|(?:elif|else|endif)\b)/ )
             {   print;
+            }elsif( /^(?:enum)\s+E_\w+/ )
+            {   print $&;
+                $inside_braces = 1;
             }elsif( /^(?:struct|union)\s+E_\w+/ ) # typy publiczne
             {   print "$&;";
             }
@@ -181,7 +194,7 @@ case "$1" in
             {   print;
             }elsif( /^(?:_export|_private)\s+(?:\w+\s+)*?((?:(?:enum|struct|union)\s+)?.*?\b\(?\**E_[^=;]*)[=;]/ ) # zmienne publiczne
             {   print "extern $1;";
-            }elsif( /^(?:enum|struct|union)\s+.*?\bE_\w+/ ) # typy publiczne
+            }elsif( /^(?:struct|union)\s+.*?\bE_\w+/ ) # typy publiczne
             {   $inside_braces = 1;
                 $last_line = $_;
             }elsif( $extern and /^E_\w+\(/ ) # procedura publiczna
