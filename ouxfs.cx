@@ -4926,7 +4926,6 @@ End_loop:
                         {   E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_ssd_cache, r_ );
                             return ~0;
                         }
-                        G( "file_i=%x,changed_from=%x", file_i, disc->partition[ partition_i ].oux.file_table_changed_from );
                     }
                     E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_ssd_cache, r_ );
                 }
@@ -4985,7 +4984,6 @@ End_loop:
                         {   E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_ssd_cache, r_ );
                             return ~0;
                         }
-                        G( "file_i=%x,changed_from=%x", file_i, disc->partition[ partition_i ].oux.file_table_changed_from );
                     }
                     sector += disc->sata_ahci.physical_sector_size;
                 }
@@ -5046,7 +5044,6 @@ End_loop:
                         {   E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_ssd_cache, r_ );
                             return ~0;
                         }
-                        G( "file_i=%x,changed_from=%x", file_i, disc->partition[ partition_i ].oux.file_table_changed_from );
                     }
                     E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_ssd_cache, r_ );
                 }
@@ -5123,7 +5120,6 @@ End_loop:
                     {   E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_ssd_cache, r_ );
                         return ~0;
                     }
-                    G( "file_i=%x,changed_from=%x", file_i, disc->partition[ partition_i ].oux.file_table_changed_from );
                 }
                 E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_ssd_cache, r_ );
             }

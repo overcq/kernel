@@ -207,15 +207,18 @@ E_mem_Q_tab_I_remove( struct E_mem_Q_tab_Z *tab_
             {   i++;
                 break;
             }
-        if( K_error( E_mem_Q_blk_I_remove( &tab_->index, i, id - i + 1 )))
+        N r = (N)E_mem_Q_blk_I_remove( &tab_->index, i, id - i + 1 );
+        if( !K_error(r)
+        && r
+        )
             tab_->index_n = i;
         else
             tab_->index[id] = 0;
     }else
         tab_->index[id] = 0;
     Pc data = tab_->data;
+    Kp_( ~1, E_mem_Q_blk_I_remove( &tab_->data, ( p - tab_->data ) / tab_->u, 1 ));
     tab_->data_n--;
-    Kp_( ~0, E_mem_Q_blk_I_remove( &tab_->data, ( p - tab_->data ) / tab_->u, 1 ));
     if( tab_->data != data )
     {   for_i( i, tab_->index_n )
             if( tab_->index[i] )

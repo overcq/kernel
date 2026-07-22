@@ -848,7 +848,6 @@ E_window_files_I_click_( I window_id
                             return ~0;
                         }
                     }
-                    G( "column_i=%x,row_i=%x,uid=%x", column_i - 1, row_i, window_data->selected_dir[ column_i - 1 ].uid[ row_i ] );
                     N n_dir;
                     N64 *list_dir;
                     N r = E_ouxfs_Q_directory_I_list_directory( window_data->disc_partition[ window_data->disc_partition_selected_row ].disc
@@ -1437,8 +1436,6 @@ E_window_files_I_click_( I window_id
                     {   window_data->selected_dir[ column_i ].name = name;
                         window_data->selected_dir[ column_i ].uid = list_dir;
                     }
-                    for_n_( i, n_dir + n_file )
-                        G( "uid=%x,name=%t", window_data->selected_dir[ column_i ].uid[i], window_data->selected_dir[ column_i ].name[i] );
                     K_( ~2, W( list_file ));
                     Mt_( window_data->selected_dir[ column_i ].name_expand, n_dir + n_file );
                     Kp( window_data->selected_dir[ column_i ].name_expand )
@@ -1992,18 +1989,19 @@ E_window_files_I_mouse_move( I window_id
         {   window_data->pointer_row = ~0;
             U_F( gui, draw );
         }
-    }else if( ~window_data->pointer_column )
-    {   N column_ = window_data->dir_start + 1 + window_data->pointer_column;
-        if( column_ )
-            window_data->selected_dir[ column_ - 1 ].row_start = ~0;
-        else
-            window_data->disc_partition_row_start = ~0;
     }
     if( window_data->pointer_column != ( ~column && column ? column - ( window_data->dir_start + 1 ) : column ))
-    {   /*if( !~window_data->pointer_column
-        || window_data->pointer_column <= window_data->selected_dir_n // Jeśli po ewentualnym przewinięciu nie pozostało poza kolumnami.
+    {   if( ~window_data->pointer_column )
+        {   N column_ = window_data->dir_start + 1 + window_data->pointer_column;
+            if( column_ )
+                window_data->selected_dir[ column_ - 1 ].row_start = ~0;
+            else
+                window_data->disc_partition_row_start = ~0;
+        }
+        if( !~window_data->pointer_column
+        //|| window_data->pointer_column <= window_data->selected_dir_n // Jeśli po ewentualnym przewinięciu nie pozostało poza kolumnami.
         )
-            U_F( gui, draw );*/
+            U_F( gui, draw );
         window_data->pointer_column = column;
         if( ~column
         && column

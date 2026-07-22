@@ -62,7 +62,7 @@ E_controls_M( N8 desktop_id
     data->next_height = 0;
     Mt_( data->control, data->control_n );
     Kp( data->control )
-    {   K_( ~1, W(data) );
+    {   K_( ~2, W(data) );
         return ~2;
     }
     window->controls_data = data;
@@ -72,7 +72,8 @@ _private
 N
 E_controls_W( N8 desktop_id
 , I window_id
-){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
+){  return 0;
+    struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
     struct E_controls_Z_data *data = window->controls_data;
     for_n( control_i, data->control_n )
         switch( data->control[ control_i ].type )

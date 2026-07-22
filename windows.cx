@@ -403,20 +403,21 @@ E_windows_Q_window_W( N8 desktop_id
     {   N r = window->destroy( desktop_id, window_id );
         if( K_error(r) )
         {   E_flow_I_sti();
-            return window->controls_data ? ( r < ~2 ? r : ~2 ) : r;
+            return r < ~2 ? r : ~2;
         }
     }
     N r = W( window->description );
     if( K_error(r) )
     {   E_flow_I_sti();
-        return window->controls_data || window->destroy ? ( r < ~2 ? r : ~2 ) : r;
+        return r < ~2 ? r : ~2;
     }
     r = W( window->title );
     if( K_error(r) )
     {   E_flow_I_sti();
         return r < ~2 ? r : ~2;
     }
-    for_n( stack_i, E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ desktop_id ].window ))
+    I windows = E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ desktop_id ].window );
+    for_n( stack_i, windows )
         if( E_windows_Q_desktop_S[ desktop_id ].stack[ stack_i ] == window_id )
             break;
     r = (N)E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S[ desktop_id ].stack, stack_i, 1 );
@@ -428,7 +429,7 @@ E_windows_Q_window_W( N8 desktop_id
         E_flow_I_sti();
         return (S)r < ~2 ? r : ~2;
     }
-    for_n( order_i, E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ desktop_id ].window ))
+    for_n( order_i, windows )
         if( E_windows_Q_desktop_S[ desktop_id ].order[ order_i ] == window_id )
             break;
     r = (N)E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S[ desktop_id ].order, order_i, 1 );
@@ -440,8 +441,9 @@ E_windows_Q_window_W( N8 desktop_id
         E_flow_I_sti();
         return (S)r < ~2 ? r : ~2;
     }
+    windows--;
     if( desktop_id == E_window_Q_desktop_S_current
-    && stack_i == E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ desktop_id ].window ) - 1
+    && stack_i == windows
     )
     {   E_gui_Q_desktop_S_window_moving = no;
         E_gui_Q_desktop_S_window_resizing_state = E_gui_Q_desktop_Z_window_resizing_state_S_none;
@@ -451,7 +453,6 @@ E_windows_Q_window_W( N8 desktop_id
     {   E_flow_I_sti();
         return r < ~2 ? r : ~2;
     }
-    I windows = E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ desktop_id ].window );
     E_windows_Q_desktop_S[ desktop_id ].button_width = windows ? E_main_S_framebuffer.width / windows : E_main_S_framebuffer.width;
     if( E_windows_Q_desktop_S[ desktop_id ].button_width < E_gui_Q_taskbar_S_button_min_width )
     {   E_windows_Q_desktop_S[ desktop_id ].button_width = E_gui_Q_taskbar_S_button_min_width;
@@ -661,7 +662,7 @@ E_windows_Q_window_Q_stack_I_on_top( I window_id
         if( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ] == window_id )
             break;
     if( ++stack_i != windows )
-    {   for( ; stack_i != E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window ); stack_i++ )
+    {   for( ; stack_i != windows; stack_i++ )
             E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i - 1 ] = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ];
         E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i - 1 ] = window_id;
         E_gui_Q_taskbar_S_redraw = yes;
