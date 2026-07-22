@@ -4917,6 +4917,7 @@ End_loop:
                                 }
                         }
                     }while( data != sector + disc->sata_ahci.physical_sector_size );
+                    if( file_i >= disc->partition[ partition_i ].oux.file_table_changed_from )
                     {   r_ = E_disc_P_dirty( disc_id, partition_i
                         , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].sector - 1
                         , 1
@@ -4925,6 +4926,7 @@ End_loop:
                         {   E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_ssd_cache, r_ );
                             return ~0;
                         }
+                        G( "file_i=%x,changed_from=%x", file_i, disc->partition[ partition_i ].oux.file_table_changed_from );
                     }
                     E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_ssd_cache, r_ );
                 }
@@ -4974,6 +4976,7 @@ End_loop:
                                 }
                         }
                     }while( data != sector + disc->sata_ahci.physical_sector_size );
+                    if( file_i >= disc->partition[ partition_i ].oux.file_table_changed_from )
                     {   r_ = E_disc_P_dirty( disc_id, partition_i
                         , disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].sector + sector_i
                         , 1
@@ -4982,6 +4985,7 @@ End_loop:
                         {   E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_ssd_cache, r_ );
                             return ~0;
                         }
+                        G( "file_i=%x,changed_from=%x", file_i, disc->partition[ partition_i ].oux.file_table_changed_from );
                     }
                     sector += disc->sata_ahci.physical_sector_size;
                 }
@@ -5042,6 +5046,7 @@ End_loop:
                         {   E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_ssd_cache, r_ );
                             return ~0;
                         }
+                        G( "file_i=%x,changed_from=%x", file_i, disc->partition[ partition_i ].oux.file_table_changed_from );
                     }
                     E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_ssd_cache, r_ );
                 }
@@ -5118,6 +5123,7 @@ End_loop:
                     {   E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_ssd_cache, r_ );
                         return ~0;
                     }
+                    G( "file_i=%x,changed_from=%x", file_i, disc->partition[ partition_i ].oux.file_table_changed_from );
                 }
                 E_flow_I_unlock_r( &disc->sata_ahci.ssd_cache_lock, &r_ssd_cache, r_ );
             }
@@ -5206,6 +5212,35 @@ E_ouxfs_Q_directory_R_parent( N disc_id
     *parent = disc->partition[ partition_i ].oux.directory[ directory_i ].parent;
 End:E_flow_I_unlock_r( &disc->partition[ partition_i ].lock, &r_partition, r_ );
     return r;
+}
+_private
+N
+E_ouxfs_Q_directory_T_descendant( N disc_id
+, N partition_i
+, N64 uid
+, N64 uid_descendant
+){  if( !~uid )
+        return yes;
+    N r = 0, r_;
+    volatile static N r_partition;
+    r_partition = 0;
+    struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
+    E_flow_I_lock( &disc->partition[ partition_i ].lock );
+    K( r_partition )
+        return ~0;
+    do
+    {   N64 directory_i;
+        r_ = E_ouxfs_Q_directory_R( disc_id, partition_i, uid_descendant, &directory_i );
+        if( K_error( r_ ))
+        {   r = r_;
+            goto End;
+        }
+        uid_descendant = disc->partition[ partition_i ].oux.directory[ directory_i ].parent;
+    }while( ~uid_descendant
+    && uid_descendant != uid
+    );
+End:E_flow_I_unlock_r( &disc->partition[ partition_i ].lock, &r_partition, r_ );
+    return K_error(r) ? r : uid_descendant == uid;
 }
 _private
 N

@@ -287,7 +287,8 @@ E_keyboard_P_led( N8 set
 _internal
 void
 E_keyboard_I_interrupt( void
-){  N8 v = E_main_I_in_8( 0x60 );
+){  E_flow_Q_interrupt_I_signal();
+    N8 v = E_main_I_in_8( 0x60 );
     if( v == 0xfa
     || v == 0xfe
     )
@@ -315,7 +316,6 @@ E_keyboard_I_interrupt( void
       || v == 0x9d
     ))
         return;
-    E_flow_Q_interrupt_I_signal();
     N32 sched_i = E_flow_I_current_scheduler();
     U_F( E_flow_S_scheduler[ sched_i ].state, inside_interrupt );
     X_A( keyboard, key );
