@@ -332,6 +332,7 @@ E_flow_Q_report_I_signal( I id
         }
     }
     E_flow_I_sti();
+    U_F( E_flow_S_scheduler[ sched_i ].req, wake );
 }
 _export
 B
@@ -428,6 +429,7 @@ E_flow_Q_report_timed_I_signal( I id
         }
     }
     E_flow_I_sti();
+    U_F( E_flow_S_scheduler[ sched_i ].req, wake );
 }
 _export
 B
@@ -652,6 +654,7 @@ E_flow_Q_impulser_I_activate( I id
     E_flow_S_scheduler[ sched_i ].last_time = time;
     E_flow_S_scheduler[ sched_i ].next_time = time + timer->left;
 End:E_flow_I_sti();
+    U_F( E_flow_S_scheduler[ sched_i ].req, wake );
 }
 _export
 void
@@ -907,11 +910,13 @@ E_flow_Q_task_I_schedule( void
                         }while( acpi_timer_ticks );
                     }
                 }else
-                    __asm__ volatile (
-                    "\n" "sti"
-                    "\n" "hlt"
-                    "\n" "cli"
-                    );
+                    do
+                        __asm__ volatile (
+                        "\n" "sti"
+                        "\n" "hlt"
+                        "\n" "cli"
+                        );
+                    while( !U_R( E_flow_S_scheduler[ sched_i ].req, wake ));
         }
         __asm__ volatile (
         "\n" "sti"

@@ -287,8 +287,7 @@ E_keyboard_P_led( N8 set
 _internal
 void
 E_keyboard_I_interrupt( void
-){  E_flow_Q_interrupt_I_signal();
-    N8 v = E_main_I_in_8( 0x60 );
+){  N8 v = E_main_I_in_8( 0x60 );
     if( v == 0xfa
     || v == 0xfe
     )

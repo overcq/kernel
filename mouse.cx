@@ -51,8 +51,7 @@ E_mouse_I_interrupt_I_smooth( void
 _internal
 void
 E_mouse_I_interrupt( void
-){  E_flow_Q_interrupt_I_signal();
-    N32 sched_i = E_flow_I_current_scheduler();
+){  N32 sched_i = E_flow_I_current_scheduler();
     U_F( E_flow_S_scheduler[ sched_i ].state, inside_interrupt );
     N8 v = E_main_I_in_8( 0x60 );
     switch( E_mouse_S_interrupt_state )

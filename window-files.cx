@@ -848,6 +848,7 @@ E_window_files_I_click_( I window_id
                             return ~0;
                         }
                     }
+                    G( "column_i=%x,row_i=%x,uid=%x", column_i - 1, row_i, window_data->selected_dir[ column_i - 1 ].uid[ row_i ] );
                     N n_dir;
                     N64 *list_dir;
                     N r = E_ouxfs_Q_directory_I_list_directory( window_data->disc_partition[ window_data->disc_partition_selected_row ].disc
@@ -1048,6 +1049,10 @@ E_window_files_I_click_( I window_id
                                 , ( i - dst_i ) * sizeof( window_data->selected_dir[ column_i ].name[ dst_i ] )
                                 );
                                 window_data->selected_dir[ column_i ].name[ dst_i ] = name[i];
+                                E_mem_Q_blk_I_copy( &window_data->selected_dir[ column_i ].uid[ dst_i + 1 ]
+                                , &window_data->selected_dir[ column_i ].uid[ dst_i ]
+                                , ( i - dst_i ) * sizeof( window_data->selected_dir[ column_i ].uid[ dst_i ] )
+                                );
                                 window_data->selected_dir[ column_i ].uid[ dst_i ] = list_dir[i];
                             }
                         }
@@ -1080,6 +1085,10 @@ E_window_files_I_click_( I window_id
                                 , ( i - dst_i ) * sizeof( window_data->selected_dir[ column_i ].name[ dst_i ] )
                                 );
                                 window_data->selected_dir[ column_i ].name[ dst_i ] = name[ n_dir + i ];
+                                E_mem_Q_blk_I_copy( &window_data->selected_dir[ column_i ].uid[ dst_i + 1 ]
+                                , &window_data->selected_dir[ column_i ].uid[ dst_i ]
+                                , ( i - dst_i ) * sizeof( window_data->selected_dir[ column_i ].uid[ dst_i ] )
+                                );
                                 window_data->selected_dir[ column_i ].uid[ dst_i ] = list_file[i];
                             }
                         }
@@ -1379,6 +1388,10 @@ E_window_files_I_click_( I window_id
                                 , ( i - dst_i ) * sizeof( window_data->selected_dir[ column_i ].name[ dst_i ] )
                                 );
                                 window_data->selected_dir[ column_i ].name[ dst_i ] = name[i];
+                                E_mem_Q_blk_I_copy( &window_data->selected_dir[ column_i ].uid[ dst_i + 1 ]
+                                , &window_data->selected_dir[ column_i ].uid[ dst_i ]
+                                , ( i - dst_i ) * sizeof( window_data->selected_dir[ column_i ].uid[ dst_i ] )
+                                );
                                 window_data->selected_dir[ column_i ].uid[ dst_i ] = list_dir[i];
                             }
                         }
@@ -1411,6 +1424,10 @@ E_window_files_I_click_( I window_id
                                 , ( i - dst_i ) * sizeof( window_data->selected_dir[ column_i ].name[ dst_i ] )
                                 );
                                 window_data->selected_dir[ column_i ].name[ dst_i ] = name[ n_dir + i ];
+                                E_mem_Q_blk_I_copy( &window_data->selected_dir[ column_i ].uid[ dst_i + 1 ]
+                                , &window_data->selected_dir[ column_i ].uid[ dst_i ]
+                                , ( i - dst_i ) * sizeof( window_data->selected_dir[ column_i ].uid[ dst_i ] )
+                                );
                                 window_data->selected_dir[ column_i ].uid[ dst_i ] = list_file[i];
                             }
                         }
@@ -1420,6 +1437,8 @@ E_window_files_I_click_( I window_id
                     {   window_data->selected_dir[ column_i ].name = name;
                         window_data->selected_dir[ column_i ].uid = list_dir;
                     }
+                    for_n_( i, n_dir + n_file )
+                        G( "uid=%x,name=%t", window_data->selected_dir[ column_i ].uid[i], window_data->selected_dir[ column_i ].name[i] );
                     K_( ~2, W( list_file ));
                     Mt_( window_data->selected_dir[ column_i ].name_expand, n_dir + n_file );
                     Kp( window_data->selected_dir[ column_i ].name_expand )
