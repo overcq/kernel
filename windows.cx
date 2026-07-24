@@ -485,6 +485,19 @@ E_windows_Q_window_R_order_i( N8 desktop_id
 }
 _export
 B
+E_windows_Q_window_class_R_count( N ( *draw )( I window_id, N32 x, N32 y, N32 width, N32 height )
+){  N count = 0;
+    for_n( desktop_id, E_windows_Q_desktop_S_n )
+    {   for_each( window_id, E_windows_Q_desktop_S[ desktop_id ].window, E_mem_Q_tab )
+        {   struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
+            if( window->draw == draw )
+                count++;
+        }
+    }
+    return count;
+}
+_export
+B
 E_windows_Q_window_class_T_visible( N ( *draw )( I window_id, N32 x, N32 y, N32 width, N32 height )
 ){  I windows = E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window );
     for_i_rev( stack_i, windows )

@@ -91,6 +91,8 @@ struct E_disc_Z_partition
       N64 block_table_file_table_start, block_table_file_table_n;
       struct E_ouxfs_Z_block *free_table;
       N64 free_table_n;
+      struct E_ouxfs_Z_watch_directory *watch_directory;
+      N watch_directory_n;
       N16 sector_size;
       N16 first_sector_max_size;
     }oux;
