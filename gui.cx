@@ -164,10 +164,7 @@ E_gui_Q_main_menu_I_browse_files( I window_id
 _internal
 void
 E_gui_Q_main_menu_I_restart( I window_id
-){  N r = E_disc_I_save();
-    if( K_error(r) )
-        return;
-    r = E_ssd_cache_I_sync_and_free();
+){  N r = E_disc_W();
     if( K_error(r) )
         return;
     S status = E_main_S_uefi_runtime_services.reset_system( H_uefi_Z_reset_Z_warm, 0, 0, 0 );
@@ -175,10 +172,7 @@ E_gui_Q_main_menu_I_restart( I window_id
 _internal
 void
 E_gui_Q_main_menu_I_shutdown( I window_id
-){  N r = E_disc_I_save();
-    if( K_error(r) )
-        return;
-    r = E_ssd_cache_I_sync_and_free();
+){  N r = E_disc_W();
     if( K_error(r) )
         return;
     S status = E_main_S_uefi_runtime_services.reset_system( H_uefi_Z_reset_Z_shutdown, 0, 0, 0 );

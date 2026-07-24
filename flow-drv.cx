@@ -53,6 +53,7 @@ struct E_flow_Z_scheduler
   N task_error;
   I current_task;
   volatile B U_R( state, inside_interrupt );
+  volatile B U_R( Q_interrupt_S_req, wake );
   volatile B U_R( req, wake );
   B U_R( state, exit );
 };
@@ -182,6 +183,7 @@ E_flow_M( P main_stack
     E_flow_S_scheduler[ sched_i ].task_error = 0;
     U_L( E_flow_S_scheduler[ sched_i ].state, inside_interrupt );
     U_L( E_flow_S_scheduler[ sched_i ].req, wake );
+    U_L( E_flow_S_scheduler[ sched_i ].Q_interrupt_S_req, wake );
     U_L( E_flow_S_scheduler[ sched_i ].state, exit );
     return 0;
 }
@@ -697,11 +699,12 @@ End:return E_flow_Q_task_I_schedule();
 _export
 void
 E_flow_Q_interrupt_I_signal( void
-){  B b = yes;
+){  B b_1 = yes, b_2 = yes;
     for_n( sched_i, E_flow_S_scheduler_n )
         __asm__ volatile (
         "\n" "lock xchg %1,%0"
-        : "+m" ( U_R( E_flow_S_scheduler[ sched_i ].req, wake )), "+r" (b)
+        "\n" "lock xchg %3,%2"
+        : "+m" ( U_R( E_flow_S_scheduler[ sched_i ].Q_interrupt_S_req, wake )), "+r" ( b_1 ), "+m" ( U_R( E_flow_S_scheduler[ sched_i ].req, wake )), "+r" ( b_2 )
         );
 }
 _export
@@ -834,7 +837,7 @@ E_flow_Q_task_I_schedule( void
         __asm__ volatile (
         "\n" "sti"
         );
-        if( U_E( E_flow_S_scheduler[ sched_i ].req, wake ))
+        if( U_E( E_flow_S_scheduler[ sched_i ].Q_interrupt_S_req, wake ))
         {   for_each( task_id, E_flow_S_scheduler[ sched_i ].task, E_mem_Q_tab )
             {   struct E_flow_Q_task_Z *task = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, task_id );
                 if( task->run_state == E_flow_Z_run_state_S_waiting_for_interrupt )
@@ -879,7 +882,7 @@ E_flow_Q_task_I_schedule( void
         __asm__ volatile (
         "\n" "cli"
         );
-        if( !U_R( E_flow_S_scheduler[ sched_i ].req, wake ))
+        if( !U_E( E_flow_S_scheduler[ sched_i ].req, wake ))
         {   B U_has_suspend_time = ~E_flow_S_scheduler[ sched_i ].next_time;
             if( U_has_suspend_time )
                 time = E_flow_I_current_time();
@@ -898,7 +901,7 @@ E_flow_Q_task_I_schedule( void
                                 "\n" "hlt"
                                 "\n" "cli"
                                 );
-                                if( U_R( E_flow_S_scheduler[ sched_i ].req, wake ))
+                                if( U_E( E_flow_S_scheduler[ sched_i ].req, wake ))
                                 {   E_main_Q_msr_P( 0x838, 0 ); // Zatrzymaj zegar APIC.
                                     acpi_timer_ticks = 0;
                                     E_flow_S_scheduler[ sched_i ].next_time = time;

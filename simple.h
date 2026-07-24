@@ -259,9 +259,9 @@ E_mem_Q_tab_R( struct E_mem_Q_tab_Z *tab_
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _inline
 void
-E_flow_I_lock( B *lock
+E_flow_Z_lock_I_lock( B *lock
 ){  __asm__ volatile (
-    "\n" "mov           $1,%%cl"
+    "\n" "mov           %1,%%cl"
     "\n0: xor           %%al,%%al"
     "\n" "lock cmpxchg  %%cl,%0"
     "\n" "je            0f"
@@ -269,24 +269,89 @@ E_flow_I_lock( B *lock
     "\n" "jmp           0b"
     "\n0:"
     : "+m" ( *lock )
-    :
+    : "i" (yes)
     : "cc", "al", "cl"
     );
 }
 _inline
 void
-E_flow_I_unlock( B *lock
-){  *lock = no;
+E_flow_Z_lock_I_unlock( B *lock
+){  B b = no;
+    __asm__ volatile (
+    "\n" "lock xchg %1,%0"
+    : "+m" ( *lock ), "+r" (b)
+    );
 }
 _inline
 void
-E_flow_I_unlock_r( B *lock
+E_flow_Z_lock_I_unlock_and_return( B *lock
 , N *r
 , N r_
 ){  __asm__ volatile (
     "\n" "lock xchg %1,%0"
     : "+m" ( *r ), "+r" ( r_ )
     );
-    E_flow_I_unlock(lock);
+    E_flow_Z_lock_I_unlock(lock);
+}
+//------------------------------------------------------------------------------
+_inline
+void
+E_flow_Z_lock_rw_I_lock_read( struct E_flow_Z_lock_rw *lock_rw
+){  __asm__ volatile (
+    "\n" "lock incl     %0"
+    "\n" "jnz           0f"
+    "\n" "jmp           E_main_I_fatal"
+    "\n0: xor           %%ecx,%%ecx"
+    "\n0: xor           %%eax,%%eax"
+    "\n" "lock cmpxchg  %%ecx,%1"
+    "\n" "je            0f"
+    "\n" "pause"
+    "\n" "jmp           0b"
+    "\n0:"
+    : "+m" ( lock_rw->read ), "+m" ( lock_rw->write )
+    :
+    : "cc", "eax", "ecx"
+    );
+}
+_inline
+void
+E_flow_Z_lock_rw_I_unlock_read_and_return( struct E_flow_Z_lock_rw *lock_rw
+, N *r
+, N r_
+){  __asm__ volatile (
+    "\n" "lock xchg %1,%0"
+    "\n" "lock decl %2"
+    : "+m" ( *r ), "+r" ( r_ ), "+m" ( lock_rw->read )
+    :
+    : "cc"
+    );
+}
+_inline
+void
+E_flow_Z_lock_rw_I_lock_write( struct E_flow_Z_lock_rw *lock_rw
+){  __asm__ volatile (
+    "\n" "mov           %1,%%rcx"
+    "\n0: xor           %%rax,%%rax"
+    "\n" "lock cmpxchg  %%rcx,%0"
+    "\n" "je            0f"
+    "\n" "pause"
+    "\n" "jmp           0b"
+    "\n0:"
+    : "+m" ( *lock_rw )
+    : "i" ( (N)yes << 32 )
+    : "cc", "rax", "rcx"
+    );
+}
+_inline
+void
+E_flow_Z_lock_rw_I_unlock_write_and_return( struct E_flow_Z_lock_rw *lock_rw
+, N *r
+, N r_
+){  N32 b = no;
+    __asm__ volatile (
+    "\n" "lock xchg %1,%0"
+    "\n" "lock xchg %3,%2"
+    : "+m" ( *r ), "+r" ( r_ ), "+m" ( lock_rw->write ), "+r" (b)
+    );
 }
 /******************************************************************************/

@@ -476,17 +476,17 @@ E_sata_Q_sata_ahci_I_read( I disc_id
 ){  volatile static N r;
     r = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-    E_flow_I_lock( &disc->sata_ahci.sata_lock );
+    E_flow_Z_lock_I_lock( &disc->sata_ahci.sata_lock );
     if( K_error(r) )
         return r;
     do
     {   N8 command_slot_i = E_sata_Q_disc_device_R_free_command_slot(disc);
         while( !~command_slot_i )
-        {   E_flow_I_unlock_r( &disc->sata_ahci.sata_lock, &r, r );
+        {   E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.sata_lock, &r, r );
             if( E_flow_Q_interrupt_I_wait() )
                 return ~0;
             disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-            E_flow_I_lock( &disc->sata_ahci.sata_lock );
+            E_flow_Z_lock_I_lock( &disc->sata_ahci.sata_lock );
             if( K_error(r) )
                 return r;
             command_slot_i = E_sata_Q_disc_device_R_free_command_slot(disc);
@@ -530,7 +530,7 @@ E_sata_Q_sata_ahci_I_read( I disc_id
         }else
             logical_sector_count = 0;
     }while( logical_sector_count );
-End:E_flow_I_unlock_r( &disc->sata_ahci.sata_lock, &r, r );
+End:E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.sata_lock, &r, r );
     return r;
 }
 _private
@@ -543,17 +543,17 @@ E_sata_Q_sata_ahci_I_write( I disc_id
 ){  volatile static N r;
     r = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-    E_flow_I_lock( &disc->sata_ahci.sata_lock );
+    E_flow_Z_lock_I_lock( &disc->sata_ahci.sata_lock );
     if( K_error(r) )
         return r;
     do
     {   N8 command_slot_i = E_sata_Q_disc_device_R_free_command_slot(disc);
         while( !~command_slot_i )
-        {   E_flow_I_unlock_r( &disc->sata_ahci.sata_lock, &r, r );
+        {   E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.sata_lock, &r, r );
             if( E_flow_Q_interrupt_I_wait() )
                 return ~0;
             disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-            E_flow_I_lock( &disc->sata_ahci.sata_lock );
+            E_flow_Z_lock_I_lock( &disc->sata_ahci.sata_lock );
             if( K_error(r) )
                 return r;
             command_slot_i = E_sata_Q_disc_device_R_free_command_slot(disc);
@@ -597,7 +597,7 @@ E_sata_Q_sata_ahci_I_write( I disc_id
         }else
             logical_sector_count = 0;
     }while( logical_sector_count );
-End:E_flow_I_unlock_r( &disc->sata_ahci.sata_lock, &r, r );
+End:E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.sata_lock, &r, r );
     return r;
 }
 _private
@@ -609,16 +609,16 @@ E_sata_Q_sata_ahci_I_trim( I disc_id
 ){  volatile static N r;
     r = 0;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-    E_flow_I_lock( &disc->sata_ahci.sata_lock );
+    E_flow_Z_lock_I_lock( &disc->sata_ahci.sata_lock );
     if( K_error(r) )
         return r;
     N8 command_slot_i = E_sata_Q_disc_device_R_free_command_slot(disc);
     while( !~command_slot_i )
-    {   E_flow_I_unlock_r( &disc->sata_ahci.sata_lock, &r, r );
+    {   E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.sata_lock, &r, r );
         if( E_flow_Q_interrupt_I_wait() )
             return ~0;
         disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-        E_flow_I_lock( &disc->sata_ahci.sata_lock );
+        E_flow_Z_lock_I_lock( &disc->sata_ahci.sata_lock );
         if( K_error(r) )
             return r;
         command_slot_i = E_sata_Q_disc_device_R_free_command_slot(disc);
@@ -647,7 +647,7 @@ E_sata_Q_sata_ahci_I_trim( I disc_id
     disc->sata_ahci.memory->port[ disc->sata_ahci.port ].command_issue = 1 << command_slot_i;
     *slot_mask |= 1 << command_slot_i;
     *slot_mask &= disc->sata_ahci.memory->port[ disc->sata_ahci.port ].sata_active;
-End:E_flow_I_unlock_r( &disc->sata_ahci.sata_lock, &r, r );
+End:E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.sata_lock, &r, r );
     return r;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

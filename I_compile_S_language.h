@@ -276,6 +276,32 @@ struct E_flow_Z_args
 { N argc;
   Pc *argv;
 };
+struct __attribute__ (( __packed__ )) E_flow_Z_lock_rw
+{ N32 read;
+  N32 write;
+};
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+struct E_ouxfs_Z_oux
+{ N64 block_table_size;
+  struct E_ouxfs_Z_block *block_table;
+  N64 block_table_n;
+  N64 block_table_changed_from;
+  N64 block_table_block_table_n;
+  struct E_ouxfs_Z_directory *directory;
+  N64 directory_n;
+  N64 directory_table_changed_from;
+  N64 block_table_directory_table_start, block_table_directory_table_n;
+  struct E_ouxfs_Z_file *file;
+  N64 file_n;
+  N64 file_table_changed_from;
+  N64 block_table_file_table_start, block_table_file_table_n;
+  struct E_ouxfs_Z_block *free_table;
+  N64 free_table_n;
+  struct E_ouxfs_Z_watch_directory *watch_directory;
+  N watch_directory_n;
+  N16 sector_size;
+  N16 first_sector_max_size;
+};
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #define E_vga_S_background_color            0xdbdbdb
 #define E_vga_S_text_color                  0

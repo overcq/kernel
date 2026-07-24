@@ -75,29 +75,9 @@ struct E_disc_Z_partition
   N pba; // physical block address
   N count;
   union
-  { struct
-    { N64 block_table_size;
-      struct E_ouxfs_Z_block *block_table;
-      N64 block_table_n;
-      N64 block_table_changed_from;
-      N64 block_table_block_table_n;
-      struct E_ouxfs_Z_directory *directory;
-      N64 directory_n;
-      N64 directory_table_changed_from;
-      N64 block_table_directory_table_start, block_table_directory_table_n;
-      struct E_ouxfs_Z_file *file;
-      N64 file_n;
-      N64 file_table_changed_from;
-      N64 block_table_file_table_start, block_table_file_table_n;
-      struct E_ouxfs_Z_block *free_table;
-      N64 free_table_n;
-      struct E_ouxfs_Z_watch_directory *watch_directory;
-      N watch_directory_n;
-      N16 sector_size;
-      N16 first_sector_max_size;
-    }oux;
+  { struct E_ouxfs_Z_oux oux;
   };
-  B lock;
+  struct E_flow_Z_lock_rw lock_rw;
 };
 enum E_disc_Z_type
 { E_disc_Z_type_S_unknown
@@ -282,7 +262,8 @@ E_disc_I_init( I disc_id
                                 {   G( "other" );
                                 }
                                 disc->partition_n++;
-                                partition->lock = 0;
+                                partition->lock_rw.read = 0;
+                                partition->lock_rw.write = 0;
                                 r = E_ouxfs_Q_device_M( disc_id, disc->partition_n - 1 );
                                 K(r)
                                 {   G( "unknown" );
@@ -312,7 +293,7 @@ E_disc_I_init( I disc_id
 }
 _private
 N
-E_disc_I_save( void
+E_disc_W( void
 ){  for_each( disc_id, E_disc_S, E_mem_Q_tab )
     {   struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
         switch( disc->type )
@@ -320,7 +301,9 @@ E_disc_I_save( void
             {   for_n( partition_i, disc->partition_n )
                 {   switch( disc->partition[ partition_i ].file_system )
                     { case E_disc_Z_file_system_S_oux:
-                        {   K( E_ouxfs_Q_device_I_save( disc_id, partition_i ))
+                        {   K( E_ouxfs_Q_device_W( disc_id, partition_i ))
+                                return ~0;
+                            K( E_ssd_cache_I_sync_and_free() )
                                 return ~0;
                             break;
                         }

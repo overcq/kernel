@@ -66,7 +66,6 @@ E_window_files_I_refresh( N8 desktop_id
     struct E_window_files_Z_data *window_data = window->data;
     if( window_data->selected_dir_n )
     {   N column_i = 0;
-        N file_start_row;
         N row_i = window_data->selected_dir[ column_i ].selected_row;
         N64 uid = ~row_i ? window_data->selected_dir[ column_i ].uid[ row_i ] : ~0;
         N n_dir;
@@ -838,7 +837,6 @@ E_window_files_I_refresh( N8 desktop_id
                 if( column_i == window_data->selected_dir_n - 1 )
                     window->selection.type = E_windows_Z_selection_Z_type_S_file;
             }
-            file_start_row = window_data->selected_dir[ column_i ].file_start_row;
             r = E_ouxfs_Q_directory_I_list_directory( window_data->disc_partition[ window_data->disc_partition_selected_row ].disc
             , window_data->disc_partition[ window_data->disc_partition_selected_row ].partition
             , window_data->selected_dir[ column_i - 1 ].uid[ window_data->selected_dir[ column_i - 1 ].selected_row ]
@@ -1767,8 +1765,7 @@ E_window_files_I_click_( I window_id
     if( E_mouse_Q_button_S_button == 1
     && E_mouse_Q_button_S_click_count == 2
     )
-    {   N32 row_height = ( window_data->font_size + 1 ) * E_font_S_font.height + window_data->font_size + 1;
-        if( column_i )
+    {   if( column_i )
             if( column_i - 1 < window_data->selected_dir_n )
             {   N row_i = window_data->selected_dir[ column_i - 1 ].row_start + window_data->pointer_row;
                 if( row_i < window_data->selected_dir[ column_i - 1 ].file_start_row )
