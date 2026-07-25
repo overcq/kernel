@@ -813,8 +813,8 @@ E_window_files_I_refresh( N8 desktop_id
                         break;
                     }
             if( !found )
-            {   window_data->selected_dir[ column_i ].selected_row = ~0;
-                window_data->selected_dir[ column_i ].row_start = ~0;
+            {   window_data->selected_dir[ column_i ].row_start = ~0;
+                window_data->selected_dir[ column_i ].selected_row = ~0;
                 if( column_i + 1 != window_data->selected_dir_n )
                 {   for( N i = window_data->selected_dir_n - 1; i != column_i + 1; i-- )
                     {   K( W( window_data->selected_dir[i].uid ))
@@ -847,9 +847,10 @@ E_window_files_I_refresh( N8 desktop_id
                 window->selection.type = E_windows_Z_selection_Z_type_S_directory;
                 return 1;
             }
+            window_data->selected_dir[ column_i ].selected_row = row_i;
         }
         selection_type = E_windows_Z_selection_Z_type_S_directory;
-        for( column_i = 1; column_i != window_data->selected_dir_n; column_i++ )
+        for( column_i++; column_i != window_data->selected_dir_n; column_i++ )
         {   row_i = window_data->selected_dir[ column_i ].selected_row;
             if( ~row_i )
             {   uid = window_data->selected_dir[ column_i ].uid[ row_i ];
@@ -1593,8 +1594,8 @@ E_window_files_I_refresh( N8 desktop_id
                             break;
                         }
                 if( !found )
-                {   window_data->selected_dir[ column_i ].selected_row = ~0;
-                    window_data->selected_dir[ column_i ].row_start = ~0;
+                {   window_data->selected_dir[ column_i ].row_start = ~0;
+                    window_data->selected_dir[ column_i ].selected_row = ~0;
                     if( column_i + 1 != window_data->selected_dir_n )
                     {   for( N i = window_data->selected_dir_n - 1; i != column_i + 1; i-- )
                         {   K( W( window_data->selected_dir[i].uid ))
@@ -1627,10 +1628,17 @@ E_window_files_I_refresh( N8 desktop_id
                     window->selection.type = E_windows_Z_selection_Z_type_S_directory;
                     return 1;
                 }
+                window_data->selected_dir[ column_i ].selected_row = row_i;
             }
         }
         window->selection.n = uid;
         window->selection.type = selection_type;
+        if( E_gui_Q_bubble_S.draw
+        && E_gui_Q_bubble_S.window_id == window_id
+        )
+        {   E_gui_Q_bubble_S.draw = 0;
+            return 1;
+        }
     }
     return 0;
 }
@@ -1680,12 +1688,7 @@ E_window_files_Q_bubble_Q_menu_I_click(
 ){  if( E_mouse_Q_button_S_button == 1
     && E_mouse_Q_button_S_click_count == 2
     )
-    {   I windows = E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window );
-        if( windows < 2 )
-            return 0;
-        struct E_window_Q_window_Z *window_prev = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ windows - 2 ] );
-        struct E_window_files_Z_data *window_prev_data = window_prev->data;
-        struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, E_gui_Q_bubble_S.window_id );
+    {   struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, E_gui_Q_bubble_S.window_id );
         struct E_window_files_Z_data *window_data = window->data;
         N32 row_height = ( window_data->font_size + 1 ) * E_font_S_font.height + window_data->font_size + 1 + 1 + window_data->font_size + 1;
         N i = ( y - ( window_data->font_size + 1 )) / row_height;
@@ -1719,27 +1722,76 @@ E_window_files_Q_bubble_Q_menu_I_click(
                     break;
                 }
               case 1:
-                {   if( window_prev->selection.type != E_windows_Z_selection_Z_type_S_directory
-                    && window_prev->selection.type != E_windows_Z_selection_Z_type_S_file
-                    )
+                {   I windows = E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window );
+                    if( windows < 2 )
                         break;
+                    struct E_window_Q_window_Z *window_prev = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ windows - 2 ] );
+                    struct E_window_files_Z_data *window_prev_data = window_prev->data;
                     N r;
+                    N64 uid_src_parent;
                     if( window_prev->selection.type == E_windows_Z_selection_Z_type_S_directory )
+                    {   r = E_ouxfs_Q_directory_R_parent( window_prev_data->disc_partition[ window_prev_data->disc_partition_selected_row ].disc
+                        , window_prev_data->disc_partition[ window_prev_data->disc_partition_selected_row ].partition
+                        , window_prev->selection.n
+                        , &uid_src_parent
+                        );
+                        if( K_error(r) )
+                        {   if( r == ~2 )
+                                return ~3;
+                            return r;
+                        }
+                        if( !~uid_src_parent )
+                        {   uid_src_parent = window_prev->selection.n;
+                            r = uid_src_parent == uid;
+                        }
+                        if( !r )
+                        {   r = E_ouxfs_Q_directory_T_descendant( window_prev_data->disc_partition[ window_prev_data->disc_partition_selected_row ].disc
+                            , window_prev_data->disc_partition[ window_prev_data->disc_partition_selected_row ].partition
+                            , uid_src_parent
+                            , uid
+                            );
+                            if( K_error(r) )
+                            {   if( r == ~2 )
+                                    return ~3;
+                                return r;
+                            }
+                        }
+                        if(r)
+                            break;
                         r = E_ouxfs_Q_directory_I_move( window_prev_data->disc_partition[ window_prev_data->disc_partition_selected_row ].disc
                         , window_prev_data->disc_partition[ window_prev_data->disc_partition_selected_row ].partition
                         , window_prev->selection.n
                         , uid
                         );
-                    else
+                        if( K_error(r) )
+                        {   if( r == ~2 )
+                                return ~3;
+                            return r;
+                        }
+                    }else if( window_prev->selection.type == E_windows_Z_selection_Z_type_S_file )
+                    {   r = E_ouxfs_Q_file_R_parent( window_prev_data->disc_partition[ window_prev_data->disc_partition_selected_row ].disc
+                        , window_prev_data->disc_partition[ window_prev_data->disc_partition_selected_row ].partition
+                        , window_prev->selection.n
+                        , &uid_src_parent
+                        );
+                        if( K_error(r) )
+                        {   if( r == ~2 )
+                                return ~3;
+                            return r;
+                        }
+                        r = uid_src_parent == uid;
+                        if(r)
+                            break;
                         r = E_ouxfs_Q_file_I_move( window_prev_data->disc_partition[ window_prev_data->disc_partition_selected_row ].disc
                         , window_prev_data->disc_partition[ window_prev_data->disc_partition_selected_row ].partition
                         , window_prev->selection.n
                         , uid
                         );
-                    if( K_error(r) )
-                    {   if( r == ~2 )
-                            return ~3;
-                        return r;
+                        if( K_error(r) )
+                        {   if( r == ~2 )
+                                return ~3;
+                            return r;
+                        }
                     }
                     break;
                 }
@@ -1747,27 +1799,76 @@ E_window_files_Q_bubble_Q_menu_I_click(
         else if( E_window_files_Q_bubble_Q_menu_S_case == &E_window_files_Q_bubble_Q_menu_S_case_partition[0] )
             switch(i)
             { case 0:
-                {   if( window_prev->selection.type != E_windows_Z_selection_Z_type_S_directory
-                    && window_prev->selection.type != E_windows_Z_selection_Z_type_S_file
-                    )
+                {   I windows = E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window );
+                    if( windows < 2 )
                         break;
+                    struct E_window_Q_window_Z *window_prev = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ windows - 2 ] );
+                    struct E_window_files_Z_data *window_prev_data = window_prev->data;
                     N r;
+                    N64 uid_src_parent;
                     if( window_prev->selection.type == E_windows_Z_selection_Z_type_S_directory )
+                    {   r = E_ouxfs_Q_directory_R_parent( window_prev_data->disc_partition[ window_prev_data->disc_partition_selected_row ].disc
+                        , window_prev_data->disc_partition[ window_prev_data->disc_partition_selected_row ].partition
+                        , window_prev->selection.n
+                        , &uid_src_parent
+                        );
+                        if( K_error(r) )
+                        {   if( r == ~2 )
+                                return ~3;
+                            return r;
+                        }
+                        if( !~uid_src_parent )
+                        {   uid_src_parent = window_prev->selection.n;
+                            r = uid_src_parent == uid;
+                        }
+                        if( !r )
+                        {   r = E_ouxfs_Q_directory_T_descendant( window_prev_data->disc_partition[ window_prev_data->disc_partition_selected_row ].disc
+                            , window_prev_data->disc_partition[ window_prev_data->disc_partition_selected_row ].partition
+                            , uid_src_parent
+                            , uid
+                            );
+                            if( K_error(r) )
+                            {   if( r == ~2 )
+                                    return ~3;
+                                return r;
+                            }
+                        }
+                        if(r)
+                            break;
                         r = E_ouxfs_Q_directory_I_move( window_prev_data->disc_partition[ window_prev_data->disc_partition_selected_row ].disc
                         , window_prev_data->disc_partition[ window_prev_data->disc_partition_selected_row ].partition
                         , window_prev->selection.n
                         , uid
                         );
-                    else
+                        if( K_error(r) )
+                        {   if( r == ~2 )
+                                return ~3;
+                            return r;
+                        }
+                    }else if( window_prev->selection.type == E_windows_Z_selection_Z_type_S_file )
+                    {   r = E_ouxfs_Q_file_R_parent( window_prev_data->disc_partition[ window_prev_data->disc_partition_selected_row ].disc
+                        , window_prev_data->disc_partition[ window_prev_data->disc_partition_selected_row ].partition
+                        , window_prev->selection.n
+                        , &uid_src_parent
+                        );
+                        if( K_error(r) )
+                        {   if( r == ~2 )
+                                return ~3;
+                            return r;
+                        }
+                        r = uid_src_parent == uid;
+                        if(r)
+                            break;
                         r = E_ouxfs_Q_file_I_move( window_prev_data->disc_partition[ window_prev_data->disc_partition_selected_row ].disc
                         , window_prev_data->disc_partition[ window_prev_data->disc_partition_selected_row ].partition
                         , window_prev->selection.n
                         , uid
                         );
-                    if( K_error(r) )
-                    {   if( r == ~2 )
-                            return ~3;
-                        return r;
+                        if( K_error(r) )
+                        {   if( r == ~2 )
+                                return ~3;
+                            return r;
+                        }
                     }
                     break;
                 }
@@ -1848,7 +1949,7 @@ E_window_files_I_click_( I window_id
                     )
                         return 0;
                     window->selection.type = E_windows_Z_selection_Z_type_S_none;
-                    if( column_i != window_data->selected_dir_n )
+                    if( column_i - 1 != window_data->selected_dir_n - 1 )
                     {   for( N i = window_data->selected_dir_n - 1; i != column_i - 1; i-- )
                         {   K( W( window_data->selected_dir[i].uid ))
                             {   Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, i + 1, window_data->selected_dir_n - ( i + 1 )));
@@ -2113,12 +2214,12 @@ E_window_files_I_click_( I window_id
                                 }
                                 E_mem_Q_blk_I_copy( &window_data->selected_dir[ column_i ].name[ dst_i + 1 ]
                                 , &window_data->selected_dir[ column_i ].name[ dst_i ]
-                                , ( i - dst_i ) * sizeof( window_data->selected_dir[ column_i ].name[ dst_i ] )
+                                , ( n_dir + i - dst_i ) * sizeof( window_data->selected_dir[ column_i ].name[ dst_i ] )
                                 );
                                 window_data->selected_dir[ column_i ].name[ dst_i ] = name[ n_dir + i ];
                                 E_mem_Q_blk_I_copy( &window_data->selected_dir[ column_i ].uid[ dst_i + 1 ]
                                 , &window_data->selected_dir[ column_i ].uid[ dst_i ]
-                                , ( i - dst_i ) * sizeof( window_data->selected_dir[ column_i ].uid[ dst_i ] )
+                                , ( n_dir + i - dst_i ) * sizeof( window_data->selected_dir[ column_i ].uid[ dst_i ] )
                                 );
                                 window_data->selected_dir[ column_i ].uid[ dst_i ] = list_file[i];
                             }
@@ -2452,12 +2553,12 @@ E_window_files_I_click_( I window_id
                                 }
                                 E_mem_Q_blk_I_copy( &window_data->selected_dir[ column_i ].name[ dst_i + 1 ]
                                 , &window_data->selected_dir[ column_i ].name[ dst_i ]
-                                , ( i - dst_i ) * sizeof( window_data->selected_dir[ column_i ].name[ dst_i ] )
+                                , ( n_dir + i - dst_i ) * sizeof( window_data->selected_dir[ column_i ].name[ dst_i ] )
                                 );
                                 window_data->selected_dir[ column_i ].name[ dst_i ] = name[ n_dir + i ];
                                 E_mem_Q_blk_I_copy( &window_data->selected_dir[ column_i ].uid[ dst_i + 1 ]
                                 , &window_data->selected_dir[ column_i ].uid[ dst_i ]
-                                , ( i - dst_i ) * sizeof( window_data->selected_dir[ column_i ].uid[ dst_i ] )
+                                , ( n_dir + i - dst_i ) * sizeof( window_data->selected_dir[ column_i ].uid[ dst_i ] )
                                 );
                                 window_data->selected_dir[ column_i ].uid[ dst_i ] = list_file[i];
                             }

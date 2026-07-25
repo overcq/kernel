@@ -5708,6 +5708,8 @@ E_ouxfs_Q_directory_I_move( N disc_id
             goto End;
         }
     disc->partition[ partition_i ].oux.directory[ directory_i ].parent = parent;
+    if( disc->partition[ partition_i ].oux.directory_table_changed_from > directory_i )
+        disc->partition[ partition_i ].oux.directory_table_changed_from = directory_i;
     r_ = E_ouxfs_Q_watch_directory_I_check_and_signal( disc_id, partition_i, uid );
     if( K_error( r_ ))
     {   r = r_;
@@ -5768,6 +5770,8 @@ E_ouxfs_Q_file_I_move( N disc_id
         }
     N64 file_parent = disc->partition[ partition_i ].oux.file[ file_i ].parent;
     disc->partition[ partition_i ].oux.file[ file_i ].parent = parent;
+    if( disc->partition[ partition_i ].oux.file_table_changed_from > file_i )
+        disc->partition[ partition_i ].oux.file_table_changed_from = file_i;
     r_ = E_ouxfs_Q_watch_directory_I_check_and_signal( disc_id, partition_i, file_parent );
     if( K_error( r_ ))
     {   r = r_;

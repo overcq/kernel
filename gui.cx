@@ -972,7 +972,8 @@ E_gui_Q_pointer_I_click( void
                     }
                 }
                 if( !K_error(error) )
-                {   E_gui_Q_taskbar_S_redraw = yes;
+                {   E_gui_Q_bubble_S.draw = 0;
+                    E_gui_Q_taskbar_S_redraw = yes;
                     U_F( gui, draw );
                 }
             }

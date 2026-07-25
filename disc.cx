@@ -303,8 +303,6 @@ E_disc_W( void
                     { case E_disc_Z_file_system_S_oux:
                         {   K( E_ouxfs_Q_device_W( disc_id, partition_i ))
                                 return ~0;
-                            K( E_ssd_cache_I_sync_and_free() )
-                                return ~0;
                             break;
                         }
                     }
@@ -312,6 +310,8 @@ E_disc_W( void
                 break;
             }
         }
+        K( E_ssd_cache_I_sync_and_free( disc_id ))
+            return ~0;
     }
     return 0;
 }
