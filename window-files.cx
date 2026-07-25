@@ -780,12 +780,12 @@ E_window_files_I_refresh( N8 desktop_id
                     }
                     E_mem_Q_blk_I_copy( &window_data->selected_dir[ column_i ].name[ dst_i + 1 ]
                     , &window_data->selected_dir[ column_i ].name[ dst_i ]
-                    , ( i - dst_i ) * sizeof( window_data->selected_dir[ column_i ].name[ dst_i ] )
+                    , ( n_dir + i - dst_i ) * sizeof( window_data->selected_dir[ column_i ].name[ dst_i ] )
                     );
                     window_data->selected_dir[ column_i ].name[ dst_i ] = name[ n_dir + i ];
                     E_mem_Q_blk_I_copy( &window_data->selected_dir[ column_i ].uid[ dst_i + 1 ]
                     , &window_data->selected_dir[ column_i ].uid[ dst_i ]
-                    , ( i - dst_i ) * sizeof( window_data->selected_dir[ column_i ].uid[ dst_i ] )
+                    , ( n_dir + i - dst_i ) * sizeof( window_data->selected_dir[ column_i ].uid[ dst_i ] )
                     );
                     window_data->selected_dir[ column_i ].uid[ dst_i ] = list_file[i];
                 }
@@ -1561,12 +1561,12 @@ E_window_files_I_refresh( N8 desktop_id
                         }
                         E_mem_Q_blk_I_copy( &window_data->selected_dir[ column_i ].name[ dst_i + 1 ]
                         , &window_data->selected_dir[ column_i ].name[ dst_i ]
-                        , ( i - dst_i ) * sizeof( window_data->selected_dir[ column_i ].name[ dst_i ] )
+                        , ( n_dir + i - dst_i ) * sizeof( window_data->selected_dir[ column_i ].name[ dst_i ] )
                         );
                         window_data->selected_dir[ column_i ].name[ dst_i ] = name[ n_dir + i ];
                         E_mem_Q_blk_I_copy( &window_data->selected_dir[ column_i ].uid[ dst_i + 1 ]
                         , &window_data->selected_dir[ column_i ].uid[ dst_i ]
-                        , ( i - dst_i ) * sizeof( window_data->selected_dir[ column_i ].uid[ dst_i ] )
+                        , ( n_dir + i - dst_i ) * sizeof( window_data->selected_dir[ column_i ].uid[ dst_i ] )
                         );
                         window_data->selected_dir[ column_i ].uid[ dst_i ] = list_file[i];
                     }
