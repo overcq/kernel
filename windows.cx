@@ -678,6 +678,8 @@ E_windows_Q_window_Q_stack_I_on_top( I window_id
     {   for( ; stack_i != windows; stack_i++ )
             E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i - 1 ] = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i ];
         E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ stack_i - 1 ] = window_id;
+        struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
+        window->selection.type = E_windows_Z_selection_Z_type_S_none;
         E_gui_Q_taskbar_S_redraw = yes;
         X_F( gui, draw );
     }
