@@ -414,6 +414,7 @@ E_sata_I_init( volatile struct E_sata_Z_memory *sata_memory
                 disc->sata_ahci.logical_sector_n = *( N64 * )&identify[100];
                 if( disc->sata_ahci.logical_sector_n == 0xffffffffffffULL )
                 {   //TODO Odczytać ze SMART.
+                    return ~0;
                 }
                 if( identify[106] & ( 1 << 12 ))
                 {   disc->sata_ahci.logical_sector_size = *( N16 * )&identify[117] / sizeof( N16 );
@@ -470,23 +471,24 @@ _private
 N
 E_sata_Q_sata_ahci_I_read( I disc_id
 , N lba
-, N logical_sector_count
+, N logical_sector_count //DFN 0 oznacza 65536 sektorów.
 , P buffer
 , N32 *slot_mask
-){  volatile static N r;
-    r = 0;
+){  N r;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
+    N max_sectors = ( 1 << 22 ) / disc->sata_ahci.logical_sector_size;
     E_flow_Z_lock_I_lock( &disc->sata_ahci.sata_lock );
+    r = disc->sata_ahci.sata_return;
     if( K_error(r) )
         return r;
-    do
-    {   N8 command_slot_i = E_sata_Q_disc_device_R_free_command_slot(disc);
+    O{  N8 command_slot_i = E_sata_Q_disc_device_R_free_command_slot(disc);
         while( !~command_slot_i )
-        {   E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.sata_lock, &r, r );
+        {   E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.sata_lock, &disc->sata_ahci.sata_return, r );
             if( E_flow_Q_interrupt_I_wait() )
                 return ~0;
             disc = E_mem_Q_tab_R( E_disc_S, disc_id );
             E_flow_Z_lock_I_lock( &disc->sata_ahci.sata_lock );
+            r = disc->sata_ahci.sata_return;
             if( K_error(r) )
                 return r;
             command_slot_i = E_sata_Q_disc_device_R_free_command_slot(disc);
@@ -502,12 +504,12 @@ E_sata_Q_sata_ahci_I_read( I disc_id
         command_table->command_fis.lba_3 = ( N8 )( lba >> 24 );
         command_table->command_fis.lba_4 = ( N8 )( lba >> 32 );
         command_table->command_fis.lba_5 = ( N8 )( lba >> 40 );
-        N16 count = logical_sector_count < 65536 ? logical_sector_count : 0;
+        N16 count = logical_sector_count < max_sectors ? logical_sector_count : max_sectors;
         command_table->command_fis.feature_low = count & 0xff;
         command_table->command_fis.feature_high = count >> 8;
         command_table->command_fis.count = command_slot_i << 3;
         command_table->region[0].data_base_address = (N)E_main_Z_p_I_to_physical(buffer);
-        command_table->region[0].data_count = ( count * disc->sata_ahci.logical_sector_size ) - 1;
+        command_table->region[0].data_count = (( count ? count : 65536 ) * disc->sata_ahci.logical_sector_size ) - 1;
         N time;
         E_flow_Q_spin_time_M( &time, 10000000 );
         while( disc->sata_ahci.memory->port[ disc->sata_ahci.port ].task_file_data & (( 1 << 7 ) | ( 1 << 3 )))
@@ -521,16 +523,15 @@ E_sata_Q_sata_ahci_I_read( I disc_id
         }
         disc->sata_ahci.memory->port[ disc->sata_ahci.port ].sata_active = 1 << command_slot_i;
         disc->sata_ahci.memory->port[ disc->sata_ahci.port ].command_issue = 1 << command_slot_i;
-        *slot_mask |= 1 << command_slot_i;
         *slot_mask &= disc->sata_ahci.memory->port[ disc->sata_ahci.port ].sata_active;
-        if( logical_sector_count >= 65536 )
-        {   logical_sector_count -= 65536;
-            buffer += 65536 * disc->sata_ahci.logical_sector_size;
-            lba += 65536;
-        }else
-            logical_sector_count = 0;
-    }while( logical_sector_count );
-End:E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.sata_lock, &r, r );
+        *slot_mask |= 1 << command_slot_i;
+        if( logical_sector_count <= max_sectors )
+            break;
+        logical_sector_count -= max_sectors;
+        buffer += max_sectors * disc->sata_ahci.logical_sector_size;
+        lba += max_sectors;
+    }
+End:E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.sata_lock, &disc->sata_ahci.sata_return, r );
     return r;
 }
 _private
@@ -540,20 +541,21 @@ E_sata_Q_sata_ahci_I_write( I disc_id
 , N logical_sector_count //DFN 0 oznacza 65536 sektorów.
 , P buffer
 , N32 *slot_mask
-){  volatile static N r;
-    r = 0;
+){  N r;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
+    N max_sectors = ( 1 << 22 ) / disc->sata_ahci.logical_sector_size;
     E_flow_Z_lock_I_lock( &disc->sata_ahci.sata_lock );
+    r = disc->sata_ahci.sata_return;
     if( K_error(r) )
         return r;
-    do
-    {   N8 command_slot_i = E_sata_Q_disc_device_R_free_command_slot(disc);
+    O{  N8 command_slot_i = E_sata_Q_disc_device_R_free_command_slot(disc);
         while( !~command_slot_i )
-        {   E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.sata_lock, &r, r );
+        {   E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.sata_lock, &disc->sata_ahci.sata_return, r );
             if( E_flow_Q_interrupt_I_wait() )
                 return ~0;
             disc = E_mem_Q_tab_R( E_disc_S, disc_id );
             E_flow_Z_lock_I_lock( &disc->sata_ahci.sata_lock );
+            r = disc->sata_ahci.sata_return;
             if( K_error(r) )
                 return r;
             command_slot_i = E_sata_Q_disc_device_R_free_command_slot(disc);
@@ -569,12 +571,12 @@ E_sata_Q_sata_ahci_I_write( I disc_id
         command_table->command_fis.lba_3 = ( N8 )( lba >> 24 );
         command_table->command_fis.lba_4 = ( N8 )( lba >> 32 );
         command_table->command_fis.lba_5 = ( N8 )( lba >> 40 );
-        N16 count = logical_sector_count < 65536 ? logical_sector_count : 0;
+        N16 count = logical_sector_count < max_sectors ? logical_sector_count : max_sectors;
         command_table->command_fis.feature_low = count & 0xff;
         command_table->command_fis.feature_high = count >> 8;
         command_table->command_fis.count = command_slot_i << 3;
         command_table->region[0].data_base_address = ( N )E_main_Z_p_I_to_physical(buffer);
-        command_table->region[0].data_count = ( count * disc->sata_ahci.logical_sector_size ) - 1;
+        command_table->region[0].data_count = (( count ? count : max_sectors ) * disc->sata_ahci.logical_sector_size ) - 1;
         N time;
         E_flow_Q_spin_time_M( &time, 10000000 );
         while( disc->sata_ahci.memory->port[ disc->sata_ahci.port ].task_file_data & (( 1 << 7 ) | ( 1 << 3 )))
@@ -588,16 +590,15 @@ E_sata_Q_sata_ahci_I_write( I disc_id
         }
         disc->sata_ahci.memory->port[ disc->sata_ahci.port ].sata_active = 1 << command_slot_i;
         disc->sata_ahci.memory->port[ disc->sata_ahci.port ].command_issue = 1 << command_slot_i;
-        *slot_mask |= 1 << command_slot_i;
         *slot_mask &= disc->sata_ahci.memory->port[ disc->sata_ahci.port ].sata_active;
-        if( logical_sector_count >= 65536 )
-        {   logical_sector_count -= 65536;
-            buffer += 65536 * disc->sata_ahci.logical_sector_size;
-            lba += 65536;
-        }else
-            logical_sector_count = 0;
-    }while( logical_sector_count );
-End:E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.sata_lock, &r, r );
+        *slot_mask |= 1 << command_slot_i;
+        if( logical_sector_count <= max_sectors )
+            break;
+        logical_sector_count -= max_sectors;
+        buffer += max_sectors * disc->sata_ahci.logical_sector_size;
+        lba += max_sectors;
+    }
+End:E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.sata_lock, &disc->sata_ahci.sata_return, r );
     return r;
 }
 _private
@@ -606,19 +607,20 @@ E_sata_Q_sata_ahci_I_trim( I disc_id
 , struct E_sata_Z_dsm_range *range_list
 , N16 logical_sector_count
 , N32 *slot_mask
-){  volatile static N r;
-    r = 0;
+){  N r;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
     E_flow_Z_lock_I_lock( &disc->sata_ahci.sata_lock );
+    r = disc->sata_ahci.sata_return;
     if( K_error(r) )
         return r;
     N8 command_slot_i = E_sata_Q_disc_device_R_free_command_slot(disc);
     while( !~command_slot_i )
-    {   E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.sata_lock, &r, r );
+    {   E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.sata_lock, &disc->sata_ahci.sata_return, r );
         if( E_flow_Q_interrupt_I_wait() )
             return ~0;
         disc = E_mem_Q_tab_R( E_disc_S, disc_id );
         E_flow_Z_lock_I_lock( &disc->sata_ahci.sata_lock );
+        r = disc->sata_ahci.sata_return;
         if( K_error(r) )
             return r;
         command_slot_i = E_sata_Q_disc_device_R_free_command_slot(disc);
@@ -645,9 +647,9 @@ E_sata_Q_sata_ahci_I_trim( I disc_id
     }
     disc->sata_ahci.memory->port[ disc->sata_ahci.port ].sata_active = 1 << command_slot_i;
     disc->sata_ahci.memory->port[ disc->sata_ahci.port ].command_issue = 1 << command_slot_i;
-    *slot_mask |= 1 << command_slot_i;
     *slot_mask &= disc->sata_ahci.memory->port[ disc->sata_ahci.port ].sata_active;
-End:E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.sata_lock, &r, r );
+    *slot_mask |= 1 << command_slot_i;
+End:E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.sata_lock, &disc->sata_ahci.sata_return, r );
     return r;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

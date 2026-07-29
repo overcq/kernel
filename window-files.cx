@@ -37,8 +37,8 @@ struct E_window_files_Z_data
   N8 font_size, thickness;
 };
 //==============================================================================
-_internal Pc E_window_files_Q_bubble_Q_menu_S_case_0[] = { "Rename", "Move to", "Copy to", "Delete" };
-_internal Pc E_window_files_Q_bubble_Q_menu_S_case_partition[] = { "Move to", "Copy to" };
+_internal Pc E_window_files_Q_bubble_Q_menu_S_case_0[] = { "Create subdirectory", "Rename", "Move to", "Copy to", "Delete" };
+_internal Pc E_window_files_Q_bubble_Q_menu_S_case_partition[] = { "Create subdirectory", "Move to", "Copy to" };
 _internal Pc E_window_files_Q_bubble_Q_menu_S_case_file_or_no_prev[] = { "Rename", "Delete" };
 _internal Pc *E_window_files_Q_bubble_Q_menu_S_case;
 _internal N E_window_files_Q_bubble_Q_menu_S_case_n;
@@ -1776,21 +1776,7 @@ E_window_files_Q_bubble_Q_menu_I_click_I_move_to(
     struct E_window_Q_window_Z *window_prev = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ windows - 2 ] );
     struct E_window_files_Z_data *window_prev_data = window_prev->data;
     if( window_prev->selection.type == E_windows_Z_selection_Z_type_S_directory )
-    {   N r = E_ouxfs_Q_directory_T_descendant( window_prev_data->disc_partition[ window_prev_data->disc_partition_selected_row ].disc
-        , window_prev_data->disc_partition[ window_prev_data->disc_partition_selected_row ].partition
-        , window_prev->selection.n
-        , uid
-        );
-        if( K_error(r) )
-        {   if( r == ~2 )
-                return ~3;
-            return r;
-        }
-        if(r)
-        {   E_window_files_Q_bubble_Q_menu_I_click_I_message( "Move failed.", x, y, row_height );
-            return ~0;
-        }
-        r = E_ouxfs_Q_directory_I_move( window_prev_data->disc_partition[ window_prev_data->disc_partition_selected_row ].disc
+    {   N r = E_ouxfs_Q_directory_I_move( window_prev_data->disc_partition[ window_prev_data->disc_partition_selected_row ].disc
         , window_prev_data->disc_partition[ window_prev_data->disc_partition_selected_row ].partition
         , window_prev->selection.n
         , uid
@@ -1822,6 +1808,53 @@ E_window_files_Q_bubble_Q_menu_I_click_I_move_to(
     }
     return 0;
 }
+_internal
+N
+E_window_files_Q_bubble_Q_menu_I_click_I_copy_to(
+  N32 x
+, N32 y
+, N32 row_height
+, N64 uid
+){  I windows = E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window );
+    if( windows < 2 )
+        return 0;
+    struct E_window_Q_window_Z *window_prev = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ windows - 2 ] );
+    struct E_window_files_Z_data *window_prev_data = window_prev->data;
+    if( window_prev->selection.type == E_windows_Z_selection_Z_type_S_directory )
+    {   N uid_copy = window_prev->selection.n;
+        N r = E_ouxfs_Q_directory_I_copy( window_prev_data->disc_partition[ window_prev_data->disc_partition_selected_row ].disc
+        , window_prev_data->disc_partition[ window_prev_data->disc_partition_selected_row ].partition
+        , &uid_copy
+        , uid
+        );
+        if( K_error(r) )
+        {   if( r == ~2 )
+                return ~3;
+            if( !~r )
+            {   E_window_files_Q_bubble_Q_menu_I_click_I_message( "Copy failed.", x, y, row_height );
+                return ~0;
+            }
+            return r;
+        }
+    }else if( window_prev->selection.type == E_windows_Z_selection_Z_type_S_file )
+    {   N uid_copy = window_prev->selection.n;
+        N r = E_ouxfs_Q_file_I_copy( window_prev_data->disc_partition[ window_prev_data->disc_partition_selected_row ].disc
+        , window_prev_data->disc_partition[ window_prev_data->disc_partition_selected_row ].partition
+        , &uid_copy
+        , uid
+        );
+        if( K_error(r) )
+        {   if( r == ~2 )
+                return ~3;
+            if( !~r )
+            {   E_window_files_Q_bubble_Q_menu_I_click_I_message( "Copy failed.", x, y, row_height );
+                return ~0;
+            }
+            return r;
+        }
+    }
+    return 0;
+}
 //------------------------------------------------------------------------------
 _internal
 N
@@ -1844,19 +1877,36 @@ E_window_files_Q_bubble_Q_menu_I_click(
         if( E_window_files_Q_bubble_Q_menu_S_case == &E_window_files_Q_bubble_Q_menu_S_case_0[0] )
             switch(i)
             { case 0:
+                    break;
+              case 1:
                 {   K( E_window_files_Q_bubble_Q_menu_I_click_I_rename( window, row_height, column_i, row_i ))
                         return ~0;
+                    break;
                 }
-              case 1:
+              case 2:
                 {   K( E_window_files_Q_bubble_Q_menu_I_click_I_move_to( x, y, row_height, uid ))
                         return ~0;
+                    break;
+                }
+              case 3:
+                {   K( E_window_files_Q_bubble_Q_menu_I_click_I_copy_to( x, y, row_height, uid ))
+                        return ~0;
+                    break;
                 }
             }
         else if( E_window_files_Q_bubble_Q_menu_S_case == &E_window_files_Q_bubble_Q_menu_S_case_partition[0] )
             switch(i)
             { case 0:
+                    break;
+              case 1:
                 {   K( E_window_files_Q_bubble_Q_menu_I_click_I_move_to( x, y, row_height, uid ))
                         return ~0;
+                    break;
+                }
+              case 2:
+                {   K( E_window_files_Q_bubble_Q_menu_I_click_I_copy_to( x, y, row_height, uid ))
+                        return ~0;
+                    break;
                 }
             }
         else if( E_window_files_Q_bubble_Q_menu_S_case == &E_window_files_Q_bubble_Q_menu_S_case_file_or_no_prev[0] )
@@ -1864,6 +1914,7 @@ E_window_files_Q_bubble_Q_menu_I_click(
             { case 0:
                 {   K( E_window_files_Q_bubble_Q_menu_I_click_I_rename( window, row_height, column_i, row_i ))
                         return ~0;
+                    break;
                 }
             }
         E_gui_Q_bubble_S.draw = 0;
@@ -2261,6 +2312,7 @@ E_window_files_I_click_( I window_id
             if( row_i < window_data->disc_partition_n )
             {   if( row_i == window_data->disc_partition_selected_row
                 && window_data->selected_dir_n == 1
+                && !~window_data->selected_dir[ column_i ].selected_row
                 )
                     return 0;
                 window->selection.type = E_windows_Z_selection_Z_type_S_none;
@@ -2589,27 +2641,13 @@ E_window_files_I_click_( I window_id
             && ( window_prev->selection.type == E_windows_Z_selection_Z_type_S_directory
               || window_prev->selection.type == E_windows_Z_selection_Z_type_S_file
             ))
-            {   N r;
-                N64 uid_src_parent;
+            {   N r = no;
                 if( window_prev->selection.type == E_windows_Z_selection_Z_type_S_directory )
-                {   r = E_ouxfs_Q_directory_R_parent( window_data->disc_partition[ window_data->disc_partition_selected_row ].disc
-                    , window_data->disc_partition[ window_data->disc_partition_selected_row ].partition
-                    , window_prev->selection.n
-                    , &uid_src_parent
-                    );
-                    if( K_error(r) )
-                    {   if( r == ~2 )
-                            return ~3;
-                        return r;
-                    }
-                    if( !~uid_src_parent )
-                    {   uid_src_parent = window_prev->selection.n;
-                        r = uid_src_parent == window_data->selected_dir[ column_i - 1 ].uid[ row_i ];
-                    }
+                {   r = window_prev->selection.n == window_data->selected_dir[ column_i - 1 ].uid[ row_i ];
                     if( !r )
                     {   r = E_ouxfs_Q_directory_T_descendant( window_data->disc_partition[ window_data->disc_partition_selected_row ].disc
                         , window_data->disc_partition[ window_data->disc_partition_selected_row ].partition
-                        , uid_src_parent
+                        , window_prev->selection.n
                         , window_data->selected_dir[ column_i - 1 ].uid[ row_i ]
                         );
                         if( K_error(r) )
@@ -2618,18 +2656,6 @@ E_window_files_I_click_( I window_id
                             return r;
                         }
                     }
-                }else
-                {   r = E_ouxfs_Q_file_R_parent( window_data->disc_partition[ window_data->disc_partition_selected_row ].disc
-                    , window_data->disc_partition[ window_data->disc_partition_selected_row ].partition
-                    , window_prev->selection.n
-                    , &uid_src_parent
-                    );
-                    if( K_error(r) )
-                    {   if( r == ~2 )
-                            return ~3;
-                        return r;
-                    }
-                    r = uid_src_parent == window_data->selected_dir[ column_i - 1 ].uid[ row_i ];
                 }
                 if(r)
                 {   E_window_files_Q_bubble_Q_menu_S_case = &E_window_files_Q_bubble_Q_menu_S_case_file_or_no_prev[0];
@@ -2650,32 +2676,6 @@ E_window_files_I_click_( I window_id
             || ( window_prev->selection.type != E_windows_Z_selection_Z_type_S_directory
               && window_prev->selection.type != E_windows_Z_selection_Z_type_S_file
             ))
-                return 0;
-            N64 uid_src_parent;
-            if( window_prev->selection.type == E_windows_Z_selection_Z_type_S_directory )
-            {   N r = E_ouxfs_Q_directory_R_parent( window_data->disc_partition[ row_i ].disc
-                , window_data->disc_partition[ row_i ].partition
-                , window_prev->selection.n
-                , &uid_src_parent
-                );
-                if( K_error(r) )
-                {   if( r == ~2 )
-                        return ~3;
-                    return r;
-                }
-            }else
-            {   N r = E_ouxfs_Q_file_R_parent( window_data->disc_partition[ row_i ].disc
-                , window_data->disc_partition[ row_i ].partition
-                , window_prev->selection.n
-                , &uid_src_parent
-                );
-                if( K_error(r) )
-                {   if( r == ~2 )
-                        return ~3;
-                    return r;
-                }
-            }
-            if( !~uid_src_parent ) // Przenoszenie katalogu znajdującego się w katalogu głównym do katalogu głównego.
                 return 0;
             E_window_files_Q_bubble_Q_menu_S_case = &E_window_files_Q_bubble_Q_menu_S_case_partition[0];
             E_window_files_Q_bubble_Q_menu_S_case_n = J_a_R_n( E_window_files_Q_bubble_Q_menu_S_case_partition );
