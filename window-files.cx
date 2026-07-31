@@ -33,13 +33,15 @@ struct E_window_files_Z_data
   N dir_start;
   N pointer_column, pointer_row;
   N32 column_width, column_margin_width;
-  enum E_windows_Z_selection_Z_type Q_textbox_Q_rename_S_type;
+  enum E_windows_Z_selection_Z_type Q_textbox_Q_edit_name_S_type;
   N8 font_size, thickness;
 };
 //==============================================================================
-_internal Pc E_window_files_Q_bubble_Q_menu_S_case_0[] = { "Create subdirectory", "Rename", "Move to", "Copy to", "Delete" };
-_internal Pc E_window_files_Q_bubble_Q_menu_S_case_partition[] = { "Create subdirectory", "Move to", "Copy to" };
-_internal Pc E_window_files_Q_bubble_Q_menu_S_case_file_or_no_prev[] = { "Rename", "Delete" };
+_internal Pc E_window_files_Q_bubble_Q_menu_S_case_partition_prev[] = { "Create subdirectory", "Move to", "Copy to" };
+_internal Pc E_window_files_Q_bubble_Q_menu_S_case_partition[] = { "Create subdirectory" };
+_internal Pc E_window_files_Q_bubble_Q_menu_S_case_directory_prev[] = { "Create subdirectory", "Rename", "Move to", "Copy to", "Delete" };
+_internal Pc E_window_files_Q_bubble_Q_menu_S_case_directory[] = { "Create subdirectory", "Rename", "Delete" };
+_internal Pc E_window_files_Q_bubble_Q_menu_S_case_file[] = { "Rename", "Delete" };
 _internal Pc *E_window_files_Q_bubble_Q_menu_S_case;
 _internal N E_window_files_Q_bubble_Q_menu_S_case_n;
 _internal N E_window_files_Q_watch_directory_S_disc_id;
@@ -1640,72 +1642,6 @@ E_window_files_I_refresh( N8 desktop_id
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _internal
-N
-E_window_files_Q_textbox_Q_rename_I_done( I window_id
-, B accept
-){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
-    struct E_window_files_Z_data *window_data = window->data;
-    if(accept)
-    {   struct E_controls_Z_data *controls_data = window->controls_data;
-        N column_i = window_data->dir_start + 1 + window_data->pointer_column;
-        N row_i = window_data->selected_dir[ column_i - 1 ].row_start + window_data->pointer_row;
-        if( row_i < window_data->selected_dir[ column_i - 1 ].file_start_row )
-        {   N r = E_ouxfs_Q_directory_P_name( window_data->disc_partition[ window_data->disc_partition_selected_row ].disc
-            , window_data->disc_partition[ window_data->disc_partition_selected_row ].partition
-            , window_data->selected_dir[ column_i - 1 ].uid[ row_i ]
-            , controls_data->control[ controls_data->control_cursor ].textbox.text
-            );
-            if( K_error(r) )
-            {   if( r == ~2 )
-                    return ~3;
-                return r;
-            }
-        }else
-        {   N r = E_ouxfs_Q_file_P_name( window_data->disc_partition[ window_data->disc_partition_selected_row ].disc
-            , window_data->disc_partition[ window_data->disc_partition_selected_row ].partition
-            , window_data->selected_dir[ column_i - 1 ].uid[ row_i ]
-            , controls_data->control[ controls_data->control_cursor ].textbox.text
-            );
-            if( K_error(r) )
-            {   if( r == ~2 )
-                    return ~3;
-                return r;
-            }
-        }
-    }
-    K_( ~2, E_controls_I_remove( E_window_Q_desktop_S_current, window_id, 0 ));
-    window->selection.type = window_data->Q_textbox_Q_rename_S_type;
-    return 0;
-}
-_internal
-N
-E_window_files_Q_bubble_Q_menu_I_click_I_rename(
-  struct E_window_Q_window_Z *window
-, N32 row_height
-, N column_i
-, N row_i
-){  struct E_window_files_Z_data *window_data = window->data;
-    N control_i = E_controls_Q_textbox_I_add( E_window_Q_desktop_S_current, E_gui_Q_bubble_S.window_id
-    , window_data->column_width + 2
-    , window_data->selected_dir[ column_i - 1 ].name[ row_i ]
-    , window_data->font_size, window_data->thickness
-    , &E_window_files_Q_textbox_Q_rename_I_done
-    , no
-    );
-    K( control_i )
-        return ~0;
-    struct E_controls_Z_data *controls_data = window->controls_data;
-    controls_data->control_cursor = control_i;
-    controls_data->control[ control_i ].x = window_data->pointer_column * ( window_data->column_width + window_data->column_margin_width );
-    if( window_data->pointer_column )
-        controls_data->control[ control_i ].x--;
-    controls_data->control[ control_i ].y = window_data->font_size + 1 + window_data->pointer_row * row_height - ( 1 + window_data->font_size + 1 );
-    controls_data->control[ control_i ].textbox.cursor = 0;
-    window_data->Q_textbox_Q_rename_S_type = window->selection.type;
-    window->selection.type = E_windows_Z_selection_Z_type_S_none;
-    return 0;
-}
-_internal
 void
 E_window_files_Q_bubble_Q_menu_I_click_I_message( Pc s
 , N32 x
@@ -1763,6 +1699,128 @@ E_window_files_Q_bubble_Q_menu_I_click_I_message( Pc s
     E_gui_Q_bubble_S.click = 0;
     X_F( gui, draw );
 }
+//------------------------------------------------------------------------------
+_internal
+N
+E_window_files_Q_textbox_Q_rename_I_done( I window_id
+, B accept
+){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
+    struct E_window_files_Z_data *window_data = window->data;
+    if(accept)
+    {   struct E_controls_Z_data *controls_data = window->controls_data;
+        N column_i = window_data->dir_start + 1 + window_data->pointer_column;
+        N row_i = window_data->selected_dir[ column_i - 1 ].row_start + window_data->pointer_row;
+        if( row_i < window_data->selected_dir[ column_i - 1 ].file_start_row )
+        {   N r = E_ouxfs_Q_directory_P_name( window_data->disc_partition[ window_data->disc_partition_selected_row ].disc
+            , window_data->disc_partition[ window_data->disc_partition_selected_row ].partition
+            , window_data->selected_dir[ column_i - 1 ].uid[ row_i ]
+            , controls_data->control[ controls_data->control_cursor ].textbox.text
+            );
+            if( K_error(r) )
+            {   if( r == ~2 )
+                    return ~3;
+                return r;
+            }
+        }else
+        {   N r = E_ouxfs_Q_file_P_name( window_data->disc_partition[ window_data->disc_partition_selected_row ].disc
+            , window_data->disc_partition[ window_data->disc_partition_selected_row ].partition
+            , window_data->selected_dir[ column_i - 1 ].uid[ row_i ]
+            , controls_data->control[ controls_data->control_cursor ].textbox.text
+            );
+            if( K_error(r) )
+            {   if( r == ~2 )
+                    return ~3;
+                return r;
+            }
+        }
+    }
+    K_( ~2, E_controls_I_remove( E_window_Q_desktop_S_current, window_id, 0 ));
+    window->selection.type = window_data->Q_textbox_Q_edit_name_S_type;
+    return 0;
+}
+_internal
+N
+E_window_files_Q_bubble_Q_menu_I_click_I_rename(
+  struct E_window_Q_window_Z *window
+, N32 row_height
+, N column_i
+, N row_i
+){  struct E_window_files_Z_data *window_data = window->data;
+    N control_i = E_controls_Q_textbox_I_add( E_window_Q_desktop_S_current, E_gui_Q_bubble_S.window_id
+    , window_data->column_width + 2
+    , window_data->selected_dir[ column_i - 1 ].name[ row_i ]
+    , window_data->font_size, window_data->thickness
+    , &E_window_files_Q_textbox_Q_rename_I_done
+    , no
+    );
+    K( control_i )
+        return ~0;
+    struct E_controls_Z_data *controls_data = window->controls_data;
+    controls_data->control_cursor = control_i;
+    controls_data->control[ control_i ].x = window_data->pointer_column * ( window_data->column_width + window_data->column_margin_width );
+    if( window_data->pointer_column )
+        controls_data->control[ control_i ].x--;
+    controls_data->control[ control_i ].y = window_data->font_size + 1 + window_data->pointer_row * row_height - ( 1 + window_data->font_size + 1 );
+    controls_data->control[ control_i ].textbox.cursor = 0;
+    window_data->Q_textbox_Q_edit_name_S_type = window->selection.type;
+    window->selection.type = E_windows_Z_selection_Z_type_S_none;
+    return 0;
+}
+//------------------------------------------------------------------------------
+_internal
+N
+E_window_files_Q_textbox_Q_new_subdirectory_I_done( I window_id
+, B accept
+){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, window_id );
+    struct E_window_files_Z_data *window_data = window->data;
+    if(accept)
+    {   struct E_controls_Z_data *controls_data = window->controls_data;
+        N column_i = window_data->dir_start + 1 + window_data->pointer_column;
+        N row_i = ( column_i ? window_data->selected_dir[ column_i - 1 ].row_start : window_data->disc_partition_row_start ) + window_data->pointer_row;
+        N64 uid;
+        N r = E_ouxfs_Q_directory_M( window_data->disc_partition[ column_i ? window_data->disc_partition_selected_row : row_i ].disc
+        , window_data->disc_partition[ column_i ? window_data->disc_partition_selected_row : row_i ].partition
+        , column_i ? window_data->selected_dir[ column_i - 1 ].uid[ row_i ] : ~0
+        , controls_data->control[ controls_data->control_cursor ].textbox.text
+        , &uid
+        );
+        if( K_error(r) )
+        {   if( r == ~2 )
+                return ~3;
+            return r;
+        }
+    }
+    K_( ~2, E_controls_I_remove( E_window_Q_desktop_S_current, window_id, 0 ));
+    window->selection.type = window_data->Q_textbox_Q_edit_name_S_type;
+    return 0;
+}
+_internal
+N
+E_window_files_Q_bubble_Q_menu_I_click_I_new_subdirectory(
+  struct E_window_Q_window_Z *window
+, N32 row_height
+){  struct E_window_files_Z_data *window_data = window->data;
+    N control_i = E_controls_Q_textbox_I_add( E_window_Q_desktop_S_current, E_gui_Q_bubble_S.window_id
+    , window_data->column_width + 2
+    , ""
+    , window_data->font_size, window_data->thickness
+    , &E_window_files_Q_textbox_Q_new_subdirectory_I_done
+    , no
+    );
+    K( control_i )
+        return ~0;
+    struct E_controls_Z_data *controls_data = window->controls_data;
+    controls_data->control_cursor = control_i;
+    controls_data->control[ control_i ].x = window_data->pointer_column * ( window_data->column_width + window_data->column_margin_width );
+    if( window_data->pointer_column )
+        controls_data->control[ control_i ].x--;
+    controls_data->control[ control_i ].y = window_data->font_size + 1 + window_data->pointer_row * row_height - ( 1 + window_data->font_size + 1 );
+    controls_data->control[ control_i ].textbox.cursor = 0;
+    window_data->Q_textbox_Q_edit_name_S_type = window->selection.type;
+    window->selection.type = E_windows_Z_selection_Z_type_S_none;
+    return 0;
+}
+//------------------------------------------------------------------------------
 _internal
 N
 E_window_files_Q_bubble_Q_menu_I_click_I_move_to(
@@ -1785,9 +1843,7 @@ E_window_files_Q_bubble_Q_menu_I_click_I_move_to(
         {   if( r == ~2 )
                 return ~3;
             if( !~r )
-            {   E_window_files_Q_bubble_Q_menu_I_click_I_message( "Move failed.", x, y, row_height );
-                return ~0;
-            }
+                E_window_files_Q_bubble_Q_menu_I_click_I_message( "Move failed.", x, y, row_height );
             return r;
         }
     }else if( window_prev->selection.type == E_windows_Z_selection_Z_type_S_file )
@@ -1800,9 +1856,7 @@ E_window_files_Q_bubble_Q_menu_I_click_I_move_to(
         {   if( r == ~2 )
                 return ~3;
             if( !~r )
-            {   E_window_files_Q_bubble_Q_menu_I_click_I_message( "Move failed.", x, y, row_height );
-                return ~0;
-            }
+                E_window_files_Q_bubble_Q_menu_I_click_I_message( "Move failed.", x, y, row_height );
             return r;
         }
     }
@@ -1831,9 +1885,7 @@ E_window_files_Q_bubble_Q_menu_I_click_I_copy_to(
         {   if( r == ~2 )
                 return ~3;
             if( !~r )
-            {   E_window_files_Q_bubble_Q_menu_I_click_I_message( "Copy failed.", x, y, row_height );
-                return ~0;
-            }
+                E_window_files_Q_bubble_Q_menu_I_click_I_message( "Copy failed.", x, y, row_height );
             return r;
         }
     }else if( window_prev->selection.type == E_windows_Z_selection_Z_type_S_file )
@@ -1847,9 +1899,7 @@ E_window_files_Q_bubble_Q_menu_I_click_I_copy_to(
         {   if( r == ~2 )
                 return ~3;
             if( !~r )
-            {   E_window_files_Q_bubble_Q_menu_I_click_I_message( "Copy failed.", x, y, row_height );
-                return ~0;
-            }
+                E_window_files_Q_bubble_Q_menu_I_click_I_message( "Copy failed.", x, y, row_height );
             return r;
         }
     }
@@ -1874,10 +1924,39 @@ E_window_files_Q_bubble_Q_menu_I_click(
         N column_i = window_data->dir_start + 1 + window_data->pointer_column;
         N row_i = ( column_i ? window_data->selected_dir[ column_i - 1 ].row_start : window_data->disc_partition_row_start ) + window_data->pointer_row;
         N64 uid = column_i ? window_data->selected_dir[ column_i - 1 ].uid[ row_i ] : ~0;
-        if( E_window_files_Q_bubble_Q_menu_S_case == &E_window_files_Q_bubble_Q_menu_S_case_0[0] )
+        if( E_window_files_Q_bubble_Q_menu_S_case == &E_window_files_Q_bubble_Q_menu_S_case_partition_prev[0] )
             switch(i)
             { case 0:
+                {   K( E_window_files_Q_bubble_Q_menu_I_click_I_new_subdirectory( window, row_height ))
+                        return ~0;
                     break;
+                }
+              case 1:
+                {   K( E_window_files_Q_bubble_Q_menu_I_click_I_move_to( x, y, row_height, uid ))
+                        return ~0;
+                    break;
+                }
+              case 2:
+                {   K( E_window_files_Q_bubble_Q_menu_I_click_I_copy_to( x, y, row_height, uid ))
+                        return ~0;
+                    break;
+                }
+            }
+        else if( E_window_files_Q_bubble_Q_menu_S_case == &E_window_files_Q_bubble_Q_menu_S_case_partition[0] )
+            switch(i)
+            { case 0:
+                {   K( E_window_files_Q_bubble_Q_menu_I_click_I_new_subdirectory( window, row_height ))
+                        return ~0;
+                    break;
+                }
+            }
+        else if( E_window_files_Q_bubble_Q_menu_S_case == &E_window_files_Q_bubble_Q_menu_S_case_directory_prev[0] )
+            switch(i)
+            { case 0:
+                {   K( E_window_files_Q_bubble_Q_menu_I_click_I_new_subdirectory( window, row_height ))
+                        return ~0;
+                    break;
+                }
               case 1:
                 {   K( E_window_files_Q_bubble_Q_menu_I_click_I_rename( window, row_height, column_i, row_i ))
                         return ~0;
@@ -1894,22 +1973,20 @@ E_window_files_Q_bubble_Q_menu_I_click(
                     break;
                 }
             }
-        else if( E_window_files_Q_bubble_Q_menu_S_case == &E_window_files_Q_bubble_Q_menu_S_case_partition[0] )
+        else if( E_window_files_Q_bubble_Q_menu_S_case == &E_window_files_Q_bubble_Q_menu_S_case_directory[0] )
             switch(i)
             { case 0:
-                    break;
-              case 1:
-                {   K( E_window_files_Q_bubble_Q_menu_I_click_I_move_to( x, y, row_height, uid ))
+                {   K( E_window_files_Q_bubble_Q_menu_I_click_I_new_subdirectory( window, row_height ))
                         return ~0;
                     break;
                 }
-              case 2:
-                {   K( E_window_files_Q_bubble_Q_menu_I_click_I_copy_to( x, y, row_height, uid ))
+              case 1:
+                {   K( E_window_files_Q_bubble_Q_menu_I_click_I_rename( window, row_height, column_i, row_i ))
                         return ~0;
                     break;
                 }
             }
-        else if( E_window_files_Q_bubble_Q_menu_S_case == &E_window_files_Q_bubble_Q_menu_S_case_file_or_no_prev[0] )
+        else if( E_window_files_Q_bubble_Q_menu_S_case == &E_window_files_Q_bubble_Q_menu_S_case_file[0] )
             switch(i)
             { case 0:
                 {   K( E_window_files_Q_bubble_Q_menu_I_click_I_rename( window, row_height, column_i, row_i ))
@@ -2636,49 +2713,69 @@ E_window_files_I_click_( I window_id
         : 0;
         if( column_i )
         {   N row_i = window_data->selected_dir[ column_i - 1 ].row_start + window_data->pointer_row;
-            if( row_i < window_data->selected_dir[ column_i - 1 ].file_start_row 
-            && window_prev
-            && ( window_prev->selection.type == E_windows_Z_selection_Z_type_S_directory
-              || window_prev->selection.type == E_windows_Z_selection_Z_type_S_file
-            ))
-            {   N r = no;
-                if( window_prev->selection.type == E_windows_Z_selection_Z_type_S_directory )
-                {   r = window_prev->selection.n == window_data->selected_dir[ column_i - 1 ].uid[ row_i ];
-                    if( !r )
-                    {   r = E_ouxfs_Q_directory_T_descendant( window_data->disc_partition[ window_data->disc_partition_selected_row ].disc
-                        , window_data->disc_partition[ window_data->disc_partition_selected_row ].partition
-                        , window_prev->selection.n
-                        , window_data->selected_dir[ column_i - 1 ].uid[ row_i ]
-                        );
-                        if( K_error(r) )
-                        {   if( r == ~2 )
-                                return ~3;
-                            return r;
+            if( row_i < window_data->selected_dir[ column_i - 1 ].file_start_row )
+                if( window_prev )
+                    if( window_prev->selection.type == E_windows_Z_selection_Z_type_S_directory )
+                    {   N r = window_prev->selection.n == window_data->selected_dir[ column_i - 1 ].uid[ row_i ];
+                        if( !r )
+                        {   r = E_ouxfs_Q_directory_T_descendant( window_data->disc_partition[ window_data->disc_partition_selected_row ].disc
+                            , window_data->disc_partition[ window_data->disc_partition_selected_row ].partition
+                            , window_prev->selection.n
+                            , window_data->selected_dir[ column_i - 1 ].uid[ row_i ]
+                            );
+                            if( K_error(r) )
+                            {   if( r == ~2 )
+                                    return ~3;
+                                return r;
+                            }
                         }
+                        if(r)
+                        {   E_window_files_Q_bubble_Q_menu_S_case = &E_window_files_Q_bubble_Q_menu_S_case_directory[0];
+                            E_window_files_Q_bubble_Q_menu_S_case_n = J_a_R_n( E_window_files_Q_bubble_Q_menu_S_case_directory );
+                        }else
+                        {   E_window_files_Q_bubble_Q_menu_S_case = &E_window_files_Q_bubble_Q_menu_S_case_directory_prev[0];
+                            E_window_files_Q_bubble_Q_menu_S_case_n = J_a_R_n( E_window_files_Q_bubble_Q_menu_S_case_directory_prev );
+                        }
+                    }else if( window_prev->selection.type == E_windows_Z_selection_Z_type_S_file )
+                    {   E_window_files_Q_bubble_Q_menu_S_case = &E_window_files_Q_bubble_Q_menu_S_case_directory_prev[0];
+                        E_window_files_Q_bubble_Q_menu_S_case_n = J_a_R_n( E_window_files_Q_bubble_Q_menu_S_case_directory_prev );
+                    }else
+                    {   E_window_files_Q_bubble_Q_menu_S_case = &E_window_files_Q_bubble_Q_menu_S_case_directory[0];
+                        E_window_files_Q_bubble_Q_menu_S_case_n = J_a_R_n( E_window_files_Q_bubble_Q_menu_S_case_directory );
                     }
+                else
+                {   E_window_files_Q_bubble_Q_menu_S_case = &E_window_files_Q_bubble_Q_menu_S_case_directory[0];
+                    E_window_files_Q_bubble_Q_menu_S_case_n = J_a_R_n( E_window_files_Q_bubble_Q_menu_S_case_directory );
                 }
-                if(r)
-                {   E_window_files_Q_bubble_Q_menu_S_case = &E_window_files_Q_bubble_Q_menu_S_case_file_or_no_prev[0];
-                    E_window_files_Q_bubble_Q_menu_S_case_n = J_a_R_n( E_window_files_Q_bubble_Q_menu_S_case_file_or_no_prev );
-                }else
-                {   E_window_files_Q_bubble_Q_menu_S_case = &E_window_files_Q_bubble_Q_menu_S_case_0[0];
-                    E_window_files_Q_bubble_Q_menu_S_case_n = J_a_R_n( E_window_files_Q_bubble_Q_menu_S_case_0 );
-                }
-            }else
-            {   E_window_files_Q_bubble_Q_menu_S_case = &E_window_files_Q_bubble_Q_menu_S_case_file_or_no_prev[0];
-                E_window_files_Q_bubble_Q_menu_S_case_n = J_a_R_n( E_window_files_Q_bubble_Q_menu_S_case_file_or_no_prev );
+            else
+            {   E_window_files_Q_bubble_Q_menu_S_case = &E_window_files_Q_bubble_Q_menu_S_case_file[0];
+                E_window_files_Q_bubble_Q_menu_S_case_n = J_a_R_n( E_window_files_Q_bubble_Q_menu_S_case_file );
             }
         }else
         {   N row_i = window_data->disc_partition_row_start + window_data->pointer_row;
             struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, window_data->disc_partition[ row_i ].disc );
-            if( disc->partition[ window_data->disc_partition[ row_i ].partition ].file_system != E_disc_Z_file_system_S_oux
-            || !window_prev
-            || ( window_prev->selection.type != E_windows_Z_selection_Z_type_S_directory
-              && window_prev->selection.type != E_windows_Z_selection_Z_type_S_file
-            ))
+            if( disc->partition[ window_data->disc_partition[ row_i ].partition ].file_system != E_disc_Z_file_system_S_oux )
                 return 0;
-            E_window_files_Q_bubble_Q_menu_S_case = &E_window_files_Q_bubble_Q_menu_S_case_partition[0];
-            E_window_files_Q_bubble_Q_menu_S_case_n = J_a_R_n( E_window_files_Q_bubble_Q_menu_S_case_partition );
+            if( window_prev )
+                if( window_prev->selection.type == E_windows_Z_selection_Z_type_S_directory )
+                    if( ~window_prev->selection.n )
+                    {   E_window_files_Q_bubble_Q_menu_S_case = &E_window_files_Q_bubble_Q_menu_S_case_partition_prev[0];
+                        E_window_files_Q_bubble_Q_menu_S_case_n = J_a_R_n( E_window_files_Q_bubble_Q_menu_S_case_partition_prev );
+                    }else
+                    {   E_window_files_Q_bubble_Q_menu_S_case = &E_window_files_Q_bubble_Q_menu_S_case_partition[0];
+                        E_window_files_Q_bubble_Q_menu_S_case_n = J_a_R_n( E_window_files_Q_bubble_Q_menu_S_case_partition );
+                    }
+                else if( window_prev->selection.type == E_windows_Z_selection_Z_type_S_file )
+                {   E_window_files_Q_bubble_Q_menu_S_case = &E_window_files_Q_bubble_Q_menu_S_case_partition_prev[0];
+                    E_window_files_Q_bubble_Q_menu_S_case_n = J_a_R_n( E_window_files_Q_bubble_Q_menu_S_case_partition_prev );
+                }else
+                {   E_window_files_Q_bubble_Q_menu_S_case = &E_window_files_Q_bubble_Q_menu_S_case_partition[0];
+                    E_window_files_Q_bubble_Q_menu_S_case_n = J_a_R_n( E_window_files_Q_bubble_Q_menu_S_case_partition );
+                }
+            else
+            {   E_window_files_Q_bubble_Q_menu_S_case = &E_window_files_Q_bubble_Q_menu_S_case_partition[0];
+                E_window_files_Q_bubble_Q_menu_S_case_n = J_a_R_n( E_window_files_Q_bubble_Q_menu_S_case_partition );
+            }
         }
         N32 x, y;
         if( window->sized )
@@ -3428,7 +3525,7 @@ E_window_files_M( N8 desktop_id
     data->pointer_column = ~0;
     data->column_width = 20;
     data->column_margin_width = 20; //DFN Co najmniej 3.
-    data->Q_textbox_Q_rename_S_type = E_windows_Z_selection_Z_type_S_none;
+    data->Q_textbox_Q_edit_name_S_type = E_windows_Z_selection_Z_type_S_none;
     data->font_size = 1;
     data->thickness = 1;
     struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
