@@ -1119,9 +1119,8 @@ Pc
 E_text_Z_s_P_c_fill( Pc s
 , Pc s_end
 , C c
-){  while( s != s_end )
-        *s++ = c;
-    return s;
+){  E_mem_Q_blk_P_fill_c( s, s_end - s, c );
+    return s_end;
 }
 _export
 void

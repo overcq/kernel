@@ -2688,7 +2688,7 @@ E_window_files_I_click_( I window_id
         {   x = 0;
             y = E_gui_Q_taskbar_S_height;
         }
-        N32 row_height = ( window_data->font_size + 1 ) * E_font_S_font.height + window_data->font_size + 1 + 1 + window_data->font_size + 1;
+        N32 row_height = ( window_data->font_size + 1 ) * E_font_S_font.height + window_data->font_size + 1;
         N32 y_ = y + window_data->font_size + 1 + window_data->pointer_row * row_height;
         N32 x_column = x + window_data->pointer_column * ( window_data->column_width + window_data->column_margin_width );
         N32 bubble_width = E_main_S_framebuffer.width - x_column;
@@ -2742,6 +2742,7 @@ E_window_files_I_click_( I window_id
         )
         {   E_gui_Q_bubble_S.x = x_;
             E_gui_Q_bubble_S.y = y_;
+            row_height += 1 + window_data->font_size + 1;
             E_gui_Q_bubble_S.height = window_data->font_size + 1 + E_window_files_Q_bubble_Q_menu_S_case_n * row_height - ( 1 + window_data->font_size + 1 );
             E_gui_Q_bubble_S.draw = &E_window_files_Q_bubble_Q_menu_I_draw;
             E_gui_Q_bubble_S.custom_draw = yes;
