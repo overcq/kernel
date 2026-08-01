@@ -2299,7 +2299,7 @@ E_ouxfs_Q_file_I_copy_( N disc_id
 #define E_ouxfs_Q_device_I_switch_item( type, item, end ) \
     if( data_i ) \
     {   do \
-        {   item |= (type)*data++ << data_i++ * 8; \
+        {   item |= (type)*( N8 * )data++ << ( data_i++ * 8 ); \
         }while( data_i != sizeof(type) \
         && data != (end) \
         ); \
@@ -2313,7 +2313,7 @@ E_ouxfs_Q_file_I_copy_( N disc_id
         if( data + sizeof(type) > (end) ) \
         {   item = 0; \
             do \
-            {   item |= (type)*data++ << data_i++ * 8; \
+            {   item |= (type)*( N8 * )data++ << ( data_i++ * 8 ); \
             }while( data != (end) ); \
             break; \
         } \
@@ -2627,112 +2627,109 @@ End_loop:
                     goto End;
                 goto End_1;
             }
-            for_n( sector_i, disc->partition[ partition_i ].oux.block_table[ block_table_i_read ].location.sectors.n ) // Czyta kolejne sektory z szeregu ciągłych.
-            {   Pc data = sector;
-                do
-                {   switch( continue_from )
-                    { case ~0:
-                            block_table_i++;
-                            if( block_table_i == disc->partition[ partition_i ].oux.block_table_n )
-                            {   G( "too much blocks size: block_table_i=%x", block_table_i );
+            Pc data = sector;
+            do
+            {   switch( continue_from )
+                { case ~0:
+                        block_table_i++;
+                        if( block_table_i == disc->partition[ partition_i ].oux.block_table_n )
+                        {   G( "too much blocks size: block_table_i=%x", block_table_i );
+                            E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.ssd_cache_lock, &disc->sata_ahci.ssd_cache_return, r );
+                            r = ~0;
+                            goto End_1;
+                        }
+                        continue_from++;
+                  case 0:
+                        E_ouxfs_Q_device_I_switch_item( N64, disc->partition[ partition_i ].oux.block_table[ block_table_i ].sector
+                        , sector + disc->partition[ partition_i ].oux.block_table[ block_table_i_read ].location.sectors.n * disc->sata_ahci.physical_sector_size
+                        );
+                        disc->partition[ partition_i ].oux.block_table_size += sizeof( N64 );
+                  default:
+                        if( continue_from == 1 )
+                        {   E_ouxfs_Q_device_I_switch_item( N8, disc->partition[ partition_i ].oux.block_table[ block_table_i ].location_type
+                            , sector + disc->partition[ partition_i ].oux.block_table[ block_table_i_read ].location.sectors.n * disc->sata_ahci.physical_sector_size
+                            );
+                            if( disc->partition[ partition_i ].oux.block_table[ block_table_i ].location_type != E_ouxfs_Z_block_Z_location_S_sectors
+                            && disc->partition[ partition_i ].oux.block_table[ block_table_i ].location_type != E_ouxfs_Z_block_Z_location_S_in_sector
+                            )
+                            {   G( "location type unknown: block_table_i=%x", block_table_i );
                                 E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.ssd_cache_lock, &disc->sata_ahci.ssd_cache_return, r );
                                 r = ~0;
                                 goto End_1;
                             }
-                            continue_from++;
-                      case 0:
-                            E_ouxfs_Q_device_I_switch_item( N64, disc->partition[ partition_i ].oux.block_table[ block_table_i ].sector
-                            , sector + disc->sata_ahci.physical_sector_size
-                            );
-                            disc->partition[ partition_i ].oux.block_table_size += sizeof( N64 );
-                      default:
-                            if( continue_from == 1 )
-                            {   E_ouxfs_Q_device_I_switch_item( N8, disc->partition[ partition_i ].oux.block_table[ block_table_i ].location_type
-                                , sector + disc->sata_ahci.physical_sector_size
-                                );
-                                if( disc->partition[ partition_i ].oux.block_table[ block_table_i ].location_type != E_ouxfs_Z_block_Z_location_S_sectors
-                                && disc->partition[ partition_i ].oux.block_table[ block_table_i ].location_type != E_ouxfs_Z_block_Z_location_S_in_sector
-                                )
-                                {   G( "location type unknown: block_table_i=%x", block_table_i );
-                                    E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.ssd_cache_lock, &disc->sata_ahci.ssd_cache_return, r );
-                                    r = ~0;
-                                    goto End_1;
-                                }
-                                disc->partition[ partition_i ].oux.block_table_size++;
+                            disc->partition[ partition_i ].oux.block_table_size++;
+                        }
+                        if( disc->partition[ partition_i ].oux.block_table[ block_table_i ].location_type == E_ouxfs_Z_block_Z_location_S_sectors )
+                            switch( continue_from )
+                            { case 2:
+                                    E_ouxfs_Q_device_I_switch_item( N64, disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.sectors.n
+                                    , sector + disc->partition[ partition_i ].oux.block_table[ block_table_i_read ].location.sectors.n * disc->sata_ahci.physical_sector_size
+                                    );
+                                    disc->partition[ partition_i ].oux.block_table_size += sizeof( N64 );
+                              case 3:
+                                    E_ouxfs_Q_device_I_switch_item( N16, disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.sectors.pre
+                                    , sector + disc->partition[ partition_i ].oux.block_table[ block_table_i_read ].location.sectors.n * disc->sata_ahci.physical_sector_size
+                                    );
+                                    if( disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.sectors.pre >= disc->sata_ahci.physical_sector_size )
+                                    {   G( "pre not less than sector: block_table_i=%x", block_table_i );
+                                        E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.ssd_cache_lock, &disc->sata_ahci.ssd_cache_return, r );
+                                        r = ~0;
+                                        goto End_1;
+                                    }
+                                    disc->partition[ partition_i ].oux.block_table_size += sizeof( N16 );
+                              case 4:
+                                    E_ouxfs_Q_device_I_switch_item( N16, disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.sectors.post
+                                    , sector + disc->partition[ partition_i ].oux.block_table[ block_table_i_read ].location.sectors.n * disc->sata_ahci.physical_sector_size
+                                    );
+                                    if( disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.sectors.post >= disc->sata_ahci.physical_sector_size )
+                                    {   G( "post not less than sector: block_table_i=%x", block_table_i );
+                                        E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.ssd_cache_lock, &disc->sata_ahci.ssd_cache_return, r );
+                                        r = ~0;
+                                        goto End_1;
+                                    }
+                                    if( !disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.sectors.n
+                                    && ( !disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.sectors.pre
+                                        || !disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.sectors.post
+                                    ))
+                                    {   G( "sectors and pre or post 0: block_table_i=%x", block_table_i );
+                                        E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.ssd_cache_lock, &disc->sata_ahci.ssd_cache_return, r );
+                                        r = ~0;
+                                        goto End_1;
+                                    }
+                                    disc->partition[ partition_i ].oux.block_table_size += sizeof( N16 );
+                                    continue_from = ~0;
                             }
-                            if( disc->partition[ partition_i ].oux.block_table[ block_table_i ].location_type == E_ouxfs_Z_block_Z_location_S_sectors )
-                                switch( continue_from )
-                                { case 2:
-                                        E_ouxfs_Q_device_I_switch_item( N64, disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.sectors.n
-                                        , sector + disc->sata_ahci.physical_sector_size
-                                        );
-                                        disc->partition[ partition_i ].oux.block_table_size += sizeof( N64 );
-                                  case 3:
-                                        E_ouxfs_Q_device_I_switch_item( N16, disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.sectors.pre
-                                        , sector + disc->sata_ahci.physical_sector_size
-                                        );
-                                        if( disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.sectors.pre >= disc->sata_ahci.physical_sector_size )
-                                        {   G( "pre not less than sector: block_table_i=%x", block_table_i );
-                                            E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.ssd_cache_lock, &disc->sata_ahci.ssd_cache_return, r );
-                                            r = ~0;
-                                            goto End_1;
-                                        }
-                                        disc->partition[ partition_i ].oux.block_table_size += sizeof( N16 );
-                                  case 4:
-                                        E_ouxfs_Q_device_I_switch_item( N16, disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.sectors.post
-                                        , sector + disc->sata_ahci.physical_sector_size
-                                        );
-                                        if( disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.sectors.post >= disc->sata_ahci.physical_sector_size )
-                                        {   G( "post not less than sector: block_table_i=%x", block_table_i );
-                                            E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.ssd_cache_lock, &disc->sata_ahci.ssd_cache_return, r );
-                                            r = ~0;
-                                            goto End_1;
-                                        }
-                                        if( !disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.sectors.n
-                                        && ( !disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.sectors.pre
-                                            || !disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.sectors.post
-                                        ))
-                                        {   G( "sectors and pre or post 0: block_table_i=%x", block_table_i );
-                                            E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.ssd_cache_lock, &disc->sata_ahci.ssd_cache_return, r );
-                                            r = ~0;
-                                            goto End_1;
-                                        }
-                                        disc->partition[ partition_i ].oux.block_table_size += sizeof( N16 );
-                                        continue_from = ~0;
-                                }
-                            else
-                                switch( continue_from )
-                                { case 2:
-                                        E_ouxfs_Q_device_I_switch_item( N16, disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.in_sector.start
-                                        , sector + disc->sata_ahci.physical_sector_size
-                                        );
-                                        disc->partition[ partition_i ].oux.block_table_size += sizeof( N16 );
-                                  case 3:
-                                        E_ouxfs_Q_device_I_switch_item( N16, disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.in_sector.size
-                                        , sector + disc->sata_ahci.physical_sector_size
-                                        );
-                                        if( !disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.in_sector.size )
-                                        {   G( "in sector size 0: block_table_i=%x", block_table_i );
-                                            E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.ssd_cache_lock, &disc->sata_ahci.ssd_cache_return, r );
-                                            r = ~0;
-                                            goto End_1;
-                                        }
-                                        if( disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.in_sector.start
-                                            + disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.in_sector.size
-                                            > disc->sata_ahci.physical_sector_size
-                                        )
-                                        {   G( "in sector not less than sector: block_table_i=%x", block_table_i );
-                                            E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.ssd_cache_lock, &disc->sata_ahci.ssd_cache_return, r );
-                                            r = ~0;
-                                            goto End_1;
-                                        }
-                                        disc->partition[ partition_i ].oux.block_table_size += sizeof( N16 );
-                                        continue_from = ~0;
-                                }
-                    }
-                }while( data != sector + disc->sata_ahci.physical_sector_size );
-                sector += disc->sata_ahci.physical_sector_size;
-            }
+                        else
+                            switch( continue_from )
+                            { case 2:
+                                    E_ouxfs_Q_device_I_switch_item( N16, disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.in_sector.start
+                                    , sector + disc->partition[ partition_i ].oux.block_table[ block_table_i_read ].location.sectors.n * disc->sata_ahci.physical_sector_size
+                                    );
+                                    disc->partition[ partition_i ].oux.block_table_size += sizeof( N16 );
+                              case 3:
+                                    E_ouxfs_Q_device_I_switch_item( N16, disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.in_sector.size
+                                    , sector + disc->partition[ partition_i ].oux.block_table[ block_table_i_read ].location.sectors.n * disc->sata_ahci.physical_sector_size
+                                    );
+                                    if( !disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.in_sector.size )
+                                    {   G( "in sector size 0: block_table_i=%x", block_table_i );
+                                        E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.ssd_cache_lock, &disc->sata_ahci.ssd_cache_return, r );
+                                        r = ~0;
+                                        goto End_1;
+                                    }
+                                    if( disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.in_sector.start
+                                        + disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.in_sector.size
+                                        > disc->sata_ahci.physical_sector_size
+                                    )
+                                    {   G( "in sector not less than sector: block_table_i=%x", block_table_i );
+                                        E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.ssd_cache_lock, &disc->sata_ahci.ssd_cache_return, r );
+                                        r = ~0;
+                                        goto End_1;
+                                    }
+                                    disc->partition[ partition_i ].oux.block_table_size += sizeof( N16 );
+                                    continue_from = ~0;
+                            }
+                }
+            }while( data != sector + disc->partition[ partition_i ].oux.block_table[ block_table_i_read ].location.sectors.n * disc->sata_ahci.physical_sector_size );
             E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.ssd_cache_lock, &disc->sata_ahci.ssd_cache_return, r );
             if( disc->partition[ partition_i ].oux.block_table[ block_table_i_read ].location.sectors.post )
             {   r = E_disc_R( disc_id, partition_i
@@ -2986,12 +2983,12 @@ End_loop:
         r = ~0;
         goto End_1;
     }
-    /*for_n_( block_table_i, disc->partition[ partition_i ].oux.block_table_n )
-    {   G( "block_table_i: %x, sector: %x", block_table_i, disc->partition[ partition_i ].oux.block_table[ block_table_i ].sector );
-        if( disc->partition[ partition_i ].oux.block_table[ block_table_i ].location_type == E_ouxfs_Z_block_Z_location_S_sectors )
-            G( "n: %x, pre: %16x, post: %16x", disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.sectors.n, disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.sectors.pre, disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.sectors.post );
+    /*for_n( k, disc->partition[ partition_i ].oux.block_table_n )
+    {   G( "block_table_i: %x, sector: %x", k, disc->partition[ partition_i ].oux.block_table[k].sector );
+        if( disc->partition[ partition_i ].oux.block_table[k].location_type == E_ouxfs_Z_block_Z_location_S_sectors )
+            G( "n: %x, pre: %16x, post: %16x", disc->partition[ partition_i ].oux.block_table[k].location.sectors.n, disc->partition[ partition_i ].oux.block_table[k].location.sectors.pre, disc->partition[ partition_i ].oux.block_table[k].location.sectors.post );
         else
-            G( "start: %16x, size: %16x", disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.in_sector.start, disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.in_sector.size );
+            G( "start: %16x, size: %16x", disc->partition[ partition_i ].oux.block_table[k].location.in_sector.start, disc->partition[ partition_i ].oux.block_table[k].location.in_sector.size );
     }*/
     // Utworzenie tablicy wolnych bloków.
     Mt_( disc->partition[ partition_i ].oux.free_table, 1 );
@@ -3887,9 +3884,9 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
                     goto End;
                 goto End_3;
             }
+            Pc data = sector;
             for_n( sector_i, disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].location.sectors.n )
-            {   Pc data = sector;
-                do
+            {   do
                 {   switch( continue_from )
                     { case ~0:
                             r = (N)E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.directory, 1 );
@@ -4499,9 +4496,9 @@ Next_sector:if( disc->partition[ partition_i ].oux.free_table[i].location_type =
                     goto End;
                 goto End_4;
             }
+            Pc data = sector;
             for_n( sector_i, disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].location.sectors.n )
-            {   Pc data = sector;
-                do
+            {   do
                 {   switch( continue_from )
                     { case ~0:
                             r = (N)E_mem_Q_blk_I_append( &disc->partition[ partition_i ].oux.file, 1 );
@@ -5066,7 +5063,7 @@ End:E_flow_Z_lock_rw_I_unlock_write_and_return( &disc->partition[ partition_i ].
 #define E_ouxfs_Q_device_I_switch_item( type, item, end ) \
     if( data_i ) \
     {   do \
-        {   *data++ = ( item >> data_i++ * 8 ) & 0xff; \
+        {   *data++ = ( item >> ( data_i++ * 8 )) & 0xff; \
         }while( data_i != sizeof(type) \
         && data != (end) \
         ); \
@@ -5079,7 +5076,7 @@ End:E_flow_Z_lock_rw_I_unlock_write_and_return( &disc->partition[ partition_i ].
             break; \
         if( data + sizeof(type) > (end) ) \
         {   do \
-            {   *data++ = ( item >> data_i++ * 8 ) & 0xff; \
+            {   *data++ = ( item >> ( data_i++ * 8 )) & 0xff; \
             }while( data != (end) ); \
             break; \
         } \
@@ -5113,12 +5110,12 @@ E_ouxfs_Q_device_I_save( I disc_id
         G( "block_table_n: %x, block_table_block_table_n: %x", disc->partition[ partition_i ].oux.block_table_n, disc->partition[ partition_i ].oux.block_table_block_table_n );
         G( "directory_table_start: %x, directory_table_n: %x, directory_n: %x", disc->partition[ partition_i ].oux.block_table_directory_table_start, disc->partition[ partition_i ].oux.block_table_directory_table_n, disc->partition[ partition_i ].oux.directory_n );
         G( "file_table_start: %x, file_table_n: %x, file_n: %x", disc->partition[ partition_i ].oux.block_table_file_table_start, disc->partition[ partition_i ].oux.block_table_file_table_n, disc->partition[ partition_i ].oux.file_n );
-        /*for_n( block_table_i, disc->partition[ partition_i ].oux.block_table_n )
-        {   G( "block_table_i: %x, sector: %x", block_table_i, disc->partition[ partition_i ].oux.block_table[ block_table_i ].sector );
-            if( disc->partition[ partition_i ].oux.block_table[ block_table_i ].location_type == E_ouxfs_Z_block_Z_location_S_sectors )
-                G( "n: %x, pre: %16x, post: %16x", disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.sectors.n, disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.sectors.pre, disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.sectors.post );
+        /*for_n( k, disc->partition[ partition_i ].oux.block_table_n )
+        {   G( "block_table_i: %x, sector: %x", k, disc->partition[ partition_i ].oux.block_table[k].sector );
+            if( disc->partition[ partition_i ].oux.block_table[k].location_type == E_ouxfs_Z_block_Z_location_S_sectors )
+                G( "n: %x, pre: %16x, post: %16x", disc->partition[ partition_i ].oux.block_table[k].location.sectors.n, disc->partition[ partition_i ].oux.block_table[k].location.sectors.pre, disc->partition[ partition_i ].oux.block_table[k].location.sectors.post );
             else
-                G( "start: %16x, size: %16x", disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.in_sector.start, disc->partition[ partition_i ].oux.block_table[ block_table_i ].location.in_sector.size );
+                G( "start: %16x, size: %16x", disc->partition[ partition_i ].oux.block_table[k].location.in_sector.start, disc->partition[ partition_i ].oux.block_table[k].location.in_sector.size );
         }*/
         N continue_from = ~0;
         N data_i = 0;
@@ -5248,9 +5245,9 @@ End_loop:
                 ))
                     return ~0;
                 disc = E_mem_Q_tab_R( E_disc_S, disc_id );
+                Pc data = sector;
                 for_n( sector_i, disc->partition[ partition_i ].oux.block_table[ block_table_i_write ].location.sectors.n )
-                {   Pc data = sector;
-                    do
+                {   do
                     {   switch( continue_from )
                         { case ~0:
                                 block_table_i++;
@@ -5532,9 +5529,9 @@ End_loop:
                 ))
                     return ~0;
                 disc = E_mem_Q_tab_R( E_disc_S, disc_id );
+                Pc data = sector;
                 for_n( sector_i, disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].location.sectors.n )
-                {   Pc data = sector;
-                    do
+                {   do
                     {   switch( continue_from )
                         { case ~0:
                                 directory_i++;
@@ -5756,9 +5753,9 @@ End_loop:
                 ))
                     return ~0;
                 disc = E_mem_Q_tab_R( E_disc_S, disc_id );
+                Pc data = sector;
                 for_n( sector_i, disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_file_table_start + file_table_i ].location.sectors.n )
-                {   Pc data = sector;
-                    do
+                {   do
                     {   switch( continue_from )
                         { case ~0:
                                 file_i++;
@@ -7369,6 +7366,18 @@ E_ouxfs_Q_watch_directory_M( I disc_id
                 i = min + ( max - i ) / 2;
             }
         }
+        do
+            i++;
+        while( i != disc->partition[ partition_i ].oux.watch_directory_n
+        && disc->partition[ partition_i ].oux.watch_directory[i].report == report
+        && disc->partition[ partition_i ].oux.watch_directory[i].uid != uid
+        );
+        if( i != disc->partition[ partition_i ].oux.watch_directory_n
+        && disc->partition[ partition_i ].oux.watch_directory[i].report == report
+        )
+        {   r = ~0;
+            goto End;
+        }
     }else
         i = 0;
     r = (N)E_mem_Q_blk_I_insert( &disc->partition[ partition_i ].oux.watch_directory, i, 1 );
@@ -7426,16 +7435,19 @@ E_ouxfs_Q_watch_directory_W( I disc_id
             i = min + ( max - i ) / 2;
         }
     }
-    while( i != disc->partition[ partition_i ].oux.watch_directory_n
-    && disc->partition[ partition_i ].oux.watch_directory[i].report == report
-    && disc->partition[ partition_i ].oux.watch_directory[i].uid != uid
-    )
-        i++;
-    if( i == disc->partition[ partition_i ].oux.watch_directory_n
-    || disc->partition[ partition_i ].oux.watch_directory[i].report != report
-    )
-    {   r = ~0;
-        goto End;
+    if( disc->partition[ partition_i ].oux.watch_directory[i].uid != uid )
+    {   do
+            i++;
+        while( i != disc->partition[ partition_i ].oux.watch_directory_n
+        && disc->partition[ partition_i ].oux.watch_directory[i].report == report
+        && disc->partition[ partition_i ].oux.watch_directory[i].uid != uid
+        );
+        if( i == disc->partition[ partition_i ].oux.watch_directory_n
+        || disc->partition[ partition_i ].oux.watch_directory[i].report != report
+        )
+        {   r = ~0;
+            goto End;
+        }
     }
     r = (N)E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.watch_directory, i, 1 );
     if( K_error(r)
