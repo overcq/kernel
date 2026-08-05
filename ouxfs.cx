@@ -480,7 +480,7 @@ E_ouxfs_Q_block_table_I_unite( I disc_id
         if( block_start )
             *block_start = block_table_i = disc->partition[ partition_i ].oux.block_table_n;
         else
-            block_table_i = 0;
+            block_table_i = *block_n;
     }
     if( realloc_subtract )
     {   N64 block_table_diff_ = sizeof( N64 ) + 1
@@ -496,14 +496,17 @@ E_ouxfs_Q_block_table_I_unite( I disc_id
         disc->partition[ partition_i ].oux.block_table_n--;
         if( disc->partition[ partition_i ].oux.block_table_changed_from > block_table_i )
             disc->partition[ partition_i ].oux.block_table_changed_from = block_table_i;
-        if( block_table_i + 1 != disc->partition[ partition_i ].oux.block_table_n )
+        if( block_table_i != disc->partition[ partition_i ].oux.block_table_n )
         {   if( disc->partition[ partition_i ].oux.block_table_directory_table_start > block_table_i )
                 disc->partition[ partition_i ].oux.block_table_directory_table_start--;
             if( disc->partition[ partition_i ].oux.block_table_file_table_start > block_table_i )
                 disc->partition[ partition_i ].oux.block_table_file_table_start--;
             for_n( file_i, disc->partition[ partition_i ].oux.file_n )
                 if( disc->partition[ partition_i ].oux.file[ file_i ].block_table.start > block_table_i )
-                    disc->partition[ partition_i ].oux.file[ file_i ].block_table.start--;
+                {   disc->partition[ partition_i ].oux.file[ file_i ].block_table.start--;
+                    if( disc->partition[ partition_i ].oux.file_table_changed_from > file_i )
+                        disc->partition[ partition_i ].oux.file_table_changed_from = file_i;
+                }
         }
         *block_table_diff -= block_table_diff_;
         block_table_i = upper_block_table_i > block_table_i ? upper_block_table_i - 1 : upper_block_table_i;
@@ -528,7 +531,17 @@ E_ouxfs_Q_block_table_I_unite( I disc_id
                 disc->partition[ partition_i ].oux.block_table_file_table_start++;
             for_n( file_i, disc->partition[ partition_i ].oux.file_n )
                 if( disc->partition[ partition_i ].oux.file[ file_i ].block_table.start >= block_table_i )
-                    disc->partition[ partition_i ].oux.file[ file_i ].block_table.start++;
+                {   disc->partition[ partition_i ].oux.file[ file_i ].block_table.start++;
+                    if( disc->partition[ partition_i ].oux.file_table_changed_from > file_i )
+                        disc->partition[ partition_i ].oux.file_table_changed_from = file_i;
+                }
+        }else if( block_start )
+        {   for_n( file_i, disc->partition[ partition_i ].oux.file_n )
+                if( block_start == &disc->partition[ partition_i ].oux.file[ file_i ].block_table.start )
+                {   if( disc->partition[ partition_i ].oux.file_table_changed_from > file_i )
+                        disc->partition[ partition_i ].oux.file_table_changed_from = file_i;
+                    break;
+                }
         }
     }else
     {   if( disc->partition[ partition_i ].oux.block_table_changed_from > block_table_i )
@@ -854,7 +867,9 @@ E_ouxfs_Z_start_n_I_block_truncate( N disc_id
             K( E_disc_P_trim( disc_id, partition_i, block->sector + size, block->location.sectors.n - size ));
                 return ~0;
             disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-            for_n( sector_i, block->location.sectors.n )
+            N64 sector_i = J_min( n / disc->sata_ahci.physical_sector_size, block->location.sectors.n );
+            n -= sector_i * disc->sata_ahci.physical_sector_size;
+            if( sector_i != block->location.sectors.n )
             {   N64 n__ = J_min( n, disc->sata_ahci.physical_sector_size );
                 n -= n__;
                 if( !n )
@@ -972,12 +987,16 @@ Loop_end:
             disc->partition[ partition_i ].oux.block_table_file_table_start -= *block_n - block_delete_start;
         for_n( file_i, disc->partition[ partition_i ].oux.file_n )
             if( disc->partition[ partition_i ].oux.file[ file_i ].block_table.start > block_start + block_delete_start )
-                disc->partition[ partition_i ].oux.file[ file_i ].block_table.start -= *block_n - block_delete_start;
+            {   disc->partition[ partition_i ].oux.file[ file_i ].block_table.start -= *block_n - block_delete_start;
+                if( disc->partition[ partition_i ].oux.file_table_changed_from > file_i )
+                    disc->partition[ partition_i ].oux.file_table_changed_from = file_i;
+            }
         disc->partition[ partition_i ].oux.block_table_n -= *block_n - block_delete_start;
         *block_n = block_delete_start;
     }
     return 0;
 }
+//DFN “block_start == 0”, tylko wtedy, gdy wykonuje procedurę na całej “block_table”.
 _internal
 N
 E_ouxfs_Z_start_n_I_block_append( N disc_id
@@ -1042,7 +1061,10 @@ E_ouxfs_Z_start_n_I_block_append( N disc_id
                 disc->partition[ partition_i ].oux.block_table_file_table_start -= *block_n;
             for_n( file_i, disc->partition[ partition_i ].oux.file_n )
                 if( disc->partition[ partition_i ].oux.file[ file_i ].block_table.start > block_start_ )
-                    disc->partition[ partition_i ].oux.file[ file_i ].block_table.start -= *block_n;
+                {   disc->partition[ partition_i ].oux.file[ file_i ].block_table.start -= *block_n;
+                    if( disc->partition[ partition_i ].oux.file_table_changed_from > file_i )
+                        disc->partition[ partition_i ].oux.file_table_changed_from = file_i;
+                }
             *block_n = 0;
             *changed_from = 0;
             N64 lowest_size = ~0;
@@ -2017,16 +2039,18 @@ Write:      N64 n_;
                     }
                 }
                 N sector_i = J_min( n / disc->sata_ahci.physical_sector_size, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.n );
-                K( E_disc_P( disc_id, partition_i, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector, sector_i, &sector ))
-                    return ~0;
-                disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-                E_mem_Q_blk_I_copy( sector, data + data_p, sector_i * disc->sata_ahci.physical_sector_size );
-                r = E_disc_P_dirty( disc_id, partition_i, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector, sector_i );
-                E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.ssd_cache_lock, &disc->sata_ahci.sata_return, r );
-                if( K_error(r) )
-                    return r;
-                data_p += sector_i * disc->sata_ahci.physical_sector_size;
-                n_ = n -= sector_i * disc->sata_ahci.physical_sector_size;
+                if( sector_i )
+                {   K( E_disc_P( disc_id, partition_i, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector, sector_i, &sector ))
+                        return ~0;
+                    disc = E_mem_Q_tab_R( E_disc_S, disc_id );
+                    E_mem_Q_blk_I_copy( sector, data + data_p, sector_i * disc->sata_ahci.physical_sector_size );
+                    r = E_disc_P_dirty( disc_id, partition_i, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector, sector_i );
+                    E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.ssd_cache_lock, &disc->sata_ahci.sata_return, r );
+                    if( K_error(r) )
+                        return r;
+                    data_p += sector_i * disc->sata_ahci.physical_sector_size;
+                    n_ = n -= sector_i * disc->sata_ahci.physical_sector_size;
+                }
                 if( n
                 && sector_i != disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.n
                 )
@@ -2299,7 +2323,7 @@ E_ouxfs_Q_file_I_copy_( N disc_id
 #define E_ouxfs_Q_device_I_switch_item( type, item, end ) \
     if( data_i ) \
     {   do \
-        {   item |= (type)*( N8 * )data++ << ( data_i++ * 8 ); \
+        {   item |= ( (type)*data++  & 0xff ) << ( data_i++ * 8 ); \
         }while( data_i != sizeof(type) \
         && data != (end) \
         ); \
@@ -2313,7 +2337,7 @@ E_ouxfs_Q_file_I_copy_( N disc_id
         if( data + sizeof(type) > (end) ) \
         {   item = 0; \
             do \
-            {   item |= (type)*( N8 * )data++ << ( data_i++ * 8 ); \
+            {   item |= ( (type)*data++ & 0xff ) << ( data_i++ * 8 ); \
             }while( data != (end) ); \
             break; \
         } \
@@ -5096,10 +5120,8 @@ E_ouxfs_Q_device_I_save( I disc_id
     {   K( E_disc_P( disc_id, partition_i, 0, 1, &sector ))
             return ~0;
         disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-        _0( sector, disc->sata_ahci.physical_sector_size ); //NDFN Czy to potrzebne?
-        E_text_Z_s_P_copy_s0_0( sector, E_ouxfs_Q_device_S_ident );
-        sector[ sizeof( E_ouxfs_Q_device_S_ident ) ] = __builtin_ctz( disc->sata_ahci.physical_sector_size );
-        N64 *block_table_n = E_simple_Z_p_I_align_up_to_v2( sector + sizeof( E_ouxfs_Q_device_S_ident ) + 1, sizeof( N64 ));
+        E_text_Z_s_P_copy_s0( sector, E_ouxfs_Q_device_S_ident );
+        N64 *block_table_n = E_simple_Z_p_I_align_up_to_v2( sector + J_s0_R_l( E_ouxfs_Q_device_S_ident ), sizeof( N64 ));
         block_table_n[0] = disc->partition[ partition_i ].oux.block_table_n;
         block_table_n[1] = disc->partition[ partition_i ].oux.block_table_block_table_n;
         block_table_n[2] = disc->partition[ partition_i ].oux.block_table_directory_table_start;
@@ -5637,13 +5659,13 @@ End_loop:
                             continue_from++;
                       case 0:
                             E_ouxfs_Q_device_I_switch_item( N64, disc->partition[ partition_i ].oux.directory[ directory_i ].uid
-                            , sector + disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start
-                              + directory_table_i ].location.in_sector.start + disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].location.in_sector.size
+                            , sector + disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].location.in_sector.start
+                              + disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].location.in_sector.size
                             );
                       case 1:
                             E_ouxfs_Q_device_I_switch_item( N64, disc->partition[ partition_i ].oux.directory[ directory_i ].parent
-                            , sector + disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start
-                              + directory_table_i ].location.in_sector.start + disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].location.in_sector.size
+                            , sector + disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].location.in_sector.start
+                              + disc->partition[ partition_i ].oux.block_table[ disc->partition[ partition_i ].oux.block_table_directory_table_start + directory_table_i ].location.in_sector.size
                             );
                             char_i = 0;
                       case 2:
@@ -7182,19 +7204,20 @@ E_ouxfs_Q_file_W( N disc_id
         if( disc->partition[ partition_i ].oux.block_table_file_table_start > disc->partition[ partition_i ].oux.file[ file_i ].block_table.start )
             disc->partition[ partition_i ].oux.block_table_file_table_start -= disc->partition[ partition_i ].oux.file[ file_i ].block_table.n;
         for_n( file_i_, disc->partition[ partition_i ].oux.file_n )
-            if( file_i_ != file_i
-            && disc->partition[ partition_i ].oux.file[ file_i_ ].block_table.start > disc->partition[ partition_i ].oux.file[ file_i ].block_table.start
-            )
-                disc->partition[ partition_i ].oux.file[ file_i_ ].block_table.start -= disc->partition[ partition_i ].oux.file[ file_i ].block_table.n;
+            if( disc->partition[ partition_i ].oux.file[ file_i_ ].block_table.start > disc->partition[ partition_i ].oux.file[ file_i ].block_table.start )
+            {   disc->partition[ partition_i ].oux.file[ file_i_ ].block_table.start -= disc->partition[ partition_i ].oux.file[ file_i ].block_table.n;
+                if( disc->partition[ partition_i ].oux.file_table_changed_from > file_i )
+                    disc->partition[ partition_i ].oux.file_table_changed_from = file_i;
+            }
         r = (N)E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.block_table
         , disc->partition[ partition_i ].oux.file[ file_i ].block_table.start
-        , disc->partition[ partition_i ].oux.block_table_n - ( disc->partition[ partition_i ].oux.file[ file_i ].block_table.start + disc->partition[ partition_i ].oux.file[ file_i ].block_table.n )
+        , disc->partition[ partition_i ].oux.file[ file_i ].block_table.n
         );
         if( K_error(r)
         || !r
         )
         {   if( r == ~4 )
-                Gk(E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.block_table, disc->partition[ partition_i ].oux.file[ file_i ].block_table.start, disc->partition[ partition_i ].oux.block_table_n - ( disc->partition[ partition_i ].oux.file[ file_i ].block_table.start + disc->partition[ partition_i ].oux.file[ file_i ].block_table.n )));
+                Gk(E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.block_table, disc->partition[ partition_i ].oux.file[ file_i ].block_table.start, disc->partition[ partition_i ].oux.file[ file_i ].block_table.n ));
             if( (S)r > ~2 )
                 r = ~2;
             goto End;

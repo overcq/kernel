@@ -97,6 +97,7 @@ struct E_disc_Z
       struct E_sata_Z_dsm_range *trim_list;
       N trim_list_n;
       N logical_sector_n;
+      N data_set_management_count;
       volatile N sata_return, ssd_cache_return;
       N16 logical_sector_size, physical_sector_size;
       N8 logical_sector_shift;
@@ -311,7 +312,7 @@ E_disc_W( void
                         }
                     }
                 }
-                K( E_ssd_cache_I_sync_and_free( disc_id ))
+                K( E_ssd_cache_I_sync_free_quit( disc_id ))
                     return ~0;
                 break;
             }
@@ -320,6 +321,7 @@ E_disc_W( void
     return 0;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//DFN Można podawać tylko zakresy obecne w “ssd_cache”, tzn. po wykonaniu “E_disc_R” lub “E_disc_P”.
 _private
 N
 E_disc_P_dirty( I disc_id

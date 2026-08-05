@@ -7,7 +7,8 @@
 *         SATA AHCI driver
 * ©overcq                on ‟Gentoo Linux 23.0” “x86_64”             2025‒11‒7 d
 *******************************************************************************/
-#define E_sata_S_interrupt_status_clear_mask 0xfd8000af
+#define E_sata_S_interrupt_status_clear_mask    0xfd8000af
+#define E_sata_Q_trim_S_list_max                ( 4096 / sizeof( struct E_sata_Z_dsm_range ))
 //==============================================================================
 enum E_sata_Z_ata_command
 { E_sata_Z_ata_command_S_data_set_management = 6
@@ -361,6 +362,7 @@ E_sata_I_init( volatile struct E_sata_Z_memory *sata_memory
             command_table->command_fis.control_command = yes;
             command_list[i].command_table_base = (N)E_main_Z_p_I_to_physical( command_table );
         }
+        command_table_0->region[0].interrupt_on_completion = no;
         struct E_sata_Z_recv_fis *recv_fis = E_mem_Q_blk_M_align( sizeof( struct E_sata_Z_recv_fis ), 256 );
         if( !recv_fis )
             return ~2;
@@ -410,14 +412,14 @@ E_sata_I_init( volatile struct E_sata_Z_memory *sata_memory
             if( disc->type == E_disc_Z_type_S_sata_ahci )
             {   if( !( identify[83] & ( 1 << 10 ))) // 48‐bit addressable
                     goto End;
-                disc->sata_ahci.trim = identify[169] & ( 1 << 0 );
+                disc->sata_ahci.trim = identify[169] & 1;
                 disc->sata_ahci.logical_sector_n = *( N64 * )&identify[100];
                 if( disc->sata_ahci.logical_sector_n == 0xffffffffffffULL )
                 {   //TODO Odczytać ze SMART.
                     return ~0;
                 }
-                if( identify[106] & ( 1 << 12 ))
-                {   disc->sata_ahci.logical_sector_size = *( N16 * )&identify[117] / sizeof( N16 );
+                if( identify[106] & ( 1 << 12 )) // Logiczny sektor większy niż 512.
+                {   disc->sata_ahci.logical_sector_size = *( N32 * )&identify[117] / sizeof( N16 );
                     G( "logical_sector_size: %16x\n", disc->sata_ahci.logical_sector_size );
                     if( disc->sata_ahci.logical_sector_size < 512
                     || !E_simple_Z_n_T_power_2( disc->sata_ahci.logical_sector_size )
@@ -425,9 +427,9 @@ E_sata_I_init( volatile struct E_sata_Z_memory *sata_memory
                         goto End;
                 }else
                     disc->sata_ahci.logical_sector_size = 512;
-                if( identify[106] & ( 1 << 13 ))
-                {   disc->sata_ahci.physical_sector_size = ( 1 << (( identify[106] >> 8 ) & 0xf )) * disc->sata_ahci.logical_sector_size;
-                    disc->sata_ahci.logical_sector_shift = identify[209] & 0x3f;
+                if( identify[106] & ( 1 << 13 )) // Wiele logicznych sektorów w fizycznym sektorze.
+                {   disc->sata_ahci.physical_sector_size = ( 1 << ( identify[106] & 0xf )) * disc->sata_ahci.logical_sector_size;
+                    disc->sata_ahci.logical_sector_shift = identify[209] & 0x3fff;
                     G( "logical_sector_shift: %8x\n", disc->sata_ahci.logical_sector_shift );
                     if( disc->sata_ahci.logical_sector_shift >= disc->sata_ahci.physical_sector_size / disc->sata_ahci.logical_sector_size )
                         goto End;
@@ -436,6 +438,9 @@ E_sata_I_init( volatile struct E_sata_Z_memory *sata_memory
                     disc->sata_ahci.logical_sector_shift = 0;
                 }
                 disc->sata_ahci.queue_n = ( *( N8 * )&identify[75] & 0x1f ) + 1;
+                disc->sata_ahci.data_set_management_count = identify[105] * ( 512 / sizeof( struct E_sata_Z_dsm_range ));
+                if( disc->sata_ahci.data_set_management_count > E_sata_Q_trim_S_list_max )
+                    disc->sata_ahci.data_set_management_count = E_sata_Q_trim_S_list_max;
             }
             K_( ~2, E_disc_I_init( disc_id ));
 End:        K_( ~2, W(identify) );
@@ -471,7 +476,7 @@ _private
 N
 E_sata_Q_sata_ahci_I_read( I disc_id
 , N lba
-, N logical_sector_count //DFN 0 oznacza 65536 sektorów.
+, N logical_sector_count
 , P buffer
 , N32 *slot_mask
 ){  N r;
@@ -500,7 +505,7 @@ E_sata_Q_sata_ahci_I_read( I disc_id
         command_table->command_fis.lba_0 = ( N8 )lba;
         command_table->command_fis.lba_1 = ( N8 )( lba >> 8 );
         command_table->command_fis.lba_2 = ( N8 )( lba >> 16 );
-        command_table->command_fis.device = 1 << 6;
+        command_table->command_fis.device = 1 << 6; // Zarezerwowany.
         command_table->command_fis.lba_3 = ( N8 )( lba >> 24 );
         command_table->command_fis.lba_4 = ( N8 )( lba >> 32 );
         command_table->command_fis.lba_5 = ( N8 )( lba >> 40 );
@@ -509,10 +514,10 @@ E_sata_Q_sata_ahci_I_read( I disc_id
         command_table->command_fis.feature_high = count >> 8;
         command_table->command_fis.count = command_slot_i << 3;
         command_table->region[0].data_base_address = (N)E_main_Z_p_I_to_physical(buffer);
-        command_table->region[0].data_count = (( count ? count : 65536 ) * disc->sata_ahci.logical_sector_size ) - 1;
+        command_table->region[0].data_count = ( count ? count : 65536 ) * disc->sata_ahci.logical_sector_size - 1;
         N time;
         E_flow_Q_spin_time_M( &time, 10000000 );
-        while( disc->sata_ahci.memory->port[ disc->sata_ahci.port ].task_file_data & (( 1 << 7 ) | ( 1 << 3 )))
+        while( disc->sata_ahci.memory->port[ disc->sata_ahci.port ].task_file_data & (( 1 << 7 ) | ( 1 << 3 ))) // BSY lub DRQ
         {   if( E_flow_Q_spin_time_T( &time ))
             {   r = ~0;
                 goto End;
@@ -523,11 +528,13 @@ E_sata_Q_sata_ahci_I_read( I disc_id
         }
         disc->sata_ahci.memory->port[ disc->sata_ahci.port ].sata_active = 1 << command_slot_i;
         disc->sata_ahci.memory->port[ disc->sata_ahci.port ].command_issue = 1 << command_slot_i;
-        *slot_mask &= disc->sata_ahci.memory->port[ disc->sata_ahci.port ].sata_active;
+        *slot_mask &= disc->sata_ahci.memory->port[ disc->sata_ahci.port ].sata_active; //NDFN Jeśli w międzyczasie inny procesor przejąłby dany bit, to wcześniejsze żądanie (na pierwszym procesorze) będzie niepotrzebnie czekać na jego zwolnienie.
         *slot_mask |= 1 << command_slot_i;
         if( logical_sector_count <= max_sectors )
             break;
         logical_sector_count -= max_sectors;
+        if( !logical_sector_count )
+            break;
         buffer += max_sectors * disc->sata_ahci.logical_sector_size;
         lba += max_sectors;
     }
@@ -538,7 +545,7 @@ _private
 N
 E_sata_Q_sata_ahci_I_write( I disc_id
 , N lba
-, N logical_sector_count //DFN 0 oznacza 65536 sektorów.
+, N logical_sector_count
 , P buffer
 , N32 *slot_mask
 ){  N r;
@@ -567,7 +574,7 @@ E_sata_Q_sata_ahci_I_write( I disc_id
         command_table->command_fis.lba_0 = ( N8 )lba;
         command_table->command_fis.lba_1 = ( N8 )( lba >> 8 );
         command_table->command_fis.lba_2 = ( N8 )( lba >> 16 );
-        command_table->command_fis.device = 1 << 6;
+        command_table->command_fis.device = 1 << 6; // Zarezerwowany.
         command_table->command_fis.lba_3 = ( N8 )( lba >> 24 );
         command_table->command_fis.lba_4 = ( N8 )( lba >> 32 );
         command_table->command_fis.lba_5 = ( N8 )( lba >> 40 );
@@ -575,11 +582,11 @@ E_sata_Q_sata_ahci_I_write( I disc_id
         command_table->command_fis.feature_low = count & 0xff;
         command_table->command_fis.feature_high = count >> 8;
         command_table->command_fis.count = command_slot_i << 3;
-        command_table->region[0].data_base_address = ( N )E_main_Z_p_I_to_physical(buffer);
-        command_table->region[0].data_count = (( count ? count : max_sectors ) * disc->sata_ahci.logical_sector_size ) - 1;
+        command_table->region[0].data_base_address = (N)E_main_Z_p_I_to_physical(buffer);
+        command_table->region[0].data_count = ( count ? count : 65536 ) * disc->sata_ahci.logical_sector_size - 1;
         N time;
         E_flow_Q_spin_time_M( &time, 10000000 );
-        while( disc->sata_ahci.memory->port[ disc->sata_ahci.port ].task_file_data & (( 1 << 7 ) | ( 1 << 3 )))
+        while( disc->sata_ahci.memory->port[ disc->sata_ahci.port ].task_file_data & (( 1 << 7 ) | ( 1 << 3 ))) // BSY lub DRQ
         {   if( E_flow_Q_spin_time_T( &time ))
             {   r = ~0;
                 goto End;
@@ -590,11 +597,13 @@ E_sata_Q_sata_ahci_I_write( I disc_id
         }
         disc->sata_ahci.memory->port[ disc->sata_ahci.port ].sata_active = 1 << command_slot_i;
         disc->sata_ahci.memory->port[ disc->sata_ahci.port ].command_issue = 1 << command_slot_i;
-        *slot_mask &= disc->sata_ahci.memory->port[ disc->sata_ahci.port ].sata_active;
+        *slot_mask &= disc->sata_ahci.memory->port[ disc->sata_ahci.port ].sata_active; //NDFN Jeśli w międzyczasie inny procesor przejąłby dany bit, to wcześniejsze żądanie (na pierwszym procesorze) będzie niepotrzebnie czekać na jego zwolnienie.
         *slot_mask |= 1 << command_slot_i;
         if( logical_sector_count <= max_sectors )
             break;
         logical_sector_count -= max_sectors;
+        if( !logical_sector_count )
+            break;
         buffer += max_sectors * disc->sata_ahci.logical_sector_size;
         lba += max_sectors;
     }
@@ -605,7 +614,7 @@ _private
 N
 E_sata_Q_sata_ahci_I_trim( I disc_id
 , struct E_sata_Z_dsm_range *range_list
-, N16 logical_sector_count
+, N16 count_512
 , N32 *slot_mask
 ){  N r;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
@@ -631,12 +640,12 @@ E_sata_Q_sata_ahci_I_trim( I disc_id
     command_table->command_fis.command = E_sata_Z_ata_command_S_data_set_management;
     command_table->command_fis.feature_low = 1 << 0; // TRIM
     command_table->command_fis.feature_high = 0;
-    command_table->command_fis.count = logical_sector_count;
+    command_table->command_fis.count = count_512;
     command_table->region[0].data_base_address = (N)E_main_Z_p_I_to_physical( range_list );
-    command_table->region[0].data_count = ( logical_sector_count * disc->sata_ahci.logical_sector_size ) - 1;
+    command_table->region[0].data_count = count_512 * 512 - 1;
     N time;
     E_flow_Q_spin_time_M( &time, 10000000 );
-    while( disc->sata_ahci.memory->port[ disc->sata_ahci.port ].task_file_data & (( 1 << 7 ) | ( 1 << 3 )))
+    while( disc->sata_ahci.memory->port[ disc->sata_ahci.port ].task_file_data & (( 1 << 7 ) | ( 1 << 3 ))) // BSY lub DRQ
     {   if( E_flow_Q_spin_time_T( &time ))
         {   r = ~0;
             goto End;
@@ -647,7 +656,7 @@ E_sata_Q_sata_ahci_I_trim( I disc_id
     }
     disc->sata_ahci.memory->port[ disc->sata_ahci.port ].sata_active = 1 << command_slot_i;
     disc->sata_ahci.memory->port[ disc->sata_ahci.port ].command_issue = 1 << command_slot_i;
-    *slot_mask &= disc->sata_ahci.memory->port[ disc->sata_ahci.port ].sata_active;
+    *slot_mask &= disc->sata_ahci.memory->port[ disc->sata_ahci.port ].sata_active; //NDFN Jeśli w międzyczasie inny procesor przejąłby dany bit, to wcześniejsze żądanie (na pierwszym procesorze) będzie niepotrzebnie czekać na jego zwolnienie.
     *slot_mask |= 1 << command_slot_i;
 End:E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.sata_lock, &disc->sata_ahci.sata_return, r );
     return r;
@@ -673,7 +682,7 @@ E_sata_Q_sata_ahci_I_flush( I disc_id
     command_table->command_fis.count = 0;
     N time;
     E_flow_Q_spin_time_M( &time, 10000000 );
-    while( disc->sata_ahci.memory->port[ disc->sata_ahci.port ].task_file_data & (( 1 << 7 ) | ( 1 << 3 )))
+    while( disc->sata_ahci.memory->port[ disc->sata_ahci.port ].task_file_data & (( 1 << 7 ) | ( 1 << 3 ))) // BSY lub DRQ
     {   if( E_flow_Q_spin_time_T( &time ))
             return ~0;
         __asm__ volatile (
