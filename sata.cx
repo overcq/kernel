@@ -483,7 +483,7 @@ E_sata_Q_sata_ahci_I_read( I disc_id
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
     N max_sectors = ( 1 << 22 ) / disc->sata_ahci.logical_sector_size;
     E_flow_Z_lock_I_lock( &disc->sata_ahci.sata_lock );
-    r = disc->sata_ahci.sata_return;
+    r = disc->sata_ahci.sata_return.n;
     if( K_error(r) )
         return r;
     O{  N8 command_slot_i = E_sata_Q_disc_device_R_free_command_slot(disc);
@@ -493,7 +493,7 @@ E_sata_Q_sata_ahci_I_read( I disc_id
                 return ~0;
             disc = E_mem_Q_tab_R( E_disc_S, disc_id );
             E_flow_Z_lock_I_lock( &disc->sata_ahci.sata_lock );
-            r = disc->sata_ahci.sata_return;
+            r = disc->sata_ahci.sata_return.n;
             if( K_error(r) )
                 return r;
             command_slot_i = E_sata_Q_disc_device_R_free_command_slot(disc);
@@ -552,7 +552,7 @@ E_sata_Q_sata_ahci_I_write( I disc_id
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
     N max_sectors = ( 1 << 22 ) / disc->sata_ahci.logical_sector_size;
     E_flow_Z_lock_I_lock( &disc->sata_ahci.sata_lock );
-    r = disc->sata_ahci.sata_return;
+    r = disc->sata_ahci.sata_return.n;
     if( K_error(r) )
         return r;
     O{  N8 command_slot_i = E_sata_Q_disc_device_R_free_command_slot(disc);
@@ -562,7 +562,7 @@ E_sata_Q_sata_ahci_I_write( I disc_id
                 return ~0;
             disc = E_mem_Q_tab_R( E_disc_S, disc_id );
             E_flow_Z_lock_I_lock( &disc->sata_ahci.sata_lock );
-            r = disc->sata_ahci.sata_return;
+            r = disc->sata_ahci.sata_return.n;
             if( K_error(r) )
                 return r;
             command_slot_i = E_sata_Q_disc_device_R_free_command_slot(disc);
@@ -619,7 +619,7 @@ E_sata_Q_sata_ahci_I_trim( I disc_id
 ){  N r;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
     E_flow_Z_lock_I_lock( &disc->sata_ahci.sata_lock );
-    r = disc->sata_ahci.sata_return;
+    r = disc->sata_ahci.sata_return.n;
     if( K_error(r) )
         return r;
     N8 command_slot_i = E_sata_Q_disc_device_R_free_command_slot(disc);
@@ -629,7 +629,7 @@ E_sata_Q_sata_ahci_I_trim( I disc_id
             return ~0;
         disc = E_mem_Q_tab_R( E_disc_S, disc_id );
         E_flow_Z_lock_I_lock( &disc->sata_ahci.sata_lock );
-        r = disc->sata_ahci.sata_return;
+        r = disc->sata_ahci.sata_return.n;
         if( K_error(r) )
             return r;
         command_slot_i = E_sata_Q_disc_device_R_free_command_slot(disc);

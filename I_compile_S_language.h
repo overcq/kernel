@@ -280,6 +280,10 @@ struct __attribute__ (( __packed__ )) E_flow_Z_lock_rw
 { N32 read;
   N32 write;
 };
+struct E_flow_Z_lock_return
+{ N n;
+  N32 sched_i;
+};
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 struct E_ouxfs_Z_oux
 { N64 block_table_size;

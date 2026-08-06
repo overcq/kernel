@@ -285,11 +285,14 @@ E_flow_Z_lock_I_unlock( B *lock
 _inline
 void
 E_flow_Z_lock_I_unlock_and_return( B *lock
-, N *r
+, struct E_flow_Z_lock_return *r
 , N r_
-){  __asm__ volatile (
+){  if( K_error( r_ ))
+        r->sched_i = E_flow_I_current_scheduler();
+    __asm__ volatile (
     "\n" "lock xchg %1,%0"
-    : "+m" ( *r ), "+r" ( r_ )
+    "\n" "lock xchg %3,%2"
+    : "+m" ( r->sched_i ), "+r" ( r->sched_i ), "+m" ( r->n ), "+r" ( r_ )
     );
     E_flow_Z_lock_I_unlock(lock);
 }
@@ -316,12 +319,15 @@ E_flow_Z_lock_rw_I_lock_read( struct E_flow_Z_lock_rw *lock_rw
 _inline
 void
 E_flow_Z_lock_rw_I_unlock_read_and_return( struct E_flow_Z_lock_rw *lock_rw
-, N *r
+, struct E_flow_Z_lock_return *r
 , N r_
-){  __asm__ volatile (
+){  if( K_error( r_ ))
+        r->sched_i = E_flow_I_current_scheduler();
+    __asm__ volatile (
     "\n" "lock xchg %1,%0"
-    "\n" "lock decl %2"
-    : "+m" ( *r ), "+r" ( r_ ), "+m" ( lock_rw->read )
+    "\n" "lock xchg %3,%2"
+    "\n" "lock decl %4"
+    : "+m" ( r->sched_i ), "+r" ( r->sched_i ), "+m" ( r->n ), "+r" ( r_ ), "+m" ( lock_rw->read )
     :
     : "cc"
     );
@@ -345,13 +351,25 @@ E_flow_Z_lock_rw_I_lock_write( struct E_flow_Z_lock_rw *lock_rw
 _inline
 void
 E_flow_Z_lock_rw_I_unlock_write_and_return( struct E_flow_Z_lock_rw *lock_rw
-, N *r
+, struct E_flow_Z_lock_return *r
 , N r_
-){  N32 b = no;
+){  if( K_error( r_ ))
+        r->sched_i = E_flow_I_current_scheduler();
+    N32 b = no;
     __asm__ volatile (
     "\n" "lock xchg %1,%0"
     "\n" "lock xchg %3,%2"
-    : "+m" ( *r ), "+r" ( r_ ), "+m" ( lock_rw->write ), "+r" (b)
+    "\n" "lock xchg %5,%4"
+    : "+m" ( r->sched_i ), "+r" ( r->sched_i ), "+m" ( r->n ), "+r" ( r_ ), "+m" ( lock_rw->write ), "+r" (b)
+    );
+}
+_inline
+void
+E_flow_I_clear_return( struct E_flow_Z_lock_return *r
+){  N r_ = 0;
+    __asm__ volatile (
+    "\n" "lock xchg %1,%0"
+    : "+m" ( r->n ), "+r" ( r_ )
     );
 }
 /******************************************************************************/

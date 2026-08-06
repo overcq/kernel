@@ -78,7 +78,7 @@ struct E_disc_Z_partition
   { struct E_ouxfs_Z_oux oux;
   };
   struct E_flow_Z_lock_rw lock_rw;
-  volatile N return_;
+  volatile struct E_flow_Z_lock_return return_;
 };
 enum E_disc_Z_type
 { E_disc_Z_type_S_unknown
@@ -98,7 +98,7 @@ struct E_disc_Z
       N trim_list_n;
       N logical_sector_n;
       N data_set_management_count;
-      volatile N sata_return, ssd_cache_return;
+      volatile struct E_flow_Z_lock_return sata_return, ssd_cache_return;
       N16 logical_sector_size, physical_sector_size;
       N8 logical_sector_shift;
       N8 port;
@@ -151,9 +151,9 @@ E_disc_I_init( I disc_id
     switch( disc->type )
     { case E_disc_Z_type_S_sata_ahci:
         {   disc->sata_ahci.sata_lock = 0;
-            disc->sata_ahci.sata_return = 0;
+            disc->sata_ahci.sata_return.n = 0;
             disc->sata_ahci.ssd_cache_lock = 0;
-            disc->sata_ahci.ssd_cache_return = 0;
+            disc->sata_ahci.ssd_cache_return.n = 0;
             N r = E_ssd_cache_I_init(disc);
             if( K_error(r) )
                 return r;
@@ -268,7 +268,7 @@ E_disc_I_init( I disc_id
                                 disc->partition_n++;
                                 partition->lock_rw.read = 0;
                                 partition->lock_rw.write = 0;
-                                partition->return_ = 0;
+                                partition->return_.n = 0;
                                 r = E_ouxfs_Q_device_M( disc_id, disc->partition_n - 1 );
                                 K(r)
                                 {   G( "unknown" );

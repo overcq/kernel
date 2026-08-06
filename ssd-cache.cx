@@ -148,7 +148,7 @@ E_ssd_cache_R( I disc_id
 ){  N r;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
     E_flow_Z_lock_I_lock( &disc->sata_ahci.ssd_cache_lock );
-    r = disc->sata_ahci.ssd_cache_return;
+    r = disc->sata_ahci.ssd_cache_return.n;
     if( K_error(r) )
         return r;
     N32 slot_mask = 0;
@@ -172,8 +172,6 @@ E_ssd_cache_R( I disc_id
                     {   if( K_error(r) )
                         {   if( r == ~4 )
                                 Gk(E_mem_Q_blk_I_insert( &disc->sata_ahci.ssd_cache, cache_i, 1 ));
-                            if( r > ~2 )
-                                r = ~2;
                             goto End;
                         }
                         r = ~0;
@@ -215,8 +213,6 @@ E_ssd_cache_R( I disc_id
                     {   if( K_error(r) )
                         {   if( r == ~4 )
                                 Gk(E_mem_Q_blk_I_insert( &disc->sata_ahci.ssd_cache, cache_i, 1 ));
-                            if( r > ~2 )
-                                r = ~2;
                             goto End;
                         }
                         r = ~0;
@@ -434,7 +430,7 @@ E_ssd_cache_P( I disc_id
 ){  N r;
     struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
     E_flow_Z_lock_I_lock( &disc->sata_ahci.ssd_cache_lock );
-    r = disc->sata_ahci.ssd_cache_return;
+    r = disc->sata_ahci.ssd_cache_return.n;
     if( K_error(r) )
         return r;
     if( disc->sata_ahci.ssd_cache_n )
@@ -457,8 +453,6 @@ E_ssd_cache_P( I disc_id
                     {   if( K_error(r) )
                         {   if( r == ~4 )
                                 Gk(E_mem_Q_blk_I_insert( &disc->sata_ahci.ssd_cache, cache_i, 1 ));
-                            if( r > ~2 )
-                                r = ~2;
                             goto End;
                         }
                         r = ~0;
@@ -500,8 +494,6 @@ E_ssd_cache_P( I disc_id
                     {   if( K_error(r) )
                         {   if( r == ~4 )
                                 Gk(E_mem_Q_blk_I_insert( &disc->sata_ahci.ssd_cache, cache_i, 1 ));
-                            if( r > ~2 )
-                                r = ~2;
                             goto End;
                         }
                         r = ~0;
@@ -665,7 +657,7 @@ E_ssd_cache_P_trim( I disc_id
     if( !disc->sata_ahci.trim )
         return 0;
     E_flow_Z_lock_I_lock( &disc->sata_ahci.ssd_cache_lock );
-    r = disc->sata_ahci.ssd_cache_return;
+    r = disc->sata_ahci.ssd_cache_return.n;
     if( K_error(r) )
         return r;
     if( disc->sata_ahci.ssd_cache_n )
@@ -818,7 +810,8 @@ E_ssd_cache_I_sync_free_quit( I disc_id
     switch( disc->type )
     { case E_disc_Z_type_S_sata_ahci:
         {   E_flow_Z_lock_I_lock( &disc->sata_ahci.ssd_cache_lock );
-            K( disc->sata_ahci.ssd_cache_return )
+            r = disc->sata_ahci.ssd_cache_return.n;
+            K(r)
                 return ~0;
             disc = E_mem_Q_tab_R( E_disc_S, disc_id );
             if( disc->sata_ahci.trim_list_n && no )
@@ -912,7 +905,8 @@ E_ssd_cache_I_sync_free_quit( I disc_id
             }
             disc->sata_ahci.ssd_cache_n = 0;
             E_flow_Z_lock_I_lock( &disc->sata_ahci.sata_lock );
-            K( disc->sata_ahci.sata_return )
+            r = disc->sata_ahci.sata_return.n;
+            K(r)
                 return ~0;
             slot_mask = ( 1ULL << disc->sata_ahci.queue_n ) - 1;
             while( disc->sata_ahci.memory->port[ disc->sata_ahci.port ].sata_active & slot_mask )
@@ -923,7 +917,7 @@ E_ssd_cache_I_sync_free_quit( I disc_id
                     goto End;
                 }
                 disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-                r = disc->sata_ahci.ssd_cache_return;
+                r = disc->sata_ahci.ssd_cache_return.n;
                 if( K_error(r) )
                 {   if( r > ~0 )
                         r = ~0;
@@ -948,7 +942,7 @@ E_ssd_cache_I_sync_free_quit( I disc_id
                 }
                 disc = E_mem_Q_tab_R( E_disc_S, disc_id );
                 E_flow_Z_lock_I_lock( &disc->sata_ahci.ssd_cache_lock );
-                r = disc->sata_ahci.ssd_cache_return;
+                r = disc->sata_ahci.ssd_cache_return.n;
                 if( K_error(r) )
                 {   if( r > ~3 )
                         r = ~3;

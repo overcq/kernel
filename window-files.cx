@@ -1657,51 +1657,39 @@ E_window_files_Q_bubble_Q_menu_I_click_I_message( Pc s
 , N32 row_height
 ){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, E_gui_Q_bubble_S.window_id );
     struct E_window_files_Z_data *window_data = window->data;
-    N32 x_column = E_gui_Q_bubble_S.x + x;
-    N32 bubble_width = E_main_S_framebuffer.width - x_column;
+    N32 bubble_width = E_main_S_framebuffer.width;
     E_gui_Q_bubble_S.width = 0;
     Pc s_0 = s;
-    N32 x_ = x_column + window_data->thickness + 1;
+    N32 x_ = window_data->thickness + 1;
     while( *s )
     {   U u;
         Pc s_ = E_text_Z_su_R_u( s, &u );
         s = s_;
         N32 font_i;
-        if( bubble_width <= x_ - x_column + window_data->thickness + 1
-        || !E_font_T_print_u( bubble_width - ( x_ - x_column + window_data->thickness + 1 ), window_data->thickness, &u, &font_i )
+        if( bubble_width <= x_ + window_data->thickness + 1
+        || !E_font_T_print_u( bubble_width - ( x_ + window_data->thickness + 1 ), window_data->thickness, &u, &font_i )
         )
             break;
         x_ += ( window_data->thickness + 1 ) * E_font_S_font.bitmap[ font_i ].width + window_data->thickness + 1;
     }
-    if( *s )
-    {   bubble_width = E_main_S_framebuffer.width;
-        x_ = window_data->thickness + 1;
-        s = s_0;
-        while( *s )
-        {   U u;
-            Pc s_ = E_text_Z_su_R_u( s, &u );
-            s = s_;
-            N32 font_i;
-            if( bubble_width <= x_ + window_data->thickness + 1
-            || !E_font_T_print_u( bubble_width - ( x_ + window_data->thickness + 1 ), window_data->thickness, &u, &font_i )
-            )
-                break;
-            x_ += ( window_data->thickness + 1 ) * E_font_S_font.bitmap[ font_i ].width + window_data->thickness + 1;
-        }
-        if( E_gui_Q_bubble_S.width < x_ )
-            E_gui_Q_bubble_S.width = x_;
+    E_gui_Q_bubble_S.width = x_;
+    x_ = E_gui_Q_bubble_S.x + x;
+    if( x_ >= E_gui_Q_bubble_S.width / 2 )
+    {   x_ -= E_gui_Q_bubble_S.width / 2 + E_gui_Q_bubble_S.width % 2;
+        if( x_ + E_gui_Q_bubble_S.width > E_main_S_framebuffer.width )
+            x_ = E_main_S_framebuffer.width - E_gui_Q_bubble_S.width;
     }else
-        E_gui_Q_bubble_S.width = x_ - x_column;
-    x_ = E_gui_Q_bubble_S.width > E_main_S_framebuffer.width - x_column
-    ? E_main_S_framebuffer.width - E_gui_Q_bubble_S.width
-    : x_column;
-    N32 y_ = E_gui_Q_bubble_S.y + y + window_data->font_size + 1;
-    if( y_ + row_height - ( 1 + window_data->font_size + 1 ) > E_main_S_framebuffer.height )
-        y_ = E_main_S_framebuffer.height - ( row_height - ( 1 + window_data->font_size + 1 ));
-    y_ -= window_data->font_size + 1;
+        x_ = 0;
+    E_gui_Q_bubble_S.height = window_data->font_size + 1 + row_height;
+    N32 y_ = E_gui_Q_bubble_S.y + y;
+    if( y_ >= ( window_data->font_size + 1 + row_height ) / 2 )
+    {   y_ -= ( window_data->font_size + 1 + row_height ) / 2 + ( window_data->font_size + 1 + row_height ) % 2;
+        if( y_ + E_gui_Q_bubble_S.height > E_main_S_framebuffer.height )
+            y_ = E_main_S_framebuffer.height - E_gui_Q_bubble_S.height;
+    }else
+        y_ = 0;
     E_gui_Q_bubble_S.x = x_;
     E_gui_Q_bubble_S.y = y_;
-    E_gui_Q_bubble_S.height = window_data->font_size + 1 + row_height - ( 1 + window_data->font_size + 1 );
     E_gui_Q_bubble_S.text = s_0;
     E_gui_Q_bubble_S.custom_draw = no;
     E_gui_Q_bubble_S.click = 0;
@@ -2794,7 +2782,8 @@ E_window_files_I_click_( I window_id
             y = E_gui_Q_taskbar_S_height;
         }
         N32 row_height = ( window_data->font_size + 1 ) * E_font_S_font.height + window_data->font_size + 1;
-        N32 y_ = y + window_data->font_size + 1 + window_data->pointer_row * row_height;
+        N32 y_ = y + window_data->font_size + 1 + window_data->pointer_row * row_height - ( window_data->font_size + 1 );
+        row_height += 1 + window_data->font_size + 1;
         N32 x_column = x + window_data->pointer_column * ( window_data->column_width + window_data->column_margin_width );
         N32 bubble_width = E_main_S_framebuffer.width - x_column;
         N32 x_;
@@ -2838,16 +2827,14 @@ E_window_files_I_click_( I window_id
         x_ = E_gui_Q_bubble_S.width > E_main_S_framebuffer.width - x_column
         ? E_main_S_framebuffer.width - E_gui_Q_bubble_S.width
         : x_column;
-        if( y_ + E_window_files_Q_bubble_Q_menu_S_case_n * row_height - ( 1 + window_data->font_size + 1 ) > E_main_S_framebuffer.height )
-            y_ = E_main_S_framebuffer.height - ( E_window_files_Q_bubble_Q_menu_S_case_n * row_height - ( 1 + window_data->font_size + 1 ));
-        y_ -= window_data->font_size + 1;
+        if( y_ + window_data->font_size + 1 + E_window_files_Q_bubble_Q_menu_S_case_n * row_height - ( 1 + window_data->font_size + 1 ) > E_main_S_framebuffer.height )
+            y_ = E_main_S_framebuffer.height - ( window_data->font_size + 1 + E_window_files_Q_bubble_Q_menu_S_case_n * row_height - ( 1 + window_data->font_size + 1 ));
         if( E_gui_Q_bubble_S.draw != &E_window_files_Q_bubble_Q_menu_I_draw
         || E_gui_Q_bubble_S.x != x_
         || E_gui_Q_bubble_S.y != y_
         )
         {   E_gui_Q_bubble_S.x = x_;
             E_gui_Q_bubble_S.y = y_;
-            row_height += 1 + window_data->font_size + 1;
             E_gui_Q_bubble_S.height = window_data->font_size + 1 + E_window_files_Q_bubble_Q_menu_S_case_n * row_height - ( 1 + window_data->font_size + 1 );
             E_gui_Q_bubble_S.draw = &E_window_files_Q_bubble_Q_menu_I_draw;
             E_gui_Q_bubble_S.custom_draw = yes;
