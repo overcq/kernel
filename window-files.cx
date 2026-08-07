@@ -848,7 +848,7 @@ E_window_files_I_refresh( N8 desktop_id
                 Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i + 1, window_data->selected_dir_n - ( column_i + 1 )));
             }
             window_data->selected_dir_n = column_i + 1;
-            window->selection.n = uid;
+            window->selection.n = window_data->selected_dir[ column_i ].uid[ row_i ];
             window->selection.type = E_windows_Z_selection_Z_type_S_directory;
             return yes;
         }
@@ -1631,14 +1631,13 @@ E_window_files_I_refresh( N8 desktop_id
                     Kp_( ~2, E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i + 1, window_data->selected_dir_n - ( column_i + 1 )));
                 }
                 window_data->selected_dir_n = column_i + 1;
-                window->selection.n = uid;
+                window->selection.n = window_data->selected_dir[ column_i ].uid[ row_i ];
                 window->selection.type = E_windows_Z_selection_Z_type_S_directory;
                 return yes;
             }
             window_data->selected_dir[ column_i ].selected_row = row_i;
         }
     }
-    window->selection.n = uid;
     window->selection.type = selection_type;
     if( E_gui_Q_bubble_S.draw
     && E_gui_Q_bubble_S.window_id == window_id
@@ -2681,6 +2680,8 @@ E_window_files_I_click_( I window_id
                     window_data->selected_dir[ column_i ].row_start = ~0;
                     window_data->selected_dir[ column_i ].selected_row = ~0;
                     window_data->selected_dir_n = column_i + 1;
+                    window->selection.n = ~0;
+                    window->selection.type = E_windows_Z_selection_Z_type_S_directory;
                     E_window_files_Q_watch_directory_S_disc_id = window_data->disc_partition[ row_i ].disc;
                     E_window_files_Q_watch_directory_S_partition_i = window_data->disc_partition[ row_i ].partition;
                     X_M( window_files, watch_directory );
@@ -2691,6 +2692,7 @@ E_window_files_I_click_( I window_id
                 {   Kp( E_mem_Q_blk_I_remove( &window_data->selected_dir, column_i, window_data->selected_dir_n ))
                         return ~2;
                     window_data->selected_dir_n = column_i;
+                    window->selection.type = E_windows_Z_selection_Z_type_S_none;
                 }
                 window_data->disc_partition_selected_row = row_i;
             }else

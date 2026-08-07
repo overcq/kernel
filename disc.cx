@@ -312,7 +312,7 @@ E_disc_W( void
                         }
                     }
                 }
-                K( E_ssd_cache_I_sync_free_quit( disc_id ))
+                K( E_ssd_cache_I_sync_free_before_shutdown( disc_id ))
                     return ~0;
                 break;
             }
