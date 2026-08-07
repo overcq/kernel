@@ -411,4 +411,20 @@ E_disc_P_trim( I disc_id
     }
     return 0;
 }
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_private
+N
+E_disc_P_sync( I disc_id
+){  struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
+    switch( disc->type )
+    { case E_disc_Z_type_S_sata_ahci:
+        {   K( E_ssd_cache_I_sync_free( disc_id ))
+                return ~0;
+            break;
+        }
+      default:
+            return ~0;
+    }
+    return 0;
+}
 /******************************************************************************/

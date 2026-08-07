@@ -307,6 +307,19 @@ struct E_ouxfs_Z_oux
   N16 first_sector_max_size;
 };
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+enum E_windows_Z_selection_Z_type
+{ E_windows_Z_selection_Z_type_S_none
+, E_windows_Z_selection_Z_type_S_directory
+, E_windows_Z_selection_Z_type_S_file
+};
+struct E_windows_Z_selection
+{ union
+  { P p;
+    N n;
+  };
+  enum E_windows_Z_selection_Z_type type;
+};
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #define E_vga_S_background_color            0xdbdbdb
 #define E_vga_S_text_color                  0
 //==============================================================================

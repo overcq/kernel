@@ -1587,7 +1587,7 @@ E_ouxfs_Q_directory_T_descendant_( N disc_id
 }
 _internal
 N
-E_ouxfs_Q_watch_directory_I_check_and_signal( N disc_id
+E_ouxfs_Q_watch_directory_I_find_and_signal( N disc_id
 , N partition_i
 , N64 uid
 ){  struct E_disc_Z *disc = E_mem_Q_tab_R( E_disc_S, disc_id );
@@ -2253,7 +2253,7 @@ E_ouxfs_Q_file_I_copy_( N disc_id
         file_i_src++;
     l = E_ouxfs_Z_start_n_R_size( disc_id, partition_i, disc->partition[ partition_i ].oux.file[ file_i_src ].block_table.start, disc->partition[ partition_i ].oux.file[ file_i_src ].block_table.n );
     if(l)
-    {   K( E_ssd_cache_I_sync_free( disc_id ))
+    {   K( E_disc_P_sync( disc_id ))
             return ~0;
         N n = l;
         Pc data = M(n);
@@ -2272,7 +2272,11 @@ E_ouxfs_Q_file_I_copy_( N disc_id
         }
         N64 pos = 0;
         do
-        {   N64 n_ = J_min( n, l );
+        {   if(pos)
+            {   K( E_disc_P_sync( disc_id ))
+                    return ~0;
+            }
+            N64 n_ = J_min( n, l );
             n = n_;
             r = E_ouxfs_Q_file_I_read_( disc_id, partition_i, file_i_src, pos, &n_, data );
             K(r)
@@ -6341,7 +6345,7 @@ E_ouxfs_Q_directory_P_name( N disc_id
     E_text_Z_s_P_copy_s0_0( disc->partition[ partition_i ].oux.directory[ directory_i ].name, name );
     if( disc->partition[ partition_i ].oux.directory_table_changed_from > directory_i )
         disc->partition[ partition_i ].oux.directory_table_changed_from = directory_i;
-    r = E_ouxfs_Q_watch_directory_I_check_and_signal( disc_id, partition_i, uid );
+    r = E_ouxfs_Q_watch_directory_I_find_and_signal( disc_id, partition_i, uid );
 End:E_flow_Z_lock_rw_I_unlock_write_and_return( &disc->partition[ partition_i ].lock_rw, &disc->partition[ partition_i ].return_, r );
     return r;
 }
@@ -6426,7 +6430,7 @@ E_ouxfs_Q_file_P_name( N disc_id
     E_text_Z_s_P_copy_s0_0( disc->partition[ partition_i ].oux.file[ file_i ].name, name );
     if( disc->partition[ partition_i ].oux.file_table_changed_from > file_i )
         disc->partition[ partition_i ].oux.file_table_changed_from = file_i;
-    r = E_ouxfs_Q_watch_directory_I_check_and_signal( disc_id, partition_i, parent );
+    r = E_ouxfs_Q_watch_directory_I_find_and_signal( disc_id, partition_i, parent );
 End:E_flow_Z_lock_rw_I_unlock_write_and_return( &disc->partition[ partition_i ].lock_rw, &disc->partition[ partition_i ].return_, r );
     return r;
 }
@@ -6510,10 +6514,10 @@ E_ouxfs_Q_directory_I_move( N disc_id
     disc->partition[ partition_i ].oux.directory[ directory_i ].parent = parent;
     if( disc->partition[ partition_i ].oux.directory_table_changed_from > directory_i )
         disc->partition[ partition_i ].oux.directory_table_changed_from = directory_i;
-    r = E_ouxfs_Q_watch_directory_I_check_and_signal( disc_id, partition_i, uid );
+    r = E_ouxfs_Q_watch_directory_I_find_and_signal( disc_id, partition_i, uid );
     if( K_error(r) )
         goto End;
-    r = E_ouxfs_Q_watch_directory_I_check_and_signal( disc_id, partition_i, parent );
+    r = E_ouxfs_Q_watch_directory_I_find_and_signal( disc_id, partition_i, parent );
 End:E_flow_Z_lock_rw_I_unlock_write_and_return( &disc->partition[ partition_i ].lock_rw, &disc->partition[ partition_i ].return_, r );
     return r;
 }
@@ -6562,10 +6566,10 @@ E_ouxfs_Q_file_I_move( N disc_id
     disc->partition[ partition_i ].oux.file[ file_i ].parent = parent;
     if( disc->partition[ partition_i ].oux.file_table_changed_from > file_i )
         disc->partition[ partition_i ].oux.file_table_changed_from = file_i;
-    r = E_ouxfs_Q_watch_directory_I_check_and_signal( disc_id, partition_i, file_parent );
+    r = E_ouxfs_Q_watch_directory_I_find_and_signal( disc_id, partition_i, file_parent );
     if( K_error(r) )
         goto End;
-    r = E_ouxfs_Q_watch_directory_I_check_and_signal( disc_id, partition_i, parent );
+    r = E_ouxfs_Q_watch_directory_I_find_and_signal( disc_id, partition_i, parent );
 End:E_flow_Z_lock_rw_I_unlock_write_and_return( &disc->partition[ partition_i ].lock_rw, &disc->partition[ partition_i ].return_, r );
     return r;
 }
@@ -6819,11 +6823,14 @@ E_ouxfs_Q_directory_I_copy( N disc_id
         uid_src = disc->partition[ partition_i ].oux.directory[ directory_i ].parent;
         directory_i++;
     }while( uid_src != uid_src_root );
-    *uid = uid_dst_parent;
-    r = E_ouxfs_Q_watch_directory_I_check_and_signal( disc_id, partition_i, uid_src_root );
+    r = E_disc_P_sync( disc_id );
     if( K_error(r) )
         goto End;
-    r = E_ouxfs_Q_watch_directory_I_check_and_signal( disc_id, partition_i, parent );
+    *uid = uid_dst_parent;
+    r = E_ouxfs_Q_watch_directory_I_find_and_signal( disc_id, partition_i, uid_src_root );
+    if( K_error(r) )
+        goto End;
+    r = E_ouxfs_Q_watch_directory_I_find_and_signal( disc_id, partition_i, parent );
 End:E_flow_Z_lock_rw_I_unlock_write_and_return( &disc->partition[ partition_i ].lock_rw, &disc->partition[ partition_i ].return_, r );
     return r;
 }
@@ -6912,13 +6919,17 @@ E_ouxfs_Q_file_I_copy( N disc_id
             r = r_;
         goto End;
     }
+    N64 parent_ = disc->partition[ partition_i ].oux.file[ file_i ].parent;
     r = E_ouxfs_Q_file_I_copy_( disc_id, partition_i, uid, parent, file_i, name, l );
     if( K_error(r) )
         goto End;
-    r = E_ouxfs_Q_watch_directory_I_check_and_signal( disc_id, partition_i, disc->partition[ partition_i ].oux.file[ file_i ].parent );
+    r = E_disc_P_sync( disc_id );
     if( K_error(r) )
         goto End;
-    r = E_ouxfs_Q_watch_directory_I_check_and_signal( disc_id, partition_i, parent );
+    r = E_ouxfs_Q_watch_directory_I_find_and_signal( disc_id, partition_i, parent_ );
+    if( K_error(r) )
+        goto End;
+    r = E_ouxfs_Q_watch_directory_I_find_and_signal( disc_id, partition_i, parent );
 End:E_flow_Z_lock_rw_I_unlock_write_and_return( &disc->partition[ partition_i ].lock_rw, &disc->partition[ partition_i ].return_, r );
     return r;
 }
@@ -7041,21 +7052,22 @@ E_ouxfs_Q_directory_M( N disc_id
             r = r_;
         goto End;
     }
+    N64 new_uid;
     if( disc->partition[ partition_i ].oux.directory_n )
-    {   *uid = disc->partition[ partition_i ].oux.directory[ disc->partition[ partition_i ].oux.directory_n - 1 ].uid + 1;
-        if( ~*uid )
+    {   new_uid = disc->partition[ partition_i ].oux.directory[ disc->partition[ partition_i ].oux.directory_n - 1 ].uid + 1;
+        if( ~new_uid )
             directory_i = disc->partition[ partition_i ].oux.directory_n;
         else
-        {   *uid = 0;
+        {   new_uid = 0;
             for_n_( directory_i, disc->partition[ partition_i ].oux.directory_n )
-            {   if( *uid != disc->partition[ partition_i ].oux.directory[ directory_i ].uid )
+            {   if( new_uid != disc->partition[ partition_i ].oux.directory[ directory_i ].uid )
                     break;
-                ( *uid )++;
+                ( new_uid )++;
             }
             //DFN Nie potrzeba sprawdzać, czy zabrakło przestrzeni ‘uidów’, ponieważ wcześniej zabraknie miejsca w pamięci operacyjnej.
         }
     }else
-    {   *uid = 0;
+    {   new_uid = 0;
         directory_i = disc->partition[ partition_i ].oux.directory_n;
     }
     r = (N)E_mem_Q_blk_I_insert( &disc->partition[ partition_i ].oux.directory, directory_i, 1 );
@@ -7076,12 +7088,13 @@ E_ouxfs_Q_directory_M( N disc_id
         goto End;
     }
     disc->partition[ partition_i ].oux.directory_n++;
-    disc->partition[ partition_i ].oux.directory[ directory_i ].uid = *uid;
+    disc->partition[ partition_i ].oux.directory[ directory_i ].uid = new_uid;
     disc->partition[ partition_i ].oux.directory[ directory_i ].parent = parent;
     disc->partition[ partition_i ].oux.directory[ directory_i ].name = name_;
     if( disc->partition[ partition_i ].oux.directory_table_changed_from > directory_i )
         disc->partition[ partition_i ].oux.directory_table_changed_from = directory_i;
-    r = E_ouxfs_Q_watch_directory_I_check_and_signal( disc_id, partition_i, parent );
+    *uid = new_uid;
+    r = E_ouxfs_Q_watch_directory_I_find_and_signal( disc_id, partition_i, parent );
 End:E_flow_Z_lock_rw_I_unlock_write_and_return( &disc->partition[ partition_i ].lock_rw, &disc->partition[ partition_i ].return_, r );
     return r;
 }
@@ -7111,7 +7124,7 @@ E_ouxfs_Q_directory_W( N disc_id
         r = E_ouxfs_Q_directory_R( disc_id, partition_i, uid, &directory_i );
         if( K_error(r) )
             goto End;
-        r = E_ouxfs_Q_watch_directory_I_check_and_signal( disc_id, partition_i, uid );
+        r = E_ouxfs_Q_watch_directory_I_find_and_signal( disc_id, partition_i, uid );
         if( K_error(r) )
             goto End;
         r = E_ouxfs_Q_watch_directory_W_uid( disc_id, partition_i, uid );
@@ -7143,7 +7156,7 @@ E_ouxfs_Q_directory_W( N disc_id
     r = E_ouxfs_Q_directory_R( disc_id, partition_i, uid, &directory_i );
     if( K_error(r) )
         goto End;
-    r = E_ouxfs_Q_watch_directory_I_check_and_signal( disc_id, partition_i, uid );
+    r = E_ouxfs_Q_watch_directory_I_find_and_signal( disc_id, partition_i, uid );
     if( K_error(r) )
         goto End;
     r = E_ouxfs_Q_watch_directory_W_uid_ancestor( disc_id, partition_i, uid );
@@ -7232,21 +7245,22 @@ E_ouxfs_Q_file_M( N disc_id
             r = r_;
         goto End;
     }
+    N64 new_uid;
     if( disc->partition[ partition_i ].oux.file_n )
-    {   *uid = disc->partition[ partition_i ].oux.file[ disc->partition[ partition_i ].oux.file_n - 1 ].uid + 1;
-        if( ~*uid )
+    {   new_uid = disc->partition[ partition_i ].oux.file[ disc->partition[ partition_i ].oux.file_n - 1 ].uid + 1;
+        if( ~new_uid )
             file_i = disc->partition[ partition_i ].oux.file_n;
         else
-        {   *uid = 0;
+        {   new_uid = 0;
             for_n_( file_i, disc->partition[ partition_i ].oux.file_n )
-            {   if( *uid != disc->partition[ partition_i ].oux.file[ file_i ].uid )
+            {   if( new_uid != disc->partition[ partition_i ].oux.file[ file_i ].uid )
                     break;
-                ( *uid )++;
+                ( new_uid )++;
             }
             //DFN Nie potrzeba sprawdzać, czy zabrakło przestrzeni ‘uidów’, ponieważ wcześniej zabraknie miejsca w pamięci operacyjnej.
         }
     }else
-    {   *uid = 0;
+    {   new_uid = 0;
         file_i = disc->partition[ partition_i ].oux.file_n;
     }
     r = (N)E_mem_Q_blk_I_insert( &disc->partition[ partition_i ].oux.file, file_i, 1 );
@@ -7267,7 +7281,7 @@ E_ouxfs_Q_file_M( N disc_id
         goto End;
     }
     disc->partition[ partition_i ].oux.file_n++;
-    disc->partition[ partition_i ].oux.file[ file_i ].uid = *uid;
+    disc->partition[ partition_i ].oux.file[ file_i ].uid = new_uid;
     disc->partition[ partition_i ].oux.file[ file_i ].parent = parent;
     disc->partition[ partition_i ].oux.file[ file_i ].block_table.n = 0;
     disc->partition[ partition_i ].oux.file[ file_i ].name = name_;
@@ -7275,7 +7289,8 @@ E_ouxfs_Q_file_M( N disc_id
     disc->partition[ partition_i ].oux.file[ file_i ].lock_read = no;
     if( disc->partition[ partition_i ].oux.file_table_changed_from > file_i )
         disc->partition[ partition_i ].oux.file_table_changed_from = file_i;
-    r = E_ouxfs_Q_watch_directory_I_check_and_signal( disc_id, partition_i, parent );
+    *uid = new_uid;
+    r = E_ouxfs_Q_watch_directory_I_find_and_signal( disc_id, partition_i, parent );
 End:E_flow_Z_lock_rw_I_unlock_write_and_return( &disc->partition[ partition_i ].lock_rw, &disc->partition[ partition_i ].return_, r );
     return r;
 }
@@ -7298,7 +7313,7 @@ E_ouxfs_Q_file_W( N disc_id
     r = E_ouxfs_Q_file_W_( disc_id, partition_i, file_i );
     if( K_error(r) )
         goto End;
-    r = E_ouxfs_Q_watch_directory_I_check_and_signal( disc_id, partition_i, parent );
+    r = E_ouxfs_Q_watch_directory_I_find_and_signal( disc_id, partition_i, parent );
 End:E_flow_Z_lock_rw_I_unlock_write_and_return( &disc->partition[ partition_i ].lock_rw, &disc->partition[ partition_i ].return_, r );
     return r;
 }

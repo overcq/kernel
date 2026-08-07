@@ -9,19 +9,6 @@
 *******************************************************************************/
 // Procedury w tym module wymagają oczyszczenia z użycia specyficznego dla bieżącego pulpitu.
 //==============================================================================
-enum E_windows_Z_selection_Z_type
-{ E_windows_Z_selection_Z_type_S_none
-, E_windows_Z_selection_Z_type_S_directory
-, E_windows_Z_selection_Z_type_S_file
-};
-struct E_windows_Z_selection
-{ union
-  { P p;
-    N n;
-  };
-  enum E_windows_Z_selection_Z_type type;
-};
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 struct E_window_Q_window_Z
 { Pc title, description;
   N ( *draw )( I window_id, N32 x, N32 y, N32 width, N32 height );
