@@ -2255,17 +2255,21 @@ E_ouxfs_Q_file_I_copy_( N disc_id
     if(l)
     {   K( E_disc_P_sync( disc_id ))
             return ~0;
+        N8 buffer_step = 0;
         N n = l;
         Pc data = M(n);
         if( K_error(data) )
             return (N)data;
         if( !data )
-        {   n = E_ouxfs_S_copy_fallback_buffer_size;
+Buffer_1:
+        {   buffer_step++;
+            n = E_ouxfs_S_copy_fallback_buffer_size;
             data = M(n);
             if( K_error(data) )
                 return (N)data;
             if( !data )
-            {   n = E_mem_S_page_size;
+Buffer_2:   {   buffer_step++;
+                n = E_mem_S_page_size;
                 data = M(n);
                 Kp_( ~0, data );
             }
@@ -2281,11 +2285,25 @@ E_ouxfs_Q_file_I_copy_( N disc_id
             r = E_ouxfs_Q_file_I_read_( disc_id, partition_i, file_i_src, pos, &n_, data );
             K(r)
             {   K_( ~1, W(data) );
+                if( !pos )
+                    switch( buffer_step )
+                    { case 0:
+                            goto Buffer_1;
+                      case 1:
+                            goto Buffer_2;
+                    }
                 return ~0;
             }
             r = E_ouxfs_Q_file_I_write_( disc_id, partition_i, file_i, pos, n, data );
             K(r)
             {   K_( ~1, W(data) );
+                if( !pos )
+                    switch( buffer_step )
+                    { case 0:
+                            goto Buffer_1;
+                      case 1:
+                            goto Buffer_2;
+                    }
                 return ~0;
             }
             pos += n;

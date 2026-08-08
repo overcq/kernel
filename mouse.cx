@@ -41,10 +41,10 @@ E_mouse_I_interrupt_I_smooth( void
     if(( x_move_abs >= 4
       || y_move_abs >= 4
     )
-    && x_move_abs < 16
-    && y_move_abs < 16
+    && x_move_abs < 8
+    && y_move_abs < 8
     )
-        mul = 0.25 + ( mul - 0.25 ) * J_max( x_move_abs, y_move_abs ) / 16;
+        mul = 0.2 + ( mul - 0.2 ) * J_max( x_move_abs, y_move_abs ) / 8;
     E_mouse_S_move[0] *= mul;
     E_mouse_S_move[1] *= mul;
 }
