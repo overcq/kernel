@@ -3070,6 +3070,7 @@ E_window_files_I_draw( I window_id
             {   row_i = 0;
                 if( ~window_data->disc_partition_selected_row )
                 {   if( window_data->disc_partition_n > rows
+                    && rows
                     && window_data->disc_partition_selected_row > ( rows - 1 ) / 2
                     )
                         row_i = window_data->disc_partition_n - window_data->disc_partition_selected_row >= rows / 2
@@ -3155,6 +3156,7 @@ E_window_files_I_draw( I window_id
         {   row_i = 0;
             if( ~window_data->selected_dir[ column_i ].selected_row )
             {   if( window_data->selected_dir[ column_i ].n > rows
+                && rows
                 && window_data->selected_dir[ column_i ].selected_row > ( rows - 1 ) / 2
                 )
                     row_i = window_data->selected_dir[ column_i ].n - window_data->selected_dir[ column_i ].selected_row >= rows / 2
@@ -3351,6 +3353,7 @@ E_window_files_I_mouse_move( I window_id
                     : ( height - ( window_data->font_size + 1 )) / row_height;
                     if( ~window_data->selected_dir[ column_i ].selected_row
                     && window_data->selected_dir[ column_i ].n > rows
+                    && rows
                     && window_data->selected_dir[ column_i ].selected_row > ( rows - 1 ) / 2
                     )
                         row_start = window_data->selected_dir[ column_i ].n - window_data->selected_dir[ column_i ].selected_row >= rows / 2
@@ -3364,6 +3367,7 @@ E_window_files_I_mouse_move( I window_id
                     : ( height - ( window_data->font_size + 1 )) / row_height;
                     if( ~window_data->disc_partition_selected_row
                     && window_data->disc_partition_n > rows
+                    && rows
                     && window_data->disc_partition_selected_row > ( rows - 1 ) / 2
                     )
                         row_start = window_data->disc_partition_n - window_data->disc_partition_selected_row >= rows / 2
