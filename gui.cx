@@ -161,8 +161,8 @@ E_gui_I_error( P context_ip
                             && disc->partition[ partition_i ].return_.sched_i == sched_i
                             )
                             {   if( r_ <= ~2 )
-                                    ;//E_main_I_fatal();
-                                //E_flow_I_clear_return( &disc->partition[ partition_i ].return_ );
+                                    E_main_I_fatal();
+                                E_flow_I_clear_return( &disc->partition[ partition_i ].return_ );
                             }
                             break;
                         }
