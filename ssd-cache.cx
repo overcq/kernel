@@ -1087,7 +1087,7 @@ E_ssd_cache_I_sync_free_before_shutdown( I disc_id
                 goto End;
             }
             while( disc->sata_ahci.memory->port[ disc->sata_ahci.port ].command_issue & 1 )
-            {   E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.ssd_cache_lock, &r, r );
+            {   E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.ssd_cache_lock, &disc->sata_ahci.ssd_cache_return, r );
                 if( E_flow_Q_interrupt_I_wait() )
                 {   disc = E_mem_Q_tab_R( E_disc_S, disc_id );
                     r = ~2;

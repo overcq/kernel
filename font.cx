@@ -3240,10 +3240,10 @@ _private
 B
 E_font_T_print_u(
   N32 width
-, N8 thickness
+, N8 font_thickness
 , U *u
 , N32 *font_i
-){  thickness++;
+){  font_thickness++;
     N dx;
     N32 min = 0;
     N32 max = E_font_S_font.bitmap_n - 1;
@@ -3270,7 +3270,7 @@ E_font_T_print_u(
         dx = E_font_S_font.bitmap[i].width;
     }
     *font_i = i;
-    dx *= thickness;
+    dx *= font_thickness;
     return dx <= width;
 }
 _private
@@ -3282,9 +3282,9 @@ E_font_I_draw_u( N32 font_i
 , N32 clip_height
 , N32 video_color
 , N8 size
-, N8 thickness
+, N8 font_thickness
 ){  size++;
-    thickness++;
+    font_thickness++;
     N i = 0;
     C c;
     N32 x_;
@@ -3312,7 +3312,7 @@ E_font_I_draw_u( N32 font_i
                         continue;
                     if( y_ + j >= ( S32 )clip_y + clip_height )
                         break;
-                    for_n( i, thickness )
+                    for_n( i, font_thickness )
                         E_vga_I_set_pixel_aa(
                           x_ + i, y_ + j
                         , video_color
@@ -3321,7 +3321,7 @@ E_font_I_draw_u( N32 font_i
                         );
                 }
             }
-            x_ += thickness;
+            x_ += font_thickness;
             i++;
         }
         y_ += size;

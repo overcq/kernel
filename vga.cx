@@ -218,20 +218,20 @@ E_vga_I_draw_rect(
 , N32 y
 , N32 width
 , N32 height
-, N8 thickness
+, N8 font_thickness
 , N32 video_color
 ){  for_n( x_i, width )
-    {   for_n( i, thickness )
+    {   for_n( i, font_thickness )
             E_vga_P_pixel( x + x_i, y + i, video_color );
     }
-    for_n( y_i, height - 2 * thickness )
-    {   for_n( i, thickness )
-        {   E_vga_P_pixel( x + i, y + thickness + y_i, video_color );
-            E_vga_P_pixel( x + width - 1 - i, y + thickness + y_i, video_color );
+    for_n( y_i, height - 2 * font_thickness )
+    {   for_n( i, font_thickness )
+        {   E_vga_P_pixel( x + i, y + font_thickness + y_i, video_color );
+            E_vga_P_pixel( x + width - 1 - i, y + font_thickness + y_i, video_color );
         }
     }
     for_n_( x_i, width )
-    {   for_n_rev( i, thickness )
+    {   for_n_rev( i, font_thickness )
             E_vga_P_pixel( x + x_i, y + height - 1 - i, video_color );
     }
 }

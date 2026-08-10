@@ -872,7 +872,7 @@ E_ouxfs_Z_start_n_I_block_truncate( N disc_id
                 sectors++;
             if( block->location.sectors.n - sectors )
             {   K( E_disc_P_trim( disc_id, partition_i, block->sector + sectors, block->location.sectors.n - sectors ));
-                    return ~0;
+                    G( "some blocks not trimmed" );
                 disc = E_mem_Q_tab_R( E_disc_S, disc_id );
             }
             if( sector_i != block->location.sectors.n
@@ -958,7 +958,9 @@ E_ouxfs_Z_start_n_I_block_truncate( N disc_id
         }
     }
     if(n) // Sprawdzenie na czas testów.
+    {   G( "n=%x", n );
         return ~0;
+    }
 Loop_end:
     if( disc->partition[ partition_i ].oux.block_table_changed_from > block_start + block_table_i )
         disc->partition[ partition_i ].oux.block_table_changed_from = block_start + block_table_i;
@@ -1242,13 +1244,7 @@ Compute:(*count)++;
                     , free_table_found_i, size - n_
                     , block_table_diff
                     ))
-                    {   K_( ~2, E_ouxfs_Z_start_n_I_block_truncate( disc_id, partition_i
-                        , n_0 - n_
-                        , *block_start, block_n
-                        , block_table_diff
-                        ));
                         return ~0;
-                    }
                     disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.pre -= n_;
                     if( !disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.pre
                     && !disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.n
@@ -1276,13 +1272,7 @@ Compute:(*count)++;
                 , free_table_found_i, size_left
                 , block_table_diff
                 ))
-                {   K_( ~2, E_ouxfs_Z_start_n_I_block_truncate( disc_id, partition_i
-                    , n_0 - n_
-                    , *block_start, block_n
-                    , block_table_diff
-                    ));
                     return ~0;
-                }
                 if( size_left )
                 {   N16 post = disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.post;
                     if( n_ )
@@ -1315,13 +1305,7 @@ Compute:(*count)++;
                     , free_table_found_i, post - n_
                     , block_table_diff
                     ))
-                    {   K_( ~2, E_ouxfs_Z_start_n_I_block_truncate( disc_id, partition_i
-                        , n_0 - n_
-                        , *block_start, block_n
-                        , block_table_diff
-                        ));
                         return ~0;
-                    }
                     if( post != n_ )
                     {   disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector += disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.n;
                         disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location_type = E_ouxfs_Z_block_Z_location_S_in_sector;
@@ -1340,13 +1324,7 @@ Compute:(*count)++;
                 , free_table_found_i, size - n_
                 , block_table_diff
                 ))
-                {   K_( ~2, E_ouxfs_Z_start_n_I_block_truncate( disc_id, partition_i
-                    , n_0 - n_
-                    , *block_start, block_n
-                    , block_table_diff
-                    ));
                     return ~0;
-                }
                 if( size != n_ )
                 {   disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.in_sector.start += n_;
                     disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.in_sector.size -= n_;
@@ -1359,13 +1337,7 @@ Compute:(*count)++;
         , free_table_found_i, 0
         , block_table_diff
         ))
-        {   K_( ~2, E_ouxfs_Z_start_n_I_block_truncate( disc_id, partition_i
-            , n_0 - n
-            , *block_start, block_n
-            , block_table_diff
-            ));
             return ~0;
-        }
         n += internal_table_element_size;
     }
     return 0;
@@ -1405,17 +1377,25 @@ E_ouxfs_Q_block_table_I_append_truncate( N disc_id
                 ? block_table_diff_
                 : disc->partition[ partition_i ].oux.block_table_size + block_table_diff + count * internal_table_element_size - disc->partition[ partition_i ].oux.first_sector_max_size;
                 G( "block_table_diff_above: %x", block_table_diff_above );
-                r = E_ouxfs_Z_start_n_I_block_truncate( disc_id, partition_i
+                B retried = no;
+Retry_1:        r = E_ouxfs_Z_start_n_I_block_truncate( disc_id, partition_i
                 , block_table_diff_above
                 , 0, &disc->partition[ partition_i ].oux.block_table_block_table_n
                 , &block_table_diff__
                 );
-                if( K_error(r)
-                && r > ~2
-                )
-                    r = ~2;
+                if( K_error(r) )
+                {   if( !~r )
+                    {   K_( ~2, E_disc_P_sync( disc_id ));
+                        if( !retried )
+                        {   retried = yes;
+                            goto Retry_1;
+                        }
+                    }
+                    if( r > ~2 )
+                        r = ~2;
+                }
                 if( !K_error(r) )
-                    while( block_table_diff__ )
+                {   while( block_table_diff__ )
                     {   block_table_diff_above = disc->partition[ partition_i ].oux.block_table_size + block_table_diff + count * internal_table_element_size - block_table_diff_ + block_table_diff__ > disc->partition[ partition_i ].oux.first_sector_max_size
                         ? -block_table_diff__
                         : disc->partition[ partition_i ].oux.block_table_size + block_table_diff + count * internal_table_element_size - block_table_diff_ - disc->partition[ partition_i ].oux.first_sector_max_size;
@@ -1423,49 +1403,66 @@ E_ouxfs_Q_block_table_I_append_truncate( N disc_id
                         G( "block_table_diff_above: %x", block_table_diff_above );
                         if( block_table_diff_above <= 0 )
                             break;
-                        r = E_ouxfs_Z_start_n_I_block_truncate( disc_id, partition_i
+                        retried = no;
+Retry_2:                r = E_ouxfs_Z_start_n_I_block_truncate( disc_id, partition_i
                         , block_table_diff_above
                         , 0, &disc->partition[ partition_i ].oux.block_table_block_table_n
                         , &block_table_diff__
                         );
-                        if( K_error(r)
-                        && r > ~2
-                        )
-                        {   r = ~2;
+                        if( K_error(r) )
+                        {   if( !~r )
+                            {   K_( ~2, E_disc_P_sync( disc_id ));
+                                if( !retried )
+                                {   retried = yes;
+                                    goto Retry_2;
+                                }
+                            }
+                            if( r > ~2 )
+                                r = ~2;
                             break;
                         }
                     }
+                }
                 disc->partition[ partition_i ].oux.block_table_size -= block_table_diff_;
             }
             disc->partition[ partition_i ].oux.block_table_size += count * internal_table_element_size;
         }
     }else if( block_table_diff < 0 )
         if( disc->partition[ partition_i ].oux.block_table_size > disc->partition[ partition_i ].oux.first_sector_max_size )
-        {   S64 block_table_diff__;
+        {   S64 block_table_diff_above = disc->partition[ partition_i ].oux.block_table_size + block_table_diff > disc->partition[ partition_i ].oux.first_sector_max_size
+            ? -block_table_diff
+            : disc->partition[ partition_i ].oux.block_table_size - disc->partition[ partition_i ].oux.first_sector_max_size;
+            S64 block_table_diff_;
             K( E_ouxfs_Z_start_n_I_block_truncate( disc_id, partition_i
-            , disc->partition[ partition_i ].oux.block_table_size + block_table_diff > disc->partition[ partition_i ].oux.first_sector_max_size
-              ? -block_table_diff
-              : disc->partition[ partition_i ].oux.block_table_size - disc->partition[ partition_i ].oux.first_sector_max_size
+            , block_table_diff_above
             , 0, &disc->partition[ partition_i ].oux.block_table_block_table_n
-            , &block_table_diff__
+            , &block_table_diff_
             ))
                 r = ~0;
             if( !K_error(r) )
-                while( block_table_diff__ )
-                {   S64 block_table_diff_above = disc->partition[ partition_i ].oux.block_table_size + block_table_diff + block_table_diff__ > disc->partition[ partition_i ].oux.first_sector_max_size
-                    ? -block_table_diff__
+                while( block_table_diff_ )
+                {   block_table_diff_above = disc->partition[ partition_i ].oux.block_table_size + block_table_diff + block_table_diff_ > disc->partition[ partition_i ].oux.first_sector_max_size
+                    ? -block_table_diff_
                     : disc->partition[ partition_i ].oux.block_table_size + block_table_diff - disc->partition[ partition_i ].oux.first_sector_max_size;
-                    disc->partition[ partition_i ].oux.block_table_size += block_table_diff__;
+                    disc->partition[ partition_i ].oux.block_table_size += block_table_diff_;
                     if( block_table_diff_above <= 0 )
                         break;
-                    r = E_ouxfs_Z_start_n_I_block_truncate( disc_id, partition_i, block_table_diff_above
+                    B retried = no;
+Retry_3:            r = E_ouxfs_Z_start_n_I_block_truncate( disc_id, partition_i, block_table_diff_above
                     , 0, &disc->partition[ partition_i ].oux.block_table_block_table_n
-                    , &block_table_diff__
+                    , &block_table_diff_
                     );
-                    if( K_error(r)
-                    && r > ~2
-                    )
-                    {   r = ~2;
+                    if( K_error(r) )
+                    {   if( !~r )
+                        {   K( E_disc_P_sync( disc_id ))
+                                return ~0;
+                            if( !retried )
+                            {   retried = yes;
+                                goto Retry_3;
+                            }
+                        }
+                        if( r > ~2 )
+                            r = ~2;
                         break;
                     }
                 }
@@ -1826,7 +1823,6 @@ E_ouxfs_Q_file_I_write_( I disc_id
         {   G( "no space left on device: %x", n );
             return ~0;
         }
-        N64 n_0 = n;
         S64 block_table_diff = 0;
         N64 size;
         N64 free_table_found_i;
@@ -1986,14 +1982,7 @@ Write:      N64 n_;
                         , free_table_found_i, size - n_
                         , &block_table_diff
                         ))
-                        {   K_( ~2, E_ouxfs_Z_start_n_I_block_truncate( disc_id, partition_i
-                            , n_0 - n_
-                            , disc->partition[ partition_i ].oux.file[ file_i ].block_table.start
-                            , &disc->partition[ partition_i ].oux.file[ file_i ].block_table.n
-                            , &block_table_diff
-                            ));
                             r = ~0;
-                        }
                         if( !K_error(r) )
                         {   disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.pre -= n_;
                             if( !disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.pre
@@ -2020,63 +2009,56 @@ Write:      N64 n_;
                         return r;
                     data_p += sector_i * disc->sata_ahci.physical_sector_size;
                     n_ = n -= sector_i * disc->sata_ahci.physical_sector_size;
-                }
-                if( n
-                && sector_i != disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.n
-                )
-                {   K( E_disc_R( disc_id, partition_i, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector + sector_i, 1, &sector ))
-                        return ~0;
-                    disc = E_mem_Q_tab_R( E_disc_S, disc_id );
-                    E_mem_Q_blk_I_copy( sector, data + data_p, n );
-                    r = E_disc_P_dirty( disc_id, partition_i, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector + sector_i, 1 );
-                    E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.ssd_cache_lock, &disc->sata_ahci.sata_return, r );
-                    if( K_error(r) )
-                        return r;
-                    n = 0;
-                }
-                if( !n )
-                {   N64 size_left = size
-                    - ( disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.pre
-                      + sector_i * disc->sata_ahci.physical_sector_size
-                      + n_
-                    );
-                    K( E_ouxfs_Q_block_table_I_unite( disc_id, partition_i
-                    , &disc->partition[ partition_i ].oux.file[ file_i ].block_table.start
-                    , &disc->partition[ partition_i ].oux.file[ file_i ].block_table.n
-                    , free_table_found_i, size_left
-                    , &block_table_diff
-                    ))
-                    {   K_( ~2, E_ouxfs_Z_start_n_I_block_truncate( disc_id, partition_i
-                        , n_0 - n_
-                        , disc->partition[ partition_i ].oux.file[ file_i ].block_table.start
-                        , &disc->partition[ partition_i ].oux.file[ file_i ].block_table.n
-                        , &block_table_diff
-                        ));
-                        r = ~0;
-                    }
-                    if( !K_error(r)
-                    && size_left
+                    if( n
+                    && sector_i != disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.n
                     )
-                    {   N16 post = disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.post;
-                        if( n_ )
-                            sector_i++;
-                        disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector += sector_i;
-                        disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.n -= sector_i;
-                        disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.pre = n_ ? disc->sata_ahci.physical_sector_size - n_ : 0;
-                        if( !disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.n )
-                            if( !disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.post )
-                            {   N16 pre = disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.pre;
-                                disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector--;
-                                disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location_type = E_ouxfs_Z_block_Z_location_S_in_sector;
-                                disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.in_sector.start = disc->sata_ahci.physical_sector_size - pre;
-                                disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.in_sector.size = pre;
-                            }else if( !disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.pre )
-                            {   disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location_type = E_ouxfs_Z_block_Z_location_S_in_sector;
-                                disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.in_sector.start = 0;
-                                disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.in_sector.size = post;
-                            }
+                    {   K( E_disc_R( disc_id, partition_i, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector + sector_i, 1, &sector ))
+                            return ~0;
+                        disc = E_mem_Q_tab_R( E_disc_S, disc_id );
+                        E_mem_Q_blk_I_copy( sector, data + data_p, n );
+                        r = E_disc_P_dirty( disc_id, partition_i, disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector + sector_i, 1 );
+                        E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.ssd_cache_lock, &disc->sata_ahci.sata_return, r );
+                        if( K_error(r) )
+                            return r;
+                        n = 0;
                     }
-                    break;
+                    if( !n )
+                    {   N64 size_left = size
+                        - ( disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.pre
+                          + sector_i * disc->sata_ahci.physical_sector_size
+                          + n_
+                        );
+                        K( E_ouxfs_Q_block_table_I_unite( disc_id, partition_i
+                        , &disc->partition[ partition_i ].oux.file[ file_i ].block_table.start
+                        , &disc->partition[ partition_i ].oux.file[ file_i ].block_table.n
+                        , free_table_found_i, size_left
+                        , &block_table_diff
+                        ))
+                            r = ~0;
+                        if( !K_error(r)
+                        && size_left
+                        )
+                        {   N16 post = disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.post;
+                            if( n_ )
+                                sector_i++;
+                            disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector += sector_i;
+                            disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.n -= sector_i;
+                            disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.pre = n_ ? disc->sata_ahci.physical_sector_size - n_ : 0;
+                            if( !disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.n )
+                                if( !disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.post )
+                                {   N16 pre = disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.pre;
+                                    disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].sector--;
+                                    disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location_type = E_ouxfs_Z_block_Z_location_S_in_sector;
+                                    disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.in_sector.start = disc->sata_ahci.physical_sector_size - pre;
+                                    disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.in_sector.size = pre;
+                                }else if( !disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.pre )
+                                {   disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location_type = E_ouxfs_Z_block_Z_location_S_in_sector;
+                                    disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.in_sector.start = 0;
+                                    disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.in_sector.size = post;
+                                }
+                        }
+                        break;
+                    }
                 }
                 if( disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.post )
                 {   N16 post = disc->partition[ partition_i ].oux.free_table[ free_table_found_i ].location.sectors.post;
@@ -2106,14 +2088,7 @@ Write:      N64 n_;
                         , free_table_found_i, post - n_
                         , &block_table_diff
                         ))
-                        {   K_( ~2, E_ouxfs_Z_start_n_I_block_truncate( disc_id, partition_i
-                            , n_0 - n_
-                            , disc->partition[ partition_i ].oux.file[ file_i ].block_table.start
-                            , &disc->partition[ partition_i ].oux.file[ file_i ].block_table.n
-                            , &block_table_diff
-                            ));
                             r = ~0;
-                        }
                         if( !K_error(r)
                         && post != n_
                         )
@@ -2144,14 +2119,7 @@ Write:      N64 n_;
                     , free_table_found_i, size - n_
                     , &block_table_diff
                     ))
-                    {   K_( ~2, E_ouxfs_Z_start_n_I_block_truncate( disc_id, partition_i
-                        , n_0 - n_
-                        , disc->partition[ partition_i ].oux.file[ file_i ].block_table.start
-                        , &disc->partition[ partition_i ].oux.file[ file_i ].block_table.n
-                        , &block_table_diff
-                        ));
                         r = ~0;
-                    }
                     if( !K_error(r)
                     && size != n_
                     )
@@ -2167,13 +2135,7 @@ Write:      N64 n_;
             , free_table_found_i, 0
             , &block_table_diff
             ))
-            {   K_( ~2, E_ouxfs_Z_start_n_I_block_truncate( disc_id, partition_i
-                , n_0 - n
-                , disc->partition[ partition_i ].oux.file[ file_i ].block_table.start
-                , &disc->partition[ partition_i ].oux.file[ file_i ].block_table.n
-                , &block_table_diff
-                ));
-                r = ~0;
+            {   r = ~0;
                 break;
             }
         }
@@ -2200,17 +2162,6 @@ E_ouxfs_Q_file_I_copy_( N disc_id
             return ~0;
     }else
         name_ = name;
-    N r = E_ouxfs_Q_directory_file_I_block_append( disc_id, partition_i, 4 * sizeof( N64 ) + l
-    , &disc->partition[ partition_i ].oux.block_table_file_table_start
-    , &disc->partition[ partition_i ].oux.block_table_file_table_n
-    , &disc->partition[ partition_i ].oux.file_table_changed_from
-    );
-    K(r)
-    {   if( !name )
-        {   K_( ~1, W( name_ ));
-        }
-        return ~0;
-    }
     N file_i_src = file_i;
     N64 uid_dst = disc->partition[ partition_i ].oux.file[ disc->partition[ partition_i ].oux.file_n - 1 ].uid + 1;
     if( ~uid_dst )
@@ -2222,9 +2173,9 @@ E_ouxfs_Q_file_I_copy_( N disc_id
                 break;
             uid_dst++;
         }
-        //DFN Nie potrzeba sprawdzać, czy zabrakło przestrzeni ‘uidów’, ponieważ wcześniej zabraknie miejsca w pamięci operacyjnej.
+        // Nie potrzeba sprawdzać, czy zabrakło przestrzeni ‘uidów’, ponieważ wcześniej zabraknie miejsca w pamięci operacyjnej.
     }
-    r = (N)E_mem_Q_blk_I_insert( &disc->partition[ partition_i ].oux.file, file_i, 1 );
+    N r = (N)E_mem_Q_blk_I_insert( &disc->partition[ partition_i ].oux.file, file_i, 1 );
     if( K_error(r)
     || !r
     )
@@ -2238,7 +2189,7 @@ E_ouxfs_Q_file_I_copy_( N disc_id
         if( !name )
         {   K_( ~2, W( name_ ));
         }
-        return ~2;
+        return ~0;
     }
     disc->partition[ partition_i ].oux.file_n++;
     disc->partition[ partition_i ].oux.file[ file_i ].uid = uid_dst;
@@ -2247,6 +2198,18 @@ E_ouxfs_Q_file_I_copy_( N disc_id
     disc->partition[ partition_i ].oux.file[ file_i ].name = name_;
     disc->partition[ partition_i ].oux.file[ file_i ].lock_write = no;
     disc->partition[ partition_i ].oux.file[ file_i ].lock_read = no;
+    K( E_ouxfs_Q_directory_file_I_block_append( disc_id, partition_i, 4 * sizeof( N64 ) + l
+    , &disc->partition[ partition_i ].oux.block_table_file_table_start
+    , &disc->partition[ partition_i ].oux.block_table_file_table_n
+    , &disc->partition[ partition_i ].oux.file_table_changed_from
+    ))
+    {   Kp_( ~2, E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.file, file_i, 1 ));
+        disc->partition[ partition_i ].oux.file_n--;
+        if( !name )
+        {   K_( ~1, W( name_ ));
+        }
+        return ~0;
+    }
     if( disc->partition[ partition_i ].oux.file_table_changed_from > file_i )
         disc->partition[ partition_i ].oux.file_table_changed_from = file_i;
     if( file_i_src >= file_i  )
@@ -2255,6 +2218,7 @@ E_ouxfs_Q_file_I_copy_( N disc_id
     if(l)
     {   K( E_disc_P_sync( disc_id ))
             return ~0;
+        N64 pos = 0;
         N8 buffer_step = 0;
         N n = l;
         Pc data = M(n);
@@ -2274,36 +2238,62 @@ Buffer_2:   {   buffer_step++;
                 Kp_( ~0, data );
             }
         }
-        N64 pos = 0;
         do
-        {   if(pos)
-            {   K( E_disc_P_sync( disc_id ))
-                    return ~0;
-            }
-            N64 n_ = J_min( n, l );
+        {   B retried = no;
+            N64 n_ = J_min( l, n );
             n = n_;
-            r = E_ouxfs_Q_file_I_read_( disc_id, partition_i, file_i_src, pos, &n_, data );
-            K(r)
-            {   K_( ~1, W(data) );
-                if( !pos )
+Retry_1:    K( E_ouxfs_Q_file_I_read_( disc_id, partition_i, file_i_src, pos, &n_, data ))
+            {   if( !pos )
+                {   K_( ~1, W(data) );
                     switch( buffer_step )
                     { case 0:
                             goto Buffer_1;
                       case 1:
                             goto Buffer_2;
                     }
+                }else
+                {   K_( ~0, E_disc_P_sync( disc_id ));
+                    if( !retried )
+                    {   retried = yes;
+                        n_ = n;
+                        goto Retry_1;
+                    }
+                    K_( ~1, W(data) );
+                    switch( buffer_step )
+                    { case 0:
+                            goto Buffer_1;
+                      case 1:
+                            goto Buffer_2;
+                    }
+                }
                 return ~0;
             }
-            r = E_ouxfs_Q_file_I_write_( disc_id, partition_i, file_i, pos, n, data );
-            K(r)
-            {   K_( ~1, W(data) );
-                if( !pos )
+            retried = no;
+Retry_2:    K( E_ouxfs_Q_file_I_write_( disc_id, partition_i, file_i, pos, n, data ))
+            {   if( !pos )
+                {   K_( ~0, E_disc_P_sync( disc_id ));
+                    K_( ~1, W(data) );
                     switch( buffer_step )
                     { case 0:
                             goto Buffer_1;
                       case 1:
                             goto Buffer_2;
                     }
+                }else
+                {   
+                    K_( ~0, E_disc_P_sync( disc_id ));
+                    if( !retried )
+                    {   retried = yes;
+                        goto Retry_2;
+                    }
+                    K_( ~1, W(data) );
+                    switch( buffer_step )
+                    { case 0:
+                            goto Buffer_1;
+                      case 1:
+                            goto Buffer_2;
+                    }
+                }
                 return ~0;
             }
             pos += n;
@@ -2585,7 +2575,7 @@ E_ouxfs_Q_device_M( I disc_id
 End_loop:
     E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.ssd_cache_lock, &disc->sata_ahci.ssd_cache_return, r );
     for_n( block_table_i_read, disc->partition[ partition_i ].oux.block_table_block_table_n ) // Czyta wszystkie pozostałe wpisy pliku tablicy bloków.
-    {   if( block_table_i_read > block_table_i ) //NDFN Przemyśleć i zagwarantować, by zawsze starczało.
+    {   if( block_table_i_read > block_table_i ) //NDFN Przemyśleć i zagwarantować, by zawsze starczało. Przy końcu danych musi być blok o rozmiarze co najmniej na dwa wpisy.
         {   G( "read beyond available: block_table_i=%x", block_table_i );
             r = ~0;
             goto End_1;
@@ -6690,19 +6680,6 @@ E_ouxfs_Q_directory_I_copy( N disc_id
             r = r_;
         goto End;
     }
-    r = E_ouxfs_Q_directory_file_I_block_append( disc_id, partition_i, 2 * sizeof( N64 ) + l
-    , &disc->partition[ partition_i ].oux.block_table_directory_table_start
-    , &disc->partition[ partition_i ].oux.block_table_directory_table_n
-    , &disc->partition[ partition_i ].oux.directory_table_changed_from
-    );
-    if( K_error(r) )
-    {   if( ~r )
-            goto End;
-        N r_ = W(name);
-        if( (S)r_ < r )
-            r = r_;
-        goto End;
-    }
     N64 uid_dst_parent = disc->partition[ partition_i ].oux.directory[ disc->partition[ partition_i ].oux.directory_n - 1 ].uid + 1;
     if( ~uid_dst_parent )
         directory_i = disc->partition[ partition_i ].oux.directory_n;
@@ -6713,7 +6690,7 @@ E_ouxfs_Q_directory_I_copy( N disc_id
                 break;
             uid_dst_parent++;
         }
-        //DFN Nie potrzeba sprawdzać, czy zabrakło przestrzeni ‘uidów’, ponieważ wcześniej zabraknie miejsca w pamięci operacyjnej.
+        // Nie potrzeba sprawdzać, czy zabrakło przestrzeni ‘uidów’, ponieważ wcześniej zabraknie miejsca w pamięci operacyjnej.
     }
     r = (N)E_mem_Q_blk_I_insert( &disc->partition[ partition_i ].oux.directory, directory_i, 1 );
     if( K_error(r)
@@ -6726,7 +6703,7 @@ E_ouxfs_Q_directory_I_copy( N disc_id
                 r = ~2;
             goto End;
         }
-        r = ~2;
+        r = ~0;
         N r_ = W(name);
         if( (S)r_ < r )
             r = r_;
@@ -6736,6 +6713,21 @@ E_ouxfs_Q_directory_I_copy( N disc_id
     disc->partition[ partition_i ].oux.directory[ directory_i ].uid = uid_dst_parent;
     disc->partition[ partition_i ].oux.directory[ directory_i ].parent = parent;
     disc->partition[ partition_i ].oux.directory[ directory_i ].name = name;
+    r = E_ouxfs_Q_directory_file_I_block_append( disc_id, partition_i, 2 * sizeof( N64 ) + l
+    , &disc->partition[ partition_i ].oux.block_table_directory_table_start
+    , &disc->partition[ partition_i ].oux.block_table_directory_table_n
+    , &disc->partition[ partition_i ].oux.directory_table_changed_from
+    );
+    if( K_error(r) )
+    {   if( ~r )
+            goto End;
+        Kp_( ~2, E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.directory, directory_i, 1 ));
+        disc->partition[ partition_i ].oux.directory_n--;
+        N r_ = W(name);
+        if( (S)r_ < r )
+            r = r_;
+        goto End;
+    }
     if( disc->partition[ partition_i ].oux.directory_table_changed_from > directory_i )
         disc->partition[ partition_i ].oux.directory_table_changed_from = directory_i;
     N64 uid_src = uid_src_root;
@@ -6768,19 +6760,6 @@ E_ouxfs_Q_directory_I_copy( N disc_id
                     r = ~0;
                     goto End;
                 }
-                r = E_ouxfs_Q_directory_file_I_block_append( disc_id, partition_i, 2 * sizeof( N64 ) + l
-                , &disc->partition[ partition_i ].oux.block_table_directory_table_start
-                , &disc->partition[ partition_i ].oux.block_table_directory_table_n
-                , &disc->partition[ partition_i ].oux.directory_table_changed_from
-                );
-                if( K_error(r) )
-                {   if( ~r )
-                        goto End;
-                    N r_ = W(name);
-                    if( (S)r_ < r )
-                        r = r_;
-                    goto End;
-                }
                 N64 uid_dst = disc->partition[ partition_i ].oux.directory[ disc->partition[ partition_i ].oux.directory_n - 1 ].uid + 1;
                 if( ~uid_dst )
                     directory_i = disc->partition[ partition_i ].oux.directory_n;
@@ -6791,7 +6770,7 @@ E_ouxfs_Q_directory_I_copy( N disc_id
                             break;
                         uid_dst++;
                     }
-                    //DFN Nie potrzeba sprawdzać, czy zabrakło przestrzeni ‘uidów’, ponieważ wcześniej zabraknie miejsca w pamięci operacyjnej.
+                    // Nie potrzeba sprawdzać, czy zabrakło przestrzeni ‘uidów’, ponieważ wcześniej zabraknie miejsca w pamięci operacyjnej.
                 }
                 r = (N)E_mem_Q_blk_I_insert( &disc->partition[ partition_i ].oux.directory, directory_i, 1 );
                 if( K_error(r)
@@ -6804,7 +6783,7 @@ E_ouxfs_Q_directory_I_copy( N disc_id
                             r = ~2;
                         goto End;
                     }
-                    r = ~2;
+                    r = ~0;
                     N r_ = W(name);
                     if( (S)r_ < r )
                         r = r_;
@@ -6814,6 +6793,21 @@ E_ouxfs_Q_directory_I_copy( N disc_id
                 disc->partition[ partition_i ].oux.directory[ directory_i ].uid = uid_dst;
                 disc->partition[ partition_i ].oux.directory[ directory_i ].parent = uid_dst_parent;
                 disc->partition[ partition_i ].oux.directory[ directory_i ].name = name;
+                r = E_ouxfs_Q_directory_file_I_block_append( disc_id, partition_i, 2 * sizeof( N64 ) + l
+                , &disc->partition[ partition_i ].oux.block_table_directory_table_start
+                , &disc->partition[ partition_i ].oux.block_table_directory_table_n
+                , &disc->partition[ partition_i ].oux.directory_table_changed_from
+                );
+                if( K_error(r) )
+                {   if( ~r )
+                        goto End;
+                    Kp_( ~2, E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.directory, directory_i, 1 ));
+                    disc->partition[ partition_i ].oux.directory_n--;
+                    N r_ = W(name);
+                    if( (S)r_ < r )
+                        r = r_;
+                    goto End;
+                }
                 if( disc->partition[ partition_i ].oux.directory_table_changed_from > directory_i )
                     disc->partition[ partition_i ].oux.directory_table_changed_from = directory_i;
                 uid_dst_parent = uid_dst;
@@ -7057,19 +7051,6 @@ E_ouxfs_Q_directory_M( N disc_id
     {   r = name_ ? (N)name_ : ~0;
         goto End;
     }
-    r = E_ouxfs_Q_directory_file_I_block_append( disc_id, partition_i, 2 * sizeof( N64 ) + l
-    , &disc->partition[ partition_i ].oux.block_table_directory_table_start
-    , &disc->partition[ partition_i ].oux.block_table_directory_table_n
-    , &disc->partition[ partition_i ].oux.directory_table_changed_from
-    );
-    if( K_error(r) )
-    {   if( ~r )
-            goto End;
-        N r_ = W( name_ );
-        if( (S)r_ < r )
-            r = r_;
-        goto End;
-    }
     N64 new_uid;
     if( disc->partition[ partition_i ].oux.directory_n )
     {   new_uid = disc->partition[ partition_i ].oux.directory[ disc->partition[ partition_i ].oux.directory_n - 1 ].uid + 1;
@@ -7082,7 +7063,7 @@ E_ouxfs_Q_directory_M( N disc_id
                     break;
                 ( new_uid )++;
             }
-            //DFN Nie potrzeba sprawdzać, czy zabrakło przestrzeni ‘uidów’, ponieważ wcześniej zabraknie miejsca w pamięci operacyjnej.
+            // Nie potrzeba sprawdzać, czy zabrakło przestrzeni ‘uidów’, ponieważ wcześniej zabraknie miejsca w pamięci operacyjnej.
         }
     }else
     {   new_uid = 0;
@@ -7109,6 +7090,21 @@ E_ouxfs_Q_directory_M( N disc_id
     disc->partition[ partition_i ].oux.directory[ directory_i ].uid = new_uid;
     disc->partition[ partition_i ].oux.directory[ directory_i ].parent = parent;
     disc->partition[ partition_i ].oux.directory[ directory_i ].name = name_;
+    r = E_ouxfs_Q_directory_file_I_block_append( disc_id, partition_i, 2 * sizeof( N64 ) + l
+    , &disc->partition[ partition_i ].oux.block_table_directory_table_start
+    , &disc->partition[ partition_i ].oux.block_table_directory_table_n
+    , &disc->partition[ partition_i ].oux.directory_table_changed_from
+    );
+    if( K_error(r) )
+    {   if( ~r )
+            goto End;
+        Kp_( ~2, E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.directory, directory_i, 1 ));
+        disc->partition[ partition_i ].oux.directory_n--;
+        N r_ = W( name_ );
+        if( (S)r_ < r )
+            r = r_;
+        goto End;
+    }
     if( disc->partition[ partition_i ].oux.directory_table_changed_from > directory_i )
         disc->partition[ partition_i ].oux.directory_table_changed_from = directory_i;
     *uid = new_uid;
@@ -7250,19 +7246,6 @@ E_ouxfs_Q_file_M( N disc_id
     {   r = name_ ? (N)name_ : ~0;
         goto End;
     }
-    r = E_ouxfs_Q_directory_file_I_block_append( disc_id, partition_i, 4 * sizeof( N64 ) + l
-    , &disc->partition[ partition_i ].oux.block_table_file_table_start
-    , &disc->partition[ partition_i ].oux.block_table_file_table_n
-    , &disc->partition[ partition_i ].oux.file_table_changed_from
-    );
-    if( K_error(r) )
-    {   if( ~r )
-            goto End;
-        N r_ = W( name_ );
-        if( (S)r_ < r )
-            r = r_;
-        goto End;
-    }
     N64 new_uid;
     if( disc->partition[ partition_i ].oux.file_n )
     {   new_uid = disc->partition[ partition_i ].oux.file[ disc->partition[ partition_i ].oux.file_n - 1 ].uid + 1;
@@ -7275,7 +7258,7 @@ E_ouxfs_Q_file_M( N disc_id
                     break;
                 ( new_uid )++;
             }
-            //DFN Nie potrzeba sprawdzać, czy zabrakło przestrzeni ‘uidów’, ponieważ wcześniej zabraknie miejsca w pamięci operacyjnej.
+            // Nie potrzeba sprawdzać, czy zabrakło przestrzeni ‘uidów’, ponieważ wcześniej zabraknie miejsca w pamięci operacyjnej.
         }
     }else
     {   new_uid = 0;
@@ -7292,7 +7275,7 @@ E_ouxfs_Q_file_M( N disc_id
                 r = ~2;
             goto End;
         }
-        r = ~2;
+        r = ~0;
         N r_ = W( name_ );
         if( (S)r_ < r )
             r = r_;
@@ -7305,6 +7288,21 @@ E_ouxfs_Q_file_M( N disc_id
     disc->partition[ partition_i ].oux.file[ file_i ].name = name_;
     disc->partition[ partition_i ].oux.file[ file_i ].lock_write = no;
     disc->partition[ partition_i ].oux.file[ file_i ].lock_read = no;
+    r = E_ouxfs_Q_directory_file_I_block_append( disc_id, partition_i, 4 * sizeof( N64 ) + l
+    , &disc->partition[ partition_i ].oux.block_table_file_table_start
+    , &disc->partition[ partition_i ].oux.block_table_file_table_n
+    , &disc->partition[ partition_i ].oux.file_table_changed_from
+    );
+    if( K_error(r) )
+    {   if( ~r )
+            goto End;
+        Kp_( ~2, E_mem_Q_blk_I_remove( &disc->partition[ partition_i ].oux.file, file_i, 1 ));
+        disc->partition[ partition_i ].oux.file_n--;
+        N r_ = W( name_ );
+        if( (S)r_ < r )
+            r = r_;
+        goto End;
+    }
     if( disc->partition[ partition_i ].oux.file_table_changed_from > file_i )
         disc->partition[ partition_i ].oux.file_table_changed_from = file_i;
     *uid = new_uid;
@@ -7414,7 +7412,7 @@ E_ouxfs_Q_file_I_read( N disc_id
 End:E_flow_Z_lock_rw_I_unlock_read_and_return( &disc->partition[ partition_i ].lock_rw, &disc->partition[ partition_i ].return_, r );
     return r;
 }
-//TODO Przeanalizować naprawianie błędów w poniżej procedurze.
+//TODO Przeanalizować naprawianie błędów w poniższej procedurze.
 _private
 N
 E_ouxfs_Q_file_I_write( I disc_id
