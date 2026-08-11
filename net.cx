@@ -7,6 +7,8 @@
 *         network
 * (c)overcq              on WSL\Debian (Linux 6.6.87.2)              2026-2-28 N
 *******************************************************************************/
+//DFN Wszystkie dane sieciowe przechowywane jako ‘big‐endian’.
+//==============================================================================
 #define E_net_S_dhcp_tries  4
 //==============================================================================
 struct __attribute__ (( __packed__ )) E_net_Z_arp_ipv4
@@ -24,10 +26,10 @@ struct __attribute__ (( __packed__ )) E_net_Z_ethernet_header
   N16 type;
 };
 struct __attribute__ (( __packed__ )) E_net_Z_ipv4_header
-{ N8 ihl        :4;
-  N8 version    :4;
-  N8 ecn        :2;
-  N8 tscp       :6;
+{ N8 ihl                :4;
+  N8 version            :4;
+  N8 ecn                :2;
+  N8 tscp               :6;
   N16 total_length;
   N16 identification;
   N16 fragment_offset   :13;
@@ -87,8 +89,8 @@ struct E_net_Z_udp4_connection_state
 { struct E_net_Z_ip4_connection_state ip4;
   volatile P buffer;
   I report_id;
-  N16 local_port; // big‐endian
-  N16 remote_port; // big‐endian
+  N16 local_port;
+  N16 remote_port;
 };
 enum E_net_Z_tcp_state
 { E_net_Z_tcp_state_S_closed
@@ -107,8 +109,8 @@ struct E_net_Z_tcp4_connection_state
 { struct E_net_Z_ip4_connection_state ip4;
   P buffer;
   I report_id;
-  N16 local_port; // big‐endian
-  N16 remote_port; // big‐endian
+  N16 local_port;
+  N16 remote_port;
   enum E_net_Z_tcp_state state;
 };
 enum E_net_Z_interface_state
@@ -154,9 +156,15 @@ _private struct E_mem_Q_tab_Z *E_net_S_tcp4_connection_state;
 //==============================================================================
 _private
 N16
-E_net_I_to_network( N16 v
+E_net_Z_n16_I_lbe_swap( N16 v
 ){  return ( v << 8 ) | ( v >> 8 );
 }
+_private
+N32
+E_net_Z_n32_I_lbe_swap( N32 v
+){  return ( v << 24 ) | (( v << 8 ) & 0xff0000) | (( v >> 8 ) & 0xff00 ) | ( v >> 24 );
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _private
 void
 E_net_I_checksum_0( N16 *start
@@ -180,7 +188,6 @@ E_net_I_checksum_0( N16 *start
         __asm__ volatile (
         "\n" "xor   %%ah,%%ah"
         "\n" "movb  %2,%%al"
-        "\n" "xchg  %%al,%%ah"
         "\n" "addw  %%ax,%0"
         "\n" "adcw  $0,%1"
         : "+m" ( *checksum ), "+m" ( *carry )
@@ -191,17 +198,16 @@ E_net_I_checksum_0( N16 *start
 _private
 void
 E_net_I_checksum_1( N16 *checksum
-, N16 *carry
+, N16 carry
 ){  __asm__ volatile (
     "\n" "addw  %1,%0"
-    "\n" "adcw  $0,%0"
     "\n" "adcw  $0,%0"
     "\n" "cmpw  $~0,%0"
     "\n" "je    0f"
     "\n" "notw  %0"
     "\n0:"
     : "+m" ( *checksum )
-    : "r" ( *carry )
+    : "r" ( carry )
     : "cc"
     );
 }
@@ -211,7 +217,7 @@ E_net_I_checksum( N16 *start
 , N16 *end
 ){  N16 checksum = 0, carry = 0;
     E_net_I_checksum_0( start, end, &checksum, &carry );
-    E_net_I_checksum_1( &checksum, &carry );
+    E_net_I_checksum_1( &checksum, carry );
     return checksum;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -305,6 +311,7 @@ D( net, dhcp )
     }
     Yi_B( net, dhcp )
         goto End;
+    N trap_i = 0;
     N reported_count;
     O{  G( "dhcp req" );
         for_each( interface_id, E_net_S_interface, E_mem_Q_tab )
@@ -329,13 +336,11 @@ Switch:     switch( interface->dhcp.state )
                     packet->ethernet.type = 0x8;
                     packet->ipv4.version = 4;
                     packet->ipv4.ihl = 5;
-                    packet->ipv4.total_length = E_net_I_to_network( sizeof( *packet ) - sizeof( packet->ethernet ));
                     packet->ipv4.ttl = 1;
                     packet->ipv4.protocol = 17;
                     packet->ipv4.destination_address = 0xffffffff;
-                    packet->udp.source_port = E_net_I_to_network(68);
-                    packet->udp.destination_port = E_net_I_to_network(67);
-                    packet->udp.length = E_net_I_to_network( sizeof( *packet ) - sizeof( packet->ipv4 ) - sizeof( packet->ethernet ));
+                    packet->udp.source_port = E_net_Z_n16_I_lbe_swap(68);
+                    packet->udp.destination_port = E_net_Z_n16_I_lbe_swap(67);
                     packet->op = 1;
                     packet->htype = 1;
                     packet->hlen = 6;
@@ -357,8 +362,8 @@ Switch:     switch( interface->dhcp.state )
                         packet->options[ 9 + i ] = interface->mac_address[i];
                     // END
                     packet->options[15] = 255;
-                    packet->ipv4.total_length = E_net_I_to_network( packet_l - sizeof( packet->ethernet ));
-                    packet->udp.length = E_net_I_to_network( packet_l - sizeof( packet->ipv4 ) - sizeof( packet->ethernet ));
+                    packet->ipv4.total_length = E_net_Z_n16_I_lbe_swap( packet_l - sizeof( packet->ethernet ));
+                    packet->udp.length = E_net_Z_n16_I_lbe_swap( packet_l - sizeof( packet->ipv4 ) - sizeof( packet->ethernet ));
                     packet->ipv4.header_checksum = E_net_I_checksum( (P)&packet->ipv4, (P)(( Pc )&packet->ipv4 + sizeof( packet->ipv4 )));
                     struct E_net_Z_ipv4_header_checksum ipv4 =
                     { packet->ipv4.source_address
@@ -370,63 +375,21 @@ Switch:     switch( interface->dhcp.state )
                     N16 checksum = 0, carry = 0;
                     E_net_I_checksum_0( (P)&ipv4, (P)(( Pc )&ipv4 + sizeof( ipv4 )), &checksum, &carry );
                     E_net_I_checksum_0( (P)&packet->udp, (P)(( Pc )packet + packet_l ), &checksum, &carry );
-                    E_net_I_checksum_1( &checksum, &carry );
+                    E_net_I_checksum_1( &checksum, carry );
                     packet->udp.checksum = checksum;
-                    struct E_ipv4_Z_dhcp_packet *packet_[3];
-                    for_n_( i, J_a_R_n( packet_ ))
-                    {   packet_[i] = M( packet_l );
-                        if( K_error( packet_[i] )
-                        || !(N)packet_[i]
-                        )
-                        {   N r = packet_[i] ? (N)packet_[i] : ~0;
-                            for_n( i_, i )
-                            {   r = W( packet_[ i_ ] );
-                                if( K_error(r) )
-                                {   if( r > ~1 )
-                                        r = ~1;
-                                    break;
-                                }
-                            }
-                            N32 sched_i = E_flow_I_current_scheduler();
-                            E_flow_S_scheduler[ sched_i ].task_error = r;
-                            goto Block;
-                        }
-                        E_mem_Q_blk_I_copy( packet_[i], packet, packet_l );
-                    }
                     if( !~interface->dhcp.connection_id )
                     {   interface->dhcp.connection_id = E_net_Q_udp4_connection_state_M( packet->ipv4.source_address, packet->udp.source_port, packet->ipv4.destination_address, packet->udp.destination_port, _Xi_var( net, dhcp ));
                         if( !~interface->dhcp.connection_id )
-                        {   N r = ~0;
-                            for_n_( i, J_a_R_n( packet_ ))
-                            {   r = W( packet_[i] );
-                                if( K_error(r) )
-                                {   if( r > ~1 )
-                                        r = ~1;
-                                    break;
-                                }
-                            }
-                            N32 sched_i = E_flow_I_current_scheduler();
-                            E_flow_S_scheduler[ sched_i ].task_error = r;
+                        {   N32 sched_i = E_flow_I_current_scheduler();
+                            E_flow_S_scheduler[ sched_i ].task_error = ~0;
                             goto Block;
                         }
                     }
-                    E_ethernet_I_transmit( interface, packet, packet_l );
-                    for_n_( i, J_a_R_n( packet_ ))
-                    {   N r = E_ethernet_I_transmit( interface, packet_[i], packet_l );
-                        if( K_error(r) )
-                        {   N r = ~0;
-                            for_n_( i, J_a_R_n( packet_ ))
-                            {   r = W( packet_[i] );
-                                if( K_error(r) )
-                                {   if( r > ~1 )
-                                        r = ~1;
-                                    break;
-                                }
-                            }
-                            N32 sched_i = E_flow_I_current_scheduler();
-                            E_flow_S_scheduler[ sched_i ].task_error = r;
-                            goto Block;
-                        }
+                    N r = E_ethernet_I_transmit( interface, packet, packet_l );
+                    if( K_error(r) )
+                    {   N32 sched_i = E_flow_I_current_scheduler();
+                        E_flow_S_scheduler[ sched_i ].task_error = r;
+                        goto Block;
                     }
                     interface->dhcp.state = E_net_Z_interface_state_S_dhcp_offer;
                     break;
@@ -436,7 +399,13 @@ Switch:     switch( interface->dhcp.state )
                     if( !connection_state->buffer )
                     {   if( !reported_count )
                         {   if( ++interface->dhcp.retry == E_net_S_dhcp_tries )
-                            {   interface->dhcp.state = E_net_Z_interface_state_S_dhcp_invalid;
+                            {   N r = E_net_Q_udp4_connection_state_W( interface->dhcp.connection_id );
+                                if( K_error(r) )
+                                {   N32 sched_i = E_flow_I_current_scheduler();
+                                    E_flow_S_scheduler[ sched_i ].task_error = r;
+                                    goto Block;
+                                }
+                                interface->dhcp.state = E_net_Z_interface_state_S_dhcp_invalid;
                                 break;
                             }
                             interface->dhcp.state = E_net_Z_interface_state_S_dhcp_discover;
@@ -448,7 +417,7 @@ Switch:     switch( interface->dhcp.state )
                     || offer_packet->htype != 1
                     || offer_packet->hlen != 6
                     || offer_packet->xid != interface->dhcp.xid
-                    || offer_packet->udp.length < sizeof( struct E_ipv4_Z_dhcp_packet ) - sizeof( struct E_net_Z_ipv4_header ) - sizeof( struct E_net_Z_ethernet_header ) + 4
+                    || E_net_Z_n16_I_lbe_swap( offer_packet->udp.length ) < sizeof( struct E_ipv4_Z_dhcp_packet ) - sizeof( struct E_net_Z_ipv4_header ) - sizeof( struct E_net_Z_ethernet_header ) + 4
                     || offer_packet->options[0] != 99
                     || offer_packet->options[1] != 130
                     || offer_packet->options[2] != 83
@@ -463,12 +432,12 @@ Switch:     switch( interface->dhcp.state )
                         break;
                     }
                     N8 *option = &offer_packet->options[4];
-                    while(( Pc )option + 1 - ( Pc )&offer_packet->udp < offer_packet->udp.length
+                    while(( Pc )option + 1 - ( Pc )&offer_packet->udp < E_net_Z_n16_I_lbe_swap( offer_packet->udp.length )
                     && *option != 53
                     && *option != 255
                     )
                         option += 2 + option[1];
-                    if(( Pc )option + 2 + 1 - ( Pc )&offer_packet->udp > offer_packet->udp.length
+                    if(( Pc )option + 2 + 1 - ( Pc )&offer_packet->udp > E_net_Z_n16_I_lbe_swap( offer_packet->udp.length )
                     || option[0] != 53
                     || option[1] != 1
                     || option[2] != 2
@@ -487,11 +456,10 @@ Switch:     switch( interface->dhcp.state )
                         goto Switch;
                     }
                     interface->ipv4_address = offer_packet->yiaddr;
-                    interface->dhcp.server_address = offer_packet->siaddr;
-                    connection_state->ip4.remote_address = offer_packet->siaddr;
+                    connection_state->ip4.remote_address = interface->dhcp.server_address = offer_packet->siaddr;
                     B has_server_id = no;
                     option = &offer_packet->options[4];
-                    while(( Pc )option + 1 - ( Pc )&offer_packet->udp < offer_packet->udp.length
+                    while(( Pc )option + 1 - ( Pc )&offer_packet->udp < E_net_Z_n16_I_lbe_swap( offer_packet->udp.length )
                     && *option != 255
                     )
                     {   switch( option[0] )
@@ -505,7 +473,7 @@ Switch:     switch( interface->dhcp.state )
                         }
                         option += 2 + option[1];
                     }
-Offer_end:          interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_packet->udp < offer_packet->udp.length
+Offer_end:          interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_packet->udp < E_net_Z_n16_I_lbe_swap( offer_packet->udp.length )
                     && *option == 255
                     && has_server_id
                     ? E_net_Z_interface_state_S_dhcp_request
@@ -535,13 +503,11 @@ Offer_end:          interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
                     packet->ethernet.type = 0x8;
                     packet->ipv4.version = 4;
                     packet->ipv4.ihl = 5;
-                    packet->ipv4.total_length = E_net_I_to_network( sizeof( *packet ) - sizeof( packet->ethernet ));
                     packet->ipv4.ttl = 1;
                     packet->ipv4.protocol = 17;
                     packet->ipv4.destination_address = interface->dhcp.server_address;
-                    packet->udp.source_port = E_net_I_to_network(68);
-                    packet->udp.destination_port = E_net_I_to_network(67);
-                    packet->udp.length = E_net_I_to_network( sizeof( *packet ) - sizeof( packet->ipv4 ) - sizeof( packet->ethernet ));
+                    packet->udp.source_port = E_net_Z_n16_I_lbe_swap(68);
+                    packet->udp.destination_port = E_net_Z_n16_I_lbe_swap(67);
                     packet->op = 1;
                     packet->htype = 1;
                     packet->hlen = 6;
@@ -584,8 +550,8 @@ Offer_end:          interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
                         packet->options[ 27 + i ] = interface->mac_address[i];
                     // END
                     packet->options[33] = 255;
-                    packet->ipv4.total_length = E_net_I_to_network( packet_l - sizeof( packet->ethernet ));
-                    packet->udp.length = E_net_I_to_network( packet_l - sizeof( packet->ipv4 ) - sizeof( packet->ethernet ));
+                    packet->ipv4.total_length = E_net_Z_n16_I_lbe_swap( packet_l - sizeof( packet->ethernet ));
+                    packet->udp.length = E_net_Z_n16_I_lbe_swap( packet_l - sizeof( packet->ipv4 ) - sizeof( packet->ethernet ));
                     packet->ipv4.header_checksum = E_net_I_checksum( (P)&packet->ipv4, (P)(( Pc )&packet->ipv4 + sizeof( packet->ipv4 )));
                     struct E_net_Z_ipv4_header_checksum ipv4 =
                     { packet->ipv4.source_address
@@ -597,46 +563,13 @@ Offer_end:          interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
                     N16 checksum = 0, carry = 0;
                     E_net_I_checksum_0( (P)&ipv4, (P)(( Pc )&ipv4 + sizeof( ipv4 )), &checksum, &carry );
                     E_net_I_checksum_0( (P)&packet->udp, (P)(( Pc )packet + packet_l ), &checksum, &carry );
-                    E_net_I_checksum_1( &checksum, &carry );
+                    E_net_I_checksum_1( &checksum, carry );
                     packet->udp.checksum = checksum;
-                    struct E_ipv4_Z_dhcp_packet *packet_[3];
-                    for_n_( i, J_a_R_n( packet_ ))
-                    {   packet_[i] = M( packet_l );
-                        if( K_error( packet_[i] )
-                        || !packet_[i]
-                        )
-                        {   N r = packet_[i] ? (N)packet_[i] : ~0;
-                            for_n( i_, i )
-                            {   r = W( packet_[ i_ ] );
-                                if( K_error(r) )
-                                {   if( r > ~1 )
-                                        r = ~1;
-                                    break;
-                                }
-                            }
-                            N32 sched_i = E_flow_I_current_scheduler();
-                            E_flow_S_scheduler[ sched_i ].task_error = r;
-                            goto Block;
-                        }
-                        E_mem_Q_blk_I_copy( packet_[i], packet, packet_l );
-                    }
-                    E_ethernet_I_transmit( interface, packet, packet_l );
-                    for_n_( i, J_a_R_n( packet_ ))
-                    {   N r = E_ethernet_I_transmit( interface, packet_[i], packet_l );
-                        if( K_error(r) )
-                        {   N r = ~0;
-                            for_n_( i, J_a_R_n( packet_ ))
-                            {   r = W( packet_[i] );
-                                if( K_error(r) )
-                                {   if( r > ~1 )
-                                        r = ~1;
-                                    break;
-                                }
-                            }
-                            N32 sched_i = E_flow_I_current_scheduler();
-                            E_flow_S_scheduler[ sched_i ].task_error = r;
-                            goto Block;
-                        }
+                    N r = E_ethernet_I_transmit( interface, packet, packet_l );
+                    if( K_error(r) )
+                    {   N32 sched_i = E_flow_I_current_scheduler();
+                        E_flow_S_scheduler[ sched_i ].task_error = r;
+                        goto Block;
                     }
                     interface->dhcp.state = E_net_Z_interface_state_S_dhcp_ack;
                     break;
@@ -646,7 +579,17 @@ Offer_end:          interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
                     if( !connection_state->buffer )
                     {   if( !reported_count )
                         {   if( ++interface->dhcp.retry == E_net_S_dhcp_tries )
-                            {   interface->dhcp.state = interface->ipv4_address ? E_net_Z_interface_state_S_dhcp_renew_1 : E_net_Z_interface_state_S_dhcp_invalid;
+                            {   if( interface->ipv4_address )
+                                    interface->dhcp.state = E_net_Z_interface_state_S_dhcp_renew_1;
+                                else
+                                {   N r = E_net_Q_udp4_connection_state_W( interface->dhcp.connection_id );
+                                    if( K_error(r) )
+                                    {   N32 sched_i = E_flow_I_current_scheduler();
+                                        E_flow_S_scheduler[ sched_i ].task_error = r;
+                                        goto Block;
+                                    }
+                                    interface->dhcp.state = E_net_Z_interface_state_S_dhcp_invalid;
+                                }
                                 break;
                             }
                             interface->dhcp.state = E_net_Z_interface_state_S_dhcp_request;
@@ -658,7 +601,7 @@ Offer_end:          interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
                     || offer_packet->htype != 1
                     || offer_packet->hlen != 6
                     || offer_packet->xid != interface->dhcp.xid
-                    || offer_packet->udp.length < sizeof( struct E_ipv4_Z_dhcp_packet ) - sizeof( struct E_net_Z_ipv4_header ) - sizeof( struct E_net_Z_ethernet_header ) + 4
+                    || E_net_Z_n16_I_lbe_swap( offer_packet->udp.length ) < sizeof( struct E_ipv4_Z_dhcp_packet ) - sizeof( struct E_net_Z_ipv4_header ) - sizeof( struct E_net_Z_ethernet_header ) + 4
                     || offer_packet->options[0] != 99
                     || offer_packet->options[1] != 130
                     || offer_packet->options[2] != 83
@@ -673,12 +616,12 @@ Offer_end:          interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
                         break;
                     }
                     N8 *option = &offer_packet->options[4];
-                    while(( Pc )option + 1 - ( Pc )&offer_packet->udp < offer_packet->udp.length
+                    while(( Pc )option + 1 - ( Pc )&offer_packet->udp < E_net_Z_n16_I_lbe_swap( offer_packet->udp.length )
                     && *option != 53
                     && *option != 255
                     )
                         option += 2 + option[1];
-                    if(( Pc )option + 2 + 1 - ( Pc )&offer_packet->udp > offer_packet->udp.length
+                    if(( Pc )option + 2 + 1 - ( Pc )&offer_packet->udp > E_net_Z_n16_I_lbe_swap( offer_packet->udp.length )
                     || option[0] != 53
                     || option[1] != 1
                     || option[2] != 5
@@ -699,7 +642,7 @@ Offer_end:          interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
                     }
                     B has_mask = no, has_gateway = no, has_dns = no, has_time = no;
                     option = &offer_packet->options[4];
-                    while(( Pc )option + 1 - ( Pc )&offer_packet->udp < offer_packet->udp.length
+                    while(( Pc )option + 1 - ( Pc )&offer_packet->udp < E_net_Z_n16_I_lbe_swap( offer_packet->udp.length )
                     && *option != 255
                     )
                     {   switch( option[0] )
@@ -733,16 +676,17 @@ Offer_end:          interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
                           case 51:
                             {   if( option[1] != 4 )
                                     goto Ack_end;
-                                interface->dhcp.lease_time_0 = E_flow_I_current_time() + E_interrupt_S_cpu_freq * ( option[2] | (( N32 )option[3] << 8 ) | (( N32 )option[4] << 16 ) | (( N32 )option[5] << 24 ));
-                                interface->dhcp.lease_time_1 = E_flow_I_current_time() + 7 * E_interrupt_S_cpu_freq * ( option[2] | (( N32 )option[3] << 8 ) | (( N32 )option[4] << 16 ) | (( N32 )option[5] << 24 )) / 8;
-                                interface->dhcp.lease_time_2 = E_flow_I_current_time() + E_interrupt_S_cpu_freq * ( option[2] | (( N32 )option[3] << 8 ) | (( N32 )option[4] << 16 ) | (( N32 )option[5] << 24 )) / 2;
+                                N current_time = E_flow_I_current_time();
+                                interface->dhcp.lease_time_0 = current_time + E_interrupt_S_cpu_freq * ( option[2] | (( N32 )option[3] << 8 ) | (( N32 )option[4] << 16 ) | (( N32 )option[5] << 24 ));
+                                interface->dhcp.lease_time_1 = current_time + 7 * E_interrupt_S_cpu_freq * ( option[2] | (( N32 )option[3] << 8 ) | (( N32 )option[4] << 16 ) | (( N32 )option[5] << 24 )) / 8;
+                                interface->dhcp.lease_time_2 = current_time + E_interrupt_S_cpu_freq * ( option[2] | (( N32 )option[3] << 8 ) | (( N32 )option[4] << 16 ) | (( N32 )option[5] << 24 )) / 2;
                                 has_time = yes;
                                 break;
                             }
                         }
                         option += 2 + option[1];
                     }
-Ack_end:            interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_packet->udp < offer_packet->udp.length
+Ack_end:            interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_packet->udp < E_net_Z_n16_I_lbe_swap( offer_packet->udp.length )
                     && *option == 255
                     && has_mask
                     && has_gateway
@@ -778,13 +722,11 @@ Ack_end:            interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
                     packet->ethernet.type = 0x8;
                     packet->ipv4.version = 4;
                     packet->ipv4.ihl = 5;
-                    packet->ipv4.total_length = E_net_I_to_network( sizeof( *packet ) - sizeof( packet->ethernet ));
                     packet->ipv4.ttl = 1;
                     packet->ipv4.protocol = 17;
                     packet->ipv4.destination_address = 0xffffffff;
-                    packet->udp.source_port = E_net_I_to_network(68);
-                    packet->udp.destination_port = E_net_I_to_network(67);
-                    packet->udp.length = E_net_I_to_network( sizeof( *packet ) - sizeof( packet->ipv4 ) - sizeof( packet->ethernet ));
+                    packet->udp.source_port = 68;
+                    packet->udp.destination_port = 67;
                     packet->op = 1;
                     packet->htype = 1;
                     packet->hlen = 6;
@@ -827,8 +769,8 @@ Ack_end:            interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
                         packet->options[ 27 + i ] = interface->mac_address[i];
                     // END
                     packet->options[33] = 255;
-                    packet->ipv4.total_length = E_net_I_to_network( packet_l - sizeof( packet->ethernet ));
-                    packet->udp.length = E_net_I_to_network( packet_l - sizeof( packet->ipv4 ) - sizeof( packet->ethernet ));
+                    packet->ipv4.total_length = E_net_Z_n16_I_lbe_swap( packet_l - sizeof( packet->ethernet ));
+                    packet->udp.length = E_net_Z_n16_I_lbe_swap( packet_l - sizeof( packet->ipv4 ) - sizeof( packet->ethernet ));
                     packet->ipv4.header_checksum = E_net_I_checksum( (P)&packet->ipv4, (P)(( Pc )&packet->ipv4 + sizeof( packet->ipv4 )));
                     struct E_net_Z_ipv4_header_checksum ipv4 =
                     { packet->ipv4.source_address
@@ -840,46 +782,13 @@ Ack_end:            interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
                     N16 checksum = 0, carry = 0;
                     E_net_I_checksum_0( (P)&ipv4, (P)(( Pc )&ipv4 + sizeof( ipv4 )), &checksum, &carry );
                     E_net_I_checksum_0( (P)&packet->udp, (P)(( Pc )packet + packet_l ), &checksum, &carry );
-                    E_net_I_checksum_1( &checksum, &carry );
+                    E_net_I_checksum_1( &checksum, carry );
                     packet->udp.checksum = checksum;
-                    struct E_ipv4_Z_dhcp_packet *packet_[3];
-                    for_n_( i, J_a_R_n( packet_ ))
-                    {   packet_[i] = M( packet_l );
-                        if( K_error( packet_[i] )
-                        || !packet_[i]
-                        )
-                        {   N r = packet_[i] ? (N)packet_[i] : ~0;
-                            for_n( i_, i )
-                            {   r = W( packet_[ i_ ] );
-                                if( K_error(r) )
-                                {   if( r > ~1 )
-                                        r = ~1;
-                                    break;
-                                }
-                            }
-                            N32 sched_i = E_flow_I_current_scheduler();
-                            E_flow_S_scheduler[ sched_i ].task_error = r;
-                            goto Block;
-                        }
-                        E_mem_Q_blk_I_copy( packet_[i], packet, packet_l );
-                    }
-                    E_ethernet_I_transmit( interface, packet, packet_l );
-                    for_n_( i, J_a_R_n( packet_ ))
-                    {   N r = E_ethernet_I_transmit( interface, packet_[i], packet_l );
-                        if( K_error(r) )
-                        {   N r = ~0;
-                            for_n_( i, J_a_R_n( packet_ ))
-                            {   r = W( packet_[i] );
-                                if( K_error(r) )
-                                {   if( r > ~1 )
-                                        r = ~1;
-                                    break;
-                                }
-                            }
-                            N32 sched_i = E_flow_I_current_scheduler();
-                            E_flow_S_scheduler[ sched_i ].task_error = r;
-                            goto Block;
-                        }
+                    N r = E_ethernet_I_transmit( interface, packet, packet_l );
+                    if( K_error(r) )
+                    {   N32 sched_i = E_flow_I_current_scheduler();
+                        E_flow_S_scheduler[ sched_i ].task_error = r;
+                        goto Block;
                     }
                     interface->dhcp.state = E_net_Z_interface_state_S_dhcp_ack_any;
                     break;
@@ -901,7 +810,7 @@ Ack_end:            interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
                     || offer_packet->htype != 1
                     || offer_packet->hlen != 6
                     || offer_packet->xid != interface->dhcp.xid
-                    || offer_packet->udp.length < sizeof( struct E_ipv4_Z_dhcp_packet ) - sizeof( struct E_net_Z_ipv4_header ) - sizeof( struct E_net_Z_ethernet_header ) + 4
+                    || E_net_Z_n16_I_lbe_swap( offer_packet->udp.length ) < sizeof( struct E_ipv4_Z_dhcp_packet ) - sizeof( struct E_net_Z_ipv4_header ) - sizeof( struct E_net_Z_ethernet_header ) + 4
                     || offer_packet->options[0] != 99
                     || offer_packet->options[1] != 130
                     || offer_packet->options[2] != 83
@@ -916,12 +825,12 @@ Ack_end:            interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
                         break;
                     }
                     N8 *option = &offer_packet->options[4];
-                    while(( Pc )option + 1 - ( Pc )&offer_packet->udp < offer_packet->udp.length
+                    while(( Pc )option + 1 - ( Pc )&offer_packet->udp < E_net_Z_n16_I_lbe_swap( offer_packet->udp.length )
                     && *option != 53
                     && *option != 255
                     )
                         option += 2 + option[1];
-                    if(( Pc )option + 2 + 1 - ( Pc )&offer_packet->udp > offer_packet->udp.length
+                    if(( Pc )option + 2 + 1 - ( Pc )&offer_packet->udp > E_net_Z_n16_I_lbe_swap( offer_packet->udp.length )
                     || option[0] != 53
                     || option[1] != 1
                     || option[2] != 5
@@ -943,7 +852,7 @@ Ack_end:            interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
                     }
                     B has_mask = no, has_gateway = no, has_dns = no, has_time = no;
                     option = &offer_packet->options[4];
-                    while(( Pc )option + 1 - ( Pc )&offer_packet->udp < offer_packet->udp.length
+                    while(( Pc )option + 1 - ( Pc )&offer_packet->udp < E_net_Z_n16_I_lbe_swap( offer_packet->udp.length )
                     && *option != 255
                     )
                     {   switch( option[0] )
@@ -977,16 +886,17 @@ Ack_end:            interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
                           case 51:
                             {   if( option[1] != 4 )
                                     goto Ack_any_end;
-                                interface->dhcp.lease_time_0 = E_flow_I_current_time() + E_interrupt_S_cpu_freq * ( option[2] | (( N32 )option[3] << 8 ) | (( N32 )option[4] << 16 ) | (( N32 )option[5] << 24 )) / 2;
-                                interface->dhcp.lease_time_1 = E_flow_I_current_time() + 7 * E_interrupt_S_cpu_freq * ( option[2] | (( N32 )option[3] << 8 ) | (( N32 )option[4] << 16 ) | (( N32 )option[5] << 24 )) / 8;
-                                interface->dhcp.lease_time_2 = E_flow_I_current_time() + E_interrupt_S_cpu_freq * ( option[2] | (( N32 )option[3] << 8 ) | (( N32 )option[4] << 16 ) | (( N32 )option[5] << 24 ));
+                                N current_time = E_flow_I_current_time();
+                                interface->dhcp.lease_time_0 = current_time + E_interrupt_S_cpu_freq * ( option[2] | (( N32 )option[3] << 8 ) | (( N32 )option[4] << 16 ) | (( N32 )option[5] << 24 )) / 2;
+                                interface->dhcp.lease_time_1 = current_time + 7 * E_interrupt_S_cpu_freq * ( option[2] | (( N32 )option[3] << 8 ) | (( N32 )option[4] << 16 ) | (( N32 )option[5] << 24 )) / 8;
+                                interface->dhcp.lease_time_2 = current_time + E_interrupt_S_cpu_freq * ( option[2] | (( N32 )option[3] << 8 ) | (( N32 )option[4] << 16 ) | (( N32 )option[5] << 24 ));
                                 has_time = yes;
                                 break;
                             }
                         }
                         option += 2 + option[1];
                     }
-Ack_any_end:        interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_packet->udp < offer_packet->udp.length
+Ack_any_end:        interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_packet->udp < E_net_Z_n16_I_lbe_swap( offer_packet->udp.length )
                     && *option == 255
                     && has_mask
                     && has_gateway
@@ -1040,30 +950,54 @@ Ack_any_end:        interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
                 break;
         }
         if( ~interface_id )
-            Xi_B( net, dhcp, 100, &reported_count )
+            Xi_B( net, dhcp, 4000, &reported_count )
                 goto End;
         else
-        {   N time = ~0;
+        {   B found = no;
+            N time = ~0;
+            N current_time = E_flow_I_current_time();
             for_each_( interface_id, E_net_S_interface, E_mem_Q_tab )
             {   struct E_net_Z_interface *interface = E_mem_Q_tab_R( E_net_S_interface, interface_id );
                 if( interface->dhcp.state == E_net_Z_interface_state_S_dhcp_renew_0 )
-                    if( time > interface->dhcp.lease_time_0 )
-                        time = interface->dhcp.lease_time_0;
-                else if( interface->dhcp.state == E_net_Z_interface_state_S_dhcp_renew_1 )
-                    if( time > interface->dhcp.lease_time_1 )
-                        time = interface->dhcp.lease_time_1;
-                else if( interface->dhcp.state == E_net_Z_interface_state_S_dhcp_renew_2 )
-                    if( time > interface->dhcp.lease_time_2 )
-                        time = interface->dhcp.lease_time_2;
+                {   found = yes;
+                    if( time > interface->dhcp.lease_time_0 - current_time )
+                        time = interface->dhcp.lease_time_0 - current_time;
+                    if( (S)time <= 0 )
+                        break;
+                }else if( interface->dhcp.state == E_net_Z_interface_state_S_dhcp_renew_1 )
+                {   found = yes;
+                    if( time > interface->dhcp.lease_time_1 - current_time )
+                        time = interface->dhcp.lease_time_1 - current_time;
+                    if( (S)time <= 0 )
+                        break;
+                }else if( interface->dhcp.state == E_net_Z_interface_state_S_dhcp_renew_2 )
+                {   found = yes;
+                    if( time > interface->dhcp.lease_time_2 - current_time )
+                        time = interface->dhcp.lease_time_2 - current_time;
+                    if( (S)time <= 0 )
+                        break;
+                }
             }
+            if(found)
+                time = (S)time > 0 ? time * 1000 / E_interrupt_S_cpu_freq : 0;
+            else
+                time = 1800000;
             G( "time=%x", time );
-            if( ~time )
-            {   N current_time = E_flow_I_current_time();
-                time = time > current_time ? ( time - current_time ) * 1000 / E_interrupt_S_cpu_freq : 0;
-                Yi_F( net, dhcp, time );
-            }
+            Yi_F( net, dhcp, time );
 Block:      Yi_B( net, dhcp )
                 goto End;
+            for_each_( interface_id, E_net_S_interface, E_mem_Q_tab )
+            {   struct E_net_Z_interface *interface = E_mem_Q_tab_R( E_net_S_interface, interface_id );
+                if( interface->dhcp.state == E_net_Z_interface_state_S_dhcp_invalid )
+                {   N r = E_ethernet_I_reinit( interface_id );
+                    if( K_error(r) )
+                    {   N32 sched_i = E_flow_I_current_scheduler();
+                        E_flow_S_scheduler[ sched_i ].task_error = r;
+                        goto Block;
+                    }
+                    interface->dhcp.state = E_net_Z_interface_state_S_dhcp_discover;
+                }
+            }
         }
     }
 End:N r = Xi_W( net, dhcp );

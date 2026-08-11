@@ -1016,8 +1016,7 @@ E_ouxfs_Z_start_n_I_block_append( N disc_id
 , S64 *block_table_diff
 , N64 internal_table_element_size
 , N64 *count
-){  N64 n_0 = n;
-    *block_table_diff = 0;
+){  *block_table_diff = 0;
     *count = 0;
     N64 size;
     N64 free_table_found_i;
@@ -2280,8 +2279,7 @@ Retry_2:    K( E_ouxfs_Q_file_I_write_( disc_id, partition_i, file_i, pos, n, da
                             goto Buffer_2;
                     }
                 }else
-                {   
-                    K_( ~0, E_disc_P_sync( disc_id ));
+                {   K_( ~0, E_disc_P_sync( disc_id ));
                     if( !retried )
                     {   retried = yes;
                         goto Retry_2;
@@ -7412,7 +7410,6 @@ E_ouxfs_Q_file_I_read( N disc_id
 End:E_flow_Z_lock_rw_I_unlock_read_and_return( &disc->partition[ partition_i ].lock_rw, &disc->partition[ partition_i ].return_, r );
     return r;
 }
-//TODO Przeanalizować naprawianie błędów w poniższej procedurze.
 _private
 N
 E_ouxfs_Q_file_I_write( I disc_id
