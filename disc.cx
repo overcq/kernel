@@ -234,21 +234,22 @@ E_disc_I_init( I disc_id
                         if( E_main_I_crc32_ieee( (P)gpt_partition_record, gpt_header->partition_entry_count * sizeof( *gpt_partition_record )) != crc32 )
                             return ~2;
                         //TODO Sprawdzić alternatywny GPT.
+                        struct E_disc_Z_gpt_partition_record *gpt_partition_record_ = gpt_partition_record;
                         for_n( partition_record_i, gpt_header->partition_entry_count )
-                        {   for_n( i, J_a_R_n( gpt_partition_record->type_guid ))
-                                if( gpt_partition_record->type_guid[i] )
+                        {   for_n( i, J_a_R_n( gpt_partition_record_->type_guid ))
+                                if( gpt_partition_record_->type_guid[i] )
                                     break;
-                            if( i != J_a_R_n( gpt_partition_record->type_guid ))
-                            {   if( gpt_partition_record->start_lba < first_usable_lba
-                                || gpt_partition_record->end_lba > last_usable_lba
-                                || gpt_partition_record->start_lba % ( disc->sata_ahci.physical_sector_size / disc->sata_ahci.logical_sector_size ) != disc->sata_ahci.logical_sector_shift
-                                || ( gpt_partition_record->end_lba - gpt_partition_record->start_lba + 1 ) % ( disc->sata_ahci.physical_sector_size / disc->sata_ahci.logical_sector_size )
+                            if( i != J_a_R_n( gpt_partition_record_->type_guid ))
+                            {   if( gpt_partition_record_->start_lba < first_usable_lba
+                                || gpt_partition_record_->end_lba > last_usable_lba
+                                || gpt_partition_record_->start_lba % ( disc->sata_ahci.physical_sector_size / disc->sata_ahci.logical_sector_size ) != disc->sata_ahci.logical_sector_shift
+                                || ( gpt_partition_record_->end_lba - gpt_partition_record_->start_lba + 1 ) % ( disc->sata_ahci.physical_sector_size / disc->sata_ahci.logical_sector_size )
                                 )
                                     return ~2;
                                 struct E_disc_Z_partition *partition = E_mem_Q_blk_I_append( &disc->partition, 1 );
                                 Kp_( ~2, partition );
-                                partition->pba = gpt_partition_record->start_lba / ( disc->sata_ahci.physical_sector_size / disc->sata_ahci.logical_sector_size );
-                                partition->count = ( gpt_partition_record->end_lba - gpt_partition_record->start_lba + 1 ) / ( disc->sata_ahci.physical_sector_size / disc->sata_ahci.logical_sector_size );
+                                partition->pba = gpt_partition_record_->start_lba / ( disc->sata_ahci.physical_sector_size / disc->sata_ahci.logical_sector_size );
+                                partition->count = ( gpt_partition_record_->end_lba - gpt_partition_record_->start_lba + 1 ) / ( disc->sata_ahci.physical_sector_size / disc->sata_ahci.logical_sector_size );
                                 for_n( partition_i, disc->partition_n )
                                     if(( disc->partition[ partition_i ].pba >= partition->pba
                                       && disc->partition[ partition_i ].pba < partition->pba + partition->count
@@ -257,9 +258,9 @@ E_disc_I_init( I disc_id
                                       && disc->partition[ partition_i ].pba + disc->partition[ partition_i ].count <= partition->pba + partition->count
                                     ))
                                         return ~2;
-                                if( !E_text_Z_sl_T_eq(( Pc )&gpt_partition_record->type_guid[0]
+                                if( !E_text_Z_sl_T_eq(( Pc )&gpt_partition_record_->type_guid[0]
                                 , "\xc1\x2a\x73\x28\xf8\x1f\x11\xd2\xba\x4b\x00\xa0\xc9\x3e\xc9\x3b"
-                                , sizeof( gpt_partition_record->type_guid )
+                                , sizeof( gpt_partition_record_->type_guid )
                                 )) // EFI
                                 {   G( "EFI" );
                                 }else
@@ -279,7 +280,7 @@ E_disc_I_init( I disc_id
                                     partition->file_system = E_disc_Z_file_system_S_oux;
                                 }
                             }
-                            gpt_partition_record = (P)(( Pc )gpt_partition_record + gpt_header->partition_entry_size );
+                            gpt_partition_record_ = (P)(( Pc )gpt_partition_record_ + gpt_header->partition_entry_size );
                         }
                         K_( ~1, W( gpt_partition_record ));
                         K_( ~1, W( gpt_header ));
@@ -308,7 +309,7 @@ E_disc_W( void
             {   for_n( partition_i, disc->partition_n )
                 {   switch( disc->partition[ partition_i ].file_system )
                     { case E_disc_Z_file_system_S_oux:
-                        {   K( E_ouxfs_Q_device_W( disc_id, partition_i ))
+                        {   K( E_ouxfs_Q_device_I_sync_free_before_shutdown( disc_id, partition_i ))
                                 return ~0;
                             break;
                         }

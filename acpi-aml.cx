@@ -7561,8 +7561,9 @@ Loop:
                                 if(( E_acpi_aml_S_object[ object_i ].type == E_acpi_aml_Z_object_Z_type_S_string
                                   || E_acpi_aml_S_object[ object_i ].type == E_acpi_aml_Z_object_Z_type_S_buffer
                                   || E_acpi_aml_S_object[ object_i ].type == E_acpi_aml_Z_object_Z_type_S_package
+                                  )
                                 && ~E_acpi_aml_S_object[ object_i ].n
-                                ))
+                                )
                                     switch( E_acpi_aml_S_object[ object_i ].type )
                                     { case E_acpi_aml_Z_object_Z_type_S_string:
                                         {   Pc s = E_acpi_aml_S_object[ object_i ].data;
@@ -7633,8 +7634,9 @@ Loop:
                                             if(( E_acpi_aml_S_object[ object_i ].type == E_acpi_aml_Z_object_Z_type_S_string
                                               || E_acpi_aml_S_object[ object_i ].type == E_acpi_aml_Z_object_Z_type_S_buffer
                                               || E_acpi_aml_S_object[ object_i ].type == E_acpi_aml_Z_object_Z_type_S_package
+                                              )
                                             && ~E_acpi_aml_S_object[ object_i ].n
-                                            ))
+                                            )
                                                 switch( E_acpi_aml_S_object[ object_i ].type )
                                                 { case E_acpi_aml_Z_object_Z_type_S_string:
                                                     {   Pc s = E_acpi_aml_S_object[ object_i ].data;
@@ -7720,8 +7722,9 @@ Loop:
                                             if(( E_acpi_aml_S_object[ object_i ].type == E_acpi_aml_Z_object_Z_type_S_string
                                               || E_acpi_aml_S_object[ object_i ].type == E_acpi_aml_Z_object_Z_type_S_buffer
                                               || E_acpi_aml_S_object[ object_i ].type == E_acpi_aml_Z_object_Z_type_S_package
+                                              )
                                             && ~E_acpi_aml_S_object[ object_i ].n
-                                            ))
+                                            )
                                                 switch( E_acpi_aml_S_object[ object_i ].type )
                                                 { case E_acpi_aml_Z_object_Z_type_S_string:
                                                     {   Pc s = E_acpi_aml_S_object[ object_i ].data;
@@ -7810,8 +7813,9 @@ Loop:
                                             if(( E_acpi_aml_S_object[ object_i ].type == E_acpi_aml_Z_object_Z_type_S_string
                                               || E_acpi_aml_S_object[ object_i ].type == E_acpi_aml_Z_object_Z_type_S_buffer
                                               || E_acpi_aml_S_object[ object_i ].type == E_acpi_aml_Z_object_Z_type_S_package
+                                              )
                                             && ~E_acpi_aml_S_object[ object_i ].n
-                                            ))
+                                            )
                                                 switch( E_acpi_aml_S_object[ object_i ].type )
                                                 { case E_acpi_aml_Z_object_Z_type_S_string:
                                                   case E_acpi_aml_Z_object_Z_type_S_buffer:
@@ -7892,8 +7896,9 @@ Loop:
                                             if(( E_acpi_aml_S_object[ object_i ].type == E_acpi_aml_Z_object_Z_type_S_string
                                               || E_acpi_aml_S_object[ object_i ].type == E_acpi_aml_Z_object_Z_type_S_buffer
                                               || E_acpi_aml_S_object[ object_i ].type == E_acpi_aml_Z_object_Z_type_S_package
+                                              )
                                             && ~E_acpi_aml_S_object[ object_i ].n
-                                            ))
+                                            )
                                                 switch( E_acpi_aml_S_object[ object_i ].type )
                                                 { case E_acpi_aml_Z_object_Z_type_S_string:
                                                     {   Pc s = E_acpi_aml_S_object[ object_i ].data;
@@ -7978,8 +7983,9 @@ Loop:
                                             if(( E_acpi_aml_S_object[ object_i ].type == E_acpi_aml_Z_object_Z_type_S_string
                                               || E_acpi_aml_S_object[ object_i ].type == E_acpi_aml_Z_object_Z_type_S_buffer
                                               || E_acpi_aml_S_object[ object_i ].type == E_acpi_aml_Z_object_Z_type_S_package
+                                              )
                                             && ~E_acpi_aml_S_object[ object_i ].n
-                                            ))
+                                            )
                                                 switch( E_acpi_aml_S_object[ object_i ].type )
                                                 { case E_acpi_aml_Z_object_Z_type_S_string:
                                                     {   Pc s = E_acpi_aml_S_object[ object_i ].data;

@@ -502,40 +502,6 @@ E_text_Z_s0_R_search_s0( Pc s
     }
     return s;
 }
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-_export
-N
-E_text_Z_s_Z_10_N_n( Pc s
-, Pc s_end
-, Pc *ret_s
-){  N n = 0;
-    while( s != s_end )
-    {   n *= 10;
-        if( *s >= '0' && *s <= '9' )
-            n += *s - '0';
-        else
-            break;
-        s++;
-    }
-    *ret_s = s;
-    return n;
-}
-_export
-N
-E_text_Z_s0_Z_10_N_n( Pc s
-, Pc *ret_s
-){  N n = 0;
-    while( *s )
-    {   n *= 10;
-        if( *s >= '0' && *s <= '9' )
-            n += *s - '0';
-        else
-            break;
-        s++;
-    }
-    *ret_s = s;
-    return n;
-}
 //------------------------------------------------------------------------------
 _export
 N
@@ -546,7 +512,7 @@ E_text_Z_s_N_n( Pc s
 ){  N n = 0, n_prev = 0;
     while( s != s_end )
     {   n *= base;
-        if( *s >= '0' && *s <= '9' )
+        if( *s >= '0' && *s <= '0' + ( base <= 9 ? base - 1 : 9 ))
             n += *s - '0';
         else if( *s >= 'A' && *s < 'A' + base - 10 )
             n += 10 + *s - 'A';
@@ -572,7 +538,7 @@ E_text_Z_s0_N_n( Pc s
 ){  N n = 0, n_prev = 0;
     while( *s )
     {   n *= base;
-        if( *s >= '0' && *s <= '9' )
+        if( *s >= '0' && *s <= '0' + ( base <= 9 ? base - 1 : 9 ))
             n += *s - '0';
         else if( *s >= 'A' && *s < 'A' + base - 10 )
             n += 10 + *s - 'A';
@@ -605,7 +571,7 @@ E_text_Z_s_N_sn( Pc s
     S n = 0, n_prev = 0;
     while( s != s_end )
     {   n *= base;
-        if( *s >= '0' && *s <= '9' )
+        if( *s >= '0' && *s <= '0' + ( base <= 9 ? base - 1 : 9 ))
             n += *s - '0';
         else if( *s >= 'A' && *s < 'A' + base - 10 )
             n += 10 + *s - 'A';
@@ -640,7 +606,7 @@ E_text_Z_s0_N_sn( Pc s
     S n = 0, n_prev = 0;
     while( *s )
     {   n *= base;
-        if( *s >= '0' && *s <= '9' )
+        if( *s >= '0' && *s <= '0' + ( base <= 9 ? base - 1 : 9 ))
             n += *s - '0';
         else if( *s >= 'A' && *s < 'A' + base - 10 )
             n += 10 + *s - 'A';
@@ -876,11 +842,11 @@ E_text_Z_s_N_datetime( Pc s
 , Pc s_end
 , Pc *ret_s
 ){  struct E_datetime_Z datetime = {0};
-    datetime.year = E_text_Z_s0_Z_10_N_n( s, ret_s );
+    datetime.year = E_text_Z_s0_N_n( s, ret_s, 10 );
     if( *ret_s != s_end )
         return datetime;
     s = *ret_s + 1;
-    datetime.month = E_text_Z_s0_Z_10_N_n( s, ret_s );
+    datetime.month = E_text_Z_s0_N_n( s, ret_s, 10 );
     if( datetime.month < 1
     || datetime.month > 12
     )
@@ -891,7 +857,7 @@ E_text_Z_s_N_datetime( Pc s
     if( *ret_s != s_end )
         return datetime;
     s = *ret_s + 1;
-    datetime.day = E_text_Z_s0_Z_10_N_n( s, ret_s );
+    datetime.day = E_text_Z_s0_N_n( s, ret_s, 10 );
     if( datetime.day < 1
     || datetime.day > 31
     )
@@ -923,7 +889,7 @@ E_text_Z_s_N_datetime( Pc s
     if( *ret_s != s_end )
         return datetime;
     s = *ret_s + 1;
-    N v = E_text_Z_s0_Z_10_N_n( s, ret_s );
+    N v = E_text_Z_s0_N_n( s, ret_s, 10 );
     if( v > 23 )
     {   *ret_s = s;
         return datetime;
@@ -932,7 +898,7 @@ E_text_Z_s_N_datetime( Pc s
     if( *ret_s != s_end )
         return datetime;
     s = *ret_s + 1;
-    v = E_text_Z_s0_Z_10_N_n( s, ret_s );
+    v = E_text_Z_s0_N_n( s, ret_s, 10 );
     if( v > 59 )
     {   *ret_s = s;
         return datetime;
@@ -941,7 +907,7 @@ E_text_Z_s_N_datetime( Pc s
     if( *ret_s != s_end )
         return datetime;
     s = *ret_s + 1;
-    v = E_text_Z_s0_Z_10_N_n( s, ret_s );
+    v = E_text_Z_s0_N_n( s, ret_s, 10 );
     if( v > 59 )
     {   *ret_s = s;
         return datetime;
@@ -950,7 +916,7 @@ E_text_Z_s_N_datetime( Pc s
     if( *ret_s != s_end )
         return datetime;
     s = *ret_s + 1;
-    v = E_text_Z_s0_Z_10_N_n( s, ret_s );
+    v = E_text_Z_s0_N_n( s, ret_s, 10 );
     if( v > 999 )
     {   *ret_s = s;
         return datetime;
@@ -963,11 +929,11 @@ struct E_datetime_Z
 E_text_Z_s0_N_datetime( Pc s
 , Pc *ret_s
 ){  struct E_datetime_Z datetime = {0};
-    datetime.year = E_text_Z_s0_Z_10_N_n( s, ret_s );
+    datetime.year = E_text_Z_s0_N_n( s, ret_s, 10 );
     if( !**ret_s )
         return datetime;
     s = *ret_s + 1;
-    datetime.month = E_text_Z_s0_Z_10_N_n( s, ret_s );
+    datetime.month = E_text_Z_s0_N_n( s, ret_s, 10 );
     if( datetime.month < 1
     || datetime.month > 12
     )
@@ -978,7 +944,7 @@ E_text_Z_s0_N_datetime( Pc s
     if( !**ret_s )
         return datetime;
     s = *ret_s + 1;
-    datetime.day = E_text_Z_s0_Z_10_N_n( s, ret_s );
+    datetime.day = E_text_Z_s0_N_n( s, ret_s, 10 );
     if( datetime.day < 1
     || datetime.day > 31
     )
@@ -1010,7 +976,7 @@ E_text_Z_s0_N_datetime( Pc s
     if( !**ret_s )
         return datetime;
     s = *ret_s + 1;
-    N v = E_text_Z_s0_Z_10_N_n( s, ret_s );
+    N v = E_text_Z_s0_N_n( s, ret_s, 10 );
     if( v > 23 )
     {   *ret_s = s;
         return datetime;
@@ -1019,7 +985,7 @@ E_text_Z_s0_N_datetime( Pc s
     if( !**ret_s )
         return datetime;
     s = *ret_s + 1;
-    v = E_text_Z_s0_Z_10_N_n( s, ret_s );
+    v = E_text_Z_s0_N_n( s, ret_s, 10 );
     if( v > 59 )
     {   *ret_s = s;
         return datetime;
@@ -1028,7 +994,7 @@ E_text_Z_s0_N_datetime( Pc s
     if( !**ret_s )
         return datetime;
     s = *ret_s + 1;
-    v = E_text_Z_s0_Z_10_N_n( s, ret_s );
+    v = E_text_Z_s0_N_n( s, ret_s, 10 );
     if( v > 59 )
     {   *ret_s = s;
         return datetime;
@@ -1037,13 +1003,90 @@ E_text_Z_s0_N_datetime( Pc s
     if( !**ret_s )
         return datetime;
     s = *ret_s + 1;
-    v = E_text_Z_s0_Z_10_N_n( s, ret_s );
+    v = E_text_Z_s0_N_n( s, ret_s, 10 );
     if( v > 999 )
     {   *ret_s = s;
         return datetime;
     }
     datetime.millisecond += v;
     return datetime;
+}
+_export
+Pc
+E_text_Z_datetime_N_s0( struct E_datetime_Z datetime
+){  Pc s = M(1);
+    N n = E_text_Z_n_N_s_G( datetime.year, 10 );
+    N r = (N)E_mem_Q_blk_I_append( &s, n + 1 );
+    KPp(r)
+    {   KP_( ~1, W(s) );
+        return (Pc)~0;
+    }
+    N l = n;
+    E_text_Z_n_N_s( s + l, datetime.year, 10 );
+    s[ l++ ] = '-';
+    n = E_text_Z_n_N_s_G( datetime.month, 10 );
+    r = (N)E_mem_Q_blk_I_append( &s, n + 1 );
+    KPp(r)
+    {   KP_( ~1, W(s) );
+        return (Pc)~0;
+    }
+    l += n;
+    E_text_Z_n_N_s( s + l, datetime.month, 10 );
+    s[ l++ ] = '-';
+    n = E_text_Z_n_N_s_G( datetime.day, 10 );
+    r = (N)E_mem_Q_blk_I_append( &s, n + 1 );
+    KPp(r)
+    {   KP_( ~1, W(s) );
+        return (Pc)~0;
+    }
+    l += n;
+    E_text_Z_n_N_s( s + l, datetime.day, 10 );
+    s[ l++ ] = ' ';
+    N millisecond = datetime.millisecond;
+    N v = millisecond / ( 1000 * 60 * 60 );
+    n = E_text_Z_n_N_s_G( v, 10 );
+    r = (N)E_mem_Q_blk_I_append( &s, n + 1 );
+    KPp(r)
+    {   KP_( ~1, W(s) );
+        return (Pc)~0;
+    }
+    l += n;
+    E_text_Z_n_N_s( s + l, v, 10 );
+    s[ l++ ] = ':';
+    millisecond %= 1000 * 60 * 60;
+    v = millisecond / ( 1000 * 60 );
+    n = E_text_Z_n_N_s_G( v, 10 );
+    r = (N)E_mem_Q_blk_I_append( &s, n + 1 );
+    KPp(r)
+    {   KP_( ~1, W(s) );
+        return (Pc)~0;
+    }
+    l += n;
+    E_text_Z_n_N_s( s + l, v, 10 );
+    s[ l++ ] = ':';
+    millisecond %= 1000 * 60;
+    v = millisecond / 1000;
+    n = E_text_Z_n_N_s_G( v, 10 );
+    r = (N)E_mem_Q_blk_I_append( &s, n + 1 );
+    KPp(r)
+    {   KP_( ~1, W(s) );
+        return (Pc)~0;
+    }
+    l += n;
+    E_text_Z_n_N_s( s + l, v, 10 );
+    s[ l++ ] = '.';
+    millisecond %= 1000;
+    v = millisecond;
+    n = E_text_Z_n_N_s_G( v, 10 );
+    r = (N)E_mem_Q_blk_I_append( &s, n );
+    KPp(r)
+    {   KP_( ~1, W(s) );
+        return (Pc)~0;
+    }
+    l += n;
+    E_text_Z_n_N_s( s + l, v, 10 );
+    s[l] = '\0';
+    return s;
 }
 //------------------------------------------------------------------------------
 _export
@@ -1945,7 +1988,7 @@ E_text_I_vsprintf( Pc *output
             && u == '6'
             )
                 size = sizeof( N16 );
-            else if( inside_arg = 2
+            else if( inside_arg == 2
             && size == '3'
             && u == '2'
             )

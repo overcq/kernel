@@ -946,7 +946,6 @@ E_mem_Q_blk_Q_table_M_from_free_single_memory( N *allocated_or_table_i
 , N align
 ){  N l_1 = n * u;
     Pc p_1;
-    S i = 0;
     if(n)
     {   N l_align;
         if( ~align )
@@ -970,7 +969,7 @@ E_mem_Q_blk_Q_table_M_from_free_single_memory( N *allocated_or_table_i
                 && (N)p_1 < E_main_S_memory_map[ memory_map_i ].virtual_start + E_main_S_memory_map[ memory_map_i ].pages * E_mem_S_page_size
                 )
                     break;
-            if( p_1 + l_1 > E_main_S_memory_map[ memory_map_i ].virtual_start + E_main_S_memory_map[ memory_map_i ].pages * E_mem_S_page_size )
+            if( (N)p_1 + l_1 > E_main_S_memory_map[ memory_map_i ].virtual_start + E_main_S_memory_map[ memory_map_i ].pages * E_mem_S_page_size )
                 continue;
             l_ = free_p[ free_i ].l;
             i_found = free_i;
@@ -1879,7 +1878,7 @@ E_mem_Q_blk_I_append_align_single_memory( P p
                     N free_i = max / 2;
                     O{  if( p_0 + l_0 == free_p[ free_i ].p )
                         {   if( free_p[ free_i ].l >= E_mem_blk_S.allocated[ allocated_i ].u
-                            && free_p[ free_i ].p + l <= E_main_S_memory_map[ memory_map_i ].virtual_start + E_main_S_memory_map[ memory_map_i ].pages * E_mem_S_page_size
+                            && (N)free_p[ free_i ].p + l <= E_main_S_memory_map[ memory_map_i ].virtual_start + E_main_S_memory_map[ memory_map_i ].pages * E_mem_S_page_size
                             )
                             {   l_1 = free_p[ free_i ].l;
                                 if( l_1 > l )
@@ -1918,7 +1917,7 @@ E_mem_Q_blk_I_append_align_single_memory( P p
                     N free_j = max / 2;
                     O{  if( free_p[ free_j ].p + free_p[ free_j ].l == p_0 )
                         {   if( free_p[ free_j ].l >= l
-                            && p_0 >= E_main_S_memory_map[ memory_map_i ].virtual_start + l
+                            && (N)p_0 >= E_main_S_memory_map[ memory_map_i ].virtual_start + l
                             )
                             {   free_p[ free_j ].l -= l;
                                 if( !free_p[ free_j ].l )

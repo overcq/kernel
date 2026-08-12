@@ -1015,11 +1015,11 @@ E_ssd_cache_I_sync_free_before_shutdown( I disc_id
                 );
                 disc = E_mem_Q_tab_R( E_disc_S, disc_id );
                 if( K_error(r) )
-                    goto End;
+                    goto End_0;
                 r = E_sata_Q_sata_ahci_I_wait_on_completion( disc_id, slot_mask );
                 disc = E_mem_Q_tab_R( E_disc_S, disc_id );
                 if( K_error(r) )
-                    goto End;
+                    goto End_0;
             }
             N32 slot_mask;
             for_n( dirty_i, disc->sata_ahci.dirty_n )
@@ -1055,7 +1055,7 @@ E_ssd_cache_I_sync_free_before_shutdown( I disc_id
                 if( K_error(r) )
                 {   if( r > ~3 )
                         r = ~3;
-                    goto End;
+                    goto End_0;
                 }
             }
             E_flow_Z_lock_I_lock( &disc->sata_ahci.sata_lock );
@@ -1067,32 +1067,28 @@ E_ssd_cache_I_sync_free_before_shutdown( I disc_id
             {   if( E_flow_Q_interrupt_I_wait() )
                 {   disc = E_mem_Q_tab_R( E_disc_S, disc_id );
                     r = ~2;
-                    E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.sata_lock, &disc->sata_ahci.sata_return, r );
-                    goto End;
+                    goto End_1;
                 }
                 disc = E_mem_Q_tab_R( E_disc_S, disc_id );
                 r = disc->sata_ahci.ssd_cache_return.n;
                 if( K_error(r) )
                 {   if( r > ~2 )
                         r = ~2;
-                    E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.sata_lock, &disc->sata_ahci.sata_return, r );
-                    goto End;
+                    goto End_1;
                 }
             }
             r = E_sata_Q_sata_ahci_I_flush( disc_id );
             if( K_error(r) )
             {   if( r > ~2 )
                     r = ~2;
-                E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.sata_lock, &disc->sata_ahci.sata_return, r );
-                goto End;
+                goto End_1;
             }
             while( disc->sata_ahci.memory->port[ disc->sata_ahci.port ].command_issue & 1 )
             {   E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.ssd_cache_lock, &disc->sata_ahci.ssd_cache_return, r );
                 if( E_flow_Q_interrupt_I_wait() )
                 {   disc = E_mem_Q_tab_R( E_disc_S, disc_id );
                     r = ~2;
-                    E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.sata_lock, &disc->sata_ahci.sata_return, r );
-                    goto End;
+                    goto End_1;
                 }
                 disc = E_mem_Q_tab_R( E_disc_S, disc_id );
                 E_flow_Z_lock_I_lock( &disc->sata_ahci.ssd_cache_lock );
@@ -1100,11 +1096,11 @@ E_ssd_cache_I_sync_free_before_shutdown( I disc_id
                 if( K_error(r) )
                 {   if( r > ~2 )
                         r = ~2;
-                    E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.sata_lock, &disc->sata_ahci.sata_return, r );
-                    goto End;
+                    goto End_1;
                 }
             }
-End:        E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.ssd_cache_lock, &disc->sata_ahci.ssd_cache_return, r );
+End_1:      E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.sata_lock, &disc->sata_ahci.sata_return, r );
+End_0:      E_flow_Z_lock_I_unlock_and_return( &disc->sata_ahci.ssd_cache_lock, &disc->sata_ahci.ssd_cache_return, r );
             break;
         }
     }

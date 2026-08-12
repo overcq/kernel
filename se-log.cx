@@ -78,7 +78,7 @@ E_se_log_I_vslog(
             && u == '6'
             )
                 size = sizeof( N16 );
-            else if( inside_arg = 2
+            else if( inside_arg == 2
             && size == '3'
             && u == '2'
             )
@@ -322,7 +322,7 @@ E_se_log_Q_element_I_print( N *element_i
             && u == '6'
             )
                 size = sizeof( N16 );
-            else if( inside_arg = 2
+            else if( inside_arg == 2
             && size == '3'
             && u == '2'
             )

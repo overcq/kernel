@@ -311,7 +311,6 @@ D( net, dhcp )
     }
     Yi_B( net, dhcp )
         goto End;
-    N trap_i = 0;
     N reported_count;
     O{  G( "dhcp check" );
         for_each( interface_id, E_net_S_interface, E_mem_Q_tab )
@@ -974,7 +973,6 @@ Ack_any_end:        interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
         else
         {   B found = no;
             N time = ~0;
-            N current_time = E_flow_I_current_time();
             for_each_( interface_id, E_net_S_interface, E_mem_Q_tab )
             {   struct E_net_Z_interface *interface = E_mem_Q_tab_R( E_net_S_interface, interface_id );
                 if( interface->dhcp.state == E_net_Z_interface_state_S_dhcp_renew_0 )
