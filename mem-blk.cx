@@ -935,6 +935,97 @@ E_mem_Q_blk_Q_table_M_from_free( N *allocated_or_table_i
     E_mem_Q_blk_Q_table_I_put_end();
     return p_1;
 }
+_internal
+P
+E_mem_Q_blk_Q_table_M_from_free_single_memory( N *allocated_or_table_i
+, N u
+, N n
+, P p // Adres uprzedniej zawartości lub 0, gdy brak.
+, N l // I rozmiar. Jeśli “p == 0”, to parametr ignorowany.
+, N l_rel
+, N align
+){  N l_1 = n * u;
+    Pc p_1;
+    S i = 0;
+    if(n)
+    {   N l_align;
+        if( ~align )
+            l_align = align;
+        else
+            l_align = E_mem_Q_blk_I_default_align(u);
+        //TODO Dla dużych bloków najpierw szukać wolnego bloku mającego ten sam adres na stronie początkowej jak blok źródłowy, by można było 'remapować' wewnętrzne strony pamięci.
+        N l_ = ~0;
+        N i_found;
+        struct E_mem_Q_blk_Z_free *free_p = (P)E_mem_blk_S.allocated[ E_mem_blk_S.free_id ].p;
+        struct E_mem_Q_blk_Z_free free_p_;
+        for_n( free_i, E_mem_Q_blk_Q_sys_table_R_last( E_mem_blk_S.free_id, (Pc)&free_p_.p - (Pc)&free_p_ ) + 1 ) // Szukanie wolnego bloku na całą tablicę.
+        {   p_1 = E_simple_Z_p_I_align_up_to_v2( free_p[ free_i ].p, l_align );
+            if( E_simple_T_add_overflow( p_1 - free_p[ free_i ].p, l_1 )
+            || free_p[ free_i ].l < ( p_1 - free_p[ free_i ].p ) + l_1
+            || free_p[ free_i ].l >= l_
+            )
+                continue;
+            for_n( memory_map_i, E_main_S_memory_map_n )
+                if( (N)p_1 >= E_main_S_memory_map[ memory_map_i ].virtual_start
+                && (N)p_1 < E_main_S_memory_map[ memory_map_i ].virtual_start + E_main_S_memory_map[ memory_map_i ].pages * E_mem_S_page_size
+                )
+                    break;
+            if( p_1 + l_1 > E_main_S_memory_map[ memory_map_i ].virtual_start + E_main_S_memory_map[ memory_map_i ].pages * E_mem_S_page_size )
+                continue;
+            l_ = free_p[ free_i ].l;
+            i_found = free_i;
+            if( l_ == ( p_1 - free_p[ free_i ].p ) + l_1 )
+                break;
+        }
+        if( !~l_ )
+            return 0;
+        Pc old_free_p = free_p[ i_found ].p;
+        p_1 = E_simple_Z_p_I_align_up_to_v2( old_free_p, l_align );
+        free_p[ i_found ].l -= ( p_1 - old_free_p ) + l_1;
+        if( free_p[ i_found ].l )
+            free_p[ i_found ].p += ( p_1 - old_free_p ) + l_1;
+        else
+            E_mem_Q_blk_Q_sys_table_f_I_move_empty_entry( i_found );
+        if(p)
+            E_mem_Q_blk_I_copy( p_1 + l_rel, p, l );
+        E_mem_blk_S.allocated[ *allocated_or_table_i ].p = p_1;
+        *allocated_or_table_i = E_mem_Q_blk_Q_sys_table_a_I_sort_inserted( *allocated_or_table_i, ~0 );
+        E_mem_Q_blk_Q_table_I_put_begin( allocated_or_table_i );
+        if( p_1 - old_free_p )
+        {   E_mem_Q_blk_Q_table_I_put_before( E_mem_blk_S.free_id );
+            if( !~E_mem_Q_blk_Q_sys_table_f_P_put( E_mem_blk_S.free_id, (Pc)&free_p_.p - (Pc)&free_p_, (Pc)&free_p_.l - (Pc)&free_p_, old_free_p, p_1 - old_free_p ))
+            {   E_mem_Q_blk_Q_table_I_put_after( E_mem_blk_S.free_id );
+                E_mem_Q_blk_Q_table_I_put_end();
+                return (P)~0;
+            }
+            E_mem_Q_blk_Q_table_I_put_after( E_mem_blk_S.free_id );
+        }
+    }else
+    {   N allocated_i_sorted_pos;
+        if( !( p_1 = E_mem_Q_blk_M_new_0( &allocated_i_sorted_pos )))
+            return 0;
+        E_mem_blk_S.allocated[ *allocated_or_table_i ].p = p_1;
+        *allocated_or_table_i = E_mem_Q_blk_Q_sys_table_a_I_sort_inserted( *allocated_or_table_i, allocated_i_sorted_pos );
+        E_mem_Q_blk_Q_table_I_put_begin( allocated_or_table_i );
+    }
+    if( !p ) //NDFN Rozpoznanie niebezpośrednie, mimo że jednoznaczne w obecnej implementacji.
+    {   E_mem_blk_S.allocated[ *allocated_or_table_i ].u = u;
+        E_mem_blk_S.allocated[ *allocated_or_table_i ].context_ip = E_mem_blk_S_context_ip;
+    }
+    if(p)
+    {   E_mem_Q_blk_Q_table_I_put_before( E_mem_blk_S.free_id );
+        struct E_mem_Q_blk_Z_free free_p_;
+        if( !~E_mem_Q_blk_Q_sys_table_f_P_put( E_mem_blk_S.free_id, (Pc)&free_p_.p - (Pc)&free_p_, (Pc)&free_p_.l - (Pc)&free_p_, p, l ))
+        {   E_mem_Q_blk_Q_table_I_put_after( E_mem_blk_S.free_id );
+            E_mem_Q_blk_Q_table_I_put_end();
+            return (P)~0;
+        }
+        E_mem_Q_blk_Q_table_I_put_after( E_mem_blk_S.free_id );
+    }
+    E_mem_blk_S.allocated[ *allocated_or_table_i ].n = n;
+    E_mem_Q_blk_Q_table_I_put_end();
+    return p_1;
+}
 // Adresy puste znajdują się powyżej ostatniego adresu podstawowego bloku pamięci wirtualnej z wyjątkiem ewentualnie umieszczonej na końcu pamięci zarezerwowanej. Ewentualne dodatkowo ‘zmapowane’ powyżej tego bloku podstawowego bloki pamięci wirtualnej (np. stosy) mogą mieć ten sam adres jak adres pusty, ale z tymi adresami nie będzie przydzielanej pamięci.
 _internal
 __attribute__ ((__malloc__))
@@ -1058,6 +1149,52 @@ E_mem_Q_blk_M_align_tab(
         return (P)~0;
     }
     N r = (N)E_mem_Q_blk_Q_table_M_from_free( &allocated_i, u, n, 0, 0, 0, align );
+    if( !~r
+    || !r
+    )
+    {   E_mem_J_single_processor_end;
+        return (P)r;
+    }
+    P p = E_mem_blk_S.allocated[ allocated_i ].p;
+    E_mem_J_single_processor_end;
+    return p;
+}
+//------------------------------------------------------------------------------
+_export
+P
+E_mem_Q_blk_M_single_memory( N l
+){  return E_mem_Q_blk_M_tab_single_memory( 1, l );
+}
+_export
+P
+E_mem_Q_blk_M_tab_single_memory(
+  N u
+, N n
+){  return E_mem_Q_blk_M_align_tab_single_memory( u, n, ~0 );
+}
+_export
+P
+E_mem_Q_blk_M_align_single_memory( N l
+, N align
+){  return E_mem_Q_blk_M_align_tab_single_memory( 1, l, align );
+}
+_export
+__attribute__ ((__malloc__))
+P
+E_mem_Q_blk_M_align_tab_single_memory(
+  N u
+, N n
+, N align
+){  if( E_simple_T_multiply_overflow( n, u ))
+        return 0;
+    E_mem_J_single_processor_begin;
+    struct E_mem_Q_blk_Z_allocated allocated_p;
+    N allocated_i = E_mem_Q_blk_Q_sys_table_M_new_id( E_mem_blk_S.allocated_id, (Pc)&allocated_p.p - (Pc)&allocated_p, (Pc)&allocated_p.n - (Pc)&allocated_p, 0, 0 );
+    if( !~allocated_i )
+    {   E_mem_J_single_processor_end;
+        return (P)~0;
+    }
+    N r = (N)E_mem_Q_blk_Q_table_M_from_free_single_memory( &allocated_i, u, n, 0, 0, 0, align );
     if( !~r
     || !r
     )
@@ -1673,6 +1810,153 @@ E_mem_Q_blk_I_append_align( P p
                 }
             }
             P p_1 = E_mem_Q_blk_Q_table_M_from_free( &allocated_i
+            , E_mem_blk_S.allocated[ allocated_i ].u
+            , E_mem_blk_S.allocated[ allocated_i ].n + n
+            , p_0
+            , l_0
+            , 0
+            , align_to_u ? E_mem_blk_S.allocated[ allocated_i ].u : ~0
+            );
+            E_mem_J_single_processor_end;
+            if( !~(N)p_1
+            || !p_1
+            )
+                return p_1;
+            *( P * )p = p_1;
+            return (Pc)p_1 + l_0;
+        }
+        if( E_mem_blk_S.allocated[ allocated_i ].p > *( Pc * )p )
+        {   if( allocated_i == min )
+                break;
+            max = allocated_i - 1;
+            allocated_i = max - ( allocated_i - min ) / 2;
+        }else
+        {   if( allocated_i == max )
+                break;
+            min = allocated_i + 1;
+            allocated_i = min + ( max - allocated_i ) / 2;
+        }
+    }
+    E_mem_J_single_processor_end;
+    return (P)~4;
+}
+_export
+P
+E_mem_Q_blk_I_append_align_single_memory( P p
+, N n
+, B align_to_u
+){  if( !n )
+        return *( P * )p;
+    E_mem_J_single_processor_begin;
+    struct E_mem_Q_blk_Z_allocated allocated_p;
+    N min = 0;
+    N max = E_mem_Q_blk_Q_sys_table_R_last( E_mem_blk_S.allocated_id, (Pc)&allocated_p.p - (Pc)&allocated_p );
+    N allocated_i = max / 2;
+    O{  if( E_mem_blk_S.allocated[ allocated_i ].p == *( P * )p )
+        {   if( E_simple_T_add_overflow( E_mem_blk_S.allocated[ allocated_i ].n, n )
+            || E_simple_T_multiply_overflow( E_mem_blk_S.allocated[ allocated_i ].n + n, E_mem_blk_S.allocated[ allocated_i ].u )
+            )
+            {   E_mem_J_single_processor_end;
+                return 0;
+            }
+            N l = n * E_mem_blk_S.allocated[ allocated_i ].u;
+            Pc p_0 = 0;
+            N l_0 = E_mem_blk_S.allocated[ allocated_i ].n * E_mem_blk_S.allocated[ allocated_i ].u;
+            if( E_mem_blk_S.allocated[ allocated_i ].n )
+            {   N l_1 = 0;
+                p_0 = E_mem_blk_S.allocated[ allocated_i ].p;
+                for_n( memory_map_i, E_main_S_memory_map_n )
+                    if( (N)p_0 >= E_main_S_memory_map[ memory_map_i ].virtual_start
+                    && (N)p_0 < E_main_S_memory_map[ memory_map_i ].virtual_start + E_main_S_memory_map[ memory_map_i ].pages * E_mem_S_page_size
+                    )
+                        break;
+                struct E_mem_Q_blk_Z_free free_p_;
+                N max = E_mem_Q_blk_Q_sys_table_R_last( E_mem_blk_S.free_id, (Pc)&free_p_.p - (Pc)&free_p_ );
+                if( ~max )
+                {   struct E_mem_Q_blk_Z_free *free_p = (P)E_mem_blk_S.allocated[ E_mem_blk_S.free_id ].p;
+                    // Szukanie wolnego bloku przyległego od góry.
+                    N min = 0;
+                    N free_i = max / 2;
+                    O{  if( p_0 + l_0 == free_p[ free_i ].p )
+                        {   if( free_p[ free_i ].l >= E_mem_blk_S.allocated[ allocated_i ].u
+                            && free_p[ free_i ].p + l <= E_main_S_memory_map[ memory_map_i ].virtual_start + E_main_S_memory_map[ memory_map_i ].pages * E_mem_S_page_size
+                            )
+                            {   l_1 = free_p[ free_i ].l;
+                                if( l_1 > l )
+                                    l_1 = l;
+                                else if( l_1 < l )
+                                    l_1 = E_simple_Z_n_I_align_down_to_v( l_1, E_mem_blk_S.allocated[ allocated_i ].u );
+                                l -= l_1;
+                            }
+                            break;
+                        }
+                        if( free_p[ free_i ].p > p_0 + l_0 )
+                        {   if( free_i == min )
+                                break;
+                            max = free_i - 1;
+                            free_i = max - ( free_i - min ) / 2;
+                        }else
+                        {   if( free_i == max )
+                                break;
+                            min = free_i + 1;
+                            free_i = min + ( max - free_i ) / 2;
+                        }
+                    }
+                    if( !l )
+                    {   free_p[ free_i ].l -= l_1;
+                        if( free_p[ free_i ].l )
+                            free_p[ free_i ].p += l_1;
+                        else
+                            E_mem_Q_blk_Q_sys_table_f_I_move_empty_entry( free_i );
+                        E_mem_blk_S.allocated[ allocated_i ].n += n;
+                        E_mem_J_single_processor_end;
+                        return *( Pc * )p + l_0;
+                    }
+                    // Szukanie wolnego bloku przyległego od dołu.
+                    min = 0;
+                    max = free_i;
+                    N free_j = max / 2;
+                    O{  if( free_p[ free_j ].p + free_p[ free_j ].l == p_0 )
+                        {   if( free_p[ free_j ].l >= l
+                            && p_0 >= E_main_S_memory_map[ memory_map_i ].virtual_start + l
+                            )
+                            {   free_p[ free_j ].l -= l;
+                                if( !free_p[ free_j ].l )
+                                {   E_mem_Q_blk_Q_sys_table_f_I_move_empty_entry( free_j );
+                                    free_i--;
+                                }
+                                if( l_1 )
+                                {   free_p[ free_i ].l -= l_1;
+                                    if( free_p[ free_i ].l )
+                                        free_p[ free_i ].p += l_1;
+                                    else
+                                        E_mem_Q_blk_Q_sys_table_f_I_move_empty_entry( free_i );
+                                }
+                                Pc p_1 = p_0 - l;
+                                E_mem_Q_blk_I_copy( p_1, p_0, l_0 );
+                                E_mem_blk_S.allocated[ allocated_i ].n += n;
+                                *( P * )p = E_mem_blk_S.allocated[ allocated_i ].p = p_1;
+                                E_mem_J_single_processor_end;
+                                return p_1 + l_0;
+                            }
+                            break;
+                        }
+                        if( free_p[ free_j ].p + free_p[ free_j ].l > p_0 )
+                        {   if( free_j == min )
+                                break;
+                            max = free_j - 1;
+                            free_j = max - ( free_j - min ) / 2;
+                        }else
+                        {   if( free_j == max )
+                                break;
+                            min = free_j + 1;
+                            free_j = min + ( max - free_j ) / 2;
+                        }
+                    }
+                    l += l_1; // Przywraca oryginalną wartość sprzed scalenia od dołu, skoro był blok przyległy od dołu, a zabrakło do pełnej liczby od góry.
+                }
+            }
+            P p_1 = E_mem_Q_blk_Q_table_M_from_free_single_memory( &allocated_i
             , E_mem_blk_S.allocated[ allocated_i ].u
             , E_mem_blk_S.allocated[ allocated_i ].n + n
             , p_0

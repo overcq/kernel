@@ -144,7 +144,7 @@ struct E_net_Z_interface
     N32 server_address;
     N32 xid;
     N32 server_id;
-    N8 retry;
+    N8 retry, retry_skip;
   }dhcp;
 };
 //==============================================================================
@@ -313,14 +313,17 @@ D( net, dhcp )
         goto End;
     N trap_i = 0;
     N reported_count;
-    O{  G( "dhcp req" );
+    O{  G( "dhcp check" );
         for_each( interface_id, E_net_S_interface, E_mem_Q_tab )
         {   struct E_net_Z_interface *interface = E_mem_Q_tab_R( E_net_S_interface, interface_id );
 Switch:     switch( interface->dhcp.state )
             { case E_net_Z_interface_state_S_dhcp_discover:
-                {   interface->ipv4_address = 0;
+                {   if( --interface->dhcp.retry_skip )
+                        break;
+                    G( "dhcp discover" );
+                    interface->ipv4_address = 0;
                     N packet_l = sizeof( struct E_ipv4_Z_dhcp_packet ) + 16;
-                    struct E_ipv4_Z_dhcp_packet *packet = M( packet_l );
+                    struct E_ipv4_Z_dhcp_packet *packet = E_mem_Q_blk_M_single_memory( packet_l );
                     if( K_error(packet)
                     || !packet
                     )
@@ -399,19 +402,15 @@ Switch:     switch( interface->dhcp.state )
                     if( !connection_state->buffer )
                     {   if( !reported_count )
                         {   if( ++interface->dhcp.retry == E_net_S_dhcp_tries )
-                            {   N r = E_net_Q_udp4_connection_state_W( interface->dhcp.connection_id );
-                                if( K_error(r) )
-                                {   N32 sched_i = E_flow_I_current_scheduler();
-                                    E_flow_S_scheduler[ sched_i ].task_error = r;
-                                    goto Block;
-                                }
-                                interface->dhcp.state = E_net_Z_interface_state_S_dhcp_invalid;
+                            {   interface->dhcp.state = E_net_Z_interface_state_S_dhcp_invalid;
                                 break;
                             }
+                            interface->dhcp.retry_skip = 1 << interface->dhcp.retry;
                             interface->dhcp.state = E_net_Z_interface_state_S_dhcp_discover;
                         }
                         break;
                     }
+                    G( "dhcp offer" );
                     struct E_ipv4_Z_dhcp_packet *offer_packet = connection_state->buffer;
                     if( offer_packet->op != 2
                     || offer_packet->htype != 1
@@ -452,6 +451,7 @@ Switch:     switch( interface->dhcp.state )
                         {   interface->dhcp.state = E_net_Z_interface_state_S_dhcp_invalid;
                             break;
                         }
+                        interface->dhcp.retry_skip = 1 << interface->dhcp.retry;
                         interface->dhcp.state = E_net_Z_interface_state_S_dhcp_discover;
                         goto Switch;
                     }
@@ -486,8 +486,11 @@ Offer_end:          interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
                     connection_state->buffer = 0;
                 }
               case E_net_Z_interface_state_S_dhcp_request:
-                {   N packet_l = sizeof( struct E_ipv4_Z_dhcp_packet ) + 34;
-                    struct E_ipv4_Z_dhcp_packet *packet = M( packet_l );
+                {   if( --interface->dhcp.retry_skip )
+                        break;
+                    G( "dhcp request" );
+                    N packet_l = sizeof( struct E_ipv4_Z_dhcp_packet ) + 34;
+                    struct E_ipv4_Z_dhcp_packet *packet = E_mem_Q_blk_M_single_memory( packet_l );
                     if( K_error(packet)
                     || !packet
                     )
@@ -582,20 +585,15 @@ Offer_end:          interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
                             {   if( interface->ipv4_address )
                                     interface->dhcp.state = E_net_Z_interface_state_S_dhcp_renew_1;
                                 else
-                                {   N r = E_net_Q_udp4_connection_state_W( interface->dhcp.connection_id );
-                                    if( K_error(r) )
-                                    {   N32 sched_i = E_flow_I_current_scheduler();
-                                        E_flow_S_scheduler[ sched_i ].task_error = r;
-                                        goto Block;
-                                    }
                                     interface->dhcp.state = E_net_Z_interface_state_S_dhcp_invalid;
-                                }
                                 break;
                             }
+                            interface->dhcp.retry_skip = 1 << interface->dhcp.retry;
                             interface->dhcp.state = E_net_Z_interface_state_S_dhcp_request;
                         }
                         break;
                     }
+                    G( "dhcp ack" );
                     struct E_ipv4_Z_dhcp_packet *offer_packet = connection_state->buffer;
                     if( offer_packet->op != 2
                     || offer_packet->htype != 1
@@ -636,9 +634,10 @@ Offer_end:          interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
                         {   interface->dhcp.state = E_net_Z_interface_state_S_dhcp_invalid;
                             break;
                         }
+                        interface->dhcp.retry_skip = 1 << interface->dhcp.retry;
                         interface->dhcp.state = E_net_Z_interface_state_S_dhcp_discover;
                         connection_state->ip4.remote_address = 0xffffffff;
-                        goto Switch;
+                        break;
                     }
                     B has_mask = no, has_gateway = no, has_dns = no, has_time = no;
                     option = &offer_packet->options[4];
@@ -676,10 +675,9 @@ Offer_end:          interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
                           case 51:
                             {   if( option[1] != 4 )
                                     goto Ack_end;
-                                N current_time = E_flow_I_current_time();
-                                interface->dhcp.lease_time_0 = current_time + E_interrupt_S_cpu_freq * ( option[2] | (( N32 )option[3] << 8 ) | (( N32 )option[4] << 16 ) | (( N32 )option[5] << 24 ));
-                                interface->dhcp.lease_time_1 = current_time + 7 * E_interrupt_S_cpu_freq * ( option[2] | (( N32 )option[3] << 8 ) | (( N32 )option[4] << 16 ) | (( N32 )option[5] << 24 )) / 8;
-                                interface->dhcp.lease_time_2 = current_time + E_interrupt_S_cpu_freq * ( option[2] | (( N32 )option[3] << 8 ) | (( N32 )option[4] << 16 ) | (( N32 )option[5] << 24 )) / 2;
+                                interface->dhcp.lease_time_0 = option[2] | (( N32 )option[3] << 8 ) | (( N32 )option[4] << 16 ) | (( N32 )option[5] << 24 );
+                                interface->dhcp.lease_time_1 = 7 * ( option[2] | (( N32 )option[3] << 8 ) | (( N32 )option[4] << 16 ) | (( N32 )option[5] << 24 )) / 8;
+                                interface->dhcp.lease_time_2 = ( option[2] | (( N32 )option[3] << 8 ) | (( N32 )option[4] << 16 ) | (( N32 )option[5] << 24 )) / 2;
                                 has_time = yes;
                                 break;
                             }
@@ -705,8 +703,11 @@ Ack_end:            interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
                     break;
                 }
               case E_net_Z_interface_state_S_dhcp_request_any:
-                {   N packet_l = sizeof( struct E_ipv4_Z_dhcp_packet ) + 34;
-                    struct E_ipv4_Z_dhcp_packet *packet = M( packet_l );
+                {   if( --interface->dhcp.retry_skip )
+                        break;
+                    G( "dhcp request any" );
+                    N packet_l = sizeof( struct E_ipv4_Z_dhcp_packet ) + 34;
+                    struct E_ipv4_Z_dhcp_packet *packet = E_mem_Q_blk_M_single_memory( packet_l );
                     if( K_error(packet)
                     || !packet
                     )
@@ -801,10 +802,12 @@ Ack_end:            interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
                             {   interface->dhcp.state = E_net_Z_interface_state_S_dhcp_renew_2;
                                 break;
                             }
+                            interface->dhcp.retry_skip = 1 << interface->dhcp.retry;
                             interface->dhcp.state = E_net_Z_interface_state_S_dhcp_request_any;
                         }
                         break;
                     }
+                    G( "dhcp ack any" );
                     struct E_ipv4_Z_dhcp_packet *offer_packet = connection_state->buffer;
                     if( offer_packet->op != 2
                     || offer_packet->htype != 1
@@ -845,10 +848,10 @@ Ack_end:            interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
                         {   interface->dhcp.state = E_net_Z_interface_state_S_dhcp_invalid;
                             break;
                         }
-                        interface->dhcp.retry = 0;
+                        interface->dhcp.retry_skip = 1 << interface->dhcp.retry;
                         interface->dhcp.state = E_net_Z_interface_state_S_dhcp_discover;
                         connection_state->ip4.remote_address = 0xffffffff;
-                        goto Switch;
+                        break;
                     }
                     B has_mask = no, has_gateway = no, has_dns = no, has_time = no;
                     option = &offer_packet->options[4];
@@ -886,10 +889,9 @@ Ack_end:            interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
                           case 51:
                             {   if( option[1] != 4 )
                                     goto Ack_any_end;
-                                N current_time = E_flow_I_current_time();
-                                interface->dhcp.lease_time_0 = current_time + E_interrupt_S_cpu_freq * ( option[2] | (( N32 )option[3] << 8 ) | (( N32 )option[4] << 16 ) | (( N32 )option[5] << 24 )) / 2;
-                                interface->dhcp.lease_time_1 = current_time + 7 * E_interrupt_S_cpu_freq * ( option[2] | (( N32 )option[3] << 8 ) | (( N32 )option[4] << 16 ) | (( N32 )option[5] << 24 )) / 8;
-                                interface->dhcp.lease_time_2 = current_time + E_interrupt_S_cpu_freq * ( option[2] | (( N32 )option[3] << 8 ) | (( N32 )option[4] << 16 ) | (( N32 )option[5] << 24 ));
+                                interface->dhcp.lease_time_0 = option[2] | (( N32 )option[3] << 8 ) | (( N32 )option[4] << 16 ) | (( N32 )option[5] << 24 );
+                                interface->dhcp.lease_time_1 = 7 * ( option[2] | (( N32 )option[3] << 8 ) | (( N32 )option[4] << 16 ) | (( N32 )option[5] << 24 )) / 8;
+                                interface->dhcp.lease_time_2 = ( option[2] | (( N32 )option[3] << 8 ) | (( N32 )option[4] << 16 ) | (( N32 )option[5] << 24 )) / 2;
                                 has_time = yes;
                                 break;
                             }
@@ -913,31 +915,48 @@ Ack_any_end:        interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
                     break;
                 }
               case E_net_Z_interface_state_S_dhcp_renew_0:
-                    if( E_flow_Q_spin_time_T( &interface->dhcp.lease_time_0 ))
+                {   N time = E_flow_I_current_time() + E_interrupt_S_cpu_freq * interface->dhcp.lease_time_0;
+                    if( E_flow_Q_spin_time_T(time))
                     {   interface->dhcp.retry = 0;
+                        interface->dhcp.retry_skip = 1;
                         interface->dhcp.state = E_net_Z_interface_state_S_dhcp_request;
                         goto Switch;
                     }
                     break;
+                }
               case E_net_Z_interface_state_S_dhcp_renew_1:
-                    if( E_flow_Q_spin_time_T( &interface->dhcp.lease_time_1 ))
+                {   N time = E_flow_I_current_time() + E_interrupt_S_cpu_freq * interface->dhcp.lease_time_1;
+                    if( E_flow_Q_spin_time_T(time))
                     {   interface->dhcp.retry = 0;
+                        interface->dhcp.retry_skip = 1;
                         interface->dhcp.state = E_net_Z_interface_state_S_dhcp_request_any;
                         struct E_net_Z_udp4_connection_state *connection_state = E_mem_Q_tab_R( E_net_S_udp4_connection_state, interface->dhcp.connection_id );
                         connection_state->ip4.remote_address = 0xffffffff;
                         goto Switch;
                     }
                     break;
+                }
               case E_net_Z_interface_state_S_dhcp_renew_2:
-                    if( E_flow_Q_spin_time_T( &interface->dhcp.lease_time_2 ))
+                {   N time = E_flow_I_current_time() + E_interrupt_S_cpu_freq * interface->dhcp.lease_time_2;
+                    if( E_flow_Q_spin_time_T(time))
                     {   interface->dhcp.retry = 0;
+                        interface->dhcp.retry_skip = 1;
                         interface->dhcp.state = E_net_Z_interface_state_S_dhcp_discover;
-                        struct E_net_Z_udp4_connection_state *connection_state = E_mem_Q_tab_R( E_net_S_udp4_connection_state, interface->dhcp.connection_id );
-                        connection_state->ip4.local_address = 0;
-                        connection_state->ip4.remote_address = 0xffffffff;
                         goto Switch;
                     }
                     break;
+                }
+            }
+            if( interface->dhcp.state == E_net_Z_interface_state_S_dhcp_renew_2
+            || interface->dhcp.state == E_net_Z_interface_state_S_dhcp_invalid
+            )
+            {   N r = E_net_Q_udp4_connection_state_W( interface->dhcp.connection_id );
+                if( K_error(r) )
+                {   N32 sched_i = E_flow_I_current_scheduler();
+                    E_flow_S_scheduler[ sched_i ].task_error = r;
+                    goto Block;
+                }
+                interface->dhcp.connection_id = ~0;
             }
         }
         for_each_( interface_id, E_net_S_interface, E_mem_Q_tab )
@@ -960,26 +979,20 @@ Ack_any_end:        interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
             {   struct E_net_Z_interface *interface = E_mem_Q_tab_R( E_net_S_interface, interface_id );
                 if( interface->dhcp.state == E_net_Z_interface_state_S_dhcp_renew_0 )
                 {   found = yes;
-                    if( time > interface->dhcp.lease_time_0 - current_time )
-                        time = interface->dhcp.lease_time_0 - current_time;
-                    if( (S)time <= 0 )
-                        break;
+                    if( time > interface->dhcp.lease_time_0 )
+                        time = interface->dhcp.lease_time_0;
                 }else if( interface->dhcp.state == E_net_Z_interface_state_S_dhcp_renew_1 )
                 {   found = yes;
-                    if( time > interface->dhcp.lease_time_1 - current_time )
-                        time = interface->dhcp.lease_time_1 - current_time;
-                    if( (S)time <= 0 )
-                        break;
+                    if( time > interface->dhcp.lease_time_1 )
+                        time = interface->dhcp.lease_time_1;
                 }else if( interface->dhcp.state == E_net_Z_interface_state_S_dhcp_renew_2 )
                 {   found = yes;
-                    if( time > interface->dhcp.lease_time_2 - current_time )
-                        time = interface->dhcp.lease_time_2 - current_time;
-                    if( (S)time <= 0 )
-                        break;
+                    if( time > interface->dhcp.lease_time_2 )
+                        time = interface->dhcp.lease_time_2;
                 }
             }
             if(found)
-                time = (S)time > 0 ? time * 1000 / E_interrupt_S_cpu_freq : 0;
+                time = time * 1000 / E_interrupt_S_cpu_freq;
             else
                 time = 1800000;
             G( "time=%x", time );
@@ -995,7 +1008,6 @@ Block:      Yi_B( net, dhcp )
                         E_flow_S_scheduler[ sched_i ].task_error = r;
                         goto Block;
                     }
-                    interface->dhcp.state = E_net_Z_interface_state_S_dhcp_discover;
                 }
             }
         }

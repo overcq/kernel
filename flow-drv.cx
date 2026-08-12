@@ -82,8 +82,8 @@ E_flow_Q_spin_time_M( N *time
 }
 _private
 B
-E_flow_Q_spin_time_T( N *time
-){  return E_flow_I_current_time() >= *time;
+E_flow_Q_spin_time_T( N time
+){  return E_flow_I_current_time() >= time;
 }
 _private
 N32

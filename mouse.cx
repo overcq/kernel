@@ -132,7 +132,7 @@ E_mouse_I_interrupt( void
             {   if( E_mouse_Q_button_S_state == E_mouse_Q_button_Z_state_S_dirty )
                     if( E_mouse_S_state_buttons )
                         E_flow_Q_spin_time_M( &E_mouse_Q_button_S_time, E_mouse_Q_button_S_dirty_timeout * 1000 );
-                    else if( E_flow_Q_spin_time_T( &E_mouse_Q_button_S_time ))
+                    else if( E_flow_Q_spin_time_T( E_mouse_Q_button_S_time ))
                         E_mouse_Q_button_S_state = E_mouse_Q_button_Z_state_S_clean;
                 if( E_mouse_Q_button_S_state != E_mouse_Q_button_Z_state_S_dirty )
                     if( !buttons
@@ -152,7 +152,7 @@ E_mouse_I_interrupt( void
                                 Yi_F( mouse, click, E_mouse_Q_button_S_press_timeout );
                                 break;
                           case E_mouse_Q_button_Z_state_S_press:
-                                if( !E_flow_Q_spin_time_T( &E_mouse_Q_button_S_time ))
+                                if( !E_flow_Q_spin_time_T( E_mouse_Q_button_S_time ))
                                 {   E_mouse_Q_button_S_state = E_mouse_Q_button_Z_state_S_release;
                                     E_mouse_Q_button_S_click_count++;
                                     E_flow_Q_spin_time_M( &E_mouse_Q_button_S_time, E_mouse_Q_button_S_release_timeout * 1000 );
@@ -172,7 +172,7 @@ E_mouse_I_interrupt( void
                                 Yi_F( mouse, click, 0 );
                                 break;
                           case E_mouse_Q_button_Z_state_S_release:
-                                if( !E_flow_Q_spin_time_T( &E_mouse_Q_button_S_time ))
+                                if( !E_flow_Q_spin_time_T( E_mouse_Q_button_S_time ))
                                     if( buttons == E_mouse_Q_button_S_button )
                                     {   E_mouse_Q_button_S_state = E_mouse_Q_button_Z_state_S_press;
                                         if( !~(S8)++E_mouse_Q_button_S_click_count )
@@ -202,7 +202,7 @@ E_mouse_I_interrupt( void
                 E_mouse_S_state_buttons = buttons;
             }else if(v)
             {   if( E_mouse_Q_button_S_state == E_mouse_Q_button_Z_state_S_dirty
-                && E_flow_Q_spin_time_T( &E_mouse_Q_button_S_time )
+                && E_flow_Q_spin_time_T( E_mouse_Q_button_S_time )
                 )
                     E_mouse_Q_button_S_state = E_mouse_Q_button_Z_state_S_clean;
                 if( E_mouse_Q_button_S_state == E_mouse_Q_button_Z_state_S_clean )
@@ -218,7 +218,7 @@ E_mouse_I_interrupt( void
                 }
             }else if( ~(S8)E_mouse_Q_button_S_click_count )
             {   if( E_mouse_Q_button_S_state == E_mouse_Q_button_Z_state_S_dirty
-                && E_flow_Q_spin_time_T( &E_mouse_Q_button_S_time )
+                && E_flow_Q_spin_time_T( E_mouse_Q_button_S_time )
                 )
                     E_mouse_Q_button_S_state = E_mouse_Q_button_Z_state_S_clean;
                 if(( E_mouse_Q_button_S_state == E_mouse_Q_button_Z_state_S_clean
@@ -358,7 +358,7 @@ D( mouse, click )
         if( E_mouse_Q_wheel_S_count )
         {   E_gui_Q_pointer_I_wheel();
             E_mouse_Q_wheel_S_count = 0;
-        }else if( E_flow_Q_spin_time_T( &E_mouse_Q_button_S_time )
+        }else if( E_flow_Q_spin_time_T( E_mouse_Q_button_S_time )
         && E_mouse_Q_button_S_state != E_mouse_Q_button_Z_state_S_dirty
         )
         {   E_gui_Q_pointer_I_click();
