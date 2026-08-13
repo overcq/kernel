@@ -267,6 +267,22 @@ E_main_Z_p_I_to_physical( P p
     return 0;
 }
 _private
+struct E_datetime_Z
+E_main_Z_datetime_R( void
+){  struct H_uefi_Z_time uefi_time;
+    S status = E_main_S_uefi_runtime_services.R_time( &uefi_time, 0 );
+    struct E_datetime_Z datetime =
+    { uefi_time.year
+    , uefi_time.month
+    , uefi_time.day
+    , uefi_time.hour
+    , uefi_time.minute
+    , uefi_time.second
+    , uefi_time.nanosecond
+    };
+    return datetime;
+}
+_private
 __attribute__ (( __noreturn__ ))
 void
 E_main_I_fatal( void

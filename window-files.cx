@@ -2199,38 +2199,36 @@ E_window_files_Q_bubble_Q_menu_I_click_I_move_to(
         return 0;
     struct E_window_Q_window_Z *window_prev = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ windows - 2 ] );
     struct E_window_files_Z_data *window_prev_data = window_prev->data;
+    N r;
     if( window_prev->selection.type == E_windows_Z_selection_Z_type_S_directory )
-    {   N r = E_ouxfs_Q_directory_I_move( window_prev_data->disc_partition[ window_prev_data->disc_partition_selected_row ].disc
+    {   r = E_ouxfs_Q_directory_I_move( window_prev_data->disc_partition[ window_prev_data->disc_partition_selected_row ].disc
         , window_prev_data->disc_partition[ window_prev_data->disc_partition_selected_row ].partition
         , window_prev->selection.n
         , uid
         );
         if( K_error(r) )
-        {   if( !~r )
-                E_window_files_Q_bubble_Q_menu_I_click_I_message( "Move failed.", x, y, row_height );
-            return r;
-        }
+            goto End;
         E_window_files_S_refresh_selection.desktop_id = E_window_Q_desktop_S_current;
         E_window_files_S_refresh_selection.window_id = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ windows - 1 ];
         E_window_files_S_refresh_selection.selection.n = window_prev->selection.n;
         E_window_files_S_refresh_selection.selection.type = E_windows_Z_selection_Z_type_S_directory;
     }else if( window_prev->selection.type == E_windows_Z_selection_Z_type_S_file )
-    {   N r = E_ouxfs_Q_file_I_move( window_prev_data->disc_partition[ window_prev_data->disc_partition_selected_row ].disc
+    {   r = E_ouxfs_Q_file_I_move( window_prev_data->disc_partition[ window_prev_data->disc_partition_selected_row ].disc
         , window_prev_data->disc_partition[ window_prev_data->disc_partition_selected_row ].partition
         , window_prev->selection.n
         , uid
         );
         if( K_error(r) )
-        {   if( !~r )
-                E_window_files_Q_bubble_Q_menu_I_click_I_message( "Move failed.", x, y, row_height );
-            return r;
-        }
+            goto End;
         E_window_files_S_refresh_selection.desktop_id = E_window_Q_desktop_S_current;
         E_window_files_S_refresh_selection.window_id = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ windows - 1 ];
         E_window_files_S_refresh_selection.selection.n = window_prev->selection.n;
         E_window_files_S_refresh_selection.selection.type = E_windows_Z_selection_Z_type_S_file;
     }
     return 0;
+End:if( !~r )
+        E_window_files_Q_bubble_Q_menu_I_click_I_message( "Move failed.", x, y, row_height );
+    return r;
 }
 _internal
 N
@@ -2244,40 +2242,38 @@ E_window_files_Q_bubble_Q_menu_I_click_I_copy_to(
         return 0;
     struct E_window_Q_window_Z *window_prev = E_mem_Q_tab_R( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window, E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ windows - 2 ] );
     struct E_window_files_Z_data *window_prev_data = window_prev->data;
+    N r;
     if( window_prev->selection.type == E_windows_Z_selection_Z_type_S_directory )
     {   N uid_copy = window_prev->selection.n;
-        N r = E_ouxfs_Q_directory_I_copy( window_prev_data->disc_partition[ window_prev_data->disc_partition_selected_row ].disc
+        r = E_ouxfs_Q_directory_I_copy( window_prev_data->disc_partition[ window_prev_data->disc_partition_selected_row ].disc
         , window_prev_data->disc_partition[ window_prev_data->disc_partition_selected_row ].partition
         , &uid_copy
         , uid
         );
         if( K_error(r) )
-        {   if( !~r )
-                E_window_files_Q_bubble_Q_menu_I_click_I_message( "Copy failed.", x, y, row_height );
-            return r;
-        }
+            goto End;
         E_window_files_S_refresh_selection.desktop_id = E_window_Q_desktop_S_current;
         E_window_files_S_refresh_selection.window_id = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ windows - 1 ];
         E_window_files_S_refresh_selection.selection.n = uid_copy;
         E_window_files_S_refresh_selection.selection.type = E_windows_Z_selection_Z_type_S_directory;
     }else if( window_prev->selection.type == E_windows_Z_selection_Z_type_S_file )
     {   N uid_copy = window_prev->selection.n;
-        N r = E_ouxfs_Q_file_I_copy( window_prev_data->disc_partition[ window_prev_data->disc_partition_selected_row ].disc
+        r = E_ouxfs_Q_file_I_copy( window_prev_data->disc_partition[ window_prev_data->disc_partition_selected_row ].disc
         , window_prev_data->disc_partition[ window_prev_data->disc_partition_selected_row ].partition
         , &uid_copy
         , uid
         );
         if( K_error(r) )
-        {   if( !~r )
-                E_window_files_Q_bubble_Q_menu_I_click_I_message( "Copy failed.", x, y, row_height );
-            return r;
-        }
+            goto End;
         E_window_files_S_refresh_selection.desktop_id = E_window_Q_desktop_S_current;
         E_window_files_S_refresh_selection.window_id = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ windows - 1 ];
         E_window_files_S_refresh_selection.selection.n = uid_copy;
         E_window_files_S_refresh_selection.selection.type = E_windows_Z_selection_Z_type_S_file;
     }
     return 0;
+End:if( !~r )
+        E_window_files_Q_bubble_Q_menu_I_click_I_message( "Copy failed.", x, y, row_height );
+    return r;
 }
 _internal
 N
@@ -2289,21 +2285,18 @@ E_window_files_Q_bubble_Q_menu_I_click_I_delete( struct E_window_Q_window_Z *win
 , N row_i
 , N64 uid
 ){  struct E_window_files_Z_data *window_data = window->data;
-    Pc path[3] = { "system", "deleted" };
+    Pc path[] = { "system", "deleted" };
     N64 uid_dst;
     N r = E_ouxfs_Q_path_M( window_data->disc_partition[ window_data->disc_partition_selected_row ].disc
     , window_data->disc_partition[ window_data->disc_partition_selected_row ].partition
     , ~0
     , path
-    , 2
+    , J_a_R_n(path)
     , 0
     , &uid_dst
     );
     if( K_error(r) )
-    {   if( !~r )
-            E_window_files_Q_bubble_Q_menu_I_click_I_message( "Delete failed.", x, y, row_height );
-        return r;
-    }
+        goto End;
     N64 parent;
     if( row_i < window_data->selected_dir[ column_i - 1 ].file_start_row )
         parent = uid;
@@ -2314,10 +2307,7 @@ E_window_files_Q_bubble_Q_menu_I_click_I_delete( struct E_window_Q_window_Z *win
         , &parent
         );
         if( K_error(r) )
-        {   if( !~r )
-                E_window_files_Q_bubble_Q_menu_I_click_I_message( "Delete failed.", x, y, row_height );
-            return r;
-        }
+            goto End;
     }
     r = parent == uid_dst;
     if( !r )
@@ -2327,10 +2317,7 @@ E_window_files_Q_bubble_Q_menu_I_click_I_delete( struct E_window_Q_window_Z *win
         , parent
         );
         if( K_error(r) )
-        {   if( !~r )
-                E_window_files_Q_bubble_Q_menu_I_click_I_message( "Delete failed.", x, y, row_height );
-            return r;
-        }
+            goto End;
     }
     if(r)
         if( row_i < window_data->selected_dir[ column_i - 1 ].file_start_row )
@@ -2344,21 +2331,21 @@ E_window_files_Q_bubble_Q_menu_I_click_I_delete( struct E_window_Q_window_Z *win
             , uid
             );
     else
-    {   struct E_datetime_Z current_datetime = { 2026, 8, 12, 0 };
-        path[2] = E_text_Z_datetime_N_s0( current_datetime );
+    {   Pc path_[1];
+        path_[0] = E_text_Z_datetime_N_s0( E_main_Z_datetime_R() );
         r = E_ouxfs_Q_path_M( window_data->disc_partition[ window_data->disc_partition_selected_row ].disc
         , window_data->disc_partition[ window_data->disc_partition_selected_row ].partition
-        , ~0
-        , path
-        , J_a_R_n(path)
+        , uid_dst
+        , path_
+        , J_a_R_n( path_ )
         , 0
         , &uid_dst
         );
         if( K_error(r) )
-        {   if( !~r )
-                E_window_files_Q_bubble_Q_menu_I_click_I_message( "Delete failed.", x, y, row_height );
-            return r;
-        }
+            goto End;
+        r = W( path_[0] );
+        if( K_error(r) )
+            goto End;
         if( row_i < window_data->selected_dir[ column_i - 1 ].file_start_row )
             r = E_ouxfs_Q_directory_I_move( window_data->disc_partition[ window_data->disc_partition_selected_row ].disc
             , window_data->disc_partition[ window_data->disc_partition_selected_row ].partition
@@ -2373,11 +2360,11 @@ E_window_files_Q_bubble_Q_menu_I_click_I_delete( struct E_window_Q_window_Z *win
             );
     }
     if( K_error(r) )
-    {   if( !~r )
-            E_window_files_Q_bubble_Q_menu_I_click_I_message( "Delete failed.", x, y, row_height );
-        return r;
-    }
+        goto End;
     return 0;
+End:if( !~r )
+        E_window_files_Q_bubble_Q_menu_I_click_I_message( "Delete failed.", x, y, row_height );
+    return r;
 }
 //------------------------------------------------------------------------------
 _internal
@@ -2398,6 +2385,7 @@ E_window_files_Q_bubble_Q_menu_I_click(
         N column_i = window_data->dir_start + 1 + window_data->pointer_column;
         N row_i = ( column_i ? window_data->selected_dir[ column_i - 1 ].row_start : window_data->disc_partition_row_start ) + window_data->pointer_row;
         N64 uid = column_i ? window_data->selected_dir[ column_i - 1 ].uid[ row_i ] : ~0;
+        E_gui_Q_bubble_S.draw = 0;
         if( E_window_files_Q_bubble_Q_menu_S_case == &E_window_files_Q_bubble_Q_menu_S_case_partition_prev[0] )
             switch(i)
             { case 0:
@@ -2483,7 +2471,6 @@ E_window_files_Q_bubble_Q_menu_I_click(
                     break;
                 }
             }
-        E_gui_Q_bubble_S.draw = 0;
         X_F( gui, draw );
     }
     return 0;
@@ -3754,14 +3741,14 @@ D( window_files, watch_directory )
                     if( K_error(r) )
                     {   if( ~r )
                             E_flow_S_scheduler[ sched_i ].task_error = r;
-                        goto End;
+                        continue;
                     }
                     if(r)
                         U_F( gui, draw );
                 }
             }
         }
-End:    E_gui_Q_pointer_S_move_blocked = no;
+        E_gui_Q_pointer_S_move_blocked = no;
         X_U( gui, draw );
     }
     N r = X_W( window_files, watch_directory );

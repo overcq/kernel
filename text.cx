@@ -511,14 +511,16 @@ E_text_Z_s_N_n( Pc s
 , N base
 ){  N n = 0, n_prev = 0;
     while( s != s_end )
-    {   n *= base;
-        if( *s >= '0' && *s <= '0' + ( base <= 9 ? base - 1 : 9 ))
+    {   if( *s >= '0' && *s <= '0' + ( base <= 9 ? base - 1 : 9 ))
+        {   n *= base;
             n += *s - '0';
-        else if( *s >= 'A' && *s < 'A' + base - 10 )
+        }else if( *s >= 'A' && *s < 'A' + base - 10 )
+        {   n *= base;
             n += 10 + *s - 'A';
-        else if( *s >= 'a' && *s < 'a' + base - 10 )
+        }else if( *s >= 'a' && *s < 'a' + base - 10 )
+        {   n *= base;
             n += 10 + *s - 'a';
-        else
+        }else
             break;
         if( n < n_prev )
         {   n = n_prev;
@@ -537,14 +539,16 @@ E_text_Z_s0_N_n( Pc s
 , N base
 ){  N n = 0, n_prev = 0;
     while( *s )
-    {   n *= base;
-        if( *s >= '0' && *s <= '0' + ( base <= 9 ? base - 1 : 9 ))
+    {   if( *s >= '0' && *s <= '0' + ( base <= 9 ? base - 1 : 9 ))
+        {   n *= base;
             n += *s - '0';
-        else if( *s >= 'A' && *s < 'A' + base - 10 )
+        }else if( *s >= 'A' && *s < 'A' + base - 10 )
+        {   n *= base;
             n += 10 + *s - 'A';
-        else if( *s >= 'a' && *s < 'a' + base - 10 )
+        }else if( *s >= 'a' && *s < 'a' + base - 10 )
+        {   n *= base;
             n += 10 + *s - 'a';
-        else
+        }else
             break;
         if( n < n_prev )
         {   n = n_prev;
@@ -570,14 +574,16 @@ E_text_Z_s_N_sn( Pc s
     }
     S n = 0, n_prev = 0;
     while( s != s_end )
-    {   n *= base;
-        if( *s >= '0' && *s <= '0' + ( base <= 9 ? base - 1 : 9 ))
+    {   if( *s >= '0' && *s <= '0' + ( base <= 9 ? base - 1 : 9 ))
+        {   n *= base;
             n += *s - '0';
-        else if( *s >= 'A' && *s < 'A' + base - 10 )
+        }else if( *s >= 'A' && *s < 'A' + base - 10 )
+        {   n *= base;
             n += 10 + *s - 'A';
-        else if( *s >= 'a' && *s < 'a' + base - 10 )
+        }else if( *s >= 'a' && *s < 'a' + base - 10 )
+        {   n *= base;
             n += 10 + *s - 'a';
-        else
+        }else
             break;
         if( n < n_prev
         || !~n
@@ -605,14 +611,16 @@ E_text_Z_s0_N_sn( Pc s
     }
     S n = 0, n_prev = 0;
     while( *s )
-    {   n *= base;
-        if( *s >= '0' && *s <= '0' + ( base <= 9 ? base - 1 : 9 ))
+    {   if( *s >= '0' && *s <= '0' + ( base <= 9 ? base - 1 : 9 ))
+        {   n *= base;
             n += *s - '0';
-        else if( *s >= 'A' && *s < 'A' + base - 10 )
+        }else if( *s >= 'A' && *s < 'A' + base - 10 )
+        {   n *= base;
             n += 10 + *s - 'A';
-        else if( *s >= 'a' && *s < 'a' + base - 10 )
+        }else if( *s >= 'a' && *s < 'a' + base - 10 )
+        {   n *= base;
             n += 10 + *s - 'a';
-        else
+        }else
             break;
         if( n < n_prev
         || !~n
@@ -889,39 +897,35 @@ E_text_Z_s_N_datetime( Pc s
     if( *ret_s != s_end )
         return datetime;
     s = *ret_s + 1;
-    N v = E_text_Z_s0_N_n( s, ret_s, 10 );
-    if( v > 23 )
+    datetime.hour = E_text_Z_s0_N_n( s, ret_s, 10 );
+    if( datetime.hour > 23 )
     {   *ret_s = s;
         return datetime;
     }
-    datetime.millisecond = 1000 * 60 * 60 * v;
     if( *ret_s != s_end )
         return datetime;
     s = *ret_s + 1;
-    v = E_text_Z_s0_N_n( s, ret_s, 10 );
-    if( v > 59 )
+    datetime.minute = E_text_Z_s0_N_n( s, ret_s, 10 );
+    if( datetime.minute > 59 )
     {   *ret_s = s;
         return datetime;
     }
-    datetime.millisecond += 1000 * 60 * v;
     if( *ret_s != s_end )
         return datetime;
     s = *ret_s + 1;
-    v = E_text_Z_s0_N_n( s, ret_s, 10 );
-    if( v > 59 )
+    datetime.second = E_text_Z_s0_N_n( s, ret_s, 10 );
+    if( datetime.second > 59 )
     {   *ret_s = s;
         return datetime;
     }
-    datetime.millisecond += 1000 * v;
     if( *ret_s != s_end )
         return datetime;
     s = *ret_s + 1;
-    v = E_text_Z_s0_N_n( s, ret_s, 10 );
-    if( v > 999 )
+    datetime.nanosecond = E_text_Z_s0_N_n( s, ret_s, 10 );
+    if( datetime.nanosecond > 999999999 )
     {   *ret_s = s;
         return datetime;
     }
-    datetime.millisecond += v;
     return datetime;
 }
 _export
@@ -976,39 +980,35 @@ E_text_Z_s0_N_datetime( Pc s
     if( !**ret_s )
         return datetime;
     s = *ret_s + 1;
-    N v = E_text_Z_s0_N_n( s, ret_s, 10 );
-    if( v > 23 )
+    datetime.hour = E_text_Z_s0_N_n( s, ret_s, 10 );
+    if( datetime.hour > 23 )
     {   *ret_s = s;
         return datetime;
     }
-    datetime.millisecond = 1000 * 60 * 60 * v;
     if( !**ret_s )
         return datetime;
     s = *ret_s + 1;
-    v = E_text_Z_s0_N_n( s, ret_s, 10 );
-    if( v > 59 )
+    datetime.minute = E_text_Z_s0_N_n( s, ret_s, 10 );
+    if( datetime.minute > 59 )
     {   *ret_s = s;
         return datetime;
     }
-    datetime.millisecond += 1000 * 60 * v;
     if( !**ret_s )
         return datetime;
     s = *ret_s + 1;
-    v = E_text_Z_s0_N_n( s, ret_s, 10 );
-    if( v > 59 )
+    datetime.second = E_text_Z_s0_N_n( s, ret_s, 10 );
+    if( datetime.second > 59 )
     {   *ret_s = s;
         return datetime;
     }
-    datetime.millisecond += 1000 * v;
     if( !**ret_s )
         return datetime;
     s = *ret_s + 1;
-    v = E_text_Z_s0_N_n( s, ret_s, 10 );
-    if( v > 999 )
+    datetime.nanosecond = E_text_Z_s0_N_n( s, ret_s, 10 );
+    if( datetime.nanosecond > 999999999 )
     {   *ret_s = s;
         return datetime;
     }
-    datetime.millisecond += v;
     return datetime;
 }
 _export
@@ -1042,49 +1042,41 @@ E_text_Z_datetime_N_s0( struct E_datetime_Z datetime
     l += n;
     E_text_Z_n_N_s( s + l, datetime.day, 10 );
     s[ l++ ] = ' ';
-    N millisecond = datetime.millisecond;
-    N v = millisecond / ( 1000 * 60 * 60 );
-    n = E_text_Z_n_N_s_G( v, 10 );
+    n = E_text_Z_n_N_s_G( datetime.hour, 10 );
     r = (N)E_mem_Q_blk_I_append( &s, n + 1 );
     KPp(r)
     {   KP_( ~1, W(s) );
         return (Pc)~0;
     }
     l += n;
-    E_text_Z_n_N_s( s + l, v, 10 );
+    E_text_Z_n_N_s( s + l, datetime.hour, 10 );
     s[ l++ ] = ':';
-    millisecond %= 1000 * 60 * 60;
-    v = millisecond / ( 1000 * 60 );
-    n = E_text_Z_n_N_s_G( v, 10 );
+    n = E_text_Z_n_N_s_G( datetime.minute, 10 );
     r = (N)E_mem_Q_blk_I_append( &s, n + 1 );
     KPp(r)
     {   KP_( ~1, W(s) );
         return (Pc)~0;
     }
     l += n;
-    E_text_Z_n_N_s( s + l, v, 10 );
+    E_text_Z_n_N_s( s + l, datetime.minute, 10 );
     s[ l++ ] = ':';
-    millisecond %= 1000 * 60;
-    v = millisecond / 1000;
-    n = E_text_Z_n_N_s_G( v, 10 );
+    n = E_text_Z_n_N_s_G( datetime.second, 10 );
     r = (N)E_mem_Q_blk_I_append( &s, n + 1 );
     KPp(r)
     {   KP_( ~1, W(s) );
         return (Pc)~0;
     }
     l += n;
-    E_text_Z_n_N_s( s + l, v, 10 );
+    E_text_Z_n_N_s( s + l, datetime.second, 10 );
     s[ l++ ] = '.';
-    millisecond %= 1000;
-    v = millisecond;
-    n = E_text_Z_n_N_s_G( v, 10 );
+    n = E_text_Z_n_N_s_G( datetime.nanosecond, 10 );
     r = (N)E_mem_Q_blk_I_append( &s, n );
     KPp(r)
     {   KP_( ~1, W(s) );
         return (Pc)~0;
     }
     l += n;
-    E_text_Z_n_N_s( s + l, v, 10 );
+    E_text_Z_n_N_s( s + l, datetime.nanosecond, 10 );
     s[l] = '\0';
     return s;
 }

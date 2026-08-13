@@ -268,8 +268,12 @@
 //TODO Do uporządkowania.
 struct E_datetime_Z
 { N16 year;
-  N8 month, day;
-  N millisecond;
+  N8 month;
+  N8 day;
+  N8 hour;
+  N8 minute;
+  N8 second;
+  N32 nanosecond;
 };
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 struct E_flow_Z_args
@@ -326,40 +330,40 @@ struct E_windows_Z_selection
 #define H_uefi_Z_api __attribute__(( __ms_abi__ ))
 #define H_uefi_S_error(e) ( (S)( 1LL << 63 ) | e )
 //------------------------------------------------------------------------------
-#define H_uefi_Z_error_S_success            0
-#define H_uefi_Z_error_S_load_error         H_uefi_S_error(1)
-#define H_uefi_Z_error_S_invalid_parameter  H_uefi_S_error(2)
-#define H_uefi_Z_error_S_unsupported        H_uefi_S_error(3)
-#define H_uefi_Z_error_S_bad_buffer_size    H_uefi_S_error(4)
-#define H_uefi_Z_error_S_buffer_too_small   H_uefi_S_error(5)
-#define H_uefi_Z_error_S_not_ready          H_uefi_S_error(6)
-#define H_uefi_Z_error_S_device_error       H_uefi_S_error(7)
-#define H_uefi_Z_error_S_write_protected    H_uefi_S_error(8)
-#define H_uefi_Z_error_S_out_of_resoureces  H_uefi_S_error(9)
-#define H_uefi_Z_error_S_volume_corrupted   H_uefi_S_error(10)
-#define H_uefi_Z_error_S_volume_full        H_uefi_S_error(11)
-#define H_uefi_Z_error_S_no_media           H_uefi_S_error(12)
-#define H_uefi_Z_error_S_media_changed      H_uefi_S_error(13)
-#define H_uefi_Z_error_S_not_found          H_uefi_S_error(14)
-#define H_uefi_Z_error_S_access_denied      H_uefi_S_error(15)
-#define H_uefi_Z_error_S_no_response        H_uefi_S_error(16)
-#define H_uefi_Z_error_S_no_mapping         H_uefi_S_error(17)
-#define H_uefi_Z_error_S_timeout            H_uefi_S_error(18)
-#define H_uefi_Z_error_S_not_started        H_uefi_S_error(19)
-#define H_uefi_Z_error_S_already_started    H_uefi_S_error(20)
-#define H_uefi_Z_error_S_aborted            H_uefi_S_error(21)
-#define H_uefi_Z_error_S_icmp_error         H_uefi_S_error(22)
-#define H_uefi_Z_error_S_tftp_error         H_uefi_S_error(23)
-#define H_uefi_Z_error_S_protocol_error     H_uefi_S_error(24)
-#define H_uefi_Z_error_S_imcompatible_version H_uefi_S_error(25)
-#define H_uefi_Z_error_S_security_violation H_uefi_S_error(26)
-#define H_uefi_Z_error_S_crc_error          H_uefi_S_error(27)
-#define H_uefi_Z_error_S_end_of_media       H_uefi_S_error(28)
-#define H_uefi_Z_error_S_end_of_file        H_uefi_S_error(31)
-#define H_uefi_Z_error_S_invalid_language   H_uefi_S_error(32)
-#define H_uefi_Z_error_S_compromised_data   H_uefi_S_error(33)
-#define H_uefi_Z_error_S_ip_address_conflict H_uefi_S_error(34)
-#define H_uefi_Z_error_S_http_error         H_uefi_S_error(35)
+#define H_uefi_Z_error_S_success                0
+#define H_uefi_Z_error_S_load_error             H_uefi_S_error(1)
+#define H_uefi_Z_error_S_invalid_parameter      H_uefi_S_error(2)
+#define H_uefi_Z_error_S_unsupported            H_uefi_S_error(3)
+#define H_uefi_Z_error_S_bad_buffer_size        H_uefi_S_error(4)
+#define H_uefi_Z_error_S_buffer_too_small       H_uefi_S_error(5)
+#define H_uefi_Z_error_S_not_ready              H_uefi_S_error(6)
+#define H_uefi_Z_error_S_device_error           H_uefi_S_error(7)
+#define H_uefi_Z_error_S_write_protected        H_uefi_S_error(8)
+#define H_uefi_Z_error_S_out_of_resoureces      H_uefi_S_error(9)
+#define H_uefi_Z_error_S_volume_corrupted       H_uefi_S_error(10)
+#define H_uefi_Z_error_S_volume_full            H_uefi_S_error(11)
+#define H_uefi_Z_error_S_no_media               H_uefi_S_error(12)
+#define H_uefi_Z_error_S_media_changed          H_uefi_S_error(13)
+#define H_uefi_Z_error_S_not_found              H_uefi_S_error(14)
+#define H_uefi_Z_error_S_access_denied          H_uefi_S_error(15)
+#define H_uefi_Z_error_S_no_response            H_uefi_S_error(16)
+#define H_uefi_Z_error_S_no_mapping             H_uefi_S_error(17)
+#define H_uefi_Z_error_S_timeout                H_uefi_S_error(18)
+#define H_uefi_Z_error_S_not_started            H_uefi_S_error(19)
+#define H_uefi_Z_error_S_already_started        H_uefi_S_error(20)
+#define H_uefi_Z_error_S_aborted                H_uefi_S_error(21)
+#define H_uefi_Z_error_S_icmp_error             H_uefi_S_error(22)
+#define H_uefi_Z_error_S_tftp_error             H_uefi_S_error(23)
+#define H_uefi_Z_error_S_protocol_error         H_uefi_S_error(24)
+#define H_uefi_Z_error_S_imcompatible_version   H_uefi_S_error(25)
+#define H_uefi_Z_error_S_security_violation     H_uefi_S_error(26)
+#define H_uefi_Z_error_S_crc_error              H_uefi_S_error(27)
+#define H_uefi_Z_error_S_end_of_media           H_uefi_S_error(28)
+#define H_uefi_Z_error_S_end_of_file            H_uefi_S_error(31)
+#define H_uefi_Z_error_S_invalid_language       H_uefi_S_error(32)
+#define H_uefi_Z_error_S_compromised_data       H_uefi_S_error(33)
+#define H_uefi_Z_error_S_ip_address_conflict    H_uefi_S_error(34)
+#define H_uefi_Z_error_S_http_error             H_uefi_S_error(35)
 //------------------------------------------------------------------------------
 struct H_uefi_Z_guid
 { N32 data_1;
