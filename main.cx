@@ -7,42 +7,42 @@
 *         main
 * ©overcq                on ‟Gentoo Linux 23.0” “x86_64”              2025‒5‒1 a
 *******************************************************************************/
-#define E_cpu_Z_cr0_S_mp                ( 1ULL << 1 )
-#define E_cpu_Z_cr0_S_em                ( 1ULL << 2 )
-#define E_cpu_Z_cr0_S_ts                ( 1ULL << 3 )
-#define E_cpu_Z_cr0_S_ne                ( 1ULL << 5 )
-#define E_cpu_Z_cr0_S_wp                ( 1ULL << 16 )
-#define E_cpu_Z_cr0_S_nw                ( 1ULL << 29 )
-#define E_cpu_Z_cr0_S_cd                ( 1ULL << 30 )
-#define E_cpu_Z_cr3_S_pwt               ( 1ULL << 3 )
-#define E_cpu_Z_cr3_S_pcd               ( 1ULL << 4 )
-#define E_cpu_Z_cr4_S_vme               ( 1ULL << 0 )
-#define E_cpu_Z_cr4_S_pvi               ( 1ULL << 1 )
-#define E_cpu_Z_cr4_S_tsd               ( 1ULL << 2 )
-#define E_cpu_Z_cr4_S_de                ( 1ULL << 3 )
-#define E_cpu_Z_cr4_S_mce               ( 1ULL << 6 )
-#define E_cpu_Z_cr4_S_pge               ( 1ULL << 7 )
-#define E_cpu_Z_cr4_S_pce               ( 1ULL << 8 )
-#define E_cpu_Z_cr4_S_osfxsr            ( 1ULL << 9 )
-#define E_cpu_Z_cr4_S_osxmmexcpt        ( 1ULL << 10 )
-#define E_cpu_Z_cr4_S_umip              ( 1ULL << 11 )
-#define E_cpu_Z_cr4_S_fsgsbase          ( 1ULL << 16 )
-#define E_cpu_Z_cr4_S_pcide             ( 1ULL << 17 )
-#define E_cpu_Z_cr4_S_osxsave           ( 1ULL << 18 )
-#define E_cpu_Z_cr4_S_smep              ( 1ULL << 20 )
-#define E_cpu_Z_cr4_S_smap              ( 1ULL << 21 )
-#define E_cpu_Z_cr4_S_pke               ( 1ULL << 22 )
-#define E_cpu_Z_cr4_S_pks               ( 1ULL << 24 )
-#define E_cpu_Z_cr4_S_uintr             ( 1ULL << 25 )
-#define E_cpu_Z_cr4_S_lam_sup           ( 1ULL << 28 )
-#define E_cpu_Z_gdt_Z_data_S_write      ( 1ULL << ( 32 + 9 ))
-#define E_cpu_Z_gdt_Z_type_S_code       ( 1ULL << ( 32 + 11 ))
-#define E_cpu_Z_gdt_S_code_data         ( 1ULL << ( 32 + 12 ))
-#define E_cpu_Z_gdt_S_present           ( 1ULL << ( 32 + 15 ))
-#define E_cpu_Z_gdt_Z_code_S_64bit      ( 1ULL << ( 32 + 21 ))
-#define E_cpu_Z_gdt_S_granularity       ( 1ULL << ( 32 + 23 ))
-#define E_cpu_Z_gdt_Z_type_S_ldt        ( 1ULL << ( 32 + 9 ))
-#define E_cpu_Z_gdt_Z_type_S_tss        ( 9ULL << ( 32 + 8 ))
+#define E_cpu_Z_cr0_S_mp                ( 1UL << 1 )
+#define E_cpu_Z_cr0_S_em                ( 1UL << 2 )
+#define E_cpu_Z_cr0_S_ts                ( 1UL << 3 )
+#define E_cpu_Z_cr0_S_ne                ( 1UL << 5 )
+#define E_cpu_Z_cr0_S_wp                ( 1UL << 16 )
+#define E_cpu_Z_cr0_S_nw                ( 1UL << 29 )
+#define E_cpu_Z_cr0_S_cd                ( 1UL << 30 )
+#define E_cpu_Z_cr3_S_pwt               ( 1UL << 3 )
+#define E_cpu_Z_cr3_S_pcd               ( 1UL << 4 )
+#define E_cpu_Z_cr4_S_vme               ( 1UL << 0 )
+#define E_cpu_Z_cr4_S_pvi               ( 1UL << 1 )
+#define E_cpu_Z_cr4_S_tsd               ( 1UL << 2 )
+#define E_cpu_Z_cr4_S_de                ( 1UL << 3 )
+#define E_cpu_Z_cr4_S_mce               ( 1UL << 6 )
+#define E_cpu_Z_cr4_S_pge               ( 1UL << 7 )
+#define E_cpu_Z_cr4_S_pce               ( 1UL << 8 )
+#define E_cpu_Z_cr4_S_osfxsr            ( 1UL << 9 )
+#define E_cpu_Z_cr4_S_osxmmexcpt        ( 1UL << 10 )
+#define E_cpu_Z_cr4_S_umip              ( 1UL << 11 )
+#define E_cpu_Z_cr4_S_fsgsbase          ( 1UL << 16 )
+#define E_cpu_Z_cr4_S_pcide             ( 1UL << 17 )
+#define E_cpu_Z_cr4_S_osxsave           ( 1UL << 18 )
+#define E_cpu_Z_cr4_S_smep              ( 1UL << 20 )
+#define E_cpu_Z_cr4_S_smap              ( 1UL << 21 )
+#define E_cpu_Z_cr4_S_pke               ( 1UL << 22 )
+#define E_cpu_Z_cr4_S_pks               ( 1UL << 24 )
+#define E_cpu_Z_cr4_S_uintr             ( 1UL << 25 )
+#define E_cpu_Z_cr4_S_lam_sup           ( 1UL << 28 )
+#define E_cpu_Z_gdt_Z_data_S_write      ( 1UL << ( 32 + 9 ))
+#define E_cpu_Z_gdt_Z_type_S_code       ( 1UL << ( 32 + 11 ))
+#define E_cpu_Z_gdt_S_code_data         ( 1UL << ( 32 + 12 ))
+#define E_cpu_Z_gdt_S_present           ( 1UL << ( 32 + 15 ))
+#define E_cpu_Z_gdt_Z_code_S_64bit      ( 1UL << ( 32 + 21 ))
+#define E_cpu_Z_gdt_S_granularity       ( 1UL << ( 32 + 23 ))
+#define E_cpu_Z_gdt_Z_type_S_ldt        ( 1UL << ( 32 + 9 ))
+#define E_cpu_Z_gdt_Z_type_S_tss        ( 9UL << ( 32 + 8 ))
 //==============================================================================
 _private
 struct E_mem_Z_memory_map
@@ -51,23 +51,15 @@ struct E_mem_Z_memory_map
   N pages;
 } *E_main_S_memory_map;
 _private N E_main_S_memory_map_n;
-struct E_main_Z_pixel_shifts
-{ N8 red;
-  N8 green;
-  N8 blue;
-};
-enum E_uefi_Z_pixel_format
-{ H_uefi_Z_pixel_format_S_rgb8
-, H_uefi_Z_pixel_format_S_bgr8
-, H_uefi_Z_pixel_format_S_bitmask
-};
 _private
 struct E_main_Z_framebuffer
-{ volatile N32 *p;
+{ volatile N8 *p;
   N32 width, height;
   N32 pixels_per_scan_line;
-  enum E_uefi_Z_pixel_format pixel_format;
-  struct E_main_Z_pixel_shifts pixel_shifts;
+  N8 bits_per_pixel;
+  N8 blue_size, blue_shift;
+  N8 green_size, green_shift;
+  N8 red_size, red_shift;
 }E_main_S_framebuffer;
 _private
 struct E_main_Z_uefi_runtime_services
@@ -125,7 +117,7 @@ struct E_main_Z_kernel_args
 { struct E_mem_blk_Z mem_blk;
   struct E_mem_Z_memory_map *memory_map;
   N memory_map_n;
-  P bootloader;
+  P boot_loader;
   P kernel;
   P page_table;
   N additional_pages;
@@ -423,8 +415,8 @@ main( struct E_main_Z_kernel_args *kernel_args
     || !E_main_S_gdt
     )
         goto End;
-    E_main_S_gdt[1] = E_main_J_code_descriptor( 0, ~0ULL );
-    E_main_S_gdt[2] = E_main_J_data_descriptor( 0, ~0ULL );
+    E_main_S_gdt[1] = E_main_J_code_descriptor( 0, ~0UL );
+    E_main_S_gdt[2] = E_main_J_data_descriptor( 0, ~0UL );
     E_main_S_gdt[3] = E_main_J_local_descriptor_low( (N)&E_main_S_ldt[0], sizeof( E_main_S_ldt ) - 1 );
     E_main_S_gdt[4] = (N)&E_main_S_ldt[0] >> 32;
     for_n( i, kernel_args->processor_n )
@@ -531,7 +523,7 @@ main( struct E_main_Z_kernel_args *kernel_args
     r = E_acpi_reader_M();
     if( K_error(r) )
         goto End;
-    r = W( kernel_args->bootloader );
+    r = W( kernel_args->boot_loader );
     if( K_error(r) )
         goto End;
     r = E_disc_M();

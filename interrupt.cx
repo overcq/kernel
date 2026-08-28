@@ -1187,7 +1187,7 @@ E_interrupt_M( void
     E_interrupt_P( 8, &E_interrupt_I_rtc_interrupt_2 );
     E_interrupt_S_apic_timer_freq = 0;
     N8 div_i = E_asm_I_bsr( E_interrupt_S_cpu_freq );
-    E_interrupt_S_apic_timer_div = 1ULL << ( div_i > 31 ? 31 : div_i );
+    E_interrupt_S_apic_timer_div = 1UL << ( div_i > 31 ? 31 : div_i );
     O{  E_interrupt_S_apic_timer_ticks = E_interrupt_S_rtc_ticks = 0;
         __asm__ volatile (
         "\n" "sti"

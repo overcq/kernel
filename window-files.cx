@@ -2497,7 +2497,7 @@ E_window_files_Q_bubble_Q_menu_I_draw( void
         }
         if( i != E_window_files_Q_bubble_Q_menu_S_case_n - 1 )
         {   y_ += row_height;
-            E_vga_I_draw_x_line( E_gui_Q_bubble_S.x, y_ - ( 1 + window_data->font_size + 1 ), E_gui_Q_bubble_S.width, E_vga_R_video_color( 0x908b8b ));
+            E_vga_I_draw_x_line( E_gui_Q_bubble_S.x, y_ - ( 1 + window_data->font_size + 1 ), E_gui_Q_bubble_S.width, 0x908b8b );
         }
     }
     return 0;
@@ -3097,7 +3097,7 @@ E_window_files_I_draw( I window_id
                         clip_height = y + height - ( y_ - ( window_data->font_size + 1 ));
                     E_vga_I_fill_rect( x, y_ - ( window_data->font_size + 1 )
                     , column_text_width, clip_height
-                    , E_vga_R_video_color( 0xdfdfdf )
+                    , 0xdfdfdf
                     );
                 }
                 N32 clip_height = ( window_data->font_size + 1 ) * E_font_S_font.height;
@@ -3133,7 +3133,7 @@ E_window_files_I_draw( I window_id
         }
         x_column += window_data->column_text_width + window_data->column_margin_width;
         if( x_column - 1 < x + width )
-            E_vga_I_draw_y_line( x_column - 1, y, height, E_vga_R_video_color( 0x908b8b ));
+            E_vga_I_draw_y_line( x_column - 1, y, height, 0x908b8b );
     }
     N column_i = ~window_data->dir_start
     ? window_data->dir_start
@@ -3186,7 +3186,7 @@ E_window_files_I_draw( I window_id
             , y_selected_row
             , x_column - 2
             , y_selected_row_
-            , E_vga_R_video_color( 0x908b8b )
+            , 0x908b8b
             );
         y_selected_row = y_selected_row_;
         for( ; row_i != window_data->selected_dir[ column_i ].n; row_i++ )
@@ -3196,7 +3196,7 @@ E_window_files_I_draw( I window_id
                     clip_height = y + height - ( y_ - ( window_data->font_size + 1 ));
                 E_vga_I_fill_rect( x_column, y_ - ( window_data->font_size + 1 )
                 , column_text_width, clip_height
-                , E_vga_R_video_color( 0xdfdfdf )
+                , 0xdfdfdf
                 );
             }
             N32 clip_height = ( window_data->font_size + 1 ) * E_font_S_font.height;
@@ -3231,7 +3231,7 @@ E_window_files_I_draw( I window_id
         }
         x_column += window_data->column_text_width + window_data->column_margin_width;
         if( x_column - 1 < x + width )
-            E_vga_I_draw_y_line( x_column - 1, y, height, E_vga_R_video_color( 0x908b8b ));
+            E_vga_I_draw_y_line( x_column - 1, y, height, 0x908b8b );
     }
     if( column_i
     && ~window_data->selected_dir[ column_i - 1 ].selected_row
@@ -3244,7 +3244,7 @@ E_window_files_I_draw( I window_id
         {   E_vga_I_draw_rect( x_column + window_data->font_thickness + 1, y + window_data->font_size + 1
             , width_, height_
             , 1
-            , E_vga_R_video_color( 0x908b8b )
+            , 0x908b8b
             );
         }
         Pc s = window_data->selected_dir[ column_i - 1 ].name[ window_data->selected_dir[ column_i - 1 ].selected_row ];

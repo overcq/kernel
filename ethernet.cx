@@ -369,7 +369,7 @@ E_ethernet_I_init( volatile P register_address
     interface->mac_address[3] = a_1 >> 8;
     interface->mac_address[4] = a_2 & 0xff;
     interface->mac_address[5] = a_2 >> 8;
-    *( volatile N64 * )(( Pc )interface->register_memory + E_ethernet_Z_register_S_ra ) = ( 1ULL << 63 ) | (( N64 )a_2 << 32 ) | (( N64 )a_1 << 16 ) | a_0;
+    *( volatile N64 * )(( Pc )interface->register_memory + E_ethernet_Z_register_S_ra ) = ( 1UL << 63 ) | (( N64 )a_2 << 32 ) | (( N64 )a_1 << 16 ) | a_0;
     for_n( i, 128 )
         *( volatile N32 * )(( Pc )interface->register_memory + E_ethernet_Z_register_S_mta + i * sizeof( N32 )) = 0;
     *( volatile N32 * )(( Pc )interface->register_memory + E_ethernet_Z_register_S_tipg ) = ( 6 << 20 ) | ( 8 << 10 ) | 10;
@@ -379,11 +379,11 @@ E_ethernet_I_init( volatile P register_address
     *( volatile N32 * )(( Pc )interface->register_memory + E_ethernet_Z_register_S_ctrl ) &= ~( 1 << 3 );
     *( volatile N32 * )(( Pc )interface->register_memory + E_ethernet_Z_register_S_imc ) = 0xffffffff;
     *( volatile N32 * )(( Pc )interface->register_memory + E_ethernet_Z_register_S_ims ) = ( 1 << 7 ) | ( 1 << 6 ) | ( 1 << 4 ) | ( 1 << 3 ) | ( 1 << 2 ) | ( 1 << 0 );
-    struct E_ethernet_Z_receive_descriptor *receive_descriptors = E_mem_Q_blk_M_align_tab_single_memory( sizeof( struct E_ethernet_Z_receive_descriptor ), 8, 16 );
+    struct E_ethernet_Z_receive_descriptor *receive_descriptors = E_mem_Q_blk_Z_single_memory_M_align_tab( sizeof( struct E_ethernet_Z_receive_descriptor ), 8, 16 );
     Kp_( ~2, receive_descriptors );
     for_n_( i, 8 )
     {   receive_descriptors[i].length = E_ethernet_S_receive_buffer_size;
-        P buffer = E_mem_Q_blk_M_align_single_memory( receive_descriptors[i].length, 4096 );
+        P buffer = E_mem_Q_blk_Z_single_memory_M_align( receive_descriptors[i].length, 4096 );
         Kp_( ~2, buffer );
         receive_descriptors[i].buffer_address = (N)E_main_Z_p_I_to_physical(buffer);
         receive_descriptors[i].pif = receive_descriptors[i].ipcs = receive_descriptors[i].tcpcs = receive_descriptors[i].reserved_0 = receive_descriptors[i].vp = receive_descriptors[i].ixsm = receive_descriptors[i].eop = receive_descriptors[i].dd = 0;
@@ -392,7 +392,7 @@ E_ethernet_I_init( volatile P register_address
     *( volatile N32 * )(( Pc )interface->register_memory + E_ethernet_Z_register_S_rdlen ) = 1 << 7;
     *( volatile N32 * )(( Pc )interface->register_memory + E_ethernet_Z_register_S_rdt ) = 8 - 1;
     *( volatile N32 * )(( Pc )interface->register_memory + E_ethernet_Z_register_S_rctl ) = ( 1 << 25 ) | ( 1 << 16 ) | ( 1 << 5 ) | ( 1 << 1 );
-    struct E_ethernet_Z_transmit_descriptor *transmit_descriptors = E_mem_Q_blk_M_align_tab_single_memory( sizeof( struct E_ethernet_Z_transmit_descriptor ), 8, 16 );
+    struct E_ethernet_Z_transmit_descriptor *transmit_descriptors = E_mem_Q_blk_Z_single_memory_M_align_tab( sizeof( struct E_ethernet_Z_transmit_descriptor ), 8, 16 );
     Kp_( ~2, transmit_descriptors );
     for_n_( i, 8 )
         transmit_descriptors[i].dd = yes;
@@ -440,7 +440,7 @@ E_ethernet_I_reinit( I interface_id
     interface->mac_address[3] = a_1 >> 8;
     interface->mac_address[4] = a_2 & 0xff;
     interface->mac_address[5] = a_2 >> 8;
-    *( volatile N64 * )(( Pc )interface->register_memory + E_ethernet_Z_register_S_ra ) = ( 1ULL << 63 ) | (( N64 )a_2 << 32 ) | (( N64 )a_1 << 16 ) | a_0;
+    *( volatile N64 * )(( Pc )interface->register_memory + E_ethernet_Z_register_S_ra ) = ( 1UL << 63 ) | (( N64 )a_2 << 32 ) | (( N64 )a_1 << 16 ) | a_0;
     for_n( i, 128 )
         *( volatile N32 * )(( Pc )interface->register_memory + E_ethernet_Z_register_S_mta + i * sizeof( N32 )) = 0;
     *( volatile N32 * )(( Pc )interface->register_memory + E_ethernet_Z_register_S_tipg ) = ( 6 << 20 ) | ( 8 << 10 ) | 10;

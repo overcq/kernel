@@ -100,6 +100,9 @@ E_mem_Q_blk_I_copy_rev( P dst
 , N l
 ){  __asm__ volatile (
     "\n" "std"
+    :
+    :
+    : "cc"
     );
     N128 *dst_x = (P)E_simple_Z_p_I_align_down_to_v2( dst + l, sizeof( N128 ));
     N128 *src_x = (P)E_simple_Z_p_I_align_down_to_v2( src + l, sizeof( N128 ));
@@ -138,7 +141,7 @@ E_mem_Q_blk_I_copy_rev( P dst
     "\n" "cld"
     : "+D" (dst), "+S" (src), "+c" (l)
     :
-    : "memory"
+    : "cc", "memory"
     );
 }
 _export
@@ -937,7 +940,7 @@ E_mem_Q_blk_Q_table_M_from_free( N *allocated_or_table_i
 }
 _internal
 P
-E_mem_Q_blk_Q_table_M_from_free_single_memory( N *allocated_or_table_i
+E_mem_Q_blk_Z_single_memory_Q_table_M_from_free( N *allocated_or_table_i
 , N u
 , N n
 , P p // Adres uprzedniej zawartości lub 0, gdy brak.
@@ -1161,7 +1164,7 @@ E_mem_Q_blk_M_align_tab(
 //------------------------------------------------------------------------------
 _export
 P
-E_mem_Q_blk_M_single_memory( N l
+E_mem_Q_blk_Z_single_memory_M( N l
 ){  return E_mem_Q_blk_M_tab_single_memory( 1, l );
 }
 _export
@@ -1169,18 +1172,18 @@ P
 E_mem_Q_blk_M_tab_single_memory(
   N u
 , N n
-){  return E_mem_Q_blk_M_align_tab_single_memory( u, n, ~0 );
+){  return E_mem_Q_blk_Z_single_memory_M_align_tab( u, n, ~0 );
 }
 _export
 P
-E_mem_Q_blk_M_align_single_memory( N l
+E_mem_Q_blk_Z_single_memory_M_align( N l
 , N align
-){  return E_mem_Q_blk_M_align_tab_single_memory( 1, l, align );
+){  return E_mem_Q_blk_Z_single_memory_M_align_tab( 1, l, align );
 }
 _export
 __attribute__ ((__malloc__))
 P
-E_mem_Q_blk_M_align_tab_single_memory(
+E_mem_Q_blk_Z_single_memory_M_align_tab(
   N u
 , N n
 , N align
@@ -1193,7 +1196,7 @@ E_mem_Q_blk_M_align_tab_single_memory(
     {   E_mem_J_single_processor_end;
         return (P)~0;
     }
-    N r = (N)E_mem_Q_blk_Q_table_M_from_free_single_memory( &allocated_i, u, n, 0, 0, 0, align );
+    N r = (N)E_mem_Q_blk_Z_single_memory_Q_table_M_from_free( &allocated_i, u, n, 0, 0, 0, align );
     if( !~r
     || !r
     )
@@ -1841,7 +1844,7 @@ E_mem_Q_blk_I_append_align( P p
 }
 _export
 P
-E_mem_Q_blk_I_append_align_single_memory( P p
+E_mem_Q_blk_Z_single_memory_I_append_align( P p
 , N n
 , B align_to_u
 ){  if( !n )
@@ -1955,7 +1958,7 @@ E_mem_Q_blk_I_append_align_single_memory( P p
                     l += l_1; // Przywraca oryginalną wartość sprzed scalenia od dołu, skoro był blok przyległy od dołu, a zabrakło do pełnej liczby od góry.
                 }
             }
-            P p_1 = E_mem_Q_blk_Q_table_M_from_free_single_memory( &allocated_i
+            P p_1 = E_mem_Q_blk_Z_single_memory_Q_table_M_from_free( &allocated_i
             , E_mem_blk_S.allocated[ allocated_i ].u
             , E_mem_blk_S.allocated[ allocated_i ].n + n
             , p_0

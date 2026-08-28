@@ -322,7 +322,7 @@ Switch:     switch( interface->dhcp.state )
                     G( "dhcp discover" );
                     interface->ipv4_address = 0;
                     N packet_l = sizeof( struct E_ipv4_Z_dhcp_packet ) + 16;
-                    struct E_ipv4_Z_dhcp_packet *packet = E_mem_Q_blk_M_single_memory( packet_l );
+                    struct E_ipv4_Z_dhcp_packet *packet = E_mem_Q_blk_Z_single_memory_M( packet_l );
                     if( K_error(packet)
                     || !packet
                     )
@@ -489,7 +489,7 @@ Offer_end:          interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
                         break;
                     G( "dhcp request" );
                     N packet_l = sizeof( struct E_ipv4_Z_dhcp_packet ) + 34;
-                    struct E_ipv4_Z_dhcp_packet *packet = E_mem_Q_blk_M_single_memory( packet_l );
+                    struct E_ipv4_Z_dhcp_packet *packet = E_mem_Q_blk_Z_single_memory_M( packet_l );
                     if( K_error(packet)
                     || !packet
                     )
@@ -706,7 +706,7 @@ Ack_end:            interface->dhcp.state = ( Pc )option + 1 - ( Pc )&offer_pack
                         break;
                     G( "dhcp request any" );
                     N packet_l = sizeof( struct E_ipv4_Z_dhcp_packet ) + 34;
-                    struct E_ipv4_Z_dhcp_packet *packet = E_mem_Q_blk_M_single_memory( packet_l );
+                    struct E_ipv4_Z_dhcp_packet *packet = E_mem_Q_blk_Z_single_memory_M( packet_l );
                     if( K_error(packet)
                     || !packet
                     )

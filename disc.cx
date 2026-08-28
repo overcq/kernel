@@ -157,7 +157,7 @@ E_disc_I_init( I disc_id
             N r = E_ssd_cache_I_init(disc);
             if( K_error(r) )
                 return r;
-            struct E_disc_Z_mbr *mbr = E_mem_Q_blk_M_single_memory( disc->sata_ahci.logical_sector_size );
+            struct E_disc_Z_mbr *mbr = E_mem_Q_blk_Z_single_memory_M( disc->sata_ahci.logical_sector_size );
             Kp_( ~2, mbr );
             N32 slot_mask;
             r = E_sata_Q_sata_ahci_I_read( disc_id, 0, 1, mbr, &slot_mask );
@@ -175,7 +175,7 @@ E_disc_I_init( I disc_id
             {   switch( mbr->partition[i].type )
                 { case 0xee:
                     {   slot_mask = 0;
-                        struct E_disc_Z_gpt_header *gpt_header = E_mem_Q_blk_M_single_memory( disc->sata_ahci.logical_sector_size );;
+                        struct E_disc_Z_gpt_header *gpt_header = E_mem_Q_blk_Z_single_memory_M( disc->sata_ahci.logical_sector_size );;
                         Kp_( ~2, gpt_header );
                         r = E_sata_Q_sata_ahci_I_read( disc_id, 1, 1, gpt_header, &slot_mask );
                         if( K_error(r) )
@@ -215,7 +215,7 @@ E_disc_I_init( I disc_id
                             return ~2;
                         if( disc->sata_ahci.logical_sector_shift )
                             last_usable_lba -= disc->sata_ahci.physical_sector_size / disc->sata_ahci.logical_sector_size - disc->sata_ahci.logical_sector_shift;
-                        struct E_disc_Z_gpt_partition_record *gpt_partition_record = E_mem_Q_blk_M_single_memory( E_simple_Z_n_I_align_up_to_v2( (N)gpt_header->partition_entry_count * gpt_header->partition_entry_size, disc->sata_ahci.logical_sector_size ));
+                        struct E_disc_Z_gpt_partition_record *gpt_partition_record = E_mem_Q_blk_Z_single_memory_M( E_simple_Z_n_I_align_up_to_v2( (N)gpt_header->partition_entry_count * gpt_header->partition_entry_size, disc->sata_ahci.logical_sector_size ));
                         Kp_( ~2, gpt_partition_record );
                         r = E_sata_Q_sata_ahci_I_read( disc_id
                         , gpt_header->partition_entry_lba

@@ -357,19 +357,36 @@ _internal
 void
 E_gui_Q_pointer_I_draw( N32 x
 , N32 y
-){  volatile N32 *video_address = E_main_S_framebuffer.p + y * E_main_S_framebuffer.pixels_per_scan_line + x;
-    for_n( x_i, E_gui_Q_pointer_S_width )
-    {   if( x + x_i == E_main_S_framebuffer.width )
-            break;
-        video_address[ x_i ] = 0;
-    }
-    if( y + 1 != E_main_S_framebuffer.height )
-    {   video_address = E_main_S_framebuffer.p + ( y + 1 ) * E_main_S_framebuffer.pixels_per_scan_line + x;
-        for_n( y_i, E_gui_Q_pointer_S_height - 1 )
-        {   if( y + 1 + y_i == E_main_S_framebuffer.height )
+){  volatile N8 *video_address = E_main_S_framebuffer.p + y * E_main_S_framebuffer.pixels_per_scan_line * E_main_S_framebuffer.bits_per_pixel / 8 + x * E_main_S_framebuffer.bits_per_pixel / 8;
+    if( E_main_S_framebuffer.bits_per_pixel == 16 )
+    {   for_n( x_i, E_gui_Q_pointer_S_width )
+        {   if( x + x_i == E_main_S_framebuffer.width )
                 break;
-            *video_address = 0;
-            video_address += E_main_S_framebuffer.pixels_per_scan_line;
+            (( volatile N16 * )video_address )[ x_i ] = 0;
+        }
+        if( y + 1 != E_main_S_framebuffer.height )
+        {   video_address = E_main_S_framebuffer.p + ( y + 1 ) * E_main_S_framebuffer.pixels_per_scan_line * E_main_S_framebuffer.bits_per_pixel / 8 + x * E_main_S_framebuffer.bits_per_pixel / 8;
+            for_n( y_i, E_gui_Q_pointer_S_height - 1 )
+            {   if( y + 1 + y_i == E_main_S_framebuffer.height )
+                    break;
+                *( volatile N16 * )video_address = 0;
+                video_address += E_main_S_framebuffer.pixels_per_scan_line * E_main_S_framebuffer.bits_per_pixel / 8;
+            }
+        }
+    }else
+    {   for_n( x_i, E_gui_Q_pointer_S_width )
+        {   if( x + x_i == E_main_S_framebuffer.width )
+                break;
+            (( volatile N32 * )video_address )[ x_i ] = 0;
+        }
+        if( y + 1 != E_main_S_framebuffer.height )
+        {   video_address = E_main_S_framebuffer.p + ( y + 1 ) * E_main_S_framebuffer.pixels_per_scan_line * E_main_S_framebuffer.bits_per_pixel / 8 + x * E_main_S_framebuffer.bits_per_pixel / 8;
+            for_n( y_i, E_gui_Q_pointer_S_height - 1 )
+            {   if( y + 1 + y_i == E_main_S_framebuffer.height )
+                    break;
+                *( volatile N32 * )video_address = 0;
+                video_address += E_main_S_framebuffer.pixels_per_scan_line * E_main_S_framebuffer.bits_per_pixel / 8;
+            }
         }
     }
     __asm__ volatile (
@@ -1330,15 +1347,15 @@ _internal
 void
 E_gui_Q_desktop_I_draw_background( void
 ){  E_vga_I_fill_rect( 0, E_gui_Q_taskbar_S_height, E_main_S_framebuffer.width, E_main_S_framebuffer.height - E_gui_Q_taskbar_S_height, E_vga_S_background_color );
-    E_vga_I_fill_rect( E_main_S_framebuffer.width / 2 - 50, E_main_S_framebuffer.height / 2 - 10 - 13, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
-    E_vga_I_fill_rect( E_main_S_framebuffer.width / 2 - 50, E_main_S_framebuffer.height / 2 - 10, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
-    E_vga_I_fill_rect( E_main_S_framebuffer.width / 2, E_main_S_framebuffer.height / 2 + 4, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
-    E_vga_I_fill_rect( E_main_S_framebuffer.width / 2, E_main_S_framebuffer.height / 2 + 4 + 13, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
-    E_vga_I_fill_rect( E_main_S_framebuffer.width / 2 - 38, E_main_S_framebuffer.height / 2 - 37, 38 + 34, 37 + 36, E_vga_R_video_color( 0x43864f ));
-    E_vga_I_fill_rect( E_main_S_framebuffer.width / 2 - 50, E_main_S_framebuffer.height / 2 + 4, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
-    E_vga_I_fill_rect( E_main_S_framebuffer.width / 2 - 50, E_main_S_framebuffer.height / 2 + 4 + 13, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
-    E_vga_I_fill_rect( E_main_S_framebuffer.width / 2, E_main_S_framebuffer.height / 2 - 10 - 13, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
-    E_vga_I_fill_rect( E_main_S_framebuffer.width / 2, E_main_S_framebuffer.height / 2 - 10, 48, 5, E_vga_R_video_color( 0x2b2b2b ));
+    E_vga_I_fill_rect( E_main_S_framebuffer.width / 2 - 50, E_main_S_framebuffer.height / 2 - 10 - 13, 48, 5, 0x2b2b2b );
+    E_vga_I_fill_rect( E_main_S_framebuffer.width / 2 - 50, E_main_S_framebuffer.height / 2 - 10, 48, 5, 0x2b2b2b );
+    E_vga_I_fill_rect( E_main_S_framebuffer.width / 2, E_main_S_framebuffer.height / 2 + 4, 48, 5, 0x2b2b2b );
+    E_vga_I_fill_rect( E_main_S_framebuffer.width / 2, E_main_S_framebuffer.height / 2 + 4 + 13, 48, 5, 0x2b2b2b );
+    E_vga_I_fill_rect( E_main_S_framebuffer.width / 2 - 38, E_main_S_framebuffer.height / 2 - 37, 38 + 34, 37 + 36, 0x4e864f );
+    E_vga_I_fill_rect( E_main_S_framebuffer.width / 2 - 50, E_main_S_framebuffer.height / 2 + 4, 48, 5, 0x2b2b2b );
+    E_vga_I_fill_rect( E_main_S_framebuffer.width / 2 - 50, E_main_S_framebuffer.height / 2 + 4 + 13, 48, 5, 0x2b2b2b );
+    E_vga_I_fill_rect( E_main_S_framebuffer.width / 2, E_main_S_framebuffer.height / 2 - 10 - 13, 48, 5, 0x2b2b2b );
+    E_vga_I_fill_rect( E_main_S_framebuffer.width / 2, E_main_S_framebuffer.height / 2 - 10, 48, 5, 0x2b2b2b );
 }
 _internal
 void
@@ -1387,9 +1404,9 @@ E_gui_Q_desktop_I_draw( void
             , E_gui_Q_taskbar_S_height
             , window->x + window->width / 2
             , window->y - 1
-            , E_vga_R_video_color( 0x908b8b )
+            , 0x8b8b90
             );
-        E_vga_I_draw_rect( window->x, window->y, window->width, window->height, E_gui_Q_desktop_S_window_border_thickness, E_vga_R_video_color( 0x908b8b ));
+        E_vga_I_draw_rect( window->x, window->y, window->width, window->height, E_gui_Q_desktop_S_window_border_thickness, 0x8b8b90 );
         E_vga_I_fill_rect( window->x + E_gui_Q_desktop_S_window_border_thickness
         , window->y + E_gui_Q_desktop_S_window_border_thickness
         , window->width - 2 * E_gui_Q_desktop_S_window_border_thickness
@@ -1445,9 +1462,9 @@ E_gui_Q_desktop_I_draw( void
             , E_gui_Q_taskbar_S_height
             , x + width / 2
             , y - 1
-            , E_vga_R_video_color( 0x70fb )
+            , 0xfb7000
             );
-        E_vga_I_draw_rect( x, y, width, height, E_gui_Q_desktop_S_window_border_thickness, E_vga_R_video_color( 0x70fb ));
+        E_vga_I_draw_rect( x, y, width, height, E_gui_Q_desktop_S_window_border_thickness, 0xfb7000 );
         E_vga_I_fill_rect( x + E_gui_Q_desktop_S_window_border_thickness
         , y + E_gui_Q_desktop_S_window_border_thickness
         , width - 2 * E_gui_Q_desktop_S_window_border_thickness
@@ -1524,9 +1541,9 @@ E_gui_Q_desktop_I_draw( void
             , E_gui_Q_taskbar_S_height
             , x + width / 2
             , y - 1
-            , E_vga_R_video_color( 0x70fb )
+            , 0xfb7000
             );
-        E_vga_I_draw_rect( x, y, width, height, E_gui_Q_desktop_S_window_border_thickness, E_vga_R_video_color( 0x70fb ));
+        E_vga_I_draw_rect( x, y, width, height, E_gui_Q_desktop_S_window_border_thickness, 0xfb7000 );
         E_vga_I_fill_rect( x + E_gui_Q_desktop_S_window_border_thickness
         , y + E_gui_Q_desktop_S_window_border_thickness
         , width - 2 * E_gui_Q_desktop_S_window_border_thickness
@@ -1563,9 +1580,9 @@ E_gui_Q_desktop_I_draw( void
             , E_gui_Q_taskbar_S_height
             , window->x + window->width / 2
             , window->y - 1
-            , E_vga_R_video_color( 0x70fb )
+            , 0xfb7000
             );
-        E_vga_I_draw_rect( window->x, window->y, window->width, window->height, E_gui_Q_desktop_S_window_border_thickness, E_vga_R_video_color( 0x908b8b ));
+        E_vga_I_draw_rect( window->x, window->y, window->width, window->height, E_gui_Q_desktop_S_window_border_thickness, 0x8b8b90 );
         E_vga_I_fill_rect( window->x + E_gui_Q_desktop_S_window_border_thickness
         , window->y + E_gui_Q_desktop_S_window_border_thickness
         , window->width - 2 * E_gui_Q_desktop_S_window_border_thickness
@@ -1605,7 +1622,7 @@ E_gui_Q_bubble_I_draw( void
     E_vga_I_fill_rect(
       E_gui_Q_bubble_S.x, E_gui_Q_bubble_S.y
     , E_gui_Q_bubble_S.width, E_gui_Q_bubble_S.height
-    , E_vga_R_video_color( 0xffeff0 )
+    , 0xf0efff
     );
     if( E_gui_Q_bubble_S.custom_draw )
     {   P context_ip;
@@ -1644,11 +1661,11 @@ E_gui_Q_taskbar_I_draw( void
 ){  if( !E_gui_Q_taskbar_S_redraw )
         return;
     E_gui_Q_taskbar_S_redraw = no;
-    E_vga_I_fill_rect( 0, 0, E_main_S_framebuffer.width, E_gui_Q_taskbar_S_height, E_vga_R_video_color( 0xb3b3b3 ));
+    E_vga_I_fill_rect( 0, 0, E_main_S_framebuffer.width, E_gui_Q_taskbar_S_height, 0xb3b3b3 );
     if( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons )
     {   if( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons )
         {   for_i( i, E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons - 1 ) // Rysowanie linii rozdzielających.
-                E_vga_I_draw_y_line(( i + 1 ) * E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width - 1, 0, E_gui_Q_taskbar_S_height, E_vga_R_video_color( 0x908b8b ));
+                E_vga_I_draw_y_line(( i + 1 ) * E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width - 1, 0, E_gui_Q_taskbar_S_height, 0x8b8b90 );
         }
         for_i( i, E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons ) // Rysowanie tekstu przycisków.
         {   I window_i = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_button_start + i;
@@ -1717,7 +1734,7 @@ E_gui_Q_taskbar_I_draw( void
                   ? E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width - ( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons ? 1 : 0 )
                   : E_main_S_framebuffer.width - i * E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width
                 , E_gui_Q_taskbar_S_underline_thickness
-                , E_vga_R_video_color( 0x70fb )
+                , 0xfb7000
                 );
             else if( E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window ) >= 2
             && window_id == E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].stack[ E_mem_Q_tab_R_n( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].window ) - 2 ]
@@ -1728,7 +1745,7 @@ E_gui_Q_taskbar_I_draw( void
                   ? E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width - ( E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_buttons ? 1 : 0 )
                   : E_main_S_framebuffer.width - i * E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].button_width
                 , E_gui_Q_taskbar_S_underline_thickness
-                , E_vga_R_video_color( 0x908b8b )
+                , 0x8b8b90
                 );
         }
     }
@@ -1746,14 +1763,14 @@ E_gui_Q_taskbar_I_draw_expander( void
         panel_x_1 -= panel_x_1 - E_main_S_framebuffer.width;
         panel_right_side = yes;
     }
-    E_vga_I_fill_rect( panel_x_0, E_gui_Q_taskbar_S_height, E_gui_Q_taskbar_S_panel_width, E_gui_Q_taskbar_S_panel_height, E_vga_R_video_color( 0xb3b3b3 ));
+    E_vga_I_fill_rect( panel_x_0, E_gui_Q_taskbar_S_height, E_gui_Q_taskbar_S_panel_width, E_gui_Q_taskbar_S_panel_height, 0xb3b3b3 );
     // Przycisk ‛zamknij’.
     E_vga_I_draw_rect( panel_x_0 + E_gui_Q_taskbar_S_font_size + 1
     , E_gui_Q_taskbar_S_height + E_gui_Q_taskbar_S_font_size + 1
     , ( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height
     , ( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height
     , 1
-    , E_vga_R_video_color( 0x908b8b )
+    , 0x8b8b90
     );
     E_vga_I_draw_line( panel_x_0 + E_gui_Q_taskbar_S_font_size + 1 + 1
       + 1
@@ -1785,7 +1802,7 @@ E_gui_Q_taskbar_I_draw_expander( void
     , ( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height
     , ( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height
     , 1
-    , E_vga_R_video_color( 0x908b8b )
+    , 0x8b8b90
     );
     I window_i = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].visible_button_start + E_gui_Q_taskbar_S_mouse_over_panel;
     I window_id = E_windows_Q_desktop_S[ E_window_Q_desktop_S_current ].order[ window_i ];
@@ -1882,7 +1899,7 @@ E_gui_Q_taskbar_I_draw_expander( void
     , E_gui_Q_taskbar_S_height + E_gui_Q_taskbar_S_panel_height
     , width
     , y
-    , E_vga_R_video_color( 0xb3b3b3 )
+    , 0xb3b3b3
     );
     x_0 += E_gui_Q_taskbar_S_font_thickness + 1;
     x = x_0;

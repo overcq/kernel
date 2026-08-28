@@ -2464,7 +2464,7 @@ E_ouxfs_Q_device_M( I disc_id
         r = ~0;
         goto End;
     }
-    N64 *block_table_n = (P)E_simple_Z_p_I_align_up_to_v2( sector + J_s0_R_l( E_ouxfs_Q_device_S_ident ), sizeof( N64 ));
+    N64 *block_table_n = E_simple_Z_p_I_align_up_to_v2( sector + J_s0_R_l( E_ouxfs_Q_device_S_ident ), sizeof( N64 ));
     disc->partition[ partition_i ].oux.block_table_n = block_table_n[0];
     disc->partition[ partition_i ].oux.block_table_block_table_n = block_table_n[1];
     disc->partition[ partition_i ].oux.block_table_directory_table_start = block_table_n[2];

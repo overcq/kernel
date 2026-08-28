@@ -71,10 +71,17 @@ B
 E_simple_T_multiply_overflow(
   N a
 , N b
-){  return a && b
-    && ( ~E_asm_I_bsr(a) ? E_asm_I_bsr(a) : 0 )
-      + ( ~E_asm_I_bsr(b) ? E_asm_I_bsr(b) : 0 )
-      >= sizeof(N) * 8;
+){  if( !a
+    || !b
+    )
+        return no;
+    a = E_asm_I_bsr(a);
+    if( ~a )
+        a = 0;
+    b = E_asm_I_bsr(b);
+    if( ~b )
+        b = 0;
+    return a + b >= sizeof(N) * 8;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _inline
@@ -194,12 +201,12 @@ E_simple_Z_p_T_cross( P p_1
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #define E_simple_Z_p_T_aligned_to_v2(p,v2)      E_simple_Z_n_T_aligned_to_v2( (N)p, v2 )
 //------------------------------------------------------------------------------
-#define E_simple_Z_p_I_align_down_to_i2(p,i)    (P)E_simple_Z_n_I_align_down_to_i2( (N)p, i )
-#define E_simple_Z_p_I_align_up_to_i2(p,i)      (P)E_simple_Z_n_I_align_up_to_i2( (N)p, i )
-#define E_simple_Z_p_I_align_down_to_v2(p,v2)   (P)E_simple_Z_n_I_align_down_to_v2( (N)p, v2 )
-#define E_simple_Z_p_I_align_up_to_v2(p,v2)     (P)E_simple_Z_n_I_align_up_to_v2( (N)p, v2 )
-#define E_simple_Z_p_I_align_down(p)            (P)E_simple_Z_n_I_align_down( (N)p )
-#define E_simple_Z_p_I_align_up(p)              (P)E_simple_Z_n_I_align_up( (N)p )
+#define E_simple_Z_p_I_align_down_to_i2(p,i)    ((P)E_simple_Z_n_I_align_down_to_i2( (N)p, i ))
+#define E_simple_Z_p_I_align_up_to_i2(p,i)      ((P)E_simple_Z_n_I_align_up_to_i2( (N)p, i ))
+#define E_simple_Z_p_I_align_down_to_v2(p,v2)   ((P)E_simple_Z_n_I_align_down_to_v2( (N)p, v2 ))
+#define E_simple_Z_p_I_align_up_to_v2(p,v2)     ((P)E_simple_Z_n_I_align_up_to_v2( (N)p, v2 ))
+#define E_simple_Z_p_I_align_down(p)            ((P)E_simple_Z_n_I_align_down( (N)p ))
+#define E_simple_Z_p_I_align_up(p)              ((P)E_simple_Z_n_I_align_up( (N)p ))
 //==============================================================================
 _inline
 Pc
@@ -272,7 +279,7 @@ E_flow_Z_lock_I_lock( B *lock
     : "i" (yes)
     : "cc", "al", "cl"
     );
-}
+    }
 _inline
 void
 E_flow_Z_lock_I_unlock( B *lock

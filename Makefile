@@ -7,7 +7,7 @@
 # ©overcq                on ‟Gentoo Linux 23.0” “x86_64”              2025‒5‒2 K
 #*******************************************************************************
 CC := clang
-CFLAGS := -Os
+CFLAGS := -Oz
 #===============================================================================
 H_make_I_block_root = $(if $(filter 0,$(shell id -u)),$(error root user not allowed. Run make as user first.))
 #===============================================================================
@@ -29,8 +29,8 @@ simple.h \
 $(patsubst %.cx,I_compile_S_0_%.c,$(wildcard *.cx)) \
 main.ld \
 Makefile
-	$(CC) $(CFLAGS) -std=gnu23 -march=native -mno-sse -mno-red-zone -fno-zero-initialized-in-bss -ffreestanding -fno-stack-protector -fwrapv -Wall -Wextra -Wno-address-of-packed-member -Wno-dangling-else -Wno-incompatible-pointer-types-discards-qualifiers -Wno-missing-braces -Wno-sign-compare -Wno-switch -include stdarg.h -include I_compile_S_0.h -nostdlib -shared -s -Wl,-T,main.ld -o $@.elf $(filter %.o,$^) $(filter %.c,$^)
-	rm -f $@; elf2oux $@.elf
+	$(CC) $(CFLAGS) -std=gnu23 -march=native -mno-sse -mno-red-zone -ffreestanding -fno-asynchronous-unwind-tables -fno-stack-protector -fno-unwind-tables -fno-zero-initialized-in-bss -fwrapv -Wall -Wextra -Wno-address-of-packed-member -Wno-dangling-else -Wno-incompatible-pointer-types-discards-qualifiers -Wno-missing-braces -Wno-sign-compare -Wno-switch -include stdarg.h -include I_compile_S_0.h -nostdlib -shared -s -Wl,-T,main.ld -o $@.elf $(filter %.o,$^) $(filter %.c,$^)
+	rm $@; elf2oux $@.elf
 	rm $@.elf
 doc: $(patsubst %.dot,%.svg,$(wildcard doc/*.dot))
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -76,39 +76,37 @@ I_compile_N_c_to_h.sh
       -o $@ $<
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 mostlyclean: $(wildcard *.cx)
-	rm -f I_compile_S_0.h $(patsubst %.cx,I_compile_S_0_%.h,$^) $(patsubst %.cx,I_compile_S_1_%.h,$^) $(patsubst %.cx,I_compile_S_0_%.c,$^) *.o
+	-rm I_compile_S_0.h $(patsubst %.cx,I_compile_S_0_%.h,$^) $(patsubst %.cx,I_compile_S_1_%.h,$^) $(patsubst %.cx,I_compile_S_0_%.c,$^) *.o
 clean: mostlyclean
-	rm -f kernel $(patsubst %.dot,%.svg,$(wildcard doc/*.dot))
+	-rm kernel $(patsubst %.dot,%.svg,$(wildcard doc/*.dot))
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 install-qemu:
 	ocq_mnt=/mnt/oth; \
 	mkdir -p $$ocq_mnt \
-	&& loopdev=$$( losetup -LPf --show ../boot/UEFI/disk.img ) \
+	&& loopdev=$$( losetup -LPf --show ../boot/disk.img ) \
 	&& trap 'losetup -d $$loopdev' EXIT \
-	&& install/a.out kernel $${loopdev}p2
+	&& install/a.out kernel $${loopdev}p3
 install-vmware:
 	ocq_mnt=/mnt/oth; \
 	mkdir -p $$ocq_mnt \
 	&& trap 'vmware-mount -d $$ocq_mnt' EXIT \
-	&& vmware-mount -f /mnt/hgfs/kernel\ UEFI/kernel\ UEFI.vmdk $$ocq_mnt \
-	&& trap 'vmware-mount -d $$ocq_mnt' EXIT \
+	&& vmware-mount -f /mnt/hgfs/OUX_C+\ OS/OUX_C+\ OS.vmdk $$ocq_mnt \
 	&& loopdev=$$( losetup -LPf --show $$ocq_mnt/flat ) \
 	&& trap 'losetup -d $$loopdev && vmware-mount -d $$ocq_mnt' EXIT \
-	&& install/a.out kernel $${loopdev}p2
+	&& install/a.out kernel $${loopdev}p3
 install-virtualbox:
 	ocq_mnt=/mnt/oth; \
 	mkdir -p $$ocq_mnt \
 	&& trap '$(VMWARE_DIR)/bin/vmware-mount -d $$ocq_mnt' EXIT \
-	&& $(VMWARE_DIR)/bin/vmware-mount -f ~inc/.VirtualBox/Machines/boot\ UEFI/boot\ UEFI.vmdk $$ocq_mnt \
-	&& trap '$(VMWARE_DIR)/bin/vmware-mount -d $$ocq_mnt' EXIT \
+	&& $(VMWARE_DIR)/bin/vmware-mount -f ~inc/.VirtualBox/Machines/OUX_C+\ OS/OUX_C+\ OS.vmdk $$ocq_mnt \
 	&& loopdev=$$( losetup -LPf --show $$ocq_mnt/flat ) \
 	&& trap 'losetup -d $$loopdev && $(VMWARE_DIR)/bin/vmware-mount -d $$ocq_mnt' EXIT \
-	&& install/a.out kernel $${loopdev}p2
+	&& install/a.out kernel $${loopdev}p3
 #-------------------------------------------------------------------------------
 install-usb:
 	ocq_usb_dev=/dev/sdb; \
 	ocq_usb_mnt=/mnt/usb; \
-	loopdev=$$( losetup -Lf --show $${ocq_usb_dev}2 ); \
+	loopdev=$$( losetup -Lf --show $${ocq_usb_dev}3 ); \
 	trap 'losetup -d $$loopdev' EXIT \
 	&& install/a.out kernel $$loopdev
 #*******************************************************************************

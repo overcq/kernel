@@ -332,6 +332,12 @@ struct __attribute__ (( __packed__ )) E_pci_Z_header_Z_status
   N16 signaled_system_err   :1;
   N16 detected_parity_err   :1;
 };
+struct __attribute__ (( __packed__ )) E_pci_Z_header_Z_bist
+{ N8 completion_code    :4;
+  N8 reserved           :2;
+  N8 start              :1;
+  N8 capable            :1;
+};
 //==============================================================================
 _internal N E_pci_I_check_bus( N8, Pc );
 //==============================================================================
@@ -361,56 +367,79 @@ E_pci_I_check_device( N8 bus_i
 , N8 function_i
 , N32 ids
 ){  G( "bus: %8x, device: %8x: %32x", bus_i, device_i, ids );
+    // Wynik testu urządzenia.
+    N32 bist_24 = E_pci_I_read( bus_i, device_i, function_i, 0xc );
+    struct E_pci_Z_header_Z_bist *bist = ( struct E_pci_Z_header_Z_bist * )(( N8 * )&bist_24 + 3 );
+    if( bist->capable )
+    {   N time;
+        E_flow_Q_spin_time_M( &time, 2000000 );
+        while( bist->start )
+        {   if( E_flow_Q_spin_time_T(time) )
+                return 0;
+            __asm__ volatile (
+            "\n" "pause"
+            );
+            bist_24 = E_pci_I_read( bus_i, device_i, function_i, 0xc );
+            bist = ( struct E_pci_Z_header_Z_bist * )(( N8 * )&bist_24 + 3 );
+        }
+        if( bist->completion_code )
+            return 0;
+    }
     N32 rev_prog_sub_class = E_pci_I_read( bus_i, device_i, function_i, 8 );
     N8 class = rev_prog_sub_class >> 24;
     N8 subclass = ( rev_prog_sub_class >> 16 ) & 0xff;
     if( class == E_pci_Z_header_Z_class_S_mass_storage
     && subclass == E_pci_Z_header_Z_subclass_mass_storage_S_sata
     )
-    {   B interrupt_set = no;
-        N8 cap_pointer = E_pci_I_read( bus_i, device_i, function_i, 0x34 ) & 0xfc;
-        while( cap_pointer )
-        {   N32 n_0 = E_pci_I_read( bus_i, device_i, function_i, cap_pointer );
-            switch( n_0 & 0xff )
-            { case 5: // MSI
-                {   N8 interrupt = E_interrupt_R_gsi_next();
-                    if( !~interrupt )
-                        return ~0;
-                    N address = (N)E_main_Z_p_I_to_physical( E_interrupt_Q_local_apic_S_address );
-                    if( n_0 & ( 1 << ( 7 + 16 ))) // 64‐bit address
-                    {   E_pci_I_write( bus_i, device_i, function_i, cap_pointer + 4, address & 0xffffffff );
-                        E_pci_I_write( bus_i, device_i, function_i, cap_pointer + 8, address >> 32 );
-                        E_pci_I_write( bus_i, device_i, function_i, cap_pointer + 0xc, 32 + interrupt );
-                    }else
-                    {   if( address & ~0xffffffffULL )
+    {   N32 command_status = E_pci_I_read( bus_i, device_i, function_i, 4 );
+        if( command_status & (( 1 << 4 ) << 16 )) // Jest wskaźnik do New Capabilities.
+        {   B interrupt_set = no;
+            N8 cap_pointer = E_pci_I_read( bus_i, device_i, function_i, 0x34 ) & 0xfc;
+            while( cap_pointer )
+            {   N32 n_0 = E_pci_I_read( bus_i, device_i, function_i, cap_pointer );
+                switch( n_0 & 0xff )
+                { case 5: // MSI
+                    {   N8 interrupt = E_interrupt_R_gsi_next();
+                        if( !~interrupt )
                             return ~0;
-                        E_pci_I_write( bus_i, device_i, function_i, cap_pointer + 4, address );
-                        E_pci_I_write( bus_i, device_i, function_i, cap_pointer + 8, interrupt );
+                        N64 address = (N)E_main_Z_p_I_to_physical( E_interrupt_Q_local_apic_S_address );
+                        E_pci_I_write( bus_i, device_i, function_i, cap_pointer, n_0 & ~((( 7 << 4 ) | ( 1 << 0 )) << 16 )); // Wyłącza MSI i ustawia 1 wektor,
+                        N8 mask_offset;
+                        if( n_0 & (( 1 << 7 ) << 16 )) // 64‐bit address
+                        {   E_pci_I_write( bus_i, device_i, function_i, cap_pointer + 4, address & 0xffffffff );
+                            E_pci_I_write( bus_i, device_i, function_i, cap_pointer + 8, address >> 32 );
+                            E_pci_I_write( bus_i, device_i, function_i, cap_pointer + 0xc, 32 + interrupt );
+                            mask_offset = 0x10;
+                        }else
+                        {   E_pci_I_write( bus_i, device_i, function_i, cap_pointer + 4, address );
+                            E_pci_I_write( bus_i, device_i, function_i, cap_pointer + 8, 32 + interrupt );
+                            mask_offset = 0xc;
+                        }
+                        if( n_0 & (( 1 << 8 ) << 16 )) // Per vector masking
+                            E_pci_I_write( bus_i, device_i, function_i, mask_offset, 0 );
+                        E_interrupt_S_external[interrupt] = &E_sata_I_interrupt;
+                        E_pci_I_write( bus_i, device_i, function_i, cap_pointer, n_0 | (( 1 << 0 ) << 16 )); // Włącza MSI.
+                        interrupt_set = yes;
+                        break;
                     }
-                    E_interrupt_S_external[interrupt] = &E_sata_I_interrupt;
-                    n_0 |= 1 << 16;
-                    E_pci_I_write( bus_i, device_i, function_i, cap_pointer, n_0 );
-                    interrupt_set = yes;
-                    break;
                 }
+                cap_pointer = ( n_0 >> 8 ) & 0xfc;
             }
-            cap_pointer = ( n_0 >> 8 ) & 0xfc;
-        }
-        if( interrupt_set )
-        {   P sata_ahci_address = (P)(N)E_pci_I_read( bus_i, device_i, function_i, 0x24 );
-            N r = E_sata_I_init( E_main_Z_p_I_to_virtual( sata_ahci_address ));
-            if( K_error(r)
-            && ~r
-            )
-                return r;
+            if( interrupt_set )
+            {   E_pci_I_write( bus_i, device_i, function_i, 4, ( command_status | ( 1 << 2 ) | ( 1 << 1 )) & ~( 1 << 10 )); // Włącza ‘bus mastering’, reakcję na dostęp do MMIO oraz przerwanie.
+                P sata_ahci_address = (P)(N)( E_pci_I_read( bus_i, device_i, function_i, 0x24 ) & ~0xf );
+                N r = E_sata_I_init( E_main_Z_p_I_to_virtual( sata_ahci_address ));
+                if( K_error(r)
+                && ~r
+                )
+                    return r;
+            }
         }
     }
     switch(ids)
     { case 0x100f8086:
-        {   N32 n = E_pci_I_read( bus_i, device_i, function_i, 0x04 );
-            n |= ( 1 << 2 ) | ( 1 << 1 );
-            n &= ~( 1 << 10 );
-            E_pci_I_write( bus_i, device_i, function_i, 0x04, n );
+        {   N32 command_status = E_pci_I_read( bus_i, device_i, function_i, 4 );
+            E_pci_I_write( bus_i, device_i, function_i, 4, ( command_status | ( 1 << 2 ) | ( 1 << 1 )) & ~( 1 << 10 )); // Włącza ‘bus mastering’, reakcję na dostęp do MMIO oraz przerwanie.
             E_interrupt_P( 18, &E_ethernet_I_interrupt ); //NDFN Tymczasowo, do czasu zrobienia ACPI.
             N8 cap_pointer = E_pci_I_read( bus_i, device_i, function_i, 0x34 ) & 0xfc;
             while( cap_pointer )
@@ -425,20 +454,20 @@ E_pci_I_check_device( N8 bus_i
                 }
                 cap_pointer = ( n_0 >> 8 ) & 0xfc;
             }
-            N offset = 0x10;
+            N8 offset = 0x10;
             N64 ethernet_address = E_pci_I_read( bus_i, device_i, function_i, offset );
-            if(( ethernet_address & 6 ) == 4 )
+            if(( ethernet_address & 6 ) == 4 ) //NDFN Czy jest sens sprawdzać dla tego konkretnego urządzenia?
             {   offset += sizeof( N32 );
                 ethernet_address |= (N64)E_pci_I_read( bus_i, device_i, function_i, offset ) << 32;
             }
-            ethernet_address &= ~0xf;
+            ethernet_address &= ~0xfUL;
             offset += sizeof( N32 );
             N64 eeprom_address = E_pci_I_read( bus_i, device_i, function_i, offset );
-            if(( eeprom_address & 6 ) == 4 )
+            if(( eeprom_address & 6 ) == 4 ) //NDFN Czy jest sens sprawdzać dla tego konkretnego urządzenia?
             {   offset += sizeof( N32 );
                 eeprom_address |= (N64)E_pci_I_read( bus_i, device_i, function_i, offset ) << 32;
             }
-            eeprom_address &= ~0xf;
+            eeprom_address &= ~0xfUL;
             N r = E_ethernet_I_init( E_main_Z_p_I_to_virtual( (P)ethernet_address ), E_main_Z_p_I_to_virtual( (P)eeprom_address ));
             if( K_error(r)
             && ~r
@@ -505,15 +534,19 @@ E_pci_I_check_buses( void
     Kp( bus_mask )
         return ~0;
     N8 header_type = E_pci_I_read( 0, 0, 0, 0xe );
+    N r = 0;
     if( header_type & 0x80 )
     {   for_n( function_i, 8 )
         {   K( E_pci_I_check_bus( function_i, bus_mask ))
+            {   r = ~0;
                 goto End;
+            }
         }
     }else
-    {   K( E_pci_I_check_bus( 0, bus_mask )){}
+    {   K( E_pci_I_check_bus( 0, bus_mask ))
+            r = ~0;
     }
 End:K_( ~1, W( bus_mask ));
-    return 0;
+    return r;
 }
 /******************************************************************************/

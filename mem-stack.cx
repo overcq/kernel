@@ -7,8 +7,8 @@
 *         task stacks
 * ©overcq                on ‟Gentoo Linux 23.0” “x86_64”             2025‒6‒14 J
 *******************************************************************************/
-#define E_cpu_Z_page_entry_S_present    ( 1ULL << 0 )
-#define E_cpu_Z_page_entry_S_write      ( 1ULL << 1 )
+#define E_cpu_Z_page_entry_S_present    ( 1UL << 0 )
+#define E_cpu_Z_page_entry_S_write      ( 1UL << 1 )
 //==============================================================================
 _private N E_mem_stack_S_additional_pages;
 //==============================================================================
@@ -39,7 +39,7 @@ E_mem_Q_stack_I_patch_page_table_add_guard( N guard_page
             {   E_mem_Q_stack_I_patch_page_table_I_next_page( &address );
                 volatile Pn pt = address;
                 for_n( pt_i, table_n )
-                {   N virtual_address = ( pml4_i * ( 1ULL << 39 )) | ( pdpt_i * ( 1 << 30 )) | ( pd_i * ( 1 << 21 )) | ( pt_i * E_mem_S_page_size );
+                {   N virtual_address = ( pml4_i * ( 1UL << 39 )) | ( pdpt_i * ( 1 << 30 )) | ( pd_i * ( 1 << 21 )) | ( pt_i * E_mem_S_page_size );
                     if( virtual_address == guard_page )
                     {   additional = pt[ pt_i ];
                         pt[ pt_i ] = 0;
@@ -72,7 +72,7 @@ E_mem_Q_stack_I_patch_page_table_remove_guard( N guard_page
             {   E_mem_Q_stack_I_patch_page_table_I_next_page( &address );
                 volatile Pn pt = address;
                 for_n( pt_i, table_n )
-                {   N virtual_address = ( pml4_i * ( 1ULL << 39 )) | ( pdpt_i * ( 1 << 30 )) | ( pd_i * ( 1 << 21 )) | ( pt_i * E_mem_S_page_size );
+                {   N virtual_address = ( pml4_i * ( 1UL << 39 )) | ( pdpt_i * ( 1 << 30 )) | ( pd_i * ( 1 << 21 )) | ( pt_i * E_mem_S_page_size );
                     if( virtual_address == E_mem_blk_S.memory_size + additional_i * E_mem_S_page_size )
                     {   additional = pt[ pt_i ];
                         pt[ pt_i ] = 0;
@@ -92,7 +92,7 @@ Exit_for:
             {   E_mem_Q_stack_I_patch_page_table_I_next_page( &address );
                 volatile Pn pt = address;
                 for_n( pt_i, table_n )
-                {   N virtual_address = ( pml4_i * ( 1ULL << 39 )) | ( pdpt_i * ( 1 << 30 )) | ( pd_i * ( 1 << 21 )) | ( pt_i * E_mem_S_page_size );
+                {   N virtual_address = ( pml4_i * ( 1UL << 39 )) | ( pdpt_i * ( 1 << 30 )) | ( pd_i * ( 1 << 21 )) | ( pt_i * E_mem_S_page_size );
                     if( virtual_address == guard_page )
                     {   pt[ pt_i ] = additional;
                         return;

@@ -333,7 +333,7 @@ E_controls_I_draw( I window_id
                 , control_width
                 , 1 + data->control[i].button.font_size + 1 + ( data->control[i].button.font_size + 1 ) * E_font_S_font.height + data->control[i].button.font_size + 1 + 1
                 , 1
-                , E_vga_R_video_color( 0x908b8b )
+                , 0x908b8b
                 );
                 if( control_width < 4 )
                     break;
@@ -341,7 +341,7 @@ E_controls_I_draw( I window_id
                 , y + data->control[i].y + 1 - data->scroll_y
                 , control_width - 2
                 , data->control[i].button.font_size + 1 + ( data->control[i].button.font_size + 1 ) * E_font_S_font.height + data->control[i].button.font_size + 1
-                , E_vga_R_video_color( 0xb3b3b3 )
+                , 0xb3b3b3
                 );
                 N32 x_ = x_0 + 1 + data->control[i].button.font_thickness + 1;
                 Pc s = data->control[i].button.text;
@@ -378,7 +378,7 @@ E_controls_I_draw( I window_id
                 , control_width
                 , 1 + data->control[i].textbox.font_size + 1 + ( data->control[i].textbox.font_size + 1 ) * E_font_S_font.height + data->control[i].textbox.font_size + 1 + 1
                 , 1
-                , E_vga_R_video_color( 0x908b8b )
+                , 0x908b8b
                 );
                 E_vga_I_fill_rect( x_0 + 1
                 , y + data->control[i].y + 1 - data->scroll_y
@@ -405,7 +405,7 @@ E_controls_I_draw( I window_id
                             E_vga_I_draw_y_line( x_ - ( data->control[i].textbox.font_thickness + 1 )
                             , y + data->control[i].y + 1 + data->control[i].textbox.font_size + 1 - data->scroll_y
                             , ( data->control[i].textbox.font_size + 1 ) * E_font_S_font.height
-                            , E_vga_R_video_color( 0x70fb )
+                            , 0x70fb
                             );
                         N32 font_i;
                         if( control_width <= 1 + data->control[i].textbox.font_thickness + 1 + x_ - ( x_0 + 1 + data->control[i].textbox.font_thickness + 1 ) + data->control[i].textbox.font_thickness + 1 + 1
@@ -427,7 +427,7 @@ E_controls_I_draw( I window_id
                             E_vga_I_draw_y_line( x_
                             , y + data->control[i].y + 1 + data->control[i].textbox.font_size + 1 - data->scroll_y
                             , ( data->control[i].textbox.font_size + 1 ) * E_font_S_font.height
-                            , E_vga_R_video_color( 0x70fb )
+                            , 0x70fb
                             );
                         x_ += ( data->control[i].textbox.font_thickness + 1 ) * E_font_S_font.bitmap[ font_i ].width + data->control[i].textbox.font_thickness + 1;
                         u_i++;
@@ -438,7 +438,7 @@ E_controls_I_draw( I window_id
                             E_vga_I_draw_y_line( x_ - ( data->control[i].textbox.font_thickness + 1 )
                             , y + data->control[i].y + 1 + data->control[i].textbox.font_size + 1 - data->scroll_y
                             , ( data->control[i].textbox.font_size + 1 ) * E_font_S_font.height
-                            , E_vga_R_video_color( 0x70fb )
+                            , 0x70fb
                             );
                         }else if( u_i == data->control[i].textbox.cursor
                         && u_i
@@ -447,14 +447,14 @@ E_controls_I_draw( I window_id
                             E_vga_I_draw_y_line( x_ - ( data->control[i].textbox.font_thickness + 1 )
                             , y + data->control[i].y + 1 + data->control[i].textbox.font_size + 1 - data->scroll_y
                             , ( data->control[i].textbox.font_size + 1 ) * E_font_S_font.height
-                            , E_vga_R_video_color( 0x70fb )
+                            , 0x70fb
                             );
                     }
                 }else if( i == data->control_cursor )
                     E_vga_I_draw_y_line( x_ - ( data->control[i].textbox.font_thickness + 1 )
                     , y + data->control[i].y + 1 + data->control[i].textbox.font_size + 1 - data->scroll_y
                     , ( data->control[i].textbox.font_size + 1 ) * E_font_S_font.height
-                    , E_vga_R_video_color( 0x70fb )
+                    , 0x70fb
                     );
                 break;
             }
