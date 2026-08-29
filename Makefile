@@ -6,6 +6,8 @@
 #         makefile
 # ©overcq                on ‟Gentoo Linux 23.0” “x86_64”              2025‒5‒2 K
 #*******************************************************************************
+include ../boot/env.mk
+#===============================================================================
 CC := clang
 CFLAGS := -Oz
 #===============================================================================
@@ -40,7 +42,7 @@ $(wildcard *.cx)
 	$(H_make_I_block_root)
 	{   echo '#include "I_compile_S_machine.h"' ;\
         echo '#include "I_compile_S_language.h"' ;\
-		./I_compile_N_c_to_h.sh -f $(patsubst %.cx,%,$(filter %.cx,$^)) ;\
+        ./I_compile_N_c_to_h.sh -f $(patsubst %.cx,%,$(filter %.cx,$^)) ;\
         for header in $(patsubst %.cx,I_compile_S_0_%.h,$(filter-out main.cx,$(filter %.cx,$^))); do \
             echo "#include \"$${header}\"" ;\
         done ;\
@@ -81,32 +83,24 @@ clean: mostlyclean
 	-rm kernel $(patsubst %.dot,%.svg,$(wildcard doc/*.dot))
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 install-qemu:
-	ocq_mnt=/mnt/oth; \
-	mkdir -p $$ocq_mnt \
-	&& loopdev=$$( losetup -LPf --show ../boot/disk.img ) \
-	&& trap 'losetup -d $$loopdev' EXIT \
-	&& install/a.out kernel $${loopdev}p3
-install-vmware:
-	ocq_mnt=/mnt/oth; \
-	mkdir -p $$ocq_mnt \
-	&& trap 'vmware-mount -d $$ocq_mnt' EXIT \
-	&& vmware-mount -f /mnt/hgfs/OUX_C+\ OS/OUX_C+\ OS.vmdk $$ocq_mnt \
-	&& loopdev=$$( losetup -LPf --show $$ocq_mnt/flat ) \
-	&& trap 'losetup -d $$loopdev && vmware-mount -d $$ocq_mnt' EXIT \
-	&& install/a.out kernel $${loopdev}p3
+	loopdev=$$( losetup -LPf --show ../boot/disk.img ) \
+    && trap 'losetup -d $$loopdev' EXIT \
+    && install/a.out kernel $${loopdev}p3
 install-virtualbox:
-	ocq_mnt=/mnt/oth; \
-	mkdir -p $$ocq_mnt \
-	&& trap '$(VMWARE_DIR)/bin/vmware-mount -d $$ocq_mnt' EXIT \
-	&& $(VMWARE_DIR)/bin/vmware-mount -f ~inc/.VirtualBox/Machines/OUX_C+\ OS/OUX_C+\ OS.vmdk $$ocq_mnt \
-	&& loopdev=$$( losetup -LPf --show $$ocq_mnt/flat ) \
-	&& trap 'losetup -d $$loopdev && $(VMWARE_DIR)/bin/vmware-mount -d $$ocq_mnt' EXIT \
-	&& install/a.out kernel $${loopdev}p3
+	trap 'vmware-mount -d $(H_ocq_S_mnt)' EXIT \
+    && vmware-mount -f $(H_ocq_S_virtualbox_disk) $(H_ocq_S_mnt) \
+    && loopdev=$$( losetup -LPf --show $(H_ocq_S_mnt)/flat ) \
+    && trap 'losetup -d $$loopdev && vmware-mount -d $(H_ocq_S_mnt)' EXIT \
+    && install/a.out kernel $${loopdev}p3
+install-vmware:
+	trap 'vmware-mount -d $(H_ocq_S_mnt)' EXIT \
+    && vmware-mount -f $(H_ocq_S_vmware_disk) $(H_ocq_S_mnt) \
+    && loopdev=$$( losetup -LPf --show $(H_ocq_S_mnt)/flat ) \
+    && trap 'losetup -d $$loopdev && vmware-mount -d $(H_ocq_S_mnt)' EXIT \
+    && install/a.out kernel $${loopdev}p3
 #-------------------------------------------------------------------------------
 install-usb:
-	ocq_usb_dev=/dev/sdb; \
-	ocq_usb_mnt=/mnt/usb; \
-	loopdev=$$( losetup -Lf --show $${ocq_usb_dev}3 ); \
-	trap 'losetup -d $$loopdev' EXIT \
-	&& install/a.out kernel $$loopdev
+	loopdev=$$( losetup -Lf --show $(H_ocq_S_usb_dev)3 ); \
+    trap 'losetup -d $$loopdev' EXIT \
+    && install/a.out kernel $$loopdev
 #*******************************************************************************

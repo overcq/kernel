@@ -25,7 +25,7 @@ Operating system for x86_64 architecture.
 * Linux
 * “elf2oux”
 * “mkfs.oux”
-* bootloader
+* boot loader
 
 ## 5. Support
 
@@ -48,6 +48,6 @@ To completely remove the product from the userʼs device, execute: `rm -fr kerne
 
 On a Linux operating system (e.g., Gentoo), download the https://github.com/overcq/linux.git repository containing the modified Linux kernel, configure, build and install it. Install the virtual machine program and create a virtual machine for the operating system that boots via UEFI.
 
-Download the https://github.com/overcq/linux-ouxfs-tools.git repository containing “mkfs.oux” and build it. Download the https://github.com/overcq/elf2oux.git repository containing “elf2oux”, build and install it. Download the https://github.com/overcq/boot.git repository containing the OUX/C+ OS bootloader and the https://github.com/overcq/kernel.git repository containing the OUX/C+ OS kernel.
+Download the https://github.com/overcq/linux-ouxfs-tools.git repository containing “mkfs.oux” and build it. Download the https://github.com/overcq/elf2oux.git repository containing “elf2oux”, build and install it. Download the https://github.com/overcq/boot.git repository containing the OUX/C+ OS boot loader and the https://github.com/overcq/kernel.git repository containing the OUX/C+ OS kernel.
 
-Configure the “mkfs.oux” path and the virtual machine disk path in the “bootloader” and “kernel” Makefiles for the selected “init-”\* and “install-”\* targets. Execute the command in the bootloader directory for the selected target: `make && make init-`\*` && make install-`\*, and then in the kernel directory: `make && make install-`\*. Start the virtual machine.
+Set environment variables in “env.mk” file in the boot loader repository. Execute the command in the boot loader directory for the selected target: `make && make init-`\*` && make install-`\*, and then in the kernel directory: `make && make install-`\*. Start the virtual machine.
