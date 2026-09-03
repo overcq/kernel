@@ -46,8 +46,8 @@ To completely remove the product from the userʼs device, execute: `rm -fr kerne
 
 ## 7. Building and launching
 
-On a Linux operating system (e.g., Gentoo), download the https://github.com/overcq/linux.git repository containing the modified Linux kernel, configure, build and install it. Install the virtual machine program and create a virtual machine for the operating system that boots via UEFI.
+On a Linux operating system (e.g., Gentoo), download the https://github.com/overcq/linux.git repository containing the modified Linux kernel, configure, build and install it. Install the virtual machine program and create a virtual machine for the operating system.
 
-Download the https://github.com/overcq/linux-ouxfs-tools.git repository containing “mkfs.oux” and build it. Download the https://github.com/overcq/elf2oux.git repository containing “elf2oux”, build and install it. Download the https://github.com/overcq/boot.git repository containing the OUX/C+ OS boot loader and the https://github.com/overcq/kernel.git repository containing the OUX/C+ OS kernel.
+Download the https://github.com/overcq/oux.git repository, build and install it. Download the https://github.com/overcq/linux-ouxfs-tools.git repository containing “mkfs.oux” and build it. Download the https://github.com/overcq/elf2oux.git repository containing “elf2oux”, build and install it. Download the https://github.com/overcq/boot.git repository containing the OUX/C+ OS boot loader and the https://github.com/overcq/kernel.git repository containing the OUX/C+ OS kernel.
 
 Set environment variables in “env.mk” file in the boot loader repository. Execute the command in the boot loader directory for the selected target: `make && make init-`\*` && make install-`\*, and then in the kernel directory: `make && make install-`\*. Start the virtual machine.
