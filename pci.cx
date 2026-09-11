@@ -400,7 +400,7 @@ E_pci_I_check_device( N8 bus_i
                 switch( n_0 & 0xff )
                 { case 5: // MSI
                     {   N8 interrupt = E_interrupt_R_free_external();
-                        if( !~interrupt )
+                        if( !~(S8)interrupt )
                             return ~0;
                         N64 address = (N)E_main_Z_p_I_to_physical( E_interrupt_Q_local_apic_S_address );
                         E_pci_I_write( bus_i, device_i, function_i, cap_pointer, n_0 & ~((( 7 << 4 ) | ( 1 << 0 )) << 16 )); // Wyłącza MSI i ustawia 1 wektor,
