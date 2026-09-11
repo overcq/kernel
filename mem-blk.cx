@@ -59,32 +59,34 @@ void
 E_mem_Q_blk_I_copy_fwd( P dst
 , P src
 , N l
-){  N128 *dst_x = (P)E_simple_Z_p_I_align_up_to_v2( dst, sizeof( N128 ));
-    N128 *src_x = (P)E_simple_Z_p_I_align_up_to_v2( src, sizeof( N128 ));
-    N l_0 = (Pc)src_x - (Pc)src;
-    N l_1 = ( l - l_0 ) / sizeof( N128 );
-    if( l > l_0
-    && l_1
-    && (Pc)dst_x - (Pc)dst == l_0
-    )
-    {   N l_2 = ( l - l_0 ) % sizeof( N128 );
-        __asm__ volatile (
-        "\n" "rep movsb"
-        : "+D" (dst), "+S" (src), "+c" ( l_0 )
-        :
-        : "memory"
-        );
-        for_n( i, l_1 )
+){  if( E_main_S_sse )
+    {   N128 *dst_x = (P)E_simple_Z_p_I_align_up_to_v2( dst, sizeof( N128 ));
+        N128 *src_x = (P)E_simple_Z_p_I_align_up_to_v2( src, sizeof( N128 ));
+        N l_0 = (Pc)src_x - (Pc)src;
+        N l_1 = ( l - l_0 ) / sizeof( N128 );
+        if( l > l_0
+        && l_1
+        && (Pc)dst_x - (Pc)dst == l_0
+        )
+        {   N l_2 = ( l - l_0 ) % sizeof( N128 );
             __asm__ volatile (
-            "\n" "movaps    %1,%%xmm0"
-            "\n" "movaps    %%xmm0,%0"
+            "\n" "rep movsb"
+            : "+D" (dst), "+S" (src), "+c" ( l_0 )
             :
-            : "p" ( dst_x++ ), "p" ( src_x++ )
-            : "xmm0", "memory"
+            : "memory"
             );
-        dst = dst_x;
-        src = src_x;
-        l = l_2;
+            for_n( i, l_1 )
+                __asm__ volatile (
+                "\n" "movaps    %1,%%xmm0"
+                "\n" "movaps    %%xmm0,%0"
+                :
+                : "p" ( dst_x++ ), "p" ( src_x++ )
+                : "xmm0", "memory"
+                );
+            dst = dst_x;
+            src = src_x;
+            l = l_2;
+        }
     }
     __asm__ volatile (
     "\n" "rep movsb"
@@ -104,34 +106,39 @@ E_mem_Q_blk_I_copy_rev( P dst
     :
     : "cc"
     );
-    N128 *dst_x = (P)E_simple_Z_p_I_align_down_to_v2( dst + l, sizeof( N128 ));
-    N128 *src_x = (P)E_simple_Z_p_I_align_down_to_v2( src + l, sizeof( N128 ));
-    N l_0 = (Pc)src + l - (Pc)src_x;
-    N l_1 = ( l - l_0 ) / sizeof( N128 );
-    if( l > l_0
-    && l_1
-    && (Pc)dst + l - (Pc)dst_x == l_0
-    )
-    {   dst = (Pc)dst + l - 1;
-        src = (Pc)src + l - 1;
-        N l_2 = ( l - l_0 ) % sizeof( N128 );
-        __asm__ volatile (
-        "\n" "rep movsb"
-        : "+D" (dst), "+S" (src), "+c" ( l_0 )
-        :
-        : "memory"
-        );
-        for_n( i, l_1 )
+    if( E_main_S_sse )
+    {   N128 *dst_x = (P)E_simple_Z_p_I_align_down_to_v2( dst + l, sizeof( N128 ));
+        N128 *src_x = (P)E_simple_Z_p_I_align_down_to_v2( src + l, sizeof( N128 ));
+        N l_0 = (Pc)src + l - (Pc)src_x;
+        N l_1 = ( l - l_0 ) / sizeof( N128 );
+        if( l > l_0
+        && l_1
+        && (Pc)dst + l - (Pc)dst_x == l_0
+        )
+        {   dst = (Pc)dst + l - 1;
+            src = (Pc)src + l - 1;
+            N l_2 = ( l - l_0 ) % sizeof( N128 );
             __asm__ volatile (
-            "\n" "movaps    %1,%%xmm0"
-            "\n" "movaps    %%xmm0,%0"
+            "\n" "rep movsb"
+            : "+D" (dst), "+S" (src), "+c" ( l_0 )
             :
-            : "p" ( --dst_x ), "p" ( --src_x )
-            : "xmm0", "memory"
+            : "memory"
             );
-        dst = (P)( (Pc)dst_x - 1 );
-        src = (P)( (Pc)src_x - 1 );
-        l = l_2;
+            for_n( i, l_1 )
+                __asm__ volatile (
+                "\n" "movaps    %1,%%xmm0"
+                "\n" "movaps    %%xmm0,%0"
+                :
+                : "p" ( --dst_x ), "p" ( --src_x )
+                : "xmm0", "memory"
+                );
+            dst = (P)( (Pc)dst_x - 1 );
+            src = (P)( (Pc)src_x - 1 );
+            l = l_2;
+        }else
+        {   dst = (Pc)dst + l - 1;
+            src = (Pc)src + l - 1;
+        }
     }else
     {   dst = (Pc)dst + l - 1;
         src = (Pc)src + l - 1;
@@ -176,38 +183,40 @@ void
 E_mem_Q_blk_P_fill_c( P p
 , N l
 , C c
-){  N128 *p_x = (P)E_simple_Z_p_I_align_up_to_v2( p, sizeof( N128 ));
-    N l_0 = (Pc)p_x - (Pc)p;
-    N l_1 = ( l - l_0 ) / sizeof( N128 );
-    if( l > l_0
-    && l_1
-    )
-    {   N l_2 = ( l - l_0 ) % sizeof( N128 );
-        __asm__ volatile (
-        "\n" "rep stosb"
-        : "+D" (p), "+c" ( l_0 )
-        : "a" (c)
-        : "memory"
-        );
-        N128 x;
-        p = &x;
-        N cx = sizeof( N128 );
-        __asm__ volatile (
-        "\n" "rep stosb"
-        "\n" "movups    %3,%%xmm0"
-        : "+D" (p), "+c" (cx)
-        : "a" (c), "m" (x)
-        : "xmm0", "memory"
-        );
-        for_n( i, l_1 )
+){  if( E_main_S_sse )
+    {   N128 *p_x = (P)E_simple_Z_p_I_align_up_to_v2( p, sizeof( N128 ));
+        N l_0 = (Pc)p_x - (Pc)p;
+        N l_1 = ( l - l_0 ) / sizeof( N128 );
+        if( l > l_0
+        && l_1
+        )
+        {   N l_2 = ( l - l_0 ) % sizeof( N128 );
             __asm__ volatile (
-            "\n" "movaps    %%xmm0,%0"
-            :
-            : "p" ( p_x++ )
+            "\n" "rep stosb"
+            : "+D" (p), "+c" ( l_0 )
+            : "a" (c)
+            : "memory"
+            );
+            N128 x;
+            p = &x;
+            N cx = sizeof( N128 );
+            __asm__ volatile (
+            "\n" "rep stosb"
+            "\n" "movups    %3,%%xmm0"
+            : "+D" (p), "+c" (cx)
+            : "a" (c), "m" (x)
             : "xmm0", "memory"
             );
-        p = p_x;
-        l = l_2;
+            for_n( i, l_1 )
+                __asm__ volatile (
+                "\n" "movaps    %%xmm0,%0"
+                :
+                : "p" ( p_x++ )
+                : "xmm0", "memory"
+                );
+            p = p_x;
+            l = l_2;
+        }
     }
     __asm__ volatile (
     "\n" "rep stosb"
@@ -1034,7 +1043,7 @@ __attribute__ ((__malloc__))
 P
 E_mem_Q_blk_M_new_0( N *allocated_i_sorted_pos
 ){  Pc p_start = E_mem_blk_S.reserved_from_end ? (P)( E_mem_blk_S.memory_size - E_mem_blk_S.reserved_size ) : (P)E_mem_blk_S.memory_size;
-    Pc p = (P)( ~5 );
+    Pc p = (P)~5;
     struct E_mem_Q_blk_Z_allocated allocated_p;
     N allocated_max = E_mem_Q_blk_Q_sys_table_R_last( E_mem_blk_S.allocated_id, (Pc)&allocated_p.p - (Pc)&allocated_p );
     N allocated_i = allocated_max;
@@ -1165,11 +1174,11 @@ E_mem_Q_blk_M_align_tab(
 _export
 P
 E_mem_Q_blk_Z_single_memory_M( N l
-){  return E_mem_Q_blk_M_tab_single_memory( 1, l );
+){  return E_mem_Q_blk_Z_single_memory_M_tab( 1, l );
 }
 _export
 P
-E_mem_Q_blk_M_tab_single_memory(
+E_mem_Q_blk_Z_single_memory_M_tab(
   N u
 , N n
 ){  return E_mem_Q_blk_Z_single_memory_M_align_tab( u, n, ~0 );

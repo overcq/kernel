@@ -339,7 +339,7 @@ E_mouse_M( void
     || E_mouse_P_rate(200)
     )
         return ~0;
-    E_interrupt_P( 12, &E_mouse_I_interrupt );
+    E_interrupt_P_gsi( 12, &E_mouse_I_interrupt );
     if( E_mouse_I_enable() )
         return ~0;
     G( "Mouse initialized." );

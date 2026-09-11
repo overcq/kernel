@@ -301,7 +301,8 @@ E_flow_Q_report_M_srv( N uid
             break;
     }
     if( !~report_id )
-    {   G( "Event %x handled", ~4 );
+    {   E_flow_I_sti();
+        G( "Event %x handled", ~4 );
         E_main_I_fatal_save();
     }
     E_flow_I_sti();

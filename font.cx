@@ -3280,7 +3280,7 @@ E_font_I_draw_u( N32 font_i
 , N32 y
 , N32 clip_y
 , N32 clip_height
-, N32 video_color
+, N32 color
 , N8 size
 , N8 font_thickness
 ){  size++;
@@ -3315,7 +3315,7 @@ E_font_I_draw_u( N32 font_i
                     for_n( i, font_thickness )
                         E_vga_I_set_pixel_aa(
                           x_ + i, y_ + j
-                        , video_color
+                        , color
                         , brightness
                         , ~0
                         );

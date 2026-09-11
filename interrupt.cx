@@ -260,16 +260,14 @@ struct E_interrupt_Z_gsi
 { N8 source;
   N8 flags;
 } *E_interrupt_S_gsi;
-_private N8 E_interrupt_S_gsi_n;
+_private N8 E_interrupt_S_gsi_ex_n, E_interrupt_S_gsi_n;
 _internal N *E_interrupt_S_idt;
 _private E_interrupt_S_external_Z *E_interrupt_S_external;
 _internal N8 E_interrupt_S_gsi_next;
 _private N8 E_interrupt_S_gsi_timer;
 _private N8 E_interrupt_S_gsi_ipi;
 struct __attribute__ ((packed)) E_interrupt_Z_id
-{ N32 pad_1;
-  N16 pad_2;
-  N16 limit;
+{ N16 limit;
   N base;
 };
 _private struct E_interrupt_Z_id E_interrupt_S_id;
@@ -299,8 +297,9 @@ _internal
 void
 E_interrupt_Q_io_apic_P_gsi( N8 i
 , N64 v
-){  E_interrupt_Q_io_apic_P( 0x10 + i * 2, v & 0xffffffff );
+){  E_interrupt_Q_io_apic_P( 0x10 + i * 2, ( v | ( 1 << 16 )) & 0xffffffff );
     E_interrupt_Q_io_apic_P( 0x10 + i * 2 + 1, v >> 32 );
+    E_interrupt_Q_io_apic_P( 0x10 + i * 2, v & 0xffffffff );
 }
 //------------------------------------------------------------------------------
 _private
@@ -316,25 +315,26 @@ E_interrupt_I_ipi_startup( N32 processor
 ){  E_main_Q_msr_P( 0x830, ( (N64)processor << 32 ) | ( 6 << 8 ) | ( (N)proc >> 12 ));
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#define E_interrupt_Q_io_apic_J_gsi_v( vector, delivery_mode, polarity, trigger_mode, mask, destination ) \
-    ( (vector) | ( (N)( delivery_mode ) << 8 ) | ( (N)(polarity) << 13 ) | ( (N)( trigger_mode ) << 15 ) | ( (N)(mask) << 16 ) | ( (N)(destination) << 56 ))
+#define E_interrupt_Q_io_apic_J_gsi_v( vector, delivery_mode, polarity, trigger_mode, destination ) \
+    ( (vector) | ( (N)( delivery_mode ) << 8 ) | ( (N)(polarity) << 13 ) | ( (N)( trigger_mode ) << 15 ) | ( (N)(destination) << 56 ))
 _private
 void
 E_interrupt_Q_io_apic_I_enable( N8 i
-){  N polarity = ( E_interrupt_S_gsi[i].flags & 3 ) == 1 ? 0 : 1;
-    N trigger_mode = (( E_interrupt_S_gsi[i].flags >> 2 ) & 3 ) == 3 ? 1 : 0;
-    E_interrupt_Q_io_apic_P_gsi( i, E_interrupt_Q_io_apic_J_gsi_v( 32 + i, 0, polarity, trigger_mode, 0, 0 ));
+){  N polarity = ( E_interrupt_S_gsi[i].flags & 3 ) == 3;
+    N trigger_mode = (( E_interrupt_S_gsi[i].flags >> 2 ) & 3 ) == 3;
+    E_interrupt_Q_io_apic_P_gsi( i, E_interrupt_Q_io_apic_J_gsi_v( 32 + E_interrupt_S_gsi_ex_n + i, 0, polarity, trigger_mode, 0 ));
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _private
-void
-E_interrupt_P( N8 irq
+N
+E_interrupt_P_gsi( N8 irq
 , E_interrupt_S_external_Z proc
 ){  for_n( i, E_interrupt_S_gsi_n )
         if( E_interrupt_S_gsi[i].source == irq )
-        {   E_interrupt_S_external[i] = proc;
-            break;
+        {   E_interrupt_S_external[ E_interrupt_S_gsi_ex_n + i ] = proc;
+            return 0;
         }
+    return ~0;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _internal
@@ -372,16 +372,20 @@ E_interrupt_I_rtc_interrupt_2( void
 _private
 N8
 E_interrupt_R_gsi_next( void
-){  if( E_interrupt_S_gsi_next < 16 )
-    {   N8 i;
-        for( i = E_interrupt_S_gsi_next; i != 16; i++ )
-            if( !~(S8)E_interrupt_S_gsi[i].source )
-                break;
-        E_interrupt_S_gsi_next = i;
-    }
-    if( E_interrupt_S_gsi_next == E_interrupt_S_gsi_n )
-        return ~0;
-    return E_interrupt_S_gsi_next++;
+){  if( E_interrupt_S_gsi_next < E_interrupt_S_gsi_ex_n )
+        return E_interrupt_S_gsi_next++;
+    for( ; E_interrupt_S_gsi_next != E_interrupt_S_gsi_ex_n + 16; E_interrupt_S_gsi_next++ )
+        if( !~(S8)E_interrupt_S_gsi[ E_interrupt_S_gsi_next - E_interrupt_S_gsi_ex_n ].source )
+            return E_interrupt_S_gsi_next++;
+    return ~0;
+}
+_private
+N8
+E_interrupt_R_free_external( void
+){  for_n( i, E_interrupt_S_gsi_n )
+        if( !E_interrupt_S_external[ E_interrupt_S_gsi_ex_n + i ] )
+            return E_interrupt_S_gsi_ex_n + i;
+    return ~0;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _private
@@ -431,7 +435,8 @@ E_interrupt_I_panic( Pc message
 _private
 N
 E_interrupt_M( void
-){  N idt_n = 32 + E_interrupt_S_gsi_n + 1;
+){  E_interrupt_S_gsi_ex_n = 2; //DFN Rezerwa dla zegara APIC oraz IPI.
+    N idt_n = 32 + E_interrupt_S_gsi_ex_n + E_interrupt_S_gsi_n + 1;
     Mt_( E_interrupt_S_idt, idt_n * 2 );
     Kp( E_interrupt_S_idt )
         return ~0;
@@ -460,13 +465,13 @@ E_interrupt_M( void
     E_interrupt_J_interrupt_descriptor( 21, E_interrupt_I_exeception_cp, 1 );
     for( N i = 22; i != 32; i++ )
         E_interrupt_S_idt[ i * 2 ] = 0;
-    Mt_( E_interrupt_S_external, E_interrupt_S_gsi_n );
+    Mt_( E_interrupt_S_external, E_interrupt_S_gsi_ex_n + E_interrupt_S_gsi_n );
     Kp( E_interrupt_S_external )
     {   K_( ~1, W( E_interrupt_S_idt ));
         return ~0;
     }
-    _0t_( E_interrupt_S_external, E_interrupt_S_gsi_n );
-    for( N i = 32; i != 32 + E_interrupt_S_gsi_n; i++ )
+    _0t_( E_interrupt_S_external, E_interrupt_S_gsi_ex_n + E_interrupt_S_gsi_n );
+    for( N i = 32; i != 32 + E_interrupt_S_gsi_ex_n + E_interrupt_S_gsi_n; i++ )
         switch(i)
         { case 32:
                 E_interrupt_J_interrupt_descriptor( i, E_interrupt_I_external_32, 1 );
@@ -1138,29 +1143,30 @@ E_interrupt_M( void
                 E_interrupt_J_interrupt_descriptor( i, E_interrupt_I_external_254, 1 );
                 break;
         }
-    E_interrupt_J_interrupt_descriptor( 32 + E_interrupt_S_gsi_n, E_interrupt_I_external_spurious, 0 );
+    E_interrupt_J_interrupt_descriptor( 32 + E_interrupt_S_gsi_ex_n + E_interrupt_S_gsi_n, E_interrupt_I_external_spurious, 0 );
     E_interrupt_S_id.base = (N)&E_interrupt_S_idt[0];
     E_interrupt_S_id.limit = idt_n * 2 * sizeof( *E_interrupt_S_idt ) - 1;
     __asm__ volatile (
     "\n" "lidt  %0"
     :
-    : "p" ( &E_interrupt_S_id.limit )
+    : "m" ( E_interrupt_S_id )
     );
+    E_main_Q_msr_P( 0x80f, ( E_main_Q_msr_R( 0x80f ) & ~0xff ) | 0x100 | ( 32 + E_interrupt_S_gsi_ex_n + E_interrupt_S_gsi_n )); // Ustaw numer przerwania nieoczekiwanego i włącz APIC.
     for_n( i, E_interrupt_S_gsi_n )
         if( ~(S8)E_interrupt_S_gsi[i].source )
             E_interrupt_Q_io_apic_I_enable(i);
     E_interrupt_S_gsi_timer = E_interrupt_R_gsi_next();
-    if( !~E_interrupt_S_gsi_timer )
+    if( !~(S8)E_interrupt_S_gsi_timer )
         return ~0;
     E_interrupt_S_gsi_ipi = E_interrupt_R_gsi_next();
-    if( !~E_interrupt_S_gsi_ipi )
+    if( !~(S8)E_interrupt_S_gsi_ipi )
         return ~0;
     // Kalibracja zegara APIC na podstawie RTC.
     G( "Timer calibrating…" );
-    E_interrupt_S_external[16] = &E_interrupt_I_apic_timer_interrupt;
-    E_interrupt_P( 8, &E_interrupt_I_rtc_interrupt_1 );
-    E_main_Q_msr_P( 0x80f, ( E_main_Q_msr_R( 0x80f ) & ~0xff ) | 0x100 | ( 32 + E_interrupt_S_gsi_n )); // Ustaw numer przerwania nieoczekiwanego i włącz APIC.
-    E_main_Q_msr_P( 0x832, ( 32 + 16 ) | ( 1 << 17 )); // Ustaw przerwanie zegara i typ zegara: okresowy.
+    E_interrupt_S_external[ E_interrupt_S_gsi_ex_n + 16 ] = &E_interrupt_I_apic_timer_interrupt;
+    if( !~(S8)E_interrupt_P_gsi( 8, &E_interrupt_I_rtc_interrupt_1 ))
+        return ~0;
+    E_main_Q_msr_P( 0x832, ( 32 + E_interrupt_S_gsi_ex_n + 16 ) | ( 1 << 17 )); // Ustaw przerwanie zegara i typ zegara: okresowy.
     E_main_Q_msr_P( 0x83e, ( E_main_Q_msr_R( 0x83e ) & ~0xf ) | 0xb ); // Ustaw dzielnik na 1.
     // Przygotowanie zegara RTC.
     E_main_I_out_8( 0x70, 0x8a ); // Wybierz rejestr A i wyłącz NMI.
@@ -1184,7 +1190,7 @@ E_interrupt_M( void
     __asm__ volatile (
     "\n" "cli"
     );
-    E_interrupt_P( 8, &E_interrupt_I_rtc_interrupt_2 );
+    E_interrupt_P_gsi( 8, &E_interrupt_I_rtc_interrupt_2 );
     E_interrupt_S_apic_timer_freq = 0;
     N8 div_i = E_asm_I_bsr( E_interrupt_S_cpu_freq );
     E_interrupt_S_apic_timer_div = 1UL << ( div_i > 31 ? 31 : div_i );
@@ -1217,8 +1223,8 @@ E_interrupt_M( void
     E_main_I_out_8( 0x70, 0xc ); // Wybierz rejestr C i włącz NMI.
     E_main_I_in_8( 0x71 ); // Potwierdź odbiór przerwania.
     E_main_Q_msr_P( 0x832, 32 + E_interrupt_S_gsi_timer ); // Ustaw przerwanie zegara i typ zegara: jednorazowy.
-    E_interrupt_P( 8, 0 );
-    E_interrupt_S_external[16] = 0;
+    E_interrupt_P_gsi( 8, 0 );
+    E_interrupt_S_external[ E_interrupt_S_gsi_ex_n + 16 ] = 0;
     __asm__ volatile (
     "\n" "sti"
     );

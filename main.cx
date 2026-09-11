@@ -80,7 +80,6 @@ _private
 struct E_main_Z_kernel_Z_acpi
 { P dmar_content;
   N dmar_content_l;
-  P facs;
   struct H_oux_Z_hpet hpet;
   struct H_acpi_Z_mcfg_entry *mcfg_content;
   N mcfg_content_n;
@@ -94,24 +93,26 @@ _private N *E_main_S_gdt;
 _private N E_main_S_ldt[2];
 _private P E_main_S_page_table;
 _private P E_main_S_kernel;
+_private B E_main_S_sse;
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 struct E_main_Z_kernel_args_Z_acpi
 { P dmar_content;
   N dmar_content_l;
   P dsdt_content;
   N dsdt_content_l;
-  P facs;
   struct H_oux_Z_hpet hpet;
   struct
   { P address;
     N l;
-  }ssdt_contents[4];
-  N ssdt_contents_n;
-  unsigned virt_guest_rtc_good                :1;
-  unsigned virt_guest_pm_good                 :1;
-  unsigned smm_validate_fixed_comm_buffers    :1;
-  unsigned smm_validate_nested_ptr            :1;
-  unsigned smm_system_resource_protection     :1;
+  }ssdt_content[4];
+  N ssdt_content_n;
+  N pm1a_control_block;
+  unsigned pm1a_control_block_mmio          :1;
+  unsigned virt_guest_rtc_good              :1;
+  unsigned virt_guest_pm_good               :1;
+  unsigned smm_validate_fixed_comm_buffers  :1;
+  unsigned smm_validate_nested_ptr          :1;
+  unsigned smm_system_resource_protection   :1;
 };
 struct E_main_Z_kernel_args
 { struct E_mem_blk_Z mem_blk;
@@ -134,6 +135,7 @@ struct E_main_Z_kernel_args
   N32 processor_start_page;
   N32 processor_n;
   N8 gsi_n;
+  unsigned sse  :1;
 };
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 struct __attribute__ (( __packed__ )) E_main_I_tss
@@ -145,14 +147,14 @@ struct __attribute__ (( __packed__ )) E_main_I_tss
   N16 io_map_base_address;
 };
 struct __attribute__ ((packed)) E_main_Z_gd
-{ N32 pad_1;
-  N16 pad_2;
-  N16 limit;
+{ N16 limit;
   N base;
 };
 _internal struct E_main_Z_gd E_main_S_gd;
 _internal volatile Pc *E_main_S_stack;
 _private N E_main_S_stack_pages;
+_private N E_main_S_pm1a_control_block;
+_private B E_main_S_pm1a_control_block_mmio;
 //==============================================================================
 #define E_main_J_code_descriptor( base, limit ) (( (N)(limit) & (( 1 << 16 ) - 1 )) | (( (N)(base) & (( 1 << 24 ) - 1 )) << 16 ) | E_cpu_Z_gdt_Z_type_S_code | E_cpu_Z_gdt_S_code_data | E_cpu_Z_gdt_S_present | E_cpu_Z_gdt_Z_code_S_64bit | E_cpu_Z_gdt_S_granularity | ((( (N)(limit) >> 16 ) & (( 1 << 4 ) - 1 )) << ( 32 + 16 )) | (( (N)(base) >> 24 ) << ( 32 + 24 )))
 #define E_main_J_data_descriptor( base, limit ) (( (N)(limit) & (( 1 << 16 ) - 1 )) | (( (N)(base) & (( 1 << 24 ) - 1 )) << 16 ) | E_cpu_Z_gdt_Z_data_S_write | E_cpu_Z_gdt_S_code_data | E_cpu_Z_gdt_S_present | E_cpu_Z_gdt_S_granularity | ((( (N)(limit) >> 16 ) & (( 1 << 4 ) - 1 )) << ( 32 + 16 )) | (( (N)(base) >> 24 ) << ( 32 + 24 )))
@@ -174,6 +176,27 @@ _private
 void
 E_main_I_out_8( N16 port
 , N8 v
+){  __asm__ volatile (
+    "\n" "out   %0,%1"
+    :
+    : "a" (v), "d" (port)
+    );
+}
+_private
+N16
+E_main_I_in_16( N16 port
+){  N16 v;
+    __asm__ volatile (
+    "\n" "in    %1,%0"
+    : "=a" (v)
+    : "d" (port)
+    );
+    return v;
+}
+_private
+void
+E_main_I_out_16( N16 port
+, N16 v
 ){  __asm__ volatile (
     "\n" "out   %0,%1"
     :
@@ -301,12 +324,9 @@ E_main_I_processor_start( void
     "\n" "and       %0,%%rax"
     "\n" "or        %1,%%rax"
     "\n" "mov       %%rax,%%cr0"
-    "\n" "mov       %%cr3,%%rax"
-    "\n" "and       %2,%%rax"
-    "\n" "mov       %%rax,%%cr3"
     "\n" "mov       %%cr4,%%rax"
-    "\n" "and       %3,%%rax"
-    "\n" "or        %4,%%rax"
+    "\n" "and       %2,%%rax"
+    "\n" "or        %3,%%rax"
     "\n" "mov       %%rax,%%cr4"
     "\n" "mov       %%cr8,%%rax"
     "\n" "and       $~0xf,%%rax"
@@ -315,10 +335,10 @@ E_main_I_processor_start( void
     "\n" "rdmsr"
     "\n" "dec       %%eax"
     "\n" "mov       %%eax,%%ebx"
-    "\n" "mov       %5,%%rbp"
+    "\n" "mov       %4,%%rbp"
     "\n" "mov       (%%rbp,%%rbx,8),%%rdi"
-    "\n" "lea       (%%rdi,%6),%%rsp"
-    "\n" "lgdt      %7"
+    "\n" "lea       (%%rdi,%5),%%rsp"
+    "\n" "lgdt      %6"
     "\n" "mov       $3 << 3,%%ax"
     "\n" "lldt      %%ax"
     "\n" "mov       $2 << 3,%%ax"
@@ -336,14 +356,14 @@ E_main_I_processor_start( void
     "\n0: lea       7(%%rbx,%%rbx),%%rax"
     "\n" "shl       $3,%%rax"
     "\n" "ltr       %%ax"
-    "\n" "lidt      %8"
+    "\n" "lidt      %7"
     "\n" "mov       $0x80f,%%ecx"
     "\n" "rdmsr"
     "\n" "or        $0x100,%%eax"
-    "\n" "mov       %9,%%al"
+    "\n" "mov       %8,%%al"
     "\n" "lea       32(%%eax),%%eax"
     "\n" "wrmsr"
-    "\n" "movzbq    %10,%%rax"
+    "\n" "movzbq    %9,%%rax"
     "\n" "lea       32(%%rax),%%rax"
     "\n" "mov       $0x832,%%ecx"
     "\n" "wrmsr"
@@ -354,18 +374,16 @@ E_main_I_processor_start( void
     "\n" "wrmsr"
     "\n" "sti"
     "\n" "call      E_flow_M"
-    "\n" "test      %%rax,%%rax"
-    "\n" "jns       0f"
-    "\n" "jmp       E_main_I_fatal"
-    "\n0: mov       %%rax,(%%rbp,%%rbx,8)"
-    "\n"  "jmp      E_flow_I_main_task"
+    "\n" "cmp       $~4,%%rax"
+    "\n" "jnb       E_main_I_fatal"
+    "\n" "movq      $0,(%%rbp,%%rbx,8)"
+    "\n" "jmp       E_flow_I_main_task"
     :
     : "i" ( ~( E_cpu_Z_cr0_S_em | E_cpu_Z_cr0_S_ts | E_cpu_Z_cr0_S_nw | E_cpu_Z_cr0_S_cd ))
     , "i" ( E_cpu_Z_cr0_S_mp | E_cpu_Z_cr0_S_ne | E_cpu_Z_cr0_S_wp )
-    , "i" ( ~( E_cpu_Z_cr3_S_pwt | E_cpu_Z_cr3_S_pcd ))
-    , "i" ( ~( E_cpu_Z_cr4_S_tsd | E_cpu_Z_cr4_S_pcide | E_cpu_Z_cr4_S_smep | E_cpu_Z_cr4_S_smap | E_cpu_Z_cr4_S_pke | E_cpu_Z_cr4_S_pks | E_cpu_Z_cr4_S_uintr | E_cpu_Z_cr4_S_lam_sup ))
-    , "i" ( E_cpu_Z_cr4_S_vme | E_cpu_Z_cr4_S_pvi | E_cpu_Z_cr4_S_de | E_cpu_Z_cr4_S_mce | E_cpu_Z_cr4_S_pge | E_cpu_Z_cr4_S_pce | E_cpu_Z_cr4_S_osfxsr | E_cpu_Z_cr4_S_osxmmexcpt | E_cpu_Z_cr4_S_umip | E_cpu_Z_cr4_S_fsgsbase | E_cpu_Z_cr4_S_osxsave )
-    , "m" ( E_main_S_stack ), "r" ( E_main_S_stack_pages * E_mem_S_page_size ), "p" ( &E_main_S_gd.limit ), "p" ( &E_interrupt_S_id.limit ), "m" ( E_interrupt_S_gsi_n ), "m" ( E_interrupt_S_gsi_timer )
+    , "i" ( ~( E_cpu_Z_cr4_S_pvi | E_cpu_Z_cr4_S_tsd | E_cpu_Z_cr4_S_pge | E_cpu_Z_cr4_S_pcide | E_cpu_Z_cr4_S_smep | E_cpu_Z_cr4_S_smap | E_cpu_Z_cr4_S_pke | E_cpu_Z_cr4_S_pks | E_cpu_Z_cr4_S_uintr | E_cpu_Z_cr4_S_lam_sup ))
+    , "i" ( E_cpu_Z_cr4_S_de | E_cpu_Z_cr4_S_mce | E_cpu_Z_cr4_S_pce | E_cpu_Z_cr4_S_osfxsr | E_cpu_Z_cr4_S_osxmmexcpt | E_cpu_Z_cr4_S_fsgsbase | E_cpu_Z_cr4_S_osxsave )
+    , "m" ( E_main_S_stack ), "r" ( E_main_S_stack_pages * E_mem_S_page_size ), "m" ( E_main_S_gd ), "m" ( E_interrupt_S_id ), "r" (( N8 )( E_interrupt_S_gsi_ex_n + E_interrupt_S_gsi_n )), "m" ( E_interrupt_S_gsi_timer )
     : "cc", "rax", "rbx", "rcx", "rdx", "rdi", "rbp", "rsp", "memory"
     );
 }
@@ -388,11 +406,13 @@ main( struct E_main_Z_kernel_args *kernel_args
     E_main_S_stack_pages = kernel_args->stack_pages;
     E_main_S_framebuffer = kernel_args->framebuffer;
     E_main_S_uefi_runtime_services = kernel_args->uefi_runtime_services;
-    //E_main_S_acpi = kernel_args->acpi;
+    E_main_S_pm1a_control_block = kernel_args->acpi.pm1a_control_block;
+    E_main_S_pm1a_control_block_mmio = kernel_args->acpi.pm1a_control_block_mmio;
     E_interrupt_Q_local_apic_S_address = kernel_args->local_apic_address;
     E_interrupt_Q_io_apic_S_address = kernel_args->io_apic_address;
     E_interrupt_S_gsi = kernel_args->gsi;
     E_interrupt_S_gsi_n = kernel_args->gsi_n;
+    E_main_S_sse = kernel_args->sse;
     E_mem_blk_S_lock = no;
     E_mem_blk_S_context_ip = 0;
     E_flow_S_inited = no;
@@ -415,6 +435,7 @@ main( struct E_main_Z_kernel_args *kernel_args
     || !E_main_S_gdt
     )
         goto End;
+    E_main_S_gdt[0] = 0;
     E_main_S_gdt[1] = E_main_J_code_descriptor( 0, ~0UL );
     E_main_S_gdt[2] = E_main_J_data_descriptor( 0, ~0UL );
     E_main_S_gdt[3] = E_main_J_local_descriptor_low( (N)&E_main_S_ldt[0], sizeof( E_main_S_ldt ) - 1 );
@@ -427,11 +448,13 @@ main( struct E_main_Z_kernel_args *kernel_args
             goto End;
         _0_(tss);
         P interrupt_stack = E_mem_Q_blk_M_align_tab( E_mem_S_page_size, 2, E_mem_S_page_size );
-        if( !interrupt_stack )
+        if( K_error( interrupt_stack )
+        || !interrupt_stack
+        )
             goto End;
         tss->ist[1] = (N)interrupt_stack + 2 * E_mem_S_page_size;
         tss->io_map_base_address = ~0;
-        E_main_S_gdt[ 5 + i * 2 ] = E_main_J_task_descriptor_low( (N)tss, sizeof( *tss ));
+        E_main_S_gdt[ 5 + i * 2 ] = E_main_J_task_descriptor_low( (N)tss, sizeof( *tss ) - 1 );
         E_main_S_gdt[ 5 + i * 2 + 1 ] = (N)tss >> 32;
     }
     E_main_S_ldt[0] = 0;
@@ -457,8 +480,8 @@ main( struct E_main_Z_kernel_args *kernel_args
     "\n0: mov   $5 << 3,%%ax"
     "\n" "ltr   %%ax"
     :
-    : "p" ( &E_main_S_gd.limit )
-    : "rax"
+    : "m" ( E_main_S_gd )
+    : "rax", "memory"
     );
     r = E_interrupt_M();
     if( K_error(r) )
@@ -490,7 +513,9 @@ main( struct E_main_Z_kernel_args *kernel_args
         goto End;
     for_n_( i, kernel_args->processor_n - 1 )
     {   E_main_S_stack[i] = E_mem_Q_blk_M_align_tab( E_mem_S_page_size, E_main_S_stack_pages, E_mem_S_page_size );
-        if( !E_main_S_stack[i] )
+        if( K_error( E_main_S_stack[i] )
+        || !E_main_S_stack[i]
+        )
             goto End;
     }
     for_n_( i, kernel_args->processor_n - 1 )
@@ -517,7 +542,7 @@ main( struct E_main_Z_kernel_args *kernel_args
     r = W( kernel_args->processor_proc );
     if( K_error(r) )
         goto End;
-    r = E_acpi_aml_M( kernel_args->acpi.dsdt_content, kernel_args->acpi.dsdt_content_l, &kernel_args->acpi.ssdt_contents[0], kernel_args->acpi.ssdt_contents_n );
+    r = E_acpi_aml_M( kernel_args->acpi.dsdt_content, kernel_args->acpi.dsdt_content_l, &kernel_args->acpi.ssdt_content[0], kernel_args->acpi.ssdt_content_n );
     if( K_error(r) )
         goto End;
     r = E_acpi_reader_M();
@@ -553,7 +578,6 @@ main( struct E_main_Z_kernel_args *kernel_args
     O{  X_B( main, test, 0 )
             break;
     }
-    S status = E_main_S_uefi_runtime_services.reset_system( H_uefi_Z_reset_Z_shutdown, 0, 0, 0 );
 End:G( "end loop" );
     E_main_I_fatal();
 }

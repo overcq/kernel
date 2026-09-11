@@ -137,7 +137,7 @@
 #define Y_M(period)                         E_flow_Q_timer_M(period)
 #define Y_W(timer)                          E_flow_Q_timer_W(timer)
 // Czekanie na pełny okres ‹cyklera›.
-#define Y_B(timer,lost_count)               if( !E_flow_Q_timer_I_wait( (timer), (lost_count) )){} else
+#define Y_B(timer,reported_count)           if( !E_flow_Q_timer_I_wait( (timer), (reported_count) )){} else
 //------------------------------------------------------------------------------
 // Utworzenie i wyrzucenie ‹impulsatora›.
 #define Yi_M(module,impulser)               I _Yi_var(module,impulser) = E_flow_Q_impulser_M( _Yi_uid(module,impulser) )

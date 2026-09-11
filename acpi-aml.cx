@@ -1279,9 +1279,7 @@ E_acpi_aml_Q_path_R_root( N8 *n
     { case '\\':
         {   E_acpi_aml_S_parse_data++;
             *n = E_acpi_aml_Q_path_R_pathname();
-            if( !~(S8)*n
-            || !*n
-            )
+            if( !~(S8)*n )
                 return (P)~10;
             Pc s = M( *n * 4 );
             KPp(s)
@@ -1325,15 +1323,13 @@ E_acpi_aml_Q_path_R_relative( N8 *n
     { case '\\':
         {   E_acpi_aml_S_parse_data++;
             *n = E_acpi_aml_Q_path_R_pathname();
-            if( !~(S8)*n
-            || !*n
-            )
+            if( !~(S8)*n )
                 return (P)~10;
             Pc s = M( *n * 4 );
             KPp(s)
                 return (P)~0;
             E_mem_Q_blk_I_copy( s, E_acpi_aml_S_parse_data - *n * 4, *n * 4 );
-            *object_i = E_acpi_aml_Q_object_R(( struct E_acpi_aml_Z_pathname ){ s, *n });
+            *object_i = *n ? E_acpi_aml_Q_object_R(( struct E_acpi_aml_Z_pathname ){ s, *n }) : ~0;
             return s;
         }
       case '^':
@@ -1347,9 +1343,7 @@ E_acpi_aml_Q_path_R_relative( N8 *n
                     return (P)~10;
             }while( *E_acpi_aml_S_parse_data == '^' );
             *n = E_acpi_aml_Q_path_R_pathname();
-            if( !~(S8)*n
-            || !*n
-            )
+            if( !~(S8)*n )
                 return (P)~10;
             N depth = E_acpi_aml_S_current_path_n ? E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n - 1 ].n - parent_n : 0;
             Pc s = M(( depth + *n ) * 4 );
@@ -1358,14 +1352,12 @@ E_acpi_aml_Q_path_R_relative( N8 *n
             E_mem_Q_blk_I_copy( s, E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n - 1 ].s, depth * 4 );
             E_mem_Q_blk_I_copy( s + depth * 4, E_acpi_aml_S_parse_data - *n * 4, *n * 4 );
             *n += depth;
-            *object_i = E_acpi_aml_Q_object_R(( struct E_acpi_aml_Z_pathname ){ s, *n });
+            *object_i = *n ? E_acpi_aml_Q_object_R(( struct E_acpi_aml_Z_pathname ){ s, *n }) : ~0;
             return s;
         }
       default:
         {   *n = E_acpi_aml_Q_path_R_pathname();
-            if( !~(S8)*n
-            || !*n
-            )
+            if( !~(S8)*n )
                 return (P)~10;
             Pc s;
             if( E_acpi_aml_S_current_path_n )
@@ -1387,14 +1379,14 @@ E_acpi_aml_Q_path_R_relative( N8 *n
                     E_mem_Q_blk_I_copy( s, E_acpi_aml_S_current_path[ E_acpi_aml_S_current_path_n - 1 ].s, depth * 4 );
                     E_mem_Q_blk_I_copy( s + depth * 4, E_acpi_aml_S_parse_data - *n * 4, *n * 4 );
                     *n += depth;
-                    *object_i = E_acpi_aml_Q_object_R(( struct E_acpi_aml_Z_pathname ){ s, *n });
+                    *object_i = *n ? E_acpi_aml_Q_object_R(( struct E_acpi_aml_Z_pathname ){ s, *n }) : ~0;
                 }
             }else
             {   s = M( *n * 4 );
                 KPp(s)
                     return (P)~0;
                 E_mem_Q_blk_I_copy( s, E_acpi_aml_S_parse_data - *n * 4, *n * 4 );
-                *object_i = E_acpi_aml_Q_object_R(( struct E_acpi_aml_Z_pathname ){ E_acpi_aml_S_parse_data - *n * 4, *n });
+                *object_i = *n ? E_acpi_aml_Q_object_R(( struct E_acpi_aml_Z_pathname ){ E_acpi_aml_S_parse_data - *n * 4, *n }) : ~0;
             }
             return s;
         }
@@ -1808,6 +1800,8 @@ E_acpi_aml_I_term( void
             Pc name = E_acpi_aml_Q_path_R_root( &n );
             Kp(name)
                 return ~0;
+            if( (N)name == ~10 )
+                return (N)name;
             K_( ~1, W(name) );
             Pc name_ = M( n * 4 + 1 );
             Kp( name_ )
@@ -1933,6 +1927,8 @@ E_acpi_aml_I_object( void
             Pc name = E_acpi_aml_Q_path_R_relative( &name_n, &dest_object_i );
             Kp(name)
                 return ~0;
+            if( (N)name == ~10 )
+                return (N)name;
             if( !~dest_object_i )
             {   K_( ~1, W(name) );
                 return ~0;
@@ -1949,6 +1945,8 @@ E_acpi_aml_I_object( void
             Pc alias = E_acpi_aml_Q_path_R_root( &alias_n );
             Kp(alias)
                 return ~0;
+            if( (N)alias == ~10 )
+                return (N)alias;
             name_ = M( alias_n * 4 + 1 );
             Kp( name_ )
             {   K_( ~1, W(alias) );
@@ -1980,6 +1978,8 @@ E_acpi_aml_I_object( void
             Pc name = E_acpi_aml_Q_path_R_root( &n );
             Kp(name)
                 return ~0;
+            if( (N)name == ~10 )
+                return (N)name;
             Pc name_ = M( n * 4 + 1 );
             Kp( name_ )
             {   K_( ~1, W(name) );
@@ -2027,6 +2027,8 @@ E_acpi_aml_I_object( void
             Pc name = E_acpi_aml_Q_path_R_relative( &n, &object_i );
             Kp(name)
                 return ~0;
+            if( (N)name == ~10 )
+                return (N)name;
             Pc name_ = M( n * 4 + 1 );
             Kp( name_ )
             {   K_( ~1, W(name) );
@@ -2037,13 +2039,14 @@ E_acpi_aml_I_object( void
             if( E_acpi_aml_S_precompilation )
             {
             }else
-            {   if( !~object_i
-                || !( E_acpi_aml_S_object[ object_i ].type == E_acpi_aml_Z_object_Z_type_S_uninitialized
-                  || E_acpi_aml_S_object[ object_i ].type == E_acpi_aml_Z_object_Z_type_S_device
-                  || E_acpi_aml_S_object[ object_i ].type == E_acpi_aml_Z_object_Z_type_S_power_res
-                  || E_acpi_aml_S_object[ object_i ].type == E_acpi_aml_Z_object_Z_type_S_thermal_zone
-                  || E_acpi_aml_S_object[ object_i ].type == E_acpi_aml_Z_object_Z_type_S_processor
-                ))
+            {   if( n
+                && ( !~object_i
+                  || !( E_acpi_aml_S_object[ object_i ].type == E_acpi_aml_Z_object_Z_type_S_uninitialized
+                    || E_acpi_aml_S_object[ object_i ].type == E_acpi_aml_Z_object_Z_type_S_device
+                    || E_acpi_aml_S_object[ object_i ].type == E_acpi_aml_Z_object_Z_type_S_power_res
+                    || E_acpi_aml_S_object[ object_i ].type == E_acpi_aml_Z_object_Z_type_S_thermal_zone
+                    || E_acpi_aml_S_object[ object_i ].type == E_acpi_aml_Z_object_Z_type_S_processor
+                )))
                 {   K_( ~1, W(name) );
                     return ~0;
                 }
@@ -2077,6 +2080,8 @@ E_acpi_aml_I_object( void
                     Pc region_name = E_acpi_aml_Q_path_R_relative( &n, &object_i );
                     Kp( region_name )
                         return ~0;
+                    if( (N)region_name == ~10 )
+                        return (N)region_name;
                     Pc name_ = M( n * 4 + 1 );
                     Kp( name_ )
                     {   K_( ~1, W( region_name ));
@@ -2092,9 +2097,9 @@ E_acpi_aml_I_object( void
                         break;
                     }
                     Pc bank_name = E_acpi_aml_Q_path_R_segment_( pkg_end );
-                    if( !~(N)bank_name
-                    || (N)bank_name == ~10
-                    )
+                    Kp( bank_name )
+                        return ~0;
+                    if( (N)bank_name == ~10 )
                         return (N)bank_name;
                     name_ = M( n * 4 + 1 );
                     Kp( name_ )
@@ -2128,6 +2133,8 @@ E_acpi_aml_I_object( void
                     Pc name = E_acpi_aml_Q_path_R_root( &n );
                     Kp(name)
                         return ~0;
+                    if( (N)name == ~10 )
+                        return (N)name;
                     if( n > 1
                     && !~E_acpi_aml_Q_object_R(( struct E_acpi_aml_Z_pathname ){ name, n - 1 })
                     )
@@ -2167,6 +2174,8 @@ E_acpi_aml_I_object( void
                     Pc name = E_acpi_aml_Q_path_R_root( &n );
                     Kp(name)
                         return ~0;
+                    if( (N)name == ~10 )
+                        return (N)name;
                     if( n > 1
                     && !~E_acpi_aml_Q_object_R(( struct E_acpi_aml_Z_pathname ){ name, n - 1 })
                     )
@@ -2198,6 +2207,8 @@ E_acpi_aml_I_object( void
                     Pc name = E_acpi_aml_Q_path_R_root( &n );
                     Kp(name)
                         return ~0;
+                    if( (N)name == ~10 )
+                        return (N)name;
                     if( n > 1
                     && !~E_acpi_aml_Q_object_R(( struct E_acpi_aml_Z_pathname ){ name, n - 1 })
                     )
@@ -2263,6 +2274,8 @@ E_acpi_aml_I_object( void
                     Pc name = E_acpi_aml_Q_path_R_relative( &n, &object_i );
                     Kp(name)
                         return ~0;
+                    if( (N)name == ~10 )
+                        return (N)name;
                     Pc name_ = M( n * 4 + 1 );
                     Kp( name_ )
                     {   K_( ~1, W(name) );
@@ -2331,10 +2344,10 @@ E_acpi_aml_I_object( void
                                     if( E_acpi_aml_S_parse_data + 4 > pkg_end )
                                         return ~10;
                                     Pc name_ = E_acpi_aml_Q_path_R_segment_( pkg_end );
-                                    if( !~(N)name_
-                                    || (N)name_ == ~10
-                                    )
-                                        return (N)name_;
+                                    Kp( name_ )
+                                        return ~0;
+                                    if( (N)name == ~10 )
+                                        return (N)name;
                                     Pc name__ = M( 4 + 1 );
                                     Kp( name__ )
                                     {   K_( ~1, W( name_ ));
@@ -2394,6 +2407,8 @@ E_acpi_aml_I_object( void
                     Pc name = E_acpi_aml_Q_path_R_relative( &n, &object_i );
                     Kp(name)
                         return ~0;
+                    if( (N)name == ~10 )
+                        return (N)name;
                     Pc name_ = M( n * 4 + 1 );
                     Kp( name_ )
                     {   K_( ~1, W(name) );
@@ -2408,6 +2423,8 @@ E_acpi_aml_I_object( void
                     {   name = E_acpi_aml_Q_path_R_root( &n );
                         Kp(name)
                             return ~0;
+                        if( (N)name == ~10 )
+                            return (N)name;
                         name_ = M( n * 4 + 1 );
                         Kp( name_ )
                         {   K_( ~1, W(name) );
@@ -2467,10 +2484,10 @@ E_acpi_aml_I_object( void
                                     if( E_acpi_aml_S_parse_data + 4 > pkg_end )
                                         return ~10;
                                     Pc name_ = E_acpi_aml_Q_path_R_segment_( pkg_end );
-                                    if( !~(N)name_
-                                    || (N)name_ == ~10
-                                    )
-                                        return (N)name_;
+                                    Kp( name_ )
+                                        return ~0;
+                                    if( (N)name == ~10 )
+                                        return (N)name;
                                     Pc name__ = M( 4 + 1 );
                                     Kp( name__ )
                                     {   K_( ~1, W( name_ ));
@@ -2530,6 +2547,8 @@ E_acpi_aml_I_object( void
                     Pc name = E_acpi_aml_Q_path_R_root( &n );
                     Kp(name)
                         return ~0;
+                    if( (N)name == ~10 )
+                        return (N)name;
                     Pc name_ = M( n * 4 + 1 );
                     Kp( name_ )
                     {   K_( ~1, W(name) );
@@ -2577,6 +2596,8 @@ E_acpi_aml_I_object( void
                     Pc name = E_acpi_aml_Q_path_R_root( &n );
                     Kp(name)
                         return ~0;
+                    if( (N)name == ~10 )
+                        return (N)name;
                     if( n > 1
                     && !~E_acpi_aml_Q_object_R(( struct E_acpi_aml_Z_pathname ){ name, n - 1 })
                     )
@@ -2614,6 +2635,8 @@ E_acpi_aml_I_object( void
                     Pc name = E_acpi_aml_Q_path_R_root( &n );
                     Kp(name)
                         return ~0;
+                    if( (N)name == ~10 )
+                        return (N)name;
                     if( n > 1
                     && !~E_acpi_aml_Q_object_R(( struct E_acpi_aml_Z_pathname ){ name, n - 1 })
                     )
@@ -2667,6 +2690,8 @@ E_acpi_aml_I_object( void
                     Pc name = E_acpi_aml_Q_path_R_root( &n );
                     Kp(name)
                         return ~0;
+                    if( (N)name == ~10 )
+                        return (N)name;
                     if( n > 1
                     && !~E_acpi_aml_Q_object_R(( struct E_acpi_aml_Z_pathname ){ name, n - 1 })
                     )
@@ -2715,6 +2740,8 @@ E_acpi_aml_I_object( void
                     Pc name = E_acpi_aml_Q_path_R_root( &n );
                     Kp(name)
                         return ~0;
+                    if( (N)name == ~10 )
+                        return (N)name;
                     if( n > 1
                     && !~E_acpi_aml_Q_object_R(( struct E_acpi_aml_Z_pathname ){ name, n - 1 })
                     )
@@ -2807,6 +2834,8 @@ E_acpi_aml_I_object( void
             Pc name = E_acpi_aml_Q_path_R_root( &n );
             Kp(name)
                 return ~0;
+            if( (N)name == ~10 )
+                return (N)name;
             Pc name_ = M( n * 4 + 1 );
             Kp( name_ )
             {   K_( ~1, W(name) );
@@ -3211,6 +3240,8 @@ E_acpi_aml_I_expression( void
                 Pc name = E_acpi_aml_Q_path_R_relative( &n, &object_i );
                 Kp(name)
                     return ~0;
+                if( (N)name == ~10 )
+                    return (N)name;
                 Pc name_ = M( n * 4 + 1 );
                 Kp( name_ )
                 {   K_( ~1, W(name) );
@@ -3391,6 +3422,8 @@ E_acpi_aml_I_supername( void
             Pc name = E_acpi_aml_Q_path_R_relative( &n, &object_i );
             Kp(name)
                 return ~0;
+            if( (N)name == ~10 )
+                return (N)name;
             Pc name_ = M( n * 4 + 1 );
             Kp( name_ )
             {   K_( ~1, W(name) );
@@ -3588,6 +3621,8 @@ E_acpi_aml_M_field_finish_2( N bytes
     Pc name = E_acpi_aml_Q_path_R_root( &n );
     Kp(name)
         return ~0;
+    if( (N)name == ~10 )
+        return (N)name;
     Pc name_ = M( n * 4 + 1 );
     Kp( name_ )
     {   K_( ~1, W(name) );
@@ -3990,9 +4025,10 @@ Loop:
                 {   N8 n;
                     Pc name = E_acpi_aml_Q_path_R_root( &n );
                     if( K_error(name)
+                    || (N)name == ~10
                     || !name
                     )
-                    {   ret = (N)name;
+                    {   ret = name ? (N)name : ~0;
                         E_acpi_aml_S_parse_stack[ stack_n_last - 2 ].execution_context.result = value_package;
                         break;
                     }
@@ -4265,11 +4301,12 @@ Loop:
                                         break;
                                     }
                                     Pc name_ = E_acpi_aml_Q_path_R_segment();
-                                    if( !~(N)name_
+                                    Kp( K_error( name_ )
                                     || (N)name_ == ~10
+                                    || !name_
                                     )
                                     {   K_( ~1, W( bank_name ));
-                                        return (N)name_;
+                                        return name_ ? (N)name_ : ~0;
                                     }
                                     Pc name__ = M( 4 + 1 );
                                     Kp( name__ )
@@ -4389,9 +4426,10 @@ Loop:
                 N8 n;
                 Pc name = E_acpi_aml_Q_path_R_root( &n );
                 if( K_error(name)
+                || (N)name == ~10
                 || !name
                 )
-                {   ret = (N)name;
+                {   ret = name ? (N)name : ~0;
                     break;
                 }
                 Pc name_ = M( n * 4 + 1 );
@@ -4565,9 +4603,10 @@ Loop:
                 N8 n;
                 Pc name = E_acpi_aml_Q_path_R_root( &n );
                 if( K_error(name)
+                || (N)name == ~10
                 || !name
                 )
-                {   ret = (N)name;
+                {   ret = name ? (N)name : ~0;
                     break;
                 }
                 Pc name_ = M( n * 4 + 1 );
@@ -8821,7 +8860,9 @@ Loop:
         }
         if( ret == ~10 )
         {   ret = E_acpi_aml_M_res1();
-            if( (S)ret >= 0 )
+            if( !K_error(ret)
+            && ret != ~10
+            )
                 goto Loop;
             return ret;
         }

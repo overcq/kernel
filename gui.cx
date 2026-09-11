@@ -217,7 +217,10 @@ E_gui_Q_main_menu_I_restart( I window_id
         G( "Event %x handled", error );
         return;
     }
-    S status = E_main_S_uefi_runtime_services.reset_system( H_uefi_Z_reset_Z_warm, 0, 0, 0 );
+    if( E_main_S_uefi_runtime_services.reset_system )
+    {   S status = E_main_S_uefi_runtime_services.reset_system( H_uefi_Z_reset_Z_warm, 0, 0, 0 );
+    }else
+        E_main_I_out_8( 0xcf9, 6 );
 }
 _internal
 void
@@ -234,7 +237,15 @@ E_gui_Q_main_menu_I_shutdown( I window_id
         G( "Event %x handled", error );
         return;
     }
-    S status = E_main_S_uefi_runtime_services.reset_system( H_uefi_Z_reset_Z_shutdown, 0, 0, 0 );
+    if( E_main_S_uefi_runtime_services.reset_system )
+    {   S status = E_main_S_uefi_runtime_services.reset_system( H_uefi_Z_reset_Z_shutdown, 0, 0, 0 );
+    }else if( E_main_S_pm1a_control_block_mmio )
+    {   N32 v = *( volatile N32 * )E_main_S_pm1a_control_block & ~(( 1 << 13 ) | ( 7 << 10 ));
+        *( volatile N32 * )E_main_S_pm1a_control_block = v | ( 7 << 10 );
+        *( volatile N32 * )E_main_S_pm1a_control_block = v | ( 1 << 13 ) | ( 7 << 10 );
+    }else
+        E_main_I_out_16( E_main_S_pm1a_control_block, ( 1 << 13 ) | ( 7 << 10 ));
+    E_main_I_fatal();
 }
 _internal
 N
@@ -390,7 +401,7 @@ E_gui_Q_pointer_I_draw( N32 x
         }
     }
     __asm__ volatile (
-    "\n" "sfence"
+    "\n" "mfence"
     );
 }
 _internal

@@ -22,33 +22,31 @@ _private N32 *E_vga_S_framebuffer;
 //==============================================================================
 _private
 N32
-E_vga_Z_video_color_M(
+E_vga_Z_color_M(
   N8 red
 , N8 green
 , N8 blue
-){  return ( (N32)blue << E_main_S_framebuffer.blue_shift )
-    | ( (N32)green << E_main_S_framebuffer.green_shift )
-    | ( (N32)red << E_main_S_framebuffer.red_shift );
+){  return (N32)blue | ( (N32)green << 8 ) | ( (N32)red << 16 );
 }
 _private
 N8
-E_vga_Z_video_color_R_red( N32 video_color
-){  return ( video_color >> E_main_S_framebuffer.red_shift ) & (( 1 << E_main_S_framebuffer.red_size ) - 1 );
+E_vga_Z_color_R_red( N32 color
+){  return ( color >> 16 ) & 0xff;
 }
 _private
 N8
-E_vga_Z_video_color_R_green( N32 video_color
-){  return ( video_color >> E_main_S_framebuffer.green_shift ) & (( 1 << E_main_S_framebuffer.green_size ) - 1 );
+E_vga_Z_color_R_green( N32 color
+){  return ( color >> 8 ) & 0xff;
 }
 _private
 N8
-E_vga_Z_video_color_R_blue( N32 video_color
-){  return ( video_color >> E_main_S_framebuffer.blue_shift ) & (( 1 << E_main_S_framebuffer.blue_size ) - 1 );
+E_vga_Z_color_R_blue( N32 color
+){  return color & 0xff;
 }
 _private
 N32
-E_vga_Z_video_color_M_gray( N8 luminance
-){  return E_vga_Z_video_color_M( luminance, luminance, luminance );
+E_vga_Z_color_M_gray( N8 luminance
+){  return E_vga_Z_color_M( luminance, luminance, luminance );
 }
 _private
 N32
@@ -102,9 +100,9 @@ E_vga_I_set_pixel_aa(
     background_red = background_green = background_blue = 0;
     for_n( i, 8 )
         if( p[i] != color )
-        {   background_red += E_vga_Z_video_color_R_red( p[i] );
-            background_green += E_vga_Z_video_color_R_green( p[i] );
-            background_blue += E_vga_Z_video_color_R_red( p[i] );
+        {   background_red += E_vga_Z_color_R_red( p[i] );
+            background_green += E_vga_Z_color_R_green( p[i] );
+            background_blue += E_vga_Z_color_R_red( p[i] );
             n++;
         }
     if(n)
@@ -112,13 +110,13 @@ E_vga_I_set_pixel_aa(
         background_green /= n;
         background_blue /= n;
     }else
-    {   background_red = E_vga_Z_video_color_R_red( E_vga_S_background_color );
-        background_green = E_vga_Z_video_color_R_green( E_vga_S_background_color );
-        background_blue = E_vga_Z_video_color_R_blue( E_vga_S_background_color );
+    {   background_red = E_vga_Z_color_R_red( E_vga_S_background_color );
+        background_green = E_vga_Z_color_R_green( E_vga_S_background_color );
+        background_blue = E_vga_Z_color_R_blue( E_vga_S_background_color );
     }
-    N8 red = E_vga_Z_video_color_R_red( color );
-    N8 green = E_vga_Z_video_color_R_green( color );
-    N8 blue = E_vga_Z_video_color_R_blue( color );
+    N8 red = E_vga_Z_color_R_red( color );
+    N8 green = E_vga_Z_color_R_green( color );
+    N8 blue = E_vga_Z_color_R_blue( color );
     if( red > background_red )
         red = background_red + ( red - background_red ) * brightness;
     else
@@ -131,7 +129,7 @@ E_vga_I_set_pixel_aa(
         blue = background_blue + ( blue - background_blue ) * brightness;
     else
         blue = background_blue - ( background_blue - blue ) * brightness;
-    E_vga_P_pixel( x, y, E_vga_Z_video_color_M( red, green, blue ));
+    E_vga_P_pixel( x, y, E_vga_Z_color_M( red, green, blue ));
 }
 _private
 void

@@ -399,7 +399,7 @@ E_pci_I_check_device( N8 bus_i
             {   N32 n_0 = E_pci_I_read( bus_i, device_i, function_i, cap_pointer );
                 switch( n_0 & 0xff )
                 { case 5: // MSI
-                    {   N8 interrupt = E_interrupt_R_gsi_next();
+                    {   N8 interrupt = E_interrupt_R_free_external();
                         if( !~interrupt )
                             return ~0;
                         N64 address = (N)E_main_Z_p_I_to_physical( E_interrupt_Q_local_apic_S_address );
@@ -440,7 +440,7 @@ E_pci_I_check_device( N8 bus_i
     { case 0x100f8086:
         {   N32 command_status = E_pci_I_read( bus_i, device_i, function_i, 4 );
             E_pci_I_write( bus_i, device_i, function_i, 4, ( command_status | ( 1 << 2 ) | ( 1 << 1 )) & ~( 1 << 10 )); // Włącza ‘bus mastering’, reakcję na dostęp do MMIO oraz przerwanie.
-            E_interrupt_P( 18, &E_ethernet_I_interrupt ); //NDFN Tymczasowo, do czasu zrobienia ACPI.
+            E_interrupt_P_gsi( 18, &E_ethernet_I_interrupt ); //NDFN Tymczasowo, do czasu zrobienia ACPI.
             N8 cap_pointer = E_pci_I_read( bus_i, device_i, function_i, 0x34 ) & 0xfc;
             while( cap_pointer )
             {   N32 n_0 = E_pci_I_read( bus_i, device_i, function_i, cap_pointer );

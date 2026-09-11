@@ -646,7 +646,7 @@ E_keyboard_M( void
     {   K_( ~1, W( E_keyboard_S_queue ));
         return ~0;
     }
-    E_interrupt_P( 1, &E_keyboard_I_interrupt );
+    E_interrupt_P_gsi( 1, &E_keyboard_I_interrupt );
     G( "Keyboard initialized." );
     return 0;
 }
