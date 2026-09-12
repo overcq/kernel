@@ -637,16 +637,16 @@ E_controls_I_key( I window_id
     switch( data->control[ data->control_cursor ].type )
     { case E_controls_Z_type_S_textbox:
                 if( !E_keyboard_S_meta_set
-                && ( E_keyboard_S_queue[ queue_i ].code == 0x4b
-                  || E_keyboard_S_queue[ queue_i ].code == 0x4d
+                && ( E_keyboard_S_queue[ queue_i ].code == 0x6b
+                  || E_keyboard_S_queue[ queue_i ].code == 0x74
                 ))
-                {   if( E_keyboard_S_queue[ queue_i ].code == 0x4b // left
+                {   if( E_keyboard_S_queue[ queue_i ].code == 0x6b // left
                     && data->control[ data->control_cursor ].textbox.visible_start == data->control[ data->control_cursor ].textbox.cursor
                     )
                     {   if( !data->control[ data->control_cursor ].textbox.cursor )
                             break;
                         data->control[ data->control_cursor ].textbox.visible_start--;
-                    }else if( E_keyboard_S_queue[ queue_i ].code == 0x4d ) // right
+                    }else if( E_keyboard_S_queue[ queue_i ].code == 0x74 ) // right
                     {   S32 x_0 = x + data->control[ data->control_cursor ].x - data->scroll_x;
                         S32 x_ = x_0 + 1 + data->control[ data->control_cursor ].textbox.font_thickness + 1;
                         Pc s = data->control[ data->control_cursor ].textbox.text;
@@ -693,13 +693,13 @@ E_controls_I_key( I window_id
                         }else if( !*s )
                             break;
                     }
-                    if( E_keyboard_S_queue[ queue_i ].code == 0x4b )
+                    if( E_keyboard_S_queue[ queue_i ].code == 0x6b )
                         data->control[ data->control_cursor ].textbox.cursor--;
                     else
                         data->control[ data->control_cursor ].textbox.cursor++;
                     U_F( gui, draw );
                 }else if( !E_keyboard_S_meta_set
-                && E_keyboard_S_queue[ queue_i ].code == 0x47 // home
+                && E_keyboard_S_queue[ queue_i ].code == 0x6c // home
                 )
                 {   if( data->control[ data->control_cursor ].textbox.cursor )
                     {   data->control[ data->control_cursor ].textbox.visible_start = 0;
@@ -707,7 +707,7 @@ E_controls_I_key( I window_id
                         U_F( gui, draw );
                     }
                 }else if( !E_keyboard_S_meta_set
-                && E_keyboard_S_queue[ queue_i ].code == 0x4f // end
+                && E_keyboard_S_queue[ queue_i ].code == 0x69 // end
                 )
                 {   Pc s = data->control[ data->control_cursor ].textbox.text;
                     N u_i = 0;
@@ -737,7 +737,7 @@ E_controls_I_key( I window_id
                         U_F( gui, draw );
                     }
                 }else if( !E_keyboard_S_meta_set
-                && E_keyboard_S_queue[ queue_i ].code == 0xe // backspace
+                && E_keyboard_S_queue[ queue_i ].code == 0x66 // backspace
                 )
                 {   if( !data->control[ data->control_cursor ].textbox.cursor )
                         break;
@@ -757,7 +757,7 @@ E_controls_I_key( I window_id
                         data->control[ data->control_cursor ].textbox.visible_start = data->control[ data->control_cursor ].textbox.cursor;
                     U_F( gui, draw );
                 }else if( !E_keyboard_S_meta_set
-                && E_keyboard_S_queue[ queue_i ].code == 0x53 // delete
+                && E_keyboard_S_queue[ queue_i ].code == 0x71 // delete
                 )
                 {   Pc s = data->control[ data->control_cursor ].textbox.text;
                     N u_i = 0;
@@ -779,14 +779,14 @@ E_controls_I_key( I window_id
                         return ~0;
                     U_F( gui, draw );
                 }else if( !E_keyboard_S_meta_set
-                && E_keyboard_S_queue[ queue_i ].code == 1 // escape
+                && E_keyboard_S_queue[ queue_i ].code == 0x76 // escape
                 )
                 {   K( data->control[ data->control_cursor ].textbox.done( window_id, no ))
                         return ~0;
                     data->control_cursor = ~0;
                     U_F( gui, draw );
                 }else if( !E_keyboard_S_meta_set
-                && E_keyboard_S_queue[ queue_i ].code == 0x1c // enter
+                && E_keyboard_S_queue[ queue_i ].code == 0x5a // enter
                 )
                 {   K( data->control[ data->control_cursor ].textbox.done( window_id, yes ))
                         return ~0;

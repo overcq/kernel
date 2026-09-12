@@ -23,6 +23,7 @@ Operating system for x86_64 architecture.
 ## 4. Needed to build
 
 * Linux
+* OUX/C+
 * “elf2oux”
 * “mkfs.oux”
 * boot loader

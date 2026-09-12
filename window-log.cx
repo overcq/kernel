@@ -187,10 +187,10 @@ E_window_log_I_key( I window_id
         return 0;
     X_A( gui, draw );
     struct E_window_log_Z_data *window_data = window->data;
-    if( E_keyboard_S_queue[ queue_i ].code == 0x48
-    || E_keyboard_S_queue[ queue_i ].code == 0x49
-    || E_keyboard_S_queue[ queue_i ].code == 0x50
-    || E_keyboard_S_queue[ queue_i ].code == 0x51
+    if( E_keyboard_S_queue[ queue_i ].code == 0x75
+    || E_keyboard_S_queue[ queue_i ].code == 0x7d
+    || E_keyboard_S_queue[ queue_i ].code == 0x72
+    || E_keyboard_S_queue[ queue_i ].code == 0x7a
     )
     {   if( !~window_data->line )
             window_data->line = E_se_log_S_lines - 1;
@@ -200,16 +200,16 @@ E_window_log_I_key( I window_id
         N scroll_count = ( height - ( window_data->font_size + 1 )) / (( window_data->font_size + 1 ) * E_font_S_font.height + window_data->font_size + 1 );
         S count;
         switch( E_keyboard_S_queue[ queue_i ].code )
-        { case 0x48:
+        { case 0x75:
                 count = -1;
                 break;
-          case 0x49:
+          case 0x7d:
                 count = -scroll_count;
                 break;
-          case 0x50:
+          case 0x72:
                 count = 1;
                 break;
-          case 0x51:
+          case 0x7a:
                 count = scroll_count;
                 break;
         }
@@ -222,12 +222,12 @@ E_window_log_I_key( I window_id
         {   window_data->line = line;
             U_F( gui, draw );
         }
-    }else if( E_keyboard_S_queue[ queue_i ].code == 0x47 )
+    }else if( E_keyboard_S_queue[ queue_i ].code == 0x6c )
     {   if( window_data->line != 0 )
         {   window_data->line = 0;
             U_F( gui, draw );
         }
-    }else if( E_keyboard_S_queue[ queue_i ].code == 0x4f )
+    }else if( E_keyboard_S_queue[ queue_i ].code == 0x69 )
     {   if( window_data->line != ~0 )
         {   window_data->line = ~0;
             U_F( gui, draw );

@@ -35,7 +35,7 @@ _private volatile B E_mouse_Q_button_S_press_held_cancel;
 _internal
 void
 E_mouse_I_interrupt_I_smooth( void
-){  F mul = 0.5;
+){  F mul = 0.8;
     N16 x_move_abs = J_abs( E_mouse_S_move[0] );
     N16 y_move_abs = J_abs( E_mouse_S_move[1] );
     if(( x_move_abs >= 4
@@ -44,11 +44,11 @@ E_mouse_I_interrupt_I_smooth( void
     && x_move_abs < 8
     && y_move_abs < 8
     )
-        mul = 0.2 + ( mul - 0.2 ) * J_max( x_move_abs, y_move_abs ) / 8;
+        mul = 0.6 + ( mul - 0.6 ) * J_max( x_move_abs, y_move_abs ) / 8;
     E_mouse_S_move[0] *= mul;
     E_mouse_S_move[1] *= mul;
 }
-_internal
+_private
 void
 E_mouse_I_interrupt( void
 ){  N32 sched_i = E_flow_I_current_scheduler();
@@ -288,10 +288,11 @@ E_mouse_P_rate( N8 rate
     return 0;
 }
 //------------------------------------------------------------------------------
-_internal
+_private
 N
 E_mouse_I_enable( void
-){  if( E_keyboard_I_wait_write() )
+){  E_mouse_S_interrupt_state = ~0;
+    if( E_keyboard_I_wait_write() )
         return ~0;
     E_main_I_out_8( 0x64, 0xd4 );
     if( E_keyboard_I_wait_write() )
@@ -319,10 +320,7 @@ E_mouse_I_disable( void
 _private
 N
 E_mouse_M( void
-){  if( !E_mouse_S_initialized )
-        return 0;
-    E_mouse_S_interrupt_state = ~0;
-    E_mouse_Q_button_S_click_dx = 8; //CONF
+){  E_mouse_Q_button_S_click_dx = 8; //CONF
     E_mouse_Q_button_S_click_dy = 8; //CONF
     E_mouse_Q_button_S_press_timeout = 540; //CONF
     E_mouse_Q_button_S_release_timeout = 180; //CONF
@@ -340,9 +338,6 @@ E_mouse_M( void
     )
         return ~0;
     E_interrupt_P_gsi( 12, &E_mouse_I_interrupt );
-    if( E_mouse_I_enable() )
-        return ~0;
-    G( "Mouse initialized." );
     return 0;
 }
 //==============================================================================

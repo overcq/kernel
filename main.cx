@@ -566,15 +566,13 @@ main( struct E_main_Z_kernel_args *kernel_args
     r = E_keyboard_M();
     if( K_error(r) )
         goto End;
-    r = E_mouse_M();
-    if( K_error(r) )
-        goto End;
     r = D_M( main, test, 0 );
     if( K_error(r) )
         goto End;
     X_M( main, test );
     if( K_error( _X_var( main, test )))
         goto End;
+    E_emerg_print_S_active = no;
     O{  X_B( main, test, 0 )
             break;
     }
