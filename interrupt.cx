@@ -391,20 +391,24 @@ E_interrupt_R_free_external( void
 _private
 void
 E_interrupt_I_print_hex( N v
-){  E_emerg_print_I_print( "0x" );
-    if( !v )
-    {   E_emerg_print_I_print( "0" );
-        return;
-    }
-    C buf[ 16 + 1 ];
+){  C buf[ 16 + 1 ];
     N8 i = sizeof(buf) - 1;
     buf[i] = '\0';
-    while(v)
-    {   N8 v_ = v & 0xf;
-        buf[ --i ] = v_ < 10 ? '0' + v_ : 'a' + v_ - 10;
-        v >>= 4;
+    N v_ = v;
+    while( v_ )
+    {   N8 v__ = v_ & 0xf;
+        buf[ --i ] = v__ < 10 ? '0' + v__ : 'a' + v__ - 10;
+        v_ >>= 4;
     }
-    E_emerg_print_I_print( (Pc)&buf[i] );
+    N i_ = i;
+    if( !v )
+        i_--;
+    while( i_-- )
+        E_emerg_print_I_print( "_" );
+    if(v)
+        E_emerg_print_I_print( (Pc)&buf[i] );
+    else
+        E_emerg_print_I_print( "0" );
 }
 _private
 __attribute__ (( __noreturn__ ))
@@ -414,11 +418,11 @@ E_interrupt_I_panic( Pc message
 ){  E_emerg_print_I_set_panic();
     E_emerg_print_I_print( "PANIC: " );
     E_emerg_print_I_print(message);
-    E_emerg_print_I_print( "\nKernel Base: " );
+    E_emerg_print_I_print( "\nKernel base: " );
     E_interrupt_I_print_hex( (N)E_main_S_kernel );
     if( stack_frame )
-    {   E_emerg_print_I_print( "\nStack dump (RBP):" );
-        for_n( i, 20 )
+    {   E_emerg_print_I_print( "\nStack dump:" );
+        for_n( i, 17 )
         {   if( !( i % 4 ))
                 E_emerg_print_I_print_nl();
             else

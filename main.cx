@@ -397,7 +397,7 @@ _private
 __attribute__ (( __noreturn__ ))
 void
 main( struct E_main_Z_kernel_args *kernel_args
-){  E_mem_blk_S = kernel_args->mem_blk;
+){  E_mem_Q_blk_S = kernel_args->mem_blk;
     E_main_S_memory_map = kernel_args->memory_map;
     E_main_S_memory_map_n = kernel_args->memory_map_n;
     E_main_S_kernel = kernel_args->kernel;
@@ -535,7 +535,7 @@ main( struct E_main_Z_kernel_args *kernel_args
         goto End;
     E_flow_Z_lock_I_lock( &E_mem_blk_S_lock );
     struct E_mem_Q_blk_Z_free free_p_;
-    r = E_mem_Q_blk_Q_sys_table_f_P_put( E_mem_blk_S.free_id, (Pc)&free_p_.p - (Pc)&free_p_, (Pc)&free_p_.l - (Pc)&free_p_, (P)(N)kernel_args->processor_start_page, E_mem_S_page_size );
+    r = E_mem_Q_blk_Q_sys_table_f_P_put( E_mem_Q_blk_S.free_id, (Pc)&free_p_.p - (Pc)&free_p_, (Pc)&free_p_.l - (Pc)&free_p_, (P)(N)kernel_args->processor_start_page, E_mem_S_page_size );
     if( K_error(r) )
         goto End;
     E_flow_Z_lock_I_unlock( &E_mem_blk_S_lock );

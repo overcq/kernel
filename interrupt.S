@@ -296,7 +296,6 @@ E_interrupt_I_exeception_de:
     push    %r15
     mov     %rsp,%rsi
     and     $~0xf,%rsp
-    lea     -4*8(%rsp),%rsp
     lea     msg_0-.-3(%rip),%rdi
     cld
     call    E_interrupt_I_panic
@@ -319,7 +318,6 @@ E_interrupt_I_exeception_db:
     push    %r15
     mov     %rsp,%rsi
     and     $~0xf,%rsp
-    lea     -4*8(%rsp),%rsp
     lea     msg_1-.-3(%rip),%rdi
     cld
     call    E_interrupt_I_panic
@@ -342,7 +340,6 @@ E_interrupt_I_exeception_nmi:
     push    %r15
     mov     %rsp,%rsi
     and     $~0xf,%rsp
-    lea     -4*8(%rsp),%rsp
     lea     msg_2-.-3(%rip),%rdi
     cld
     call    E_interrupt_I_panic
@@ -365,7 +362,6 @@ E_interrupt_I_exeception_bp:
     push    %r15
     mov     %rsp,%rsi
     and     $~0xf,%rsp
-    lea     -4*8(%rsp),%rsp
     lea     msg_3-.-3(%rip),%rdi
     cld
     call    E_interrupt_I_panic
@@ -388,7 +384,6 @@ E_interrupt_I_exeception_of:
     push    %r15
     mov     %rsp,%rsi
     and     $~0xf,%rsp
-    lea     -4*8(%rsp),%rsp
     lea     msg_4-.-3(%rip),%rdi
     cld
     call    E_interrupt_I_panic
@@ -411,7 +406,6 @@ E_interrupt_I_exeception_br:
     push    %r15
     mov     %rsp,%rsi
     and     $~0xf,%rsp
-    lea     -4*8(%rsp),%rsp
     lea     msg_5-.-3(%rip),%rdi
     cld
     call    E_interrupt_I_panic
@@ -434,7 +428,6 @@ E_interrupt_I_exeception_ud:
     push    %r15
     mov     %rsp,%rsi
     and     $~0xf,%rsp
-    lea     -4*8(%rsp),%rsp
     lea     msg_6-.-3(%rip),%rdi
     cld
     call    E_interrupt_I_panic
@@ -457,7 +450,6 @@ E_interrupt_I_exeception_nm:
     push    %r15
     mov     %rsp,%rsi
     and     $~0xf,%rsp
-    lea     -4*8(%rsp),%rsp
     lea     msg_7-.-3(%rip),%rdi
     cld
     call    E_interrupt_I_panic
@@ -480,7 +472,6 @@ E_interrupt_I_exeception_df:
     push    %r15
     mov     %rsp,%rsi
     and     $~0xf,%rsp
-    lea     -4*8(%rsp),%rsp
     lea     msg_8-.-3(%rip),%rdi
     cld
     call    E_interrupt_I_panic
@@ -502,7 +493,6 @@ E_interrupt_I_exeception_ts:
     push    %r15
     mov     %rsp,%rsi
     and     $~0xf,%rsp
-    lea     -4*8(%rsp),%rsp
     lea     msg_10-.-3(%rip),%rdi
     cld
     call    E_interrupt_I_panic
@@ -518,7 +508,6 @@ E_interrupt_I_exeception_np:
     push    %rbx
     mov     %rsp,%rsi
     and     $~0xf,%rsp
-    lea     -4*8(%rsp),%rsp
     lea     msg_11-.-3(%rip),%rdi
     cld
     call    E_interrupt_I_panic
@@ -540,7 +529,6 @@ E_interrupt_I_exeception_ss:
     push    %r15
     mov     %rsp,%rsi
     and     $~0xf,%rsp
-    lea     -4*8(%rsp),%rsp
     lea     msg_12-.-3(%rip),%rdi
     cld
     call    E_interrupt_I_panic
@@ -562,7 +550,6 @@ E_interrupt_I_exeception_gp:
     push    %r15
     mov     %rsp,%rsi
     and     $~0xf,%rsp
-    lea     -4*8(%rsp),%rsp
     lea     msg_13-.-3(%rip),%rdi
     cld
     call    E_interrupt_I_panic
@@ -584,7 +571,6 @@ E_interrupt_I_exeception_pf:
     push    %r15
     mov     %rsp,%rsi
     and     $~0xf,%rsp
-    lea     -4*8(%rsp),%rsp
     lea     msg_14-.-3(%rip),%rdi
     cld
     call    E_interrupt_I_panic
@@ -606,7 +592,6 @@ E_interrupt_I_exeception_mf:
     push    %r15
     mov     %rsp,%rsi
     and     $~0xf,%rsp
-    lea     -4*8(%rsp),%rsp
     lea     msg_16-.-3(%rip),%rdi
     cld
     call    E_interrupt_I_panic
@@ -628,7 +613,6 @@ E_interrupt_I_exeception_ac:
     push    %r15
     mov     %rsp,%rsi
     and     $~0xf,%rsp
-    lea     -4*8(%rsp),%rsp
     lea     msg_17-.-3(%rip),%rdi
     cld
     call    E_interrupt_I_panic
@@ -650,7 +634,6 @@ E_interrupt_I_exeception_mc:
     push    %r15
     mov     %rsp,%rsi
     and     $~0xf,%rsp
-    lea     -4*8(%rsp),%rsp
     lea     msg_18-.-3(%rip),%rdi
     cld
     call    E_interrupt_I_panic
@@ -672,7 +655,6 @@ E_interrupt_I_exeception_xm:
     push    %r15
     mov     %rsp,%rsi
     and     $~0xf,%rsp
-    lea     -4*8(%rsp),%rsp
     lea     msg_19-.-3(%rip),%rdi
     cld
     call    E_interrupt_I_panic
@@ -694,7 +676,6 @@ E_interrupt_I_exeception_ve:
     push    %r15
     mov     %rsp,%rsi
     and     $~0xf,%rsp
-    lea     -4*8(%rsp),%rsp
     lea     msg_20-.-3(%rip),%rdi
     cld
     call    E_interrupt_I_panic
@@ -716,7 +697,6 @@ E_interrupt_I_exeception_cp:
     push    %r15
     mov     %rsp,%rsi
     and     $~0xf,%rsp
-    lea     -4*8(%rsp),%rsp
     lea     msg_21-.-3(%rip),%rdi
     cld
     call    E_interrupt_I_panic
