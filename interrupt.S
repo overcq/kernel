@@ -733,11 +733,16 @@ E_interrupt_I_external:
     pop     %r8
     pop     %rsi
     pop     %rdi
-0:  mov     $0x80b,%ecx
+0:  xor     %eax,%eax
+    cmp     %al,E_main_S_x2apic(%rip)
+    je      0f
+    mov     $0x80b,%ecx
     xor     %edx,%edx
-    xor     %eax,%eax
     wrmsr
-    pop     %rcx
+    jmp     1f
+0:  mov     E_interrupt_Q_local_apic_S_address(%rip),%ecx
+    mov     %eax,0xb0(%ecx)
+1:  pop     %rcx
     pop     %rax
     pop     %rdx
     iretq
