@@ -253,8 +253,8 @@ _private void E_interrupt_I_external_253(void);
 _private void E_interrupt_I_external_254(void);
 _private void E_interrupt_I_external_spurious(void);
 //==============================================================================
-_private volatile P E_interrupt_Q_local_apic_S_address;
-_private volatile P E_interrupt_Q_io_apic_S_address;
+_private P E_interrupt_Q_local_apic_S_address;
+_private P E_interrupt_Q_io_apic_S_address;
 _private
 struct E_interrupt_Z_gsi
 { N8 source;
@@ -306,13 +306,23 @@ _private
 void
 E_interrupt_I_ipi( N32 processor
 , N8 i
-){  E_main_Q_msr_P( 0x830, ( (N64)processor << 32 ) | ( 32 + i ));
+){  if( E_main_S_x2apic )
+        E_main_Q_msr_P( 0x830, (( N64 )processor << 32 ) | ( 32 + i ));
+    else
+    {   *( volatile N32 * )(( Pc )E_interrupt_Q_local_apic_S_address + 0x310 ) = processor << 24;
+        *( volatile N32 * )(( Pc )E_interrupt_Q_local_apic_S_address + 0x300 ) = 32 + i;
+    }
 }
 _private
 void
 E_interrupt_I_ipi_startup( N32 processor
 , P proc
-){  E_main_Q_msr_P( 0x830, ( (N64)processor << 32 ) | ( 6 << 8 ) | ( (N)proc >> 12 ));
+){  if( E_main_S_x2apic )
+        E_main_Q_msr_P( 0x830, (( N64 )processor << 32 ) | ( 6 << 8 ) | ( (N)proc >> 12 ));
+    else
+    {   *( volatile N32 * )(( Pc )E_interrupt_Q_local_apic_S_address + 0x310 ) = processor << 24;
+        *( volatile N32 * )(( Pc )E_interrupt_Q_local_apic_S_address + 0x300 ) = ( 6 << 8 ) | ( (N)proc >> 12 );
+    }
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #define E_interrupt_Q_io_apic_J_gsi_v( vector, delivery_mode, polarity, trigger_mode, destination ) \
@@ -345,7 +355,10 @@ _internal
 void
 E_interrupt_I_rtc_interrupt_2( void
 ){  if( !E_interrupt_S_rtc_ticks )
-        E_main_Q_msr_P( 0x838, E_interrupt_S_apic_timer_div ); // Włącz zegar APIC i ustaw liczbę cykli (był ustawiony tryb okresowy).
+        if( E_main_S_x2apic )
+            E_main_Q_msr_P( 0x838, E_interrupt_S_apic_timer_div ); // Włącz zegar APIC i ustaw liczbę cykli (był ustawiony tryb okresowy).
+        else
+            *( volatile N32 * )(( Pc )E_interrupt_Q_local_apic_S_address + 0x380 ) = E_interrupt_S_apic_timer_div;
     else if( E_interrupt_S_rtc_ticks == 1 )
         E_interrupt_S_apic_timer_freq_ = E_interrupt_S_apic_timer_ticks;
     E_interrupt_S_rtc_ticks++;
@@ -1155,7 +1168,10 @@ E_interrupt_M( void
     :
     : "m" ( E_interrupt_S_id )
     );
-    E_main_Q_msr_P( 0x80f, ( E_main_Q_msr_R( 0x80f ) & ~0xff ) | 0x100 | ( 32 + E_interrupt_S_gsi_ex_n + E_interrupt_S_gsi_n )); // Ustaw numer przerwania nieoczekiwanego i włącz APIC.
+    if( E_main_S_x2apic )
+        E_main_Q_msr_P( 0x80f, ( E_main_Q_msr_R( 0x80f ) & ~0xff ) | 0x100 | ( 32 + E_interrupt_S_gsi_ex_n + E_interrupt_S_gsi_n )); // Ustaw numer przerwania nieoczekiwanego i włącz APIC.
+    else
+        *( volatile N32 * )(( Pc )E_interrupt_Q_local_apic_S_address + 0xf0 ) = ( *( volatile N32 * )(( Pc )E_interrupt_Q_local_apic_S_address + 0xf0 ) & ~0xff ) | 0x100 | ( 32 + E_interrupt_S_gsi_ex_n + E_interrupt_S_gsi_n );
     for_n( i, E_interrupt_S_gsi_n )
         if( ~(S8)E_interrupt_S_gsi[i].source )
             E_interrupt_Q_io_apic_I_enable(i);
@@ -1170,8 +1186,13 @@ E_interrupt_M( void
     E_interrupt_S_external[ E_interrupt_S_gsi_ex_n + 16 ] = &E_interrupt_I_apic_timer_interrupt;
     if( !~(S8)E_interrupt_P_gsi( 8, &E_interrupt_I_rtc_interrupt_1 ))
         return ~0;
-    E_main_Q_msr_P( 0x832, ( 32 + E_interrupt_S_gsi_ex_n + 16 ) | ( 1 << 17 )); // Ustaw przerwanie zegara i typ zegara: okresowy.
-    E_main_Q_msr_P( 0x83e, ( E_main_Q_msr_R( 0x83e ) & ~0xf ) | 0xb ); // Ustaw dzielnik na 1.
+    if( E_main_S_x2apic )
+    {   E_main_Q_msr_P( 0x832, ( 32 + E_interrupt_S_gsi_ex_n + 16 ) | ( 1 << 17 )); // Ustaw przerwanie zegara i typ zegara: okresowy.
+        E_main_Q_msr_P( 0x83e, ( E_main_Q_msr_R( 0x83e ) & ~0xf ) | 0xb ); // Ustaw dzielnik na 1.
+    }else
+    {   *( volatile N32 * )(( Pc )E_interrupt_Q_local_apic_S_address + 0x320 ) = ( 32 + E_interrupt_S_gsi_ex_n + 16 ) | ( 1 << 17 );
+        *( volatile N32 * )(( Pc )E_interrupt_Q_local_apic_S_address + 0x32e ) = ( *( volatile N32 * )(( Pc )E_interrupt_Q_local_apic_S_address + 0x32e ) & ~0xf ) | 0xb;
+    }
     // Przygotowanie zegara RTC.
     E_main_I_out_8( 0x70, 0x8a ); // Wybierz rejestr A i wyłącz NMI.
     N8 v = E_main_I_in_8( 0x71 );
@@ -1209,7 +1230,10 @@ E_interrupt_M( void
         __asm__ volatile (
         "\n" "cli"
         );
-        E_main_Q_msr_P( 0x838, 0 ); // Zatrzymaj zegar APIC.
+        if( E_main_S_x2apic )
+            E_main_Q_msr_P( 0x838, 0 ); // Zatrzymaj zegar APIC.
+        else
+            *( volatile N32 * )(( Pc )E_interrupt_Q_local_apic_S_address + 0x380 ) = 0;
         if(( E_interrupt_S_apic_timer_freq << 1 ) > E_interrupt_S_apic_timer_freq_ ) // Czy nie nadąża obsługiwać przerwań zliczających?
         {   E_interrupt_S_apic_timer_div <<= 1;
             break;
@@ -1226,7 +1250,10 @@ E_interrupt_M( void
     E_main_I_out_8( 0x71, v & ~0x40 ); // Wyłącz zegar RTC.
     E_main_I_out_8( 0x70, 0xc ); // Wybierz rejestr C i włącz NMI.
     E_main_I_in_8( 0x71 ); // Potwierdź odbiór przerwania.
-    E_main_Q_msr_P( 0x832, 32 + E_interrupt_S_gsi_timer ); // Ustaw przerwanie zegara i typ zegara: jednorazowy.
+    if( E_main_S_x2apic )
+        E_main_Q_msr_P( 0x832, 32 + E_interrupt_S_gsi_timer ); // Ustaw przerwanie zegara i typ zegara: jednorazowy.
+    else
+        *( volatile N32 * )(( Pc )E_interrupt_Q_local_apic_S_address + 0x320 ) = 32 + E_interrupt_S_gsi_timer;
     E_interrupt_P_gsi( 8, 0 );
     E_interrupt_S_external[ E_interrupt_S_gsi_ex_n + 16 ] = 0;
     __asm__ volatile (

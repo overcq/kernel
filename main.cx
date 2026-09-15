@@ -94,6 +94,7 @@ _private N E_main_S_ldt[2];
 _private P E_main_S_page_table;
 _private P E_main_S_kernel;
 _private B E_main_S_sse;
+_private B E_main_S_x2apic;
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 struct E_main_Z_kernel_args_Z_acpi
 { P dmar_content;
@@ -135,7 +136,8 @@ struct E_main_Z_kernel_args
   N32 processor_start_page;
   N32 processor_n;
   N8 gsi_n;
-  unsigned sse  :1;
+  B sse;
+  B x2apic;
 };
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 struct __attribute__ (( __packed__ )) E_main_I_tss
@@ -331,9 +333,16 @@ E_main_I_processor_start( void
     "\n" "mov       %%cr8,%%rax"
     "\n" "and       $~0xf,%%rax"
     "\n" "mov       %%rax,%%cr8"
+    "\n" "mov       %10,%%r8b"
+    "\n" "test      %%r8b,%%r8b"
+    "\n" "jz        0f"
     "\n" "mov       $0x802,%%ecx"
     "\n" "rdmsr"
-    "\n" "dec       %%eax"
+    "\n" "jmp       1f"
+    "\n0: mov       %11,%%rsi"
+    "\n" "mov       0x20(%%rsi),%%eax"
+    "\n" "shr       $24,%%eax"
+    "\n1: dec       %%eax"
     "\n" "mov       %%eax,%%ebx"
     "\n" "mov       %4,%%rbp"
     "\n" "mov       (%%rbp,%%rbx,8),%%rdi"
@@ -357,6 +366,8 @@ E_main_I_processor_start( void
     "\n" "shl       $3,%%rax"
     "\n" "ltr       %%ax"
     "\n" "lidt      %7"
+    "\n" "test      %%r8b,%%r8b"
+    "\n" "jz        0f"
     "\n" "mov       $0x80f,%%ecx"
     "\n" "rdmsr"
     "\n" "or        $0x100,%%eax"
@@ -372,7 +383,20 @@ E_main_I_processor_start( void
     "\n" "and       $~0xf,%%eax"
     "\n" "or        $0xb,%%eax"
     "\n" "wrmsr"
-    "\n" "sti"
+    "\n" "jmp       1f"
+    "\n0: mov       0xf0(%%rsi),%%eax"
+    "\n" "or        $0x100,%%eax"
+    "\n" "mov       %8,%%al"
+    "\n" "lea       32(%%eax),%%eax"
+    "\n" "mov       %%eax,0xf0(%%rsi)"
+    "\n" "movzbq    %9,%%rax"
+    "\n" "lea       32(%%rax),%%rax"
+    "\n" "mov       %%eax,0x320(%%rsi)"
+    "\n" "mov       0x3e0(%%rsi),%%eax"
+    "\n" "and       $~0xf,%%eax"
+    "\n" "or        $0xb,%%eax"
+    "\n" "mov       %%eax,0x3e0(%%rsi)"
+    "\n1: sti"
     "\n" "call      E_flow_M"
     "\n" "cmp       $~4,%%rax"
     "\n" "jnb       E_main_I_fatal"
@@ -383,8 +407,8 @@ E_main_I_processor_start( void
     , "i" ( E_cpu_Z_cr0_S_mp | E_cpu_Z_cr0_S_ne | E_cpu_Z_cr0_S_wp )
     , "i" ( ~( E_cpu_Z_cr4_S_pvi | E_cpu_Z_cr4_S_tsd | E_cpu_Z_cr4_S_pge | E_cpu_Z_cr4_S_pcide | E_cpu_Z_cr4_S_smep | E_cpu_Z_cr4_S_smap | E_cpu_Z_cr4_S_pke | E_cpu_Z_cr4_S_pks | E_cpu_Z_cr4_S_uintr | E_cpu_Z_cr4_S_lam_sup ))
     , "i" ( E_cpu_Z_cr4_S_de | E_cpu_Z_cr4_S_mce | E_cpu_Z_cr4_S_pce | E_cpu_Z_cr4_S_osfxsr | E_cpu_Z_cr4_S_osxmmexcpt | E_cpu_Z_cr4_S_fsgsbase | E_cpu_Z_cr4_S_osxsave )
-    , "m" ( E_main_S_stack ), "r" ( E_main_S_stack_pages * E_mem_S_page_size ), "m" ( E_main_S_gd ), "m" ( E_interrupt_S_id ), "r" (( N8 )( E_interrupt_S_gsi_ex_n + E_interrupt_S_gsi_n )), "m" ( E_interrupt_S_gsi_timer )
-    : "cc", "rax", "rbx", "rcx", "rdx", "rdi", "rbp", "rsp", "memory"
+    , "m" ( E_main_S_stack ), "r" ( E_main_S_stack_pages * E_mem_S_page_size ), "m" ( E_main_S_gd ), "m" ( E_interrupt_S_id ), "r" (( N8 )( E_interrupt_S_gsi_ex_n + E_interrupt_S_gsi_n )), "m" ( E_interrupt_S_gsi_timer ), "m" ( E_main_S_x2apic ), "m" ( E_interrupt_Q_local_apic_S_address )
+    : "cc", "rax", "rbx", "rcx", "rdx", "rsi", "rdi", "rbp", "rsp", "r8", "memory"
     );
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -413,6 +437,7 @@ main( struct E_main_Z_kernel_args *kernel_args
     E_interrupt_S_gsi = kernel_args->gsi;
     E_interrupt_S_gsi_n = kernel_args->gsi_n;
     E_main_S_sse = kernel_args->sse;
+    E_main_S_x2apic = kernel_args->x2apic;
     E_mem_blk_S_lock = no;
     E_mem_blk_S_context_ip = 0;
     E_flow_S_inited = no;

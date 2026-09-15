@@ -82,10 +82,6 @@ mostlyclean: $(wildcard *.cx)
 clean: mostlyclean
 	-rm kernel $(patsubst %.dot,%.svg,$(wildcard doc/*.dot))
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-install-qemu:
-	loopdev=$$( losetup -LPf --show ../boot/disk.img ) \
-    && trap 'losetup -d $$loopdev' EXIT \
-    && install/a.out kernel $${loopdev}p3
 install-virtualbox:
 	trap 'vmware-mount -d $(H_ocq_S_mnt)' EXIT \
     && vmware-mount -f $(H_ocq_S_virtualbox_disk) $(H_ocq_S_mnt) \
@@ -97,6 +93,10 @@ install-vmware:
     && vmware-mount -f $(H_ocq_S_vmware_disk) $(H_ocq_S_mnt) \
     && loopdev=$$( losetup -LPf --show $(H_ocq_S_mnt)/flat ) \
     && trap 'losetup -d $$loopdev && vmware-mount -d $(H_ocq_S_mnt)' EXIT \
+    && install/a.out kernel $${loopdev}p3
+install-qemu:
+	loopdev=$$( losetup -LPf --show ../boot/disk.img ) \
+    && trap 'losetup -d $$loopdev' EXIT \
     && install/a.out kernel $${loopdev}p3
 #-------------------------------------------------------------------------------
 install-usb:

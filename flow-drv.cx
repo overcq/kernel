@@ -88,7 +88,9 @@ E_flow_Q_spin_time_T( N time
 _private
 N32
 E_flow_I_current_scheduler( void
-){  return E_main_Q_msr_R( 0x802 ); // Oczytaj identyfikator APIC.
+){  return E_main_S_x2apic
+    ? E_main_Q_msr_R( 0x802 ) // Oczytaj identyfikator APIC.
+    : *( volatile N32 * )(( Pc )E_interrupt_Q_local_apic_S_address + 0x20 ) >> 24;
 }
 _private
 void
@@ -101,14 +103,21 @@ E_flow_I_sleep( N microseconds
         do
         {   N32 acpi_timer_ticks_ = acpi_timer_ticks > 0xffffffff ? 0xffffffff : acpi_timer_ticks;
             acpi_timer_ticks -= acpi_timer_ticks_;
-            E_main_Q_msr_P( 0x838, acpi_timer_ticks_ ); // Ustaw liczbę cykli zegara APIC.
+            if( E_main_S_x2apic )
+                E_main_Q_msr_P( 0x838, acpi_timer_ticks_ ); // Ustaw liczbę cykli zegara APIC.
+            else
+                *( volatile N32 * )(( Pc )E_interrupt_Q_local_apic_S_address + 0x380 ) = acpi_timer_ticks_;
             O{  __asm__ volatile (
                 "\n" "sti"
                 "\n" "hlt"
                 "\n" "cli"
                 );
-                if( !E_main_Q_msr_R( 0x839 )) // Oczytaj liczbę pozostałych cykli zegara APIC.
-                    break;
+                if( E_main_S_x2apic )
+                {   if( !E_main_Q_msr_R( 0x839 )) // Oczytaj liczbę pozostałych cykli zegara APIC.
+                        break;
+                }else
+                    if( !*( volatile N32 * )(( Pc )E_interrupt_Q_local_apic_S_address + 0x390 ))
+                        break;
             }
         }while( acpi_timer_ticks );
         __asm__ volatile (
@@ -896,20 +905,30 @@ E_flow_Q_task_I_schedule( void
                     {   do
                         {   N32 acpi_timer_ticks_ = acpi_timer_ticks > 0xffffffff ? 0xffffffff : acpi_timer_ticks;
                             acpi_timer_ticks -= acpi_timer_ticks_;
-                            E_main_Q_msr_P( 0x838, acpi_timer_ticks_ ); // Ustaw liczbę cykli zegara APIC.
+                            if( E_main_S_x2apic )
+                                E_main_Q_msr_P( 0x838, acpi_timer_ticks_ ); // Ustaw liczbę cykli zegara APIC.
+                            else
+                                *( volatile N32 * )(( Pc )E_interrupt_Q_local_apic_S_address + 0x380 ) = acpi_timer_ticks_;
                             O{  __asm__ volatile (
                                 "\n" "sti"
                                 "\n" "hlt"
                                 "\n" "cli"
                                 );
                                 if( U_E( E_flow_S_scheduler[ sched_i ].req, wake ))
-                                {   E_main_Q_msr_P( 0x838, 0 ); // Zatrzymaj zegar APIC.
+                                {   if( E_main_S_x2apic )
+                                        E_main_Q_msr_P( 0x838, 0 ); // Zatrzymaj zegar APIC.
+                                    else
+                                        *( volatile N32 * )(( Pc )E_interrupt_Q_local_apic_S_address + 0x380 ) = acpi_timer_ticks_;
                                     acpi_timer_ticks = 0;
                                     E_flow_S_scheduler[ sched_i ].next_time = time;
                                     break;
                                 }
-                                if( !E_main_Q_msr_R( 0x839 )) // Oczytaj liczbę pozostałych cykli zegara APIC.
-                                    break;
+                                if( E_main_S_x2apic )
+                                {   if( !E_main_Q_msr_R( 0x839 )) // Oczytaj liczbę pozostałych cykli zegara APIC.
+                                        break;
+                                }else
+                                    if( !*( volatile N32 * )(( Pc )E_interrupt_Q_local_apic_S_address + 0x390 ))
+                                        break;
                             }
                         }while( acpi_timer_ticks );
                     }
