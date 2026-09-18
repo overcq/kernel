@@ -35,16 +35,16 @@ _private volatile B E_mouse_Q_button_S_press_held_cancel;
 _internal
 void
 E_mouse_I_interrupt_I_smooth( void
-){  F mul = 0.8;
+){  F mul = 1;
     N16 x_move_abs = J_abs( E_mouse_S_move[0] );
     N16 y_move_abs = J_abs( E_mouse_S_move[1] );
-    if(( x_move_abs >= 4
-      || y_move_abs >= 4
+    if(( x_move_abs >= 8
+      || y_move_abs >= 8
     )
-    && x_move_abs < 8
-    && y_move_abs < 8
+    && x_move_abs < 16
+    && y_move_abs < 16
     )
-        mul = 0.6 + ( mul - 0.6 ) * J_max( x_move_abs, y_move_abs ) / 8;
+        mul = 0.8 + ( mul - 0.8 ) * J_max( x_move_abs, y_move_abs ) / 16;
     E_mouse_S_move[0] *= mul;
     E_mouse_S_move[1] *= mul;
 }

@@ -52,3 +52,13 @@ On a Linux operating system (e.g., Gentoo), download the https://github.com/over
 Download the https://github.com/overcq/oux.git repository, build and install it. Download the https://github.com/overcq/linux-ouxfs-tools.git repository containing “mkfs.oux” and build it. Download the https://github.com/overcq/elf2oux.git repository containing “elf2oux”, build and install it. Download the https://github.com/overcq/boot.git repository containing the OUX/C+ OS boot loader and the https://github.com/overcq/kernel.git repository containing the OUX/C+ OS kernel.
 
 Set environment variables in “env.mk” file in the boot loader repository. Execute the command in the boot loader directory for the selected target: `make && make init-`\*` && make install-`\*, and then in the kernel directory: `make && make install-`\*. Start the virtual machine.
+
+## 8. Running in virtual machine simulators
+
+In QEMU, the ‘kernel’ launched via UEFI does not receive APIC timer interrupts at a sufficient rate.
+
+In VirtualBox, the ‘boot loader’ launched via BIOS does not receive the ACPI tables.
+
+In VirtualBox, when booting via UEFI, the ‘kernel’ presumably cannot set the xAPIC EOI.
+
+In VMware Workstation, the ‘boot loader’ launched via BIOS does not receive the correct screen memory.
