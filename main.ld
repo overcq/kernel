@@ -8,19 +8,13 @@ SECTIONS
   .got.plt : { *(.got.plt) *(.igot.plt) }
   . = SEGMENT_START("text-segment", ALIGN(CONSTANT (MAXPAGESIZE)));
   .text :
-  { *(.plt) *(.iplt)
-    *(.plt.sec)
-    *(.text.unlikely .text.*_unlikely .text.unlikely.*)
-    *(.text.exit .text.exit.*)
-    *(.text.startup .text.startup.*)
-    *(.text.hot .text.hot.*)
-    *(SORT(.text.sorted.*))
-    *(.text .stub .text.* .gnu.linkonce.t.*)
+  { *(.ltext.hot.*)
+    *(.text .ltext)
   }
   . = DATA_SEGMENT_ALIGN (CONSTANT (MAXPAGESIZE), CONSTANT (COMMONPAGESIZE));
   .data :
-  { *(.data .data.* .gnu.linkonce.d.*)
-    *(.rodata .rodata.* .gnu.linkonce.r.*)
+  { *(.data .ldata .ldata.*)
+    *(.rodata .lrodata .rodata.* .lrodata.*)
   }
   /*. = SEGMENT_START("rodata-segment", 0);*/
   .dynamic : { *(.dynamic) }

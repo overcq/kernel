@@ -31,7 +31,7 @@ simple.h \
 $(patsubst %.cx,I_compile_S_0_%.c,$(wildcard *.cx)) \
 main.ld \
 Makefile
-	$(CC) $(CFLAGS) -std=c23 -march=x86-64 -mno-sse -mno-red-zone -ffreestanding -fno-asynchronous-unwind-tables -fno-stack-protector -fno-unwind-tables -fno-zero-initialized-in-bss -fwrapv -Wall -Wextra -Wno-address-of-packed-member -Wno-dangling-else -Wno-incompatible-pointer-types-discards-qualifiers -Wno-missing-braces -Wno-sign-compare -Wno-switch -include stdarg.h -include I_compile_S_0.h -nostdlib -fPIC -shared -s -Wl,-T,main.ld -o $@.elf $(filter %.o,$^) $(filter %.c,$^)
+	$(CC) $(CFLAGS) -std=c23 -mcmodel=large -march=x86-64 -mno-sse -mno-red-zone -ffreestanding -fno-asynchronous-unwind-tables -fno-stack-protector -fno-unwind-tables -fno-zero-initialized-in-bss -fwrapv -Wall -Wextra -Wno-address-of-packed-member -Wno-dangling-else -Wno-incompatible-pointer-types-discards-qualifiers -Wno-missing-braces -Wno-sign-compare -Wno-switch -include stdarg.h -include I_compile_S_0.h -nostdlib -fPIC -shared -s -Wl,-T,main.ld -o $@.elf $(filter %.o,$^) $(filter %.c,$^)
 	rm $@; elf2oux $@.elf
 	rm $@.elf
 doc: $(patsubst %.dot,%.svg,$(wildcard doc/*.dot))

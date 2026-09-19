@@ -9182,6 +9182,6 @@ Error:
     }
     K_( ~2, W( E_acpi_aml_S_parse_stack ));
     K_( ~2, E_acpi_aml_W_current_path() );
-    return ~0;
+    return ret;
 }
 /******************************************************************************/

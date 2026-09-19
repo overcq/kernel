@@ -61,4 +61,4 @@ In VirtualBox, the ‘boot loader’ launched via BIOS does not receive the ACPI
 
 In VirtualBox, when booting via UEFI, the ‘kernel’ presumably cannot set the xAPIC EOI.
 
-In VMware Workstation, the ‘boot loader’ launched via BIOS does not receive the correct screen memory.
+In Vmware Workstation, the ‘boot loader’ launched via BIOS does not receive the correct screen memory.
