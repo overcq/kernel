@@ -11,7 +11,7 @@ SECTIONS
   { *(.ltext.hot.*)
     *(.text .ltext)
   }
-  . = DATA_SEGMENT_ALIGN (CONSTANT (MAXPAGESIZE), CONSTANT (COMMONPAGESIZE));
+  . = DATA_SEGMENT_ALIGN(CONSTANT (MAXPAGESIZE), CONSTANT (COMMONPAGESIZE));
   .data :
   { *(.data .ldata .ldata.*)
     *(.rodata .lrodata .rodata.* .lrodata.*)
@@ -20,13 +20,13 @@ SECTIONS
   .dynamic : { *(.dynamic) }
   .dynstr : { *(.dynstr) }
   .rela.dyn :
-  { *(.rela.text .rela.text.* .rela.gnu.linkonce.t.*)
-    *(.rela.rodata .rela.rodata.* .rela.gnu.linkonce.r.*)
-    *(.rela.data .rela.data.* .rela.gnu.linkonce.d.*)
-    *(.rela.tdata .rela.tdata.* .rela.gnu.linkonce.td.*)
+  { *(.rela.text .rela.text.*)
+    *(.rela.rodata .rela.rodata.*)
+    *(.rela.data .rela.data.*)
+    *(.rela.tdata .rela.tdata.*)
     *(.rela.got)
-    *(.rela.ldata .rela.ldata.* .rela.gnu.linkonce.l.*)
-    *(.rela.lrodata .rela.lrodata.* .rela.gnu.linkonce.lr.*)
+    *(.rela.ldata .rela.ldata.*)
+    *(.rela.lrodata .rela.lrodata.*)
     *(.rela.ifunc)
   }
   .rela.plt :

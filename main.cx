@@ -78,9 +78,7 @@ struct E_main_Z_uefi_runtime_services
 }E_main_S_uefi_runtime_services;
 _private
 struct E_main_Z_kernel_Z_acpi
-{ P dmar_content;
-  N dmar_content_l;
-  struct H_oux_Z_hpet hpet;
+{ struct H_oux_Z_hpet hpet;
   struct H_acpi_Z_mcfg_entry *mcfg_content;
   N mcfg_content_n;
   unsigned virt_guest_rtc_good                :1;
@@ -97,9 +95,7 @@ _private B E_main_S_sse;
 _private B E_main_S_x2apic;
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 struct E_main_Z_kernel_args_Z_acpi
-{ P dmar_content;
-  N dmar_content_l;
-  P dsdt_content;
+{ P dsdt_content;
   N dsdt_content_l;
   struct H_oux_Z_hpet hpet;
   struct
@@ -400,12 +396,15 @@ E_main_I_processor_start( void
     "\n" "mov       %%eax,0x3e0(%%rsi)"
     "\n1: sti"
     "\n" "lea       E_flow_M(%%rip),%%rax"
+    "\n" "lea       -4*8(%%rsp),%%rsp"
     "\n" "call      *%%rax"
     "\n" "cmp       $~4,%%rax"
-    "\n" "jnb       E_main_I_fatal"
-    "\n" "movq      $0,(%%rbp,%%rbx,8)"
+    "\n" "jnb       0f"
     "\n" "lea       E_flow_I_main_task(%%rip),%%rax"
-    "\n" "jmp       *%%rax"
+    "\n" "movq      $0,(%%rbp,%%rbx,8)"
+    "\n" "call      *%%rax"
+    "\n0: lea       E_main_I_fatal(%%rip),%%rax"
+    "\n" "call      *%%rax"
     :
     : "i" ( ~( E_cpu_Z_cr0_S_em | E_cpu_Z_cr0_S_ts | E_cpu_Z_cr0_S_nw | E_cpu_Z_cr0_S_cd ))
     , "i" ( E_cpu_Z_cr0_S_mp | E_cpu_Z_cr0_S_ne | E_cpu_Z_cr0_S_wp )
@@ -450,9 +449,11 @@ main( struct E_main_Z_kernel_args *kernel_args
     || !E_vga_S_framebuffer
     )
         E_main_I_fatal();
+    E_main_I_out_8( 0x402, 'a' );
     N r = E_font_M();
     if( K_error(r) )
         E_main_I_fatal();
+    E_main_I_out_8( 0x402, 'b' );
     r = E_se_log_M();
     if( K_error(r) )
         E_main_I_fatal();

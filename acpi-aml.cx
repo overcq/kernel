@@ -1273,7 +1273,7 @@ _internal
 Pc
 E_acpi_aml_Q_path_R_root( N8 *n
 ){  if( E_acpi_aml_S_parse_data == E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end )
-        return 0;
+        return (P)~10;
     N parent_n = 0;
     switch( *E_acpi_aml_S_parse_data )
     { case '\\':
@@ -1318,7 +1318,7 @@ Pc
 E_acpi_aml_Q_path_R_relative( N8 *n
 , N *object_i
 ){  if( E_acpi_aml_S_parse_data == E_acpi_aml_S_parse_stack[ E_acpi_aml_S_parse_stack_n - 1 ].data_end )
-        return 0;
+        return (P)~10;
     switch( *E_acpi_aml_S_parse_data )
     { case '\\':
         {   E_acpi_aml_S_parse_data++;

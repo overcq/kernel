@@ -436,7 +436,7 @@ E_interrupt_I_panic( Pc message
     E_interrupt_I_print_hex( (N)E_main_S_kernel );
     if( stack_frame )
     {   E_emerg_print_I_print( "\nStack dump:" );
-        for_n( i, 17 )
+        for_n( i, 16 )
         {   if( !( i % 4 ))
                 E_emerg_print_I_print_nl();
             else
