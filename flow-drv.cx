@@ -235,7 +235,7 @@ E_flow_Q_task_M( I *uid
     task->run_state = E_flow_Z_run_state_S_ready;
     task->exe_stack = 0;
     *uid = task_id;
-    P *p = ( P * )exe_stack - 1;
+    P *p = ( P * )exe_stack - 5;
     *p = (P)&E_flow_Q_task_I_stop;
     E_flow_Q_task_I_switch( task_id );
     task = E_mem_Q_tab_R( E_flow_S_scheduler[ sched_i ].task, task_id );
