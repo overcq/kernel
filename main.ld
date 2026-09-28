@@ -2,7 +2,7 @@ OUTPUT_FORMAT("elf64-x86-64", "elf64-x86-64", "elf64-x86-64")
 OUTPUT_ARCH(i386:x86-64)
 ENTRY(main)
 SECTIONS
-{ . = SEGMENT_START("rodata-segment", ALIGN(CONSTANT (MAXPAGESIZE)) + SIZEOF_HEADERS);
+{ . = SEGMENT_START("rodata-segment", ALIGN(CONSTANT (MAXPAGESIZE)) /*+ SIZEOF_HEADERS*/);
   .got : { *(.got) *(.igot) }
   /*. = DATA_SEGMENT_RELRO_END (SIZEOF (.got.plt) >= 24 ? 24 : 0, .);*/
   .got.plt : { *(.got.plt) *(.igot.plt) }

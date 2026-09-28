@@ -72,8 +72,7 @@ _private
 N
 E_controls_W( N8 desktop_id
 , I window_id
-){  return 0;
-    struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
+){  struct E_window_Q_window_Z *window = E_mem_Q_tab_R( E_windows_Q_desktop_S[ desktop_id ].window, window_id );
     struct E_controls_Z_data *data = window->controls_data;
     for_n( control_i, data->control_n )
         switch( data->control[ control_i ].type )

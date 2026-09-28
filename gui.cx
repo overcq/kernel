@@ -100,14 +100,16 @@ E_gui_I_error( P context_ip
     if( error <= ~2 )
     {   N r_ = E_windows_Q_desktop_W_clean( E_window_Q_desktop_S_current );
         if( K_error( r_ ))
-        {   r_ = (N)E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S, E_window_Q_desktop_S_current, 1 );
+        {   E_windows_Q_desktop_W_error( E_window_Q_desktop_S_current );
+            r_ = (N)E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S, E_window_Q_desktop_S_current, 1 );
             if( K_error( r_ )
             || !r_
             )
             {   if( r == ~4 )
                     Gk(E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S, E_window_Q_desktop_S_current, 1 ));
                 for_n_rev( desktop_id, E_windows_Q_desktop_S_n )
-                    E_windows_Q_desktop_W_error( desktop_id );
+                    if( desktop_id != E_window_Q_desktop_S_current )
+                        E_windows_Q_desktop_W_error( desktop_id );
                 r_ = (N)E_mem_Q_blk_I_remove( &E_windows_Q_desktop_S, 0, E_windows_Q_desktop_S_n );
                 if( K_error( r_ )
                 || !r_
@@ -694,7 +696,8 @@ E_gui_Q_pointer_I_click( void
                     if( E_mouse_Q_button_S_coordinate[0] >= panel_x_0 + E_gui_Q_taskbar_S_font_size + 1
                     && E_mouse_Q_button_S_coordinate[0] < panel_x_0 + E_gui_Q_taskbar_S_font_size + 1 + ( E_gui_Q_taskbar_S_font_size + 1 ) * E_font_S_font.height
                     ) // Kliknięto przycisk ‛zamknij’.
-                    {   P context_ip;
+                    {   E_gui_Q_taskbar_S_mouse_over_panel = ~0;
+                        P context_ip;
                         N error;
                         K_V( context_ip, error
                         , E_windows_Q_window_W( E_window_Q_desktop_S_current, window_id )
