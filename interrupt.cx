@@ -398,7 +398,7 @@ N8
 E_interrupt_R_free_external( void
 ){  for( N i = E_interrupt_S_gsi_ex_n + 16; i != E_interrupt_S_gsi_ex_n + E_interrupt_S_gsi_n; i++ )
         if( !E_interrupt_S_external[i] )
-            return E_interrupt_S_gsi_ex_n + i;
+            return i;
     return ~0;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
