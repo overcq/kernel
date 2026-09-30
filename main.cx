@@ -103,8 +103,8 @@ struct E_main_Z_kernel_args_Z_acpi
     N l;
   }ssdt_content[4];
   N ssdt_content_n;
-  N pm1a_control_block;
-  unsigned pm1a_control_block_mmio          :1;
+  N pm1a_control_block, pm1b_control_block;
+  B pm1a_control_block_mmio, pm1b_control_block_mmio;
   unsigned virt_guest_rtc_good              :1;
   unsigned virt_guest_pm_good               :1;
   unsigned smm_validate_fixed_comm_buffers  :1;
@@ -151,8 +151,9 @@ struct __attribute__ ((packed)) E_main_Z_gd
 _internal struct E_main_Z_gd E_main_S_gd;
 _internal volatile Pc *E_main_S_stack;
 _private N E_main_S_stack_pages;
-_private N E_main_S_pm1a_control_block;
-_private B E_main_S_pm1a_control_block_mmio;
+_private N E_main_S_pm1a_control_block, E_main_S_pm1b_control_block;
+_private B E_main_S_pm1a_control_block_mmio, E_main_S_pm1b_control_block_mmio;
+_private N8 E_main_S_slp_typa, E_main_S_slp_typb;
 //==============================================================================
 #define E_main_J_code_descriptor( base, limit ) (( (N)(limit) & (( 1 << 16 ) - 1 )) | (( (N)(base) & (( 1 << 24 ) - 1 )) << 16 ) | E_cpu_Z_gdt_Z_type_S_code | E_cpu_Z_gdt_S_code_data | E_cpu_Z_gdt_S_present | E_cpu_Z_gdt_Z_code_S_64bit | E_cpu_Z_gdt_S_granularity | ((( (N)(limit) >> 16 ) & (( 1 << 4 ) - 1 )) << ( 32 + 16 )) | (( (N)(base) >> 24 ) << ( 32 + 24 )))
 #define E_main_J_data_descriptor( base, limit ) (( (N)(limit) & (( 1 << 16 ) - 1 )) | (( (N)(base) & (( 1 << 24 ) - 1 )) << 16 ) | E_cpu_Z_gdt_Z_data_S_write | E_cpu_Z_gdt_S_code_data | E_cpu_Z_gdt_S_present | E_cpu_Z_gdt_S_granularity | ((( (N)(limit) >> 16 ) & (( 1 << 4 ) - 1 )) << ( 32 + 16 )) | (( (N)(base) >> 24 ) << ( 32 + 24 )))
@@ -279,20 +280,66 @@ E_main_Z_p_I_to_physical( P p
             return (P)( E_main_S_memory_map[i].physical_start + ( (N)p - E_main_S_memory_map[i].virtual_start ));
     return 0;
 }
+_internal
+N8
+E_main_Q_cmos_R( N8 reg
+){  E_main_I_out_8( 0x70, reg );
+    return E_main_I_in_8( 0x71 );
+}
+_internal
+N8
+E_main_I_bcd2bin( N8 v
+){  return ( v >> 4 ) * 10 + ( v & 0xf );
+}
 _private
 struct E_datetime_Z
 E_main_Z_datetime_R( void
-){  struct H_uefi_Z_time uefi_time;
-    S status = E_main_S_uefi_runtime_services.R_time( &uefi_time, 0 );
+){  if( E_main_S_uefi_runtime_services.R_time )
+    {   struct H_uefi_Z_time uefi_time;
+        S status = E_main_S_uefi_runtime_services.R_time( &uefi_time, 0 );
+        struct E_datetime_Z datetime =
+        { uefi_time.year
+        , uefi_time.month
+        , uefi_time.day
+        , uefi_time.hour
+        , uefi_time.minute
+        , uefi_time.second
+        , uefi_time.nanosecond
+        };
+        return datetime;
+    }
+    while( E_main_Q_cmos_R( 0xa ) & 0x80 )
+        __asm__ volatile (
+        "\n" "pause"
+        );
     struct E_datetime_Z datetime =
-    { uefi_time.year
-    , uefi_time.month
-    , uefi_time.day
-    , uefi_time.hour
-    , uefi_time.minute
-    , uefi_time.second
-    , uefi_time.nanosecond
+    { ( E_main_Q_cmos_R( 0x32 ) << 8 ) | E_main_Q_cmos_R(9)
+    , E_main_Q_cmos_R(8)
+    , E_main_Q_cmos_R(7)
+    , E_main_Q_cmos_R(4)
+    , E_main_Q_cmos_R(2)
+    , E_main_Q_cmos_R(0)
+    , 0
     };
+    N8 flags = E_main_Q_cmos_R( 0xb );
+    B pm = no;
+    if( flags & ( 1 << 1 ))
+    {   pm = !!( datetime.hour & ( 1 << 7 ));
+        datetime.hour = datetime.hour & ~( 1 << 7 );
+    }
+    if( !( flags & ( 1 << 2 ))) // BCD
+    {   datetime.year = ( E_main_I_bcd2bin( datetime.year >> 8 ) << 8 ) | E_main_I_bcd2bin( datetime.year & 0xff );
+        datetime.month = E_main_I_bcd2bin( datetime.month );
+        datetime.day = E_main_I_bcd2bin( datetime.day );
+        datetime.hour = E_main_I_bcd2bin( datetime.hour );
+        datetime.minute = E_main_I_bcd2bin( datetime.minute );
+        datetime.second = E_main_I_bcd2bin( datetime.second );
+    }
+    if(pm)
+        datetime.hour += 12;
+    datetime.year = ( datetime.year >> 8 ) * 100 + ( datetime.year & 0xff );
+    if( datetime.year < 100 )
+        datetime.year += 2000;
     return datetime;
 }
 _private
@@ -434,7 +481,9 @@ main( struct E_main_Z_kernel_args *kernel_args
     E_main_S_framebuffer = kernel_args->framebuffer;
     E_main_S_uefi_runtime_services = kernel_args->uefi_runtime_services;
     E_main_S_pm1a_control_block = kernel_args->acpi.pm1a_control_block;
+    E_main_S_pm1b_control_block = kernel_args->acpi.pm1b_control_block;
     E_main_S_pm1a_control_block_mmio = kernel_args->acpi.pm1a_control_block_mmio;
+    E_main_S_pm1b_control_block_mmio = kernel_args->acpi.pm1b_control_block_mmio;
     E_interrupt_Q_local_apic_S_address = kernel_args->local_apic_address;
     E_interrupt_Q_io_apic_S_address = kernel_args->io_apic_address;
     E_interrupt_S_gsi = kernel_args->gsi;

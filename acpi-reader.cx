@@ -1039,6 +1039,26 @@ E_acpi_reader_M( void
             }
         }
     }
+    if( !E_main_S_uefi_runtime_services.reset_system )
+    {   N object_i = E_acpi_aml_Q_object_R(( struct E_acpi_aml_Z_pathname ){ "_S5_", 1 } );
+        if( ~object_i )
+        {   struct E_acpi_aml_Z_value v;
+            if( E_acpi_aml_S_object[ object_i ].type == E_acpi_aml_Z_object_Z_type_S_procedure )
+                E_acpi_aml_I_procedure_( object_i, &v, 0, 0 );
+            else
+                v = E_acpi_aml_Q_object_I_to_value( object_i );
+            if( v.type == E_acpi_aml_Z_value_Z_type_S_package
+            && v.package->n >= 2
+            && v.package->value[0].type == E_acpi_aml_Z_value_Z_type_S_number
+            && v.package->value[1].type == E_acpi_aml_Z_value_Z_type_S_number
+            )
+            {   E_main_S_slp_typa = v.package->value[0].n;
+                E_main_S_slp_typb = v.package->value[1].n;
+            }
+            if( E_acpi_aml_S_object[ object_i ].type == E_acpi_aml_Z_object_Z_type_S_procedure )
+                E_acpi_aml_Q_value_W( &v );
+        }
+    }
     return 0;
 }
 /******************************************************************************/

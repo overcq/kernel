@@ -52,7 +52,7 @@ struct E_acpi_aml_Z_value
     P p;
     N n;
   };
-  N i; // Jeśli “type == E_acpi_aml_Z_value_Z_type_S_*_ref”, to przechowuje numer zmiennej, w przeciwnym przypadku jeśli wartość “!~0”, to jest indeksem obiektu.
+  N i; // Jeśli “type == E_acpi_aml_Z_value_Z_type_S_*_ref”, to przechowuje numer zmiennej, w przeciwnym przypadku jeśli wartość nie “~0”, to jest indeksem obiektu.
   enum E_acpi_aml_Z_value_Z_type type;
   B copy;
 };
@@ -150,8 +150,8 @@ _private
 struct E_acpi_aml_Z_object
 { struct E_acpi_aml_Z_pathname name; // Tablica posortowana według nazwy.
   P data;
-  N n; // Jeśli “type” równe “E_acpi_aml_Z_value_Z_type_S_string”, “E_acpi_aml_Z_value_Z_type_S_buffer” lub “E_acpi_aml_Z_value_Z_type_S_package”, to jest indeksem elementu obiektu; “~0” oznacza brak referencji do elementu.
-  N procedure_invocation; // Jeśli “!0”, to obiekt jest obiektem tymczasowym podczas wykonywania procedury umieszczonej na “E_acpi_aml_S_procedure_invocation_stack[ procedure_invocation ]”.
+  N n; // Jeśli “type” równe “E_acpi_aml_Z_object_Z_type_S_string”, “E_acpi_aml_Z_object_Z_type_S_buffer” lub “E_acpi_aml_Z_object_Z_type_S_package”, to jest indeksem elementu obiektu; “~0” oznacza brak referencji do elementu.
+  N procedure_invocation; // Jeśli nie 0, to obiekt jest obiektem tymczasowym podczas wykonywania procedury umieszczonej na “E_acpi_aml_S_procedure_invocation_stack[ procedure_invocation ]”.
   enum E_acpi_aml_S_object_Z_type type;
 } *E_acpi_aml_S_object;
 _private N E_acpi_aml_S_object_n;

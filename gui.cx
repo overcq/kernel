@@ -240,12 +240,21 @@ E_gui_Q_main_menu_I_shutdown( I window_id
     }
     if( E_main_S_uefi_runtime_services.reset_system )
     {   S status = E_main_S_uefi_runtime_services.reset_system( H_uefi_Z_reset_Z_shutdown, 0, 0, 0 );
-    }else if( E_main_S_pm1a_control_block_mmio )
-    {   N32 v = *( volatile N32 * )E_main_S_pm1a_control_block & ~(( 1 << 13 ) | ( 7 << 10 ));
-        *( volatile N32 * )E_main_S_pm1a_control_block = v | ( 7 << 10 );
-        *( volatile N32 * )E_main_S_pm1a_control_block = v | ( 1 << 13 ) | ( 7 << 10 );
     }else
-        E_main_I_out_16( E_main_S_pm1a_control_block, ( 1 << 13 ) | ( 7 << 10 ));
+    {   struct E_acpi_aml_Z_value v;
+        v.type = E_acpi_aml_Z_value_Z_type_S_number;
+        v.n = 5;
+        E_acpi_aml_I_procedure(( struct E_acpi_aml_Z_pathname ){ "_PTS", 1 }, &v, 1, &v );
+        if( E_main_S_pm1a_control_block_mmio )
+            *( volatile N32 * )E_main_S_pm1a_control_block = ( 1 << 13 ) | ( E_main_S_slp_typa << 10 );
+        else
+            E_main_I_out_16( E_main_S_pm1a_control_block, ( 1 << 13 ) | ( E_main_S_slp_typa << 10 ));
+        if( E_main_S_pm1b_control_block )
+            if( E_main_S_pm1b_control_block_mmio )
+                *( volatile N32 * )E_main_S_pm1b_control_block = ( 1 << 13 ) | ( E_main_S_slp_typb << 10 );
+            else
+                E_main_I_out_16( E_main_S_pm1b_control_block, ( 1 << 13 ) | ( E_main_S_slp_typb << 10 ));
+    }
     E_main_I_fatal();
 }
 _internal
